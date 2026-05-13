@@ -1,4 +1,16 @@
-from database import Base, engine
-from models import pedido
+from fastapi import FastAPI
 
-Base.metadata.create_all(bind=engine)
+from routes.webhook import router
+
+app = FastAPI()
+
+app.include_router(router)
+
+
+@app.get("/")
+def home():
+
+    return {
+        "message":
+        "CubaLink API"
+    }
