@@ -57,26 +57,27 @@ No realizamos entregas a domicilio para evitar costos adicionales en tu remesa.
 -------------------------------------------------------------------
 
 4. Creamos la orden en dependencia al servicio.
-*Transferencia.*
-XXX(numero de la tarjeta a transferir)
-*Móvil:* XXX
-*Monto CUP:* XXX
-*Pix:* XXX
-*Oferta:* XXX
+*Transferencia.* 
+XXX(numero de la tarjeta a transferir) 
+*Móvil:* XXX (Opcional) 
+*Monto CUP:* XXX (cantidad de dinero a acreditar, es calculado pix*oferta) 
+*Pix:* XXX (cantidad de dinero transferido por el cliente)
+*TIpo de Pago* (creo que seria bueno que añadieras mas pagos, para cuando no solamente me paguen por PIX) *Oferta:* XXX (en este caso es el valor que se va a pagar en cup, segun la foto 118, esto se usa junto con el *Pix* para calcula la ganancia)
+*Oferta:* XXX (taxa de cambio vigente)
 ---------------------
-*Saldo Móvil*
-*Número:* XXX
-*Saldo:* XXX
-*Pix:* XXX
+*Saldo Móvil* 
+*Número:* XXX (numero de telefono al que se acreditara el saldo) 
+*Saldo:* XXX (cantidad de dinero a acreditar, es calculado pix*oferta) 
+*Pix:* XXX (cantidad de dinero transferido por el cliente)
 ---------------------
 *Recoger de parte del Jireh*
-XXX CUP
+XXX CUP (cantidad de dinero a acreditar, es calculado pix*oferta) 
 Calle nueva #11 entre San Antonio y San Mateo. (Esta direccion cambia en dependencia de la direccion que escoja el cliente)
 Telf: 5 4079725 (depende de la direccion)
 Escribir y coordinar recogida solo por WhatsApp.
 Importante: Nada de palabra REMESAS, no preguntar a los vecinos.. y cualquier duda llamar directamente al número telefónico
-*Pix:* XXX
-*Oferta:* XXX
+*Pix:* XXX (cantidad de dinero transferido por el cliente)
+*Oferta:* XXX (taxa de cambio vigente)
 --------------------------
 
 5- Esa orden es enviada a realizarse dentro de otro grupo de whatsapp.
