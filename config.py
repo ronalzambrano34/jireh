@@ -3,6 +3,14 @@ import os
 
 load_dotenv()
 
-TOKEN = os.getenv("TOKEN")
-PHONE_ID = os.getenv("PHONE_ID")
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL"
+)
+
+TOKEN = os.getenv(
+    "TOKEN"
+)
+
+PHONE_ID = os.getenv(
+    "PHONE_ID"
+)

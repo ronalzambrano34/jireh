@@ -9,8 +9,6 @@ app.include_router(router)
 
 @app.get("/")
 def home():
-
     return {
-        "message":
-        "CubaLink API"
+        "message": "Jireh API"
     }
