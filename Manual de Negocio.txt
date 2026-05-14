@@ -1,0 +1,107 @@
+Proceso del negocio de remesas del  Jireh.
+
+1. Todo comienza con el calculo de los precios de las ofertas (se hace en un exel en datasheet).
+https://docs.google.com/spreadsheets/d/1HUDTbhPLdZsAGn_l6-iPQtcGWbE9G0Vq/edit?pli=1&gid=31712518#gid=31712518
+
+2. Luego se crea la publicacion con los precios actualizados. Se hace en el grupo de whatsapp business.
+https://chat.whatsapp.com/C2MrbsxlD0XA7Vzz39fNhG
+
+3. El cliente nos contacta, y lo atendemos con un autoresponder y unos mensajes predeterminados. 
+El Jireh Brasil 👑 ¡Bienvenido a El Jireh de Cuba! 👑 Tu remesa segura y en tiempo récord. ⚡️
+​¿Qué servicio deseas realizar? 👇
+​🔹1 -  Saldo | Saldo móvil al instante.
+🔹 2 - Efectivo | Entrega de dinero físico.
+🔹 3 - Transferencia | Envíos directos.
+🔹 4 - Divisa | Recarga de tarjetas (MLC / USD / Clásica).
+🔹 5 - Otros | Consultas personalizadas.
+
+3.1. El cliente selecciona el servicio y le mandamos los pasos a seguir.
+​💳 PASOS PARA TRANSFERENCIA A TARJETA (CUP)
+​Para procesar tu envío de forma digital, por favor sigue estas instrucciones:
+​1️⃣ Realiza la transferencia PIX:
+🔑 Llave PIX: 48991233191
+👤 Titular: Ronal Zambrano Ferrer
+​2️⃣ Envía los datos de la operación:
+📄 Comprobante del pago PIX.
+💳 Número de tarjeta CUP del beneficiario. (NO Foto)
+📱 Teléfono de contacto (Opcional).
+​⚠️ Información Importante:
+​Rapidez: Una vez recibido el comprobante, procesamos tu envío en menos de 10 minutos (sujeto a la estabilidad de las plataformas bancarias externas).
+​Seguridad: Verifique bien los dígitos de la tarjeta CUP antes de enviarlos para evitar errores en el depósito.
+​Confirmación: Te enviaremos el comprobante de la transferencia en cuanto la operación sea completada con éxito.
+--------------------------------------------------------------------
+​💵 PASOS PARA ENTREGA DE EFECTIVO (RECOGIDA)
+
+​Para procesar tu envío, por favor sigue estas instrucciones:
+​1️⃣ Realiza la transferencia PIX:
+🔑 Llave PIX: 48991233191 👤 Titular: Ronal Zambrano Ferrer
+​2️⃣ Envía los datos de la operación: 📄 Comprobante del pago PIX. 🆔 Carnet de Identidad de la persona que recibe.
+​📍 Puntos de Recogida disponibles:
+​Opción 1 (Sueño): Calle 2da No. 6 entre 6 y 7, Reparto Sueño. (Referencia: Detrás del Materno Norte).  ☎️+5353596149
+​Opción 2  : Calle nueva #11 entre San Antonio y San Mateo. ☎️+5354079725
+Horarios de entrega de 8am a 6pm.
+​⚠️ Notas muy importantes:
+​Instrucción de llegada: Al avisar a la persona que recibe, indíquele simplemente: "De parte de Jireh".
+​Seguridad: Por favor, evita usar la palabra "remesas" al llegar a las direcciones o al comunicarte por estas vías.
+​Logística: El beneficiario debe acudir directamente al punto de recogida.Si hay dudas con la dirección, puedes llamar o escribir por WhatsApp.
+​Rapidez: Una vez recibido el comprobante, gestionamos la entrega de forma inmediata.
+No realizamos entregas a domicilio para evitar costos adicionales en tu remesa.
+--------------------------------------------------------------------------------------------------
+​📱 PASOS PARA RECARGA DE SALDO
+​Para realizar tu recarga de telefonía o datos, por favor sigue estas instrucciones:
+​1️⃣ Realiza la transferencia PIX: 🔑 Llave PIX: 48991233191 👤 Titular: Ronal Zambrano Ferrer
+​2️⃣ Envía los datos de la operación: 📄 Comprobante del pago PIX. 📱 Número de teléfono a recargar.
+​⚠️ Información Importante:
+​Rapidez: La recarga se procesa de forma inmediata tras recibir el comprobante de pago.
+​Verificación: Asegúrate de que el número de teléfono sea correcto para garantizar que el saldo llegue al destino deseado.
+-------------------------------------------------------------------
+
+4. Creamos la orden en dependencia al servicio.
+*Transferencia.*
+XXX(numero de la tarjeta a transferir)
+*Móvil:* XXX
+*Monto CUP:* XXX
+*Pix:* XXX
+*Oferta:* XXX
+---------------------
+*Saldo Móvil*
+*Número:* XXX
+*Saldo:* XXX
+*Pix:* XXX
+---------------------
+*Recoger de parte del Jireh*
+XXX CUP
+Calle nueva #11 entre San Antonio y San Mateo. (Esta direccion cambia en dependencia de la direccion que escoja el cliente)
+Telf: 5 4079725 (depende de la direccion)
+Escribir y coordinar recogida solo por WhatsApp.
+Importante: Nada de palabra REMESAS, no preguntar a los vecinos.. y cualquier duda llamar directamente al número telefónico
+*Pix:* XXX
+*Oferta:* XXX
+--------------------------
+
+5- Esa orden es enviada a realizarse dentro de otro grupo de whatsapp.
+https://chat.whatsapp.com/K2mp7DMOook8jWH9yq2YPV (Operaciones a realizar)
+
+6. Se realiza la Operacion y en el mismo grupo me envian el comprobante (captura de pantalla), el cual le envio al cliente con un mensaje de OK.
+​🏁 ¡Listo! Dinero acreditado. ⚡️
+
+​Te adjunto el comprobante. 
+Si estás satisfecho con la rapidez de nuestro servicio... ¡recomiéndanos con tus amigos y familiares! 🗣️
+
+🔗 Únete a nuestro grupo de Remesas:
+https://chat.whatsapp.com/C2MrbsxlD0XA7Vzz39fNhG
+
+​Gracias por elegir El Jireh de Cuba. 👑
+
+7. Para finalizar el tramite, el comprobante que se envia al grupo de Operaciones a Realizar, tambien lo envio a otro grupo de whatsapp llamado Operaciones Finalizadas.
+https://chat.whatsapp.com/JlzYU62rFmrExNqaxSwLqL
+
+8. Del grupo Operaciones Realizadas, se pasan los datos hacia otra hoja en el exel, el cual es el informe de ventas, ganancias, etc.
+https://docs.google.com/spreadsheets/d/1HUDTbhPLdZsAGn_l6-iPQtcGWbE9G0Vq/edit?pli=1&gid=1172835479#gid=1172835479
+
+9. Lo que tengo pensado, Para la primera Etapa es comenzar haciendo un sistema que maneje ese flujo, una web para crear y manejar las operaciones de forma mas facil, estilo formulario y que se envie a los grupos las oeraciones.
+Segunda Etapa es que no se usen los grupos de operaciones y que todos utilicen el sistema para trabajar los estados de los pedidos dentro del mismo sistema WEB. En esta etapa, los trabajadores ya tienen un sistema de login, en el que se registran y es utilizado, para llevar la contabilidad, trazabilidad  y el control de las opreaciones que realizan.  
+
+Tercera Etapa es que el sistema tenga un login. Para que los mismos clientes accedan al sitio y realicen sus pedidos directo de la Web.
+
+Tambien tengo pensado un sistema de referidos, Bono de Referidos, Ofertas especiales, Promociones, Descuento de miembro nuevo. Y en el final del sistema, una apk y vinculaciond de pasarela de pago para que el servicio sea totalmente autonomo.
