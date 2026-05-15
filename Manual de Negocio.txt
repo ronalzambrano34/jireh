@@ -106,3 +106,374 @@ Segunda Etapa es que no se usen los grupos de operaciones y que todos utilicen e
 Tercera Etapa es que el sistema tenga un login. Para que los mismos clientes accedan al sitio y realicen sus pedidos directo de la Web.
 
 Tambien tengo pensado un sistema de referidos, Bono de Referidos, Ofertas especiales, Promociones, Descuento de miembro nuevo. Y en el final del sistema, una apk y vinculaciond de pasarela de pago para que el servicio sea totalmente autonomo.
+
+
+
+OJO, esto fue una revision y sugerencias que me dio chatGPT, confiere que falta, que ya esta hecho y si ha sido optimizado.
+
+1. Estados del pedido (RECOMENDADOS)
+Te recomiendo:
+CREADO
+PENDIENTE_PAGO
+PAGO_CONFIRMADO
+EN_OPERACION
+COMPLETADO
+CANCELADO
+ERROR_OPERACION
+REEMBOLSO
+
+Flujo real
+Cliente escribe
+↓
+CREADO
+
+Cliente manda comprobante
+↓
+PAGO_CONFIRMADO
+
+Se envía al grupo Operaciones
+↓
+EN_OPERACION
+
+Operador hace la operación
+↓
+COMPLETADO
+
+Se manda comprobante al cliente
+↓
+ARCHIVADO
+
+
+2. Tipo de pago
+
+PIX
+Transferencia bancaria
+Mercado Pago
+Efectivo
+Banco Itaú
+Banco República Uruguay
+Crypto
+Zelle
+
+3. Tipo de moneda del cliente
+
+Esto falta.
+
+Ejemplo:
+
+Un cliente puede pagar:
+
+100 BRL o 800 UYU
+
+pero recibir: 11800 CUP
+
+Necesitas guardar:
+
+moneda_pago
+monto_pago
+moneda_destino
+monto_destino
+
+
+4. Oferta congelada en el pedido (MUY IMPORTANTE)
+
+Esto es crítico en remesas.
+
+No basta con guardar:
+
+oferta_id
+
+Porque la oferta cambia.
+
+Debes congelar el valor usado:
+
+Pedido:
+
+tasa_aplicada = 118
+
+Porque si mañana cambia a:
+
+120
+
+tu historial queda roto.
+
+Ejemplo real:
+
+Cliente pagó cuando:
+
+1 BRL = 118 CUP
+
+No puedes recalcular luego con:
+
+120
+5. Operador asignado
+
+Etapa 2 te lo va a exigir.
+
+Hoy el grupo hace todo.
+
+Mañana:
+
+Pedido → Operador
+
+Ejemplo:
+
+Ronal
+Maykol
+Operador Santiago
+Operador Habana
+
+Modelo:
+
+usuario_asignado_id
+
+y
+
+fecha_asignacion
+6. Puntos de recogida dinámicos
+
+Ahora están hardcodeados.
+
+Eso luego será un dolor.
+
+Haz tabla:
+
+PuntoRecogida
+
+Campos:
+
+nombre
+direccion
+telefono
+horario
+activo
+ciudad
+instrucciones
+
+Ejemplo:
+
+Sueño
+Calle 2da No.6
+5353596149
+8am–6pm
+activo=True
+
+Cuando el cliente elige:
+
+punto_recogida_id
+
+El mensaje se construye automático.
+
+7. Plantillas de mensajes (MUY NECESARIO)
+
+Esto lo mencionaste.
+
+Debes tener:
+
+mensaje_bienvenida
+mensaje_transferencia
+mensaje_efectivo
+mensaje_saldo
+mensaje_completado
+mensaje_operaciones
+
+con placeholders:
+
+Hola {nombre}
+
+Tu pedido de {monto_pago} {moneda_pago}
+equivale a {monto_cup} CUP.
+
+Porque seguro cambiarás textos 100 veces.
+
+8. Evidencias / comprobantes
+
+Importantísimo.
+
+Necesitas tabla:
+
+ArchivoPedido
+
+Ejemplo:
+
+comprobante_cliente
+captura_operador
+comprobante_final
+
+Campos:
+
+pedido_id
+tipo
+ruta_archivo
+fecha
+usuario_id
+
+Porque WhatsApp no es historial confiable.
+
+9. Auditoría / logs
+
+Cuando empieces a tener trabajadores:
+
+Necesitas saber:
+
+Quién cambió qué
+Cuándo
+Desde qué estado
+
+Ejemplo:
+
+Pedido 291
+EN_OPERACION → COMPLETADO
+Usuario: Leslie
+Hora: 14:33
+
+Tabla:
+
+PedidoHistorial
+10. Sistema antifraude / errores
+
+Debes prevenir:
+
+Doble comprobante
+
+Cliente intenta reutilizar screenshot.
+
+Pedido duplicado
+
+2 operadores ejecutan el mismo pedido.
+
+Error humano
+
+Tarjeta mal escrita.
+
+Añade:
+
+bloqueado
+requiere_revision
+observaciones
+11. Número único de pedido
+
+MUY necesario.
+
+Ejemplo:
+
+JRH-20260515-00091
+
+Cliente dice:
+
+Mi pedido 91
+
+y lo encuentras rápido.
+
+12. Ganancias reales
+
+Tu Excel ya lo hace.
+
+Pero modela:
+
+Pedido:
+
+monto_pago
+tasa_aplicada
+monto_entregado
+costo_operacion
+ganancia
+
+Ejemplo:
+
+100 BRL
+tasa 118
+
+cliente recibe:
+11800 CUP
+
+operador entregó:
+11600 CUP
+
+ganancia:
+200 CUP equivalente
+13. Sistema de permisos (Etapa 2)
+
+No todos deben ver todo.
+
+Roles:
+
+ADMIN
+OPERADOR
+CAJERO
+SUPERVISOR
+ATENCION_CLIENTE
+14. Canales
+
+Hoy:
+
+WhatsApp
+
+Mañana:
+
+Web
+Telegram
+Instagram
+APK
+
+Pedido:
+
+canal_origen
+Arquitectura recomendada
+
+Tus modelos principales deberían ser:
+
+Cliente
+Pedido
+PedidoHistorial
+Oferta
+MetodoPago
+PuntoRecogida
+Operador
+Usuario
+Configuracion
+ArchivoPedido
+PaqueteSaldo
+Promocion
+BonoReferido
+Mi recomendación fuerte
+
+Antes de seguir programando:
+
+Haz un documento funcional del sistema.
+
+Porque ya estás construyendo algo serio, no un CRUD.
+
+Define:
+
+entidades
+flujo
+estados
+reglas de negocio
+permisos
+automatizaciones
+mensajes
+cálculos
+
+Eso te va a ahorrar meses de refactor.
+
+Tu negocio ya tiene potencial real de convertirse en una mini-fintech de remesas para Cuba si la arquitectura nace bien desde esta Etapa 1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
