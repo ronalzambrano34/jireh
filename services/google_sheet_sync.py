@@ -6,9 +6,13 @@ from models.oferta import Oferta
 from models.paquete_saldo import (
     PaqueteSaldo
 )
+from services.db_maintenance import ensure_runtime_columns
+from services.monedas import normalizar_moneda
 
 
 SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
+ORIGEN_GOOGLE_SHEET = "google_sheet"
+
 
 def safe_float(value):
     if value is None:
@@ -21,12 +25,114 @@ def safe_float(value):
     except ValueError:
         return 0.0
 
+
 def get_col(row, index, default=""):
     return row[index].strip() if len(row) > index else default
+
+
+def get_moneda(
+    row,
+    fallback="BRL"
+):
+    for cell in row:
+        moneda = normalizar_moneda(
+            cell,
+            default=""
+        )
+
+        if moneda:
+            return moneda
+
+    return fallback
+
+
+def upsert_oferta_sheet(
+    db: Session,
+    servicio: str,
+    nombre: str,
+    item: dict
+):
+    oferta = (
+        db.query(
+            Oferta
+        )
+        .filter(
+            Oferta.origen == ORIGEN_GOOGLE_SHEET,
+            Oferta.servicio == servicio,
+            Oferta.minimo_pago == item["minimo"],
+            Oferta.moneda_pago == item["moneda"]
+        )
+        .order_by(
+            Oferta.activa.desc()
+        )
+        .first()
+    )
+
+    if not oferta:
+        oferta = Oferta(
+            servicio=servicio,
+            nombre=nombre,
+            minimo_pago=item["minimo"],
+            moneda_pago=item["moneda"]
+        )
+
+        db.add(
+            oferta
+        )
+
+    oferta.nombre = nombre
+    oferta.tasa = item["tasa"]
+    oferta.origen = ORIGEN_GOOGLE_SHEET
+    oferta.activa = True
+
+    return oferta
+
+
+def upsert_paquete_saldo_sheet(
+    db: Session,
+    item: dict
+):
+    paquete = (
+        db.query(
+            PaqueteSaldo
+        )
+        .filter(
+            PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET,
+            PaqueteSaldo.monto_pago == item["monto_pago"],
+            PaqueteSaldo.moneda_pago == item["moneda"],
+            PaqueteSaldo.saldo_cup == item["cup"]
+        )
+        .order_by(
+            PaqueteSaldo.activo.desc()
+        )
+        .first()
+    )
+
+    if not paquete:
+        paquete = PaqueteSaldo(
+            monto_pago=item["monto_pago"],
+            moneda_pago=item["moneda"],
+            saldo_cup=item["cup"]
+        )
+
+        db.add(
+            paquete
+        )
+
+    paquete.nombre = f'{item["cup"]} CUP'
+    paquete.origen = ORIGEN_GOOGLE_SHEET
+    paquete.activo = True
+
+    return paquete
+
 
 def sync_ofertas(
     db: Session
 ):
+
+    ensure_runtime_columns(
+        db
+    )
 
     gc = gspread.service_account(
         filename="credentials.json"
@@ -58,6 +164,10 @@ def sync_ofertas(
             else ""
         )
 
+        moneda_titulo = get_moneda(
+            row
+        )
+
         # ---------- TRANSFERENCIA ----------
 
         if (
@@ -75,9 +185,13 @@ def sync_ofertas(
                 if oferta:
                     transferencia.append({
                         "minimo": minimo,
-                        "tasa": safe_float(oferta)
+                        "tasa": safe_float(oferta),
+                        "moneda": get_moneda(
+                            r,
+                            moneda_titulo
+                        )
                     })
-                    
+
         # ---------- EFECTIVO ----------
 
         if (
@@ -95,9 +209,13 @@ def sync_ofertas(
                 if oferta:
                     efectivo.append({
                         "minimo": minimo,
-                        "tasa": safe_float(oferta)
+                        "tasa": safe_float(oferta),
+                        "moneda": get_moneda(
+                            r,
+                            moneda_titulo
+                        )
                     })
-        
+
         # ---------- SALDO ----------
 
         if (
@@ -108,108 +226,75 @@ def sync_ofertas(
             for j in range(i + 3, min(i + 7, len(rows))):
                 r = rows[j]
 
-                pix = get_col(r, 3)
+                monto_pago = get_col(r, 3)
                 cup = get_col(r, 11)
 
-                if pix and cup:
+                if monto_pago and cup:
                     saldo.append({
-                        "pix": safe_float(pix),
-                        "cup": int(safe_float(cup))
+                        "monto_pago": safe_float(monto_pago),
+                        "cup": int(safe_float(cup)),
+                        "moneda": get_moneda(
+                            r,
+                            moneda_titulo
+                        )
                     })
 
-    # limpiar ofertas viejas
+    # El sync solo desactiva registros que el propio sync creo antes.
 
     db.query(
         Oferta
+    ).filter(
+        Oferta.origen == ORIGEN_GOOGLE_SHEET,
+        Oferta.servicio.in_(
+            [
+                "transferencia",
+                "efectivo"
+            ]
+        )
     ).update(
         {
-            "activa":
-            False
-        }
+            "activa": False
+        },
+        synchronize_session=False
     )
-
-    db.commit()
-
-    # insertar transferencias
-
-    for item in transferencia:
-
-        nueva = Oferta(
-
-            servicio=
-            "transferencia",
-
-            nombre=
-            "Transferencia",
-
-            tasa=
-            item["tasa"],
-
-            minimo_brl=
-            item["minimo"],
-
-            activa=True
-        )
-
-        db.add(
-            nueva
-        )
-
-    # insertar efectivo
-
-    for item in efectivo:
-
-        nueva = Oferta(
-
-            servicio=
-            "efectivo",
-
-            nombre=
-            "Efectivo",
-
-            tasa=
-            item["tasa"],
-
-            minimo_brl=
-            item["minimo"],
-
-            activa=True
-        )
-
-        db.add(
-            nueva
-        )
-
-    # limpiar saldo
 
     db.query(
         PaqueteSaldo
-    ).delete()
+    ).filter(
+        PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET
+    ).update(
+        {
+            "activo": False
+        },
+        synchronize_session=False
+    )
 
-    db.commit()
+    # crear o reactivar transferencias
 
-    # insertar saldo
-
-    for item in saldo:
-
-        paquete = (
-            PaqueteSaldo(
-
-                nombre=
-                f'{item["cup"]} CUP',
-
-                pix_brl=
-                item["pix"],
-
-                saldo_cup=
-                item["cup"],
-
-                activo=True
-            )
+    for item in transferencia:
+        upsert_oferta_sheet(
+            db,
+            "transferencia",
+            "Transferencia",
+            item
         )
 
-        db.add(
-            paquete
+    # crear o reactivar efectivo
+
+    for item in efectivo:
+        upsert_oferta_sheet(
+            db,
+            "efectivo",
+            "Efectivo",
+            item
+        )
+
+    # crear o reactivar paquetes de saldo
+
+    for item in saldo:
+        upsert_paquete_saldo_sheet(
+            db,
+            item
         )
 
     db.commit()

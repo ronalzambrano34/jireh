@@ -13,6 +13,30 @@ from models.punto_recogida import (
 from services.generador_codigo import (
     generar_codigo_operacion
 )
+from services.configuracion_service import (
+    render_template
+)
+from services.monedas import normalizar_moneda
+
+
+MENSAJE_EFECTIVO_DEFAULT = """
+*Recoger de parte del Jireh*
+
+{monto_cup} CUP
+
+{direccion}
+
+Telf: {telefono_punto}
+
+Escribir y coordinar recogida solo por WhatsApp.
+
+Importante:
+Nada de palabra REMESAS, no preguntar a los vecinos y cualquier duda llamar directamente.
+
+*Pago:* {monto_pago} {moneda_pago}
+
+*Oferta:* {tasa}
+"""
 
 
 def crear_pedido_efectivo(
@@ -20,17 +44,25 @@ def crear_pedido_efectivo(
     data
 ):
 
+    moneda_pago = normalizar_moneda(
+        data.moneda_pago
+    )
+
+    monto_pago = data.monto_pago
+
     oferta = (
         db.query(Oferta)
         .filter(
             Oferta.servicio
             == "efectivo",
             Oferta.activa == True,
-            Oferta.minimo_brl
-            <= data.pix
+            Oferta.moneda_pago
+            == moneda_pago,
+            Oferta.minimo_pago
+            <= monto_pago
         )
         .order_by(
-            Oferta.minimo_brl.desc()
+            Oferta.minimo_pago.desc()
         )
         .first()
     )
@@ -38,7 +70,8 @@ def crear_pedido_efectivo(
     if not oferta:
 
         raise Exception(
-            "No existe oferta activa"
+            "No existe oferta activa para efectivo "
+            f"en {moneda_pago} con monto minimo <= {monto_pago}"
         )
 
     operador = (
@@ -74,7 +107,7 @@ def crear_pedido_efectivo(
         )
 
     monto_cup = (
-        data.pix
+        monto_pago
         *
         oferta.tasa
     )
@@ -96,7 +129,9 @@ def crear_pedido_efectivo(
 
         estado="pendiente",
 
-        monto_brl=data.pix,
+        monto_pago=monto_pago,
+
+        moneda_pago=moneda_pago,
 
         tipo_pago_id=data.tipo_pago_id,
 
@@ -138,24 +173,20 @@ def crear_pedido_efectivo(
 
     db.commit()
 
-    mensaje = f"""
-*Recoger de parte del Jireh*
-
-{monto_cup} CUP
-
-{punto.direccion}
-
-Telf: {punto.telefono}
-
-Escribir y coordinar recogida solo por WhatsApp.
-
-Importante:
-Nada de palabra REMESAS, no preguntar a los vecinos y cualquier duda llamar directamente.
-
-*Pix:* {data.pix}
-
-*Oferta:* {oferta.tasa}
-"""
+    mensaje = render_template(
+        db,
+        "mensaje_efectivo",
+        MENSAJE_EFECTIVO_DEFAULT,
+        {
+            "monto_cup": monto_cup,
+            "direccion": punto.direccion,
+            "telefono_punto": punto.telefono or "",
+            "monto_pago": monto_pago,
+            "moneda_pago": moneda_pago,
+            "tasa": oferta.tasa,
+            "codigo": codigo
+        }
+    )
 
     return {
 

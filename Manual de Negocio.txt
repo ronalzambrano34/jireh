@@ -1,4 +1,4 @@
-Proceso del negocio de remesas del  Jireh.
+Proceso del negocio de remesas para Cuba del Jireh Brasil / Uruguay.
 
 1. Todo comienza con el calculo de los precios de las ofertas (se hace en un exel en datasheet).
 https://docs.google.com/spreadsheets/d/1HUDTbhPLdZsAGn_l6-iPQtcGWbE9G0Vq/edit?pli=1&gid=31712518#gid=31712518

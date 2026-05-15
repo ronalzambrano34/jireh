@@ -5,14 +5,8 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-
-from schemas.pedido_efectivo import (
-    PedidoEfectivoCreate
-)
-
-from services.pedido_efectivo_service import (
-    crear_pedido_efectivo
-)
+from schemas.pedido_saldo import PedidoSaldoCreate
+from services.pedido_saldo_service import crear_pedido_saldo
 
 router = APIRouter(
     prefix="/pedido",
@@ -21,22 +15,18 @@ router = APIRouter(
 
 
 @router.post(
-    "/efectivo"
+    "/saldo"
 )
-def crear_efectivo(
-    data:
-    PedidoEfectivoCreate,
+def crear_saldo(
+    data: PedidoSaldoCreate,
     db: Session = Depends(
         get_db
     )
 ):
-
     try:
-        return (
-            crear_pedido_efectivo(
-                db,
-                data
-            )
+        return crear_pedido_saldo(
+            db,
+            data
         )
     except Exception as exc:
         raise HTTPException(

@@ -47,8 +47,14 @@ class Pedido(Base):
         default="pendiente"
     )
 
-    monto_brl = Column(
+    monto_pago = Column(
         Float,
+        nullable=False
+    )
+
+    moneda_pago = Column(
+        String,
+        default="BRL",
         nullable=False
     )
 

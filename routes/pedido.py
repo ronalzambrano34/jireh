@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import HTTPException
 
 from sqlalchemy.orm import Session
 
@@ -30,9 +31,15 @@ def crear_transferencia(
     )
 ):
 
-    return (
-        crear_pedido_transferencia(
-            db,
-            data
+    try:
+        return (
+            crear_pedido_transferencia(
+                db,
+                data
+            )
         )
-    )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc

@@ -4,7 +4,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 
-class PedidoTransferenciaCreate(
+class PedidoSaldoCreate(
     BaseModel
 ):
 
@@ -12,7 +12,16 @@ class PedidoTransferenciaCreate(
         populate_by_name=True
     )
 
-    monto_pago: float = Field(
+    numero_telefono: str
+
+    tipo_pago_id: int
+
+    operador_codigo: str
+
+    paquete_saldo_id: int | None = None
+
+    monto_pago: float | None = Field(
+        default=None,
         validation_alias=AliasChoices(
             "monto_pago",
             "pix"
@@ -20,11 +29,3 @@ class PedidoTransferenciaCreate(
     )
 
     moneda_pago: str = "BRL"
-
-    numero_tarjeta: str
-
-    telefono: str | None = None
-
-    tipo_pago_id: int
-
-    operador_codigo: str

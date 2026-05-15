@@ -30,10 +30,15 @@ class PaqueteSaldo(Base):
         Numeric(10, 2),
         nullable=False
     )
-    
+
     moneda_pago = Column(
         String,
         default="BRL"
+    )
+
+    origen = Column(
+        String,
+        default="manual"
     )
 
     saldo_cup = Column(

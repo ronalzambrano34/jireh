@@ -37,10 +37,15 @@ class Oferta(Base):
         Float,
         default=0
     )
-    
+
     moneda_pago = Column(
         String,
         default="BRL"
+    )
+
+    origen = Column(
+        String,
+        default="manual"
     )
 
     activa = Column(

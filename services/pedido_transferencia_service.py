@@ -10,6 +10,25 @@ from models.pedido_transferencia import (
 from services.generador_codigo import (
     generar_codigo_operacion
 )
+from services.configuracion_service import (
+    render_template
+)
+from services.monedas import normalizar_moneda
+
+
+MENSAJE_TRANSFERENCIA_DEFAULT = """
+*Transferencia.*
+
+{numero_tarjeta}
+
+*Móvil:* {telefono}
+
+*Monto CUP:* {monto_cup}
+
+*Pago:* {monto_pago} {moneda_pago}
+
+*Oferta:* {tasa}
+"""
 
 
 def crear_pedido_transferencia(
@@ -17,17 +36,25 @@ def crear_pedido_transferencia(
     data
 ):
 
+    moneda_pago = normalizar_moneda(
+        data.moneda_pago
+    )
+
+    monto_pago = data.monto_pago
+
     oferta = (
         db.query(Oferta)
         .filter(
             Oferta.servicio
             == "transferencia",
             Oferta.activa == True,
-            Oferta.minimo_brl
-            <= data.pix
+            Oferta.moneda_pago
+            == moneda_pago,
+            Oferta.minimo_pago
+            <= monto_pago
         )
         .order_by(
-            Oferta.minimo_brl.desc()
+            Oferta.minimo_pago.desc()
         )
         .first()
     )
@@ -35,7 +62,8 @@ def crear_pedido_transferencia(
     if not oferta:
 
         raise Exception(
-            "No existe oferta activa"
+            "No existe oferta activa para transferencia "
+            f"en {moneda_pago} con monto minimo <= {monto_pago}"
         )
 
     operador = (
@@ -54,7 +82,7 @@ def crear_pedido_transferencia(
         )
 
     monto_cup = (
-        data.pix
+        monto_pago
         *
         oferta.tasa
     )
@@ -76,7 +104,9 @@ def crear_pedido_transferencia(
 
         estado="pendiente",
 
-        monto_brl=data.pix,
+        monto_pago=monto_pago,
+
+        moneda_pago=moneda_pago,
 
         tipo_pago_id=data.tipo_pago_id,
 
@@ -113,23 +143,26 @@ def crear_pedido_transferencia(
 
     db.commit()
 
+    mensaje = render_template(
+        db,
+        "mensaje_transferencia",
+        MENSAJE_TRANSFERENCIA_DEFAULT,
+        {
+            "numero_tarjeta": data.numero_tarjeta,
+            "telefono": data.telefono or "",
+            "monto_cup": monto_cup,
+            "monto_pago": monto_pago,
+            "moneda_pago": moneda_pago,
+            "tasa": oferta.tasa,
+            "codigo": codigo
+        }
+    )
+
     return {
 
         "codigo":
         codigo,
 
         "mensaje":
-        f"""
-*Transferencia.*
-
-{data.numero_tarjeta}
-
-*Móvil:* {data.telefono}
-
-*Monto CUP:* {monto_cup}
-
-*Pix:* {data.pix}
-
-*Oferta:* {oferta.tasa}
-"""
+        mensaje
     }
