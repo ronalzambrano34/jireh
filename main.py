@@ -23,6 +23,7 @@ from routes.pedido import (router as pedido_router)
 from routes.operador import (router as operador_router)
 from routes.pedido_efectivo import (router as efectivo_router)
 from routes.pedido_saldo import (router as saldo_router)
+from routes.pedido_divisa import (router as divisa_router)
 from routes.configuracion import (router as configuracion_router)
 
 
@@ -49,6 +50,7 @@ app.include_router(pedido_router)
 app.include_router(operador_router)
 app.include_router(efectivo_router)
 app.include_router(saldo_router)
+app.include_router(divisa_router)
 app.include_router(configuracion_router)
 app.include_router(webhook_router)
 
