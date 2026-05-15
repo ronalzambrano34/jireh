@@ -1,17 +1,19 @@
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import String
-from sqlalchemy import Float
 from sqlalchemy import Boolean
+from sqlalchemy import Numeric
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
 
 from database import Base
 
 
-class Oferta(Base):
+class PaqueteSaldo(Base):
 
-    __tablename__ = "ofertas"
+    __tablename__ = (
+        "paquetes_saldo"
+    )
 
     id = Column(
         Integer,
@@ -19,23 +21,14 @@ class Oferta(Base):
         index=True
     )
 
-    servicio = Column(
+    nombre = Column(
         String,
         nullable=False
     )
 
-    nombre = Column(
-        String
-    )
-
-    tasa = Column(
-        Float,
+    monto_pago = Column(
+        Numeric(10, 2),
         nullable=False
-    )
-
-    minimo_pago = Column(
-        Float,
-        default=0
     )
     
     moneda_pago = Column(
@@ -43,7 +36,12 @@ class Oferta(Base):
         default="BRL"
     )
 
-    activa = Column(
+    saldo_cup = Column(
+        Integer,
+        nullable=False
+    )
+
+    activo = Column(
         Boolean,
         default=True
     )

@@ -18,6 +18,13 @@ from models.pedido_saldo import (PedidoSaldo)
 from models.pedido_efectivo import (PedidoEfectivo)
 from models.pedido_divisa import (PedidoDivisa)
 
+from routes.pedido import (router as pedido_router)
+from routes.operador import (router as operador_router)
+from routes.pedido_efectivo import (router as efectivo_router)
+
+
+from routes.sync import (router as sync_router)
+
 
 print(DATABASE_URL)
 
@@ -28,7 +35,11 @@ Base.metadata.create_all(
     bind=engine
 )
 
-app.include_router(router)
+app.include_router(pedido_router)
+app.include_router(operador_router)
+app.include_router(efectivo_router)
+
+app.include_router(sync_router)
 
 
 @app.get("/")

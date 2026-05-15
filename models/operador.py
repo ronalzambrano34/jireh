@@ -26,7 +26,8 @@ class Operador(Base):
     codigo_operador = Column(
         String,
         unique=True,
-        nullable=False
+        nullable=False,
+        index=True
     )
 
     telefono = Column(
@@ -43,3 +44,4 @@ class Operador(Base):
         DateTime,
         server_default=func.now()
     )
+    
