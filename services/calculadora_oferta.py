@@ -56,7 +56,8 @@ def calcular_transferencia_efectivo(
     db: Session,
     servicio: str,
     moneda_pago: str,
-    monto_pago: float
+    monto_pago: float,
+    bonificacion_manual: float = 0
 ):
 
     oferta = buscar_oferta(
@@ -70,12 +71,19 @@ def calcular_transferencia_efectivo(
         oferta.tasa
     )
 
-    bonificacion = float(
-        getattr(
-            oferta,
-            "bonificacion",
-            0
-        ) or 0
+    bonificacion = (
+        float(
+            getattr(
+                oferta,
+                "bonificacion",
+                0
+            ) or 0
+        )
+        +
+        float(
+            bonificacion_manual
+            or 0
+        )
     )
 
     tasa_final = (
@@ -83,7 +91,12 @@ def calcular_transferencia_efectivo(
         + bonificacion
     )
 
-    ganancia = (
+    monto_resultado = round(
+        monto_pago
+        * tasa_final
+    )
+
+    ganancia = round(
         monto_pago
         *
         float(
@@ -92,15 +105,12 @@ def calcular_transferencia_efectivo(
                 "ganancia",
                 0
             ) or 0
-        )
+        ),
+        2
     )
 
-    monto_resultado = (
-        monto_pago
-        * tasa_final
-    )
-    
     return {
+
         "oferta_id":
         oferta.id,
 
@@ -114,15 +124,10 @@ def calcular_transferencia_efectivo(
         tasa_final,
 
         "monto_resultado":
-        round(
-            monto_resultado
-        ),
+        monto_resultado,
 
         "ganancia":
-        round(
-            ganancia,
-            2
-        )
+        ganancia
     }
 
 
@@ -184,7 +189,8 @@ def calcular_operacion(
     db: Session,
     servicio: str,
     moneda_pago: str,
-    monto_pago: float
+    monto_pago: float,
+    bonificacion_manual: float = 0
 ):
 
     servicio = (
@@ -202,7 +208,9 @@ def calcular_operacion(
             db=db,
             servicio=servicio,
             moneda_pago=moneda_pago,
-            monto_pago=monto_pago
+            monto_pago=monto_pago,
+            bonificacion_manual=
+            bonificacion_manual
         )
 
     if servicio == "saldo":
@@ -216,3 +224,4 @@ def calcular_operacion(
     raise Exception(
         "Servicio no soportado"
     )
+
