@@ -1,3 +1,4 @@
+from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import Integer
@@ -10,7 +11,9 @@ from database import Base
 
 class Configuracion(Base):
 
-    __tablename__ = "configuraciones"
+    __tablename__ = (
+        "configuraciones"
+    )
 
     id = Column(
         Integer,
@@ -28,6 +31,16 @@ class Configuracion(Base):
     valor = Column(
         Text,
         nullable=False
+    )
+
+    editable = Column(
+        Boolean,
+        default=True
+    )
+
+    descripcion = Column(
+        Text,
+        nullable=True
     )
 
     created_at = Column(
