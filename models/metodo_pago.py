@@ -1,14 +1,28 @@
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import Boolean
+from sqlalchemy import (
+    Boolean
+)
+from sqlalchemy import (
+    Column
+)
+from sqlalchemy import (
+    Integer
+)
+from sqlalchemy import (
+    String
+)
 
-from database import Base
+from database import (
+    Base
+)
 
 
-class MetodoPago(Base):
+class MetodoPago(
+    Base
+):
 
-    __tablename__ = "metodos_pago"
+    __tablename__ = (
+        "metodos_pago"
+    )
 
     id = Column(
         Integer,
@@ -18,8 +32,14 @@ class MetodoPago(Base):
 
     nombre = Column(
         String,
-        unique=True,
-        nullable=False
+        nullable=False,
+        index=True
+    )
+
+    moneda = Column(
+        String,
+        nullable=False,
+        index=True
     )
 
     activo = Column(
