@@ -6,6 +6,9 @@ from models.pedido_efectivo import PedidoEfectivo
 from models.pedido_saldo import PedidoSaldo
 from models.pedido_transferencia import PedidoTransferencia
 
+from datetime import datetime
+from models.pedido_historial import (PedidoHistorial)
+from services.pedido_estado import (PedidoEstado)
 
 ESTADOS_PERMITIDOS = {
     "pendiente",
@@ -17,9 +20,7 @@ ESTADOS_PERMITIDOS = {
     "error",
 }
 
-ESTADOS_ALIASES = {
-    "completado": "finalizado",
-}
+ESTADOS_ALIASES = {"completado": "finalizado",}
 
 
 def pedido_base_dict(
@@ -270,15 +271,22 @@ def actualizar_estado_pedido(
     db: Session,
     codigo_operacion: str,
     estado: str,
-    comprobante_pago: str | None = None
+    comprobante_pago: str | None = None,
+    usuario: str | None = None,
+    comentario: str | None = None
 ):
+
     estado_normalizado = (
         estado
         .strip()
         .lower()
     )
 
-    if estado_normalizado not in ESTADOS_PERMITIDOS:
+    if (
+        estado_normalizado
+        not in
+        ESTADOS_PERMITIDOS
+    ):
         raise Exception(
             "Estado no permitido. Use: "
             + ", ".join(
@@ -288,9 +296,11 @@ def actualizar_estado_pedido(
             )
         )
 
-    estado_normalizado = ESTADOS_ALIASES.get(
-        estado_normalizado,
-        estado_normalizado
+    estado_normalizado = (
+        ESTADOS_ALIASES.get(
+            estado_normalizado,
+            estado_normalizado
+        )
     )
 
     pedido = (
@@ -298,7 +308,9 @@ def actualizar_estado_pedido(
             Pedido
         )
         .filter(
-            Pedido.codigo_operacion == codigo_operacion
+            Pedido.codigo_operacion
+            ==
+            codigo_operacion
         )
         .first()
     )
@@ -308,10 +320,77 @@ def actualizar_estado_pedido(
             "Pedido no encontrado"
         )
 
-    pedido.estado = estado_normalizado
+    estado_anterior = (
+        pedido.estado
+    )
 
-    if comprobante_pago is not None:
-        pedido.comprobante_pago = comprobante_pago
+    pedido.estado = (
+        estado_normalizado
+    )
+
+    # comprobante opcional
+
+    if (
+        comprobante_pago
+        is not None
+    ):
+        pedido.comprobante_pago = (
+            comprobante_pago
+        )
+
+    # timestamps automáticos
+
+    if (
+        estado_normalizado
+        ==
+        PedidoEstado.PAGO_CONFIRMADO
+    ):
+        pedido.fecha_pago_confirmado = (
+            datetime.utcnow()
+        )
+
+    elif (
+        estado_normalizado
+        ==
+        PedidoEstado.EN_OPERACION
+    ):
+        pedido.fecha_en_operacion = (
+            datetime.utcnow()
+        )
+
+    elif (
+        estado_normalizado
+        ==
+        PedidoEstado.COMPLETADO
+    ):
+        pedido.fecha_completado = (
+            datetime.utcnow()
+        )
+
+    # historial
+
+    historial = (
+        PedidoHistorial(
+            pedido_id=
+            pedido.id,
+
+            estado_anterior=
+            estado_anterior,
+
+            estado_nuevo=
+            estado_normalizado,
+
+            usuario=
+            usuario,
+
+            comentario=
+            comentario
+        )
+    )
+
+    db.add(
+        historial
+    )
 
     db.commit()
 
