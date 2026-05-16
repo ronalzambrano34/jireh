@@ -26,6 +26,10 @@ from services.pedido_transferencia_service import (
     crear_pedido_transferencia
 )
 
+from services.pedido_creator import (
+    crear_pedido
+)
+
 router = APIRouter(
     prefix="/pedido",
     tags=["Pedidos"]
@@ -121,3 +125,18 @@ def actualizar_estado(
             status_code=400,
             detail=str(exc)
         ) from exc
+
+
+@router.post("/")
+def crear(
+    data: dict,
+    db: Session = Depends(
+        get_db
+    )
+):
+
+    return crear_pedido(
+        db,
+        data
+    )
+
