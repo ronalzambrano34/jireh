@@ -32,7 +32,7 @@ from routes.metodo_pago import (router as metodo_pago_router)
 from routes.sync import (router as sync_router)
 
 from services.db_maintenance import ensure_runtime_columns
-
+from services.seed_admin import (seed_admin_cliente)
 
 app = FastAPI()
 
@@ -44,6 +44,9 @@ Base.metadata.create_all(
 _db = SessionLocal()
 try:
     ensure_runtime_columns(
+        _db
+    )
+    seed_admin_cliente(
         _db
     )
 finally:
