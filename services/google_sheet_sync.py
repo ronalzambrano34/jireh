@@ -3,9 +3,7 @@ import gspread
 from sqlalchemy.orm import Session
 
 from models.oferta import Oferta
-from models.paquete_saldo import (
-    PaqueteSaldo
-)
+from models.paquete_saldo import (PaqueteSaldo)
 from services.db_maintenance import ensure_runtime_columns
 from services.monedas import normalizar_moneda
 
@@ -46,39 +44,130 @@ def get_moneda(
     return fallback
 
 
+def oferta_cambio_detectado(
+    oferta,
+    item: dict
+):
+
+    if not oferta:
+        return True
+
+    return any([
+        float(
+            oferta.tasa
+        ) != float(
+            item["tasa"]
+        ),
+
+        float(
+            oferta.minimo_pago
+        ) != float(
+            item["minimo"]
+        ),
+
+        oferta.moneda_pago
+        !=
+        item["moneda"],
+
+        not oferta.activa
+    ])
+
+
 def upsert_oferta_sheet(
     db: Session,
     servicio: str,
     nombre: str,
     item: dict
 ):
+
     oferta = (
         db.query(
             Oferta
         )
         .filter(
-            Oferta.origen == ORIGEN_GOOGLE_SHEET,
-            Oferta.servicio == servicio,
-            Oferta.minimo_pago == item["minimo"],
-            Oferta.moneda_pago == item["moneda"]
-        )
-        .order_by(
-            Oferta.activa.desc()
+            Oferta.origen
+            ==
+            ORIGEN_GOOGLE_SHEET,
+
+            Oferta.servicio
+            ==
+            servicio,
+
+            Oferta.minimo_pago
+            ==
+            item["minimo"],
+
+            Oferta.moneda_pago
+            ==
+            item["moneda"]
         )
         .first()
     )
 
+    cambio = oferta_cambio_detectado(
+        oferta,
+        item
+    )
+
     if not oferta:
+
         oferta = Oferta(
-            servicio=servicio,
-            nombre=nombre,
-            minimo_pago=item["minimo"],
-            moneda_pago=item["moneda"]
+
+            servicio=
+            servicio,
+
+            nombre=
+            nombre,
+
+            minimo_pago=
+            item["minimo"],
+
+            moneda_pago=
+            item["moneda"],
+
+            tasa=
+            item["tasa"],
+
+            origen=
+            ORIGEN_GOOGLE_SHEET,
+
+            activa=True
         )
 
         db.add(
             oferta
         )
+
+        print(
+            f"🆕 Nueva oferta "
+            f"{servicio} "
+            f"{item['moneda']} "
+            f"{item['minimo']}"
+        )
+
+        return oferta
+
+    # Si no cambió nada → no tocar DB
+
+    if not cambio:
+
+        print(
+            f"✅ Sin cambios "
+            f"{servicio} "
+            f"{item['moneda']} "
+            f"{item['minimo']}"
+        )
+
+        oferta.activa = True
+
+        return oferta
+
+    print(
+        f"🔄 Oferta actualizada "
+        f"{servicio} "
+        f"{item['moneda']} "
+        f"{item['minimo']}"
+    )
 
     oferta.nombre = nombre
     oferta.tasa = item["tasa"]
@@ -88,39 +177,128 @@ def upsert_oferta_sheet(
     return oferta
 
 
+def saldo_cambio_detectado(
+    paquete,
+    item
+):
+
+    if not paquete:
+        return True
+
+    return any([
+        float(
+            paquete.monto_pago
+        ) != float(
+            item["monto_pago"]
+        ),
+
+        paquete.moneda_pago
+        !=
+        item["moneda"],
+
+        int(
+            paquete.saldo_cup
+        ) != int(
+            item["cup"]
+        ),
+
+        not paquete.activo
+    ])
+
+
 def upsert_paquete_saldo_sheet(
     db: Session,
     item: dict
 ):
+
     paquete = (
         db.query(
             PaqueteSaldo
         )
         .filter(
-            PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET,
-            PaqueteSaldo.monto_pago == item["monto_pago"],
-            PaqueteSaldo.moneda_pago == item["moneda"],
-            PaqueteSaldo.saldo_cup == item["cup"]
-        )
-        .order_by(
-            PaqueteSaldo.activo.desc()
+            PaqueteSaldo.origen
+            ==
+            ORIGEN_GOOGLE_SHEET,
+
+            PaqueteSaldo.monto_pago
+            ==
+            item["monto_pago"],
+
+            PaqueteSaldo.moneda_pago
+            ==
+            item["moneda"],
+
+            PaqueteSaldo.saldo_cup
+            ==
+            item["cup"]
         )
         .first()
     )
 
+    cambio = saldo_cambio_detectado(
+        paquete,
+        item
+    )
+
     if not paquete:
-        paquete = PaqueteSaldo(
-            monto_pago=item["monto_pago"],
-            moneda_pago=item["moneda"],
-            saldo_cup=item["cup"]
+
+        paquete = (
+            PaqueteSaldo(
+
+                monto_pago=
+                item["monto_pago"],
+
+                moneda_pago=
+                item["moneda"],
+
+                saldo_cup=
+                item["cup"],
+
+                nombre=
+                f'{item["cup"]} CUP',
+
+                origen=
+                ORIGEN_GOOGLE_SHEET,
+
+                activo=True
+            )
         )
 
         db.add(
             paquete
         )
 
-    paquete.nombre = f'{item["cup"]} CUP'
-    paquete.origen = ORIGEN_GOOGLE_SHEET
+        print(
+            f"🆕 Nuevo saldo "
+            f"{item['cup']} CUP"
+        )
+
+        return paquete
+
+    if not cambio:
+
+        print(
+            f"✅ Saldo sin cambios "
+            f"{item['cup']} CUP"
+        )
+
+        paquete.activo = True
+
+        return paquete
+
+    print(
+        f"🔄 Saldo actualizado "
+        f"{item['cup']} CUP"
+    )
+
+    paquete.nombre = (
+        f'{item["cup"]} CUP'
+    )
+
+    paquete.origen = (
+        ORIGEN_GOOGLE_SHEET
+    )
+
     paquete.activo = True
 
     return paquete
@@ -310,3 +488,4 @@ def sync_ofertas(
         "saldo":
         saldo
     }
+

@@ -25,12 +25,14 @@ from routes.pedido_efectivo import (router as efectivo_router)
 from routes.pedido_saldo import (router as saldo_router)
 from routes.pedido_divisa import (router as divisa_router)
 from routes.configuracion import (router as configuracion_router)
+from routes.calculadora import (router as calculadora_router)
 
-
-from routes.sync import (router as sync_router)
-from services.db_maintenance import ensure_runtime_columns
 
 from routes.metodo_pago import (router as metodo_pago_router)
+from routes.sync import (router as sync_router)
+
+from services.db_maintenance import ensure_runtime_columns
+
 
 app = FastAPI()
 
@@ -54,6 +56,7 @@ app.include_router(saldo_router)
 app.include_router(divisa_router)
 app.include_router(configuracion_router)
 app.include_router(webhook_router)
+app.include_router(calculadora_router)
 
 
 app.include_router(metodo_pago_router)
