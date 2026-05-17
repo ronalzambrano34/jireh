@@ -33,23 +33,68 @@ def crear_pedido(
     data: dict
 ):
 
-    calculo = calcular_operacion(
-        db=db,
-        servicio=
-        data["servicio"],
+    if (
+        data["servicio"]
+        ==
+        "saldo"
+    ):
 
-        moneda_pago=
-        data["moneda_pago"],
-
-        monto_pago=
-        data["monto_pago"],
-
-        bonificacion_manual=
-        data.get(
-            "bonificacion_manual",
-            0
+        monto_pago = float(
+            data["monto_pago"]
         )
-    )
+
+        saldo_cup = float(
+            data["saldo_cup"]
+        )
+
+        tasa = (
+            saldo_cup
+            / monto_pago
+        )
+
+        calculo = {
+
+            "oferta_id":
+            None,
+
+            "tasa":
+            tasa,
+
+            "bonificacion":
+            0,
+
+            "tasa_final":
+            tasa,
+
+            "monto_resultado":
+            saldo_cup,
+
+            "ganancia":
+            0
+        }
+
+    else:
+
+        calculo = (
+            calcular_operacion(
+                db=db,
+
+                servicio=
+                data["servicio"],
+
+                moneda_pago=
+                data["moneda_pago"],
+
+                monto_pago=
+                data["monto_pago"],
+
+                bonificacion_manual=
+                data.get(
+                    "bonificacion_manual",
+                    0
+                )
+            )
+        )
 
     operador = (
         db.query(
