@@ -54,16 +54,18 @@ def crear_pedido_divisa(
             Operador
         )
         .filter(
-            Operador.codigo_operador
-            == data.operador_codigo
+            Operador.id
+            == data.operador_id
         )
         .first()
     )
 
     if not operador:
+
         raise Exception(
             "Operador no encontrado"
         )
+
 
     tasa_usada = data.monto_divisa / monto_pago
 
