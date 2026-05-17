@@ -13,6 +13,68 @@ from services.monedas import (
 )
 
 
+def _obtener_datos_saldo(
+    db: Session,
+    data
+):
+
+    if data.paquete_saldo_id is not None:
+        paquete = (
+            db.query(
+                PaqueteSaldo
+            )
+            .filter(
+                PaqueteSaldo.id
+                == data.paquete_saldo_id,
+                PaqueteSaldo.activo
+                == True
+            )
+            .first()
+        )
+
+        if not paquete:
+            raise Exception(
+                "Paquete saldo no encontrado"
+            )
+
+        return (
+            float(
+                paquete.monto_pago
+            ),
+            float(
+                paquete.saldo_cup
+            )
+        )
+
+    if data.monto_pago is None or data.saldo_cup is None:
+        raise Exception(
+            "Debe enviar paquete_saldo_id o monto_pago y saldo_cup"
+        )
+
+    monto_pago = float(
+        data.monto_pago
+    )
+
+    saldo_cup = float(
+        data.saldo_cup
+    )
+
+    if monto_pago <= 0:
+        raise Exception(
+            "El monto_pago debe ser mayor que cero"
+        )
+
+    if saldo_cup <= 0:
+        raise Exception(
+            "El saldo_cup debe ser mayor que cero"
+        )
+
+    return (
+        monto_pago,
+        saldo_cup
+    )
+
+
 def crear_pedido_saldo(
     db: Session,
     data
@@ -24,24 +86,10 @@ def crear_pedido_saldo(
         )
     )
 
-    paquete = (
-        db.query(
-            PaqueteSaldo
-        )
-        .filter(
-            PaqueteSaldo.id
-            == data.paquete_saldo_id,
-            PaqueteSaldo.activo
-            == True
-        )
-        .first()
+    monto_pago, saldo_cup = _obtener_datos_saldo(
+        db,
+        data
     )
-
-    if not paquete:
-
-        raise Exception(
-            "Paquete saldo no encontrado"
-        )
 
     payload = {
 
@@ -58,7 +106,7 @@ def crear_pedido_saldo(
         moneda_pago,
 
         "monto_pago":
-        paquete.monto_pago,
+        monto_pago,
 
         "tipo_pago_id":
         data.tipo_pago_id,
@@ -67,7 +115,7 @@ def crear_pedido_saldo(
         data.numero_telefono,
 
         "saldo_cup":
-        paquete.saldo_cup,
+        saldo_cup,
 
         "bonificacion_manual":
         0

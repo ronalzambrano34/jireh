@@ -1,32 +1,9 @@
 from sqlalchemy.orm import Session
 
-from models.operador import Operador
-from models.pedido import Pedido
-from models.pedido_divisa import PedidoDivisa
-
-from services.configuracion_service import (
-    render_template
-)
-from services.generador_codigo import (
-    generar_codigo_operacion
-)
 from services.monedas import normalizar_moneda
-from services.pedido_estado import PedidoEstado
-
-
-MENSAJE_DIVISA_DEFAULT = """
-*Divisa*
-
-*Tipo de tarjeta:* {tipo_tarjeta}
-
-*Número de tarjeta:* {numero_tarjeta}
-
-*Monto divisa:* {monto_divisa}
-
-*Pago:* {monto_pago} {moneda_pago}
-
-*Tasa efectiva:* {tasa}
-"""
+from services.pedido_creator import (
+    crear_pedido
+)
 
 
 def crear_pedido_divisa(
@@ -34,101 +11,42 @@ def crear_pedido_divisa(
     data
 ):
 
-    moneda_pago = normalizar_moneda(
-        data.moneda_pago
-    )
+    payload = {
 
-    monto_pago = data.monto_pago
+        "cliente_id":
+        1,
 
-    if monto_pago <= 0:
-        raise Exception(
-            "El monto_pago debe ser mayor que cero"
-        )
+        "operador_id":
+        data.operador_id,
 
-    if data.monto_divisa <= 0:
-        raise Exception(
-            "El monto_divisa debe ser mayor que cero"
-        )
+        "servicio":
+        "divisa",
 
-    operador = (
-        db.query(
-            Operador
-        )
-        .filter(
-            Operador.id
-            == data.operador_id
-        )
-        .first()
-    )
+        "moneda_pago":
+        normalizar_moneda(
+            data.moneda_pago
+        ),
 
-    if not operador:
+        "monto_pago":
+        data.monto_pago,
 
-        raise Exception(
-            "Operador no encontrado"
-        )
+        "tipo_pago_id":
+        data.tipo_pago_id,
 
+        "tipo_tarjeta":
+        data.tipo_tarjeta,
 
-    tasa_usada = data.monto_divisa / monto_pago
+        "numero_tarjeta":
+        data.numero_tarjeta,
 
-    codigo = generar_codigo_operacion(
-        operador.codigo_operador,
-        "divisa"
-    )
+        "monto_divisa":
+        data.monto_divisa,
 
-    pedido = Pedido(
-        codigo_operacion=codigo,
-        operador_id=operador.id,
-        servicio="divisa",
-        estado=PedidoEstado.PENDIENTE_PAGO,
-        monto_pago=monto_pago,
-        moneda_pago=moneda_pago,
-        tipo_pago_id=data.tipo_pago_id,
-        oferta_id=None,
-        tasa_usada=tasa_usada,
-        bonificacion=0,
-        tasa_final=tasa_usada,
-        monto_resultado=data.monto_divisa
-    )
-
-    db.add(
-        pedido
-    )
-
-    db.commit()
-
-    db.refresh(
-        pedido
-    )
-
-    detalle = PedidoDivisa(
-        pedido_id=pedido.id,
-        tipo_tarjeta=data.tipo_tarjeta,
-        numero_tarjeta=data.numero_tarjeta,
-        monto_divisa=data.monto_divisa
-    )
-
-    db.add(
-        detalle
-    )
-
-    db.commit()
-
-    mensaje = render_template(
-        db,
-        "mensaje_divisa",
-        MENSAJE_DIVISA_DEFAULT,
-        {
-            "codigo": codigo,
-            "tipo_tarjeta": data.tipo_tarjeta,
-            "numero_tarjeta": data.numero_tarjeta,
-            "monto_divisa": data.monto_divisa,
-            "monto_pago": monto_pago,
-            "moneda_pago": moneda_pago,
-            "tasa": tasa_usada
-        }
-    )
-
-    return {
-        "codigo": codigo,
-        "mensaje": mensaje
+        "bonificacion_manual":
+        0
     }
+
+    return crear_pedido(
+        db=db,
+        data=payload
+    )

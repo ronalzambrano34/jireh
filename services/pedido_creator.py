@@ -10,6 +10,9 @@ from models.pedido_efectivo import (
 from models.pedido_saldo import (
     PedidoSaldo
 )
+from models.pedido_divisa import (
+    PedidoDivisa
+)
 
 from models.operador import (
     Operador
@@ -71,6 +74,56 @@ def crear_pedido(
 
             "monto_resultado":
             saldo_cup,
+
+            "ganancia":
+            0
+        }
+
+    elif (
+        data["servicio"]
+        ==
+        "divisa"
+    ):
+
+        monto_pago = float(
+            data["monto_pago"]
+        )
+
+        monto_divisa = float(
+            data["monto_divisa"]
+        )
+
+        if monto_pago <= 0:
+            raise Exception(
+                "El monto_pago debe ser mayor que cero"
+            )
+
+        if monto_divisa <= 0:
+            raise Exception(
+                "El monto_divisa debe ser mayor que cero"
+            )
+
+        tasa = (
+            monto_divisa
+            / monto_pago
+        )
+
+        calculo = {
+
+            "oferta_id":
+            None,
+
+            "tasa":
+            tasa,
+
+            "bonificacion":
+            0,
+
+            "tasa_final":
+            tasa,
+
+            "monto_resultado":
+            monto_divisa,
 
             "ganancia":
             0
@@ -294,6 +347,32 @@ def crear_pedido(
                 calculo[
                     "monto_resultado"
                 ]
+            )
+        )
+
+        db.add(
+            detalle
+        )
+
+    elif (
+        data["servicio"]
+        ==
+        "divisa"
+    ):
+
+        detalle = (
+            PedidoDivisa(
+                pedido_id=
+                pedido.id,
+
+                tipo_tarjeta=
+                data["tipo_tarjeta"],
+
+                numero_tarjeta=
+                data["numero_tarjeta"],
+
+                monto_divisa=
+                calculo["monto_resultado"]
             )
         )
 

@@ -25,8 +25,40 @@ from models.pedido_divisa import (
 )
 
 from services.template_service import (
-    render_template
+    render_template,
+    render_text_template
 )
+
+
+DEFAULT_TEMPLATES = {
+    "template_transferencia": (
+        "*Transferencia*\n"
+        "*Tarjeta:* {{numero_tarjeta}}\n"
+        "*Monto CUP:* {{monto_resultado}}\n"
+        "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
+        "*Metodo de pago:* {{metodo_pago}}"
+    ),
+    "template_efectivo": (
+        "*Efectivo*\n"
+        "*Monto CUP:* {{monto_resultado}}\n"
+        "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
+        "*Metodo de pago:* {{metodo_pago}}"
+    ),
+    "template_saldo": (
+        "*Saldo Movil*\n"
+        "*Numero:* {{numero_telefono}}\n"
+        "*Saldo:* {{saldo_cup}} CUP\n"
+        "*Pago:* {{monto_pago}} {{moneda_pago}}"
+    ),
+    "template_divisa": (
+        "*Divisa*\n"
+        "*Tipo de tarjeta:* {{tipo_tarjeta}}\n"
+        "*Numero de tarjeta:* {{numero_tarjeta}}\n"
+        "*Monto divisa:* {{monto_divisa}}\n"
+        "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
+        "*Tasa efectiva:* {{tasa_final}}"
+    )
+}
 
 
 def generar_mensaje_operacion(
@@ -171,11 +203,17 @@ def generar_mensaje_operacion(
             "template_divisa"
         )
 
-    mensaje = render_template(
-        db=db,
-        clave=template_key,
-        variables=variables
-    )
+    try:
+        mensaje = render_template(
+            db=db,
+            clave=template_key,
+            variables=variables
+        )
+    except Exception:
+        mensaje = render_text_template(
+            DEFAULT_TEMPLATES[template_key],
+            variables
+        )
 
     whatsapp_url = (
         "https://wa.me/?text="
