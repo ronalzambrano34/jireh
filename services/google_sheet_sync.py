@@ -331,6 +331,9 @@ def sync_ofertas(
     transferencia = []
     efectivo = []
     saldo = []
+    mlc = []
+    usd = []
+    clasica = []
 
     for i, row in enumerate(rows):
 
@@ -370,6 +373,7 @@ def sync_ofertas(
                         )
                     })
 
+
         # ---------- EFECTIVO ----------
 
         if (
@@ -394,6 +398,7 @@ def sync_ofertas(
                         )
                     })
 
+
         # ---------- SALDO ----------
 
         if (
@@ -417,6 +422,82 @@ def sync_ofertas(
                         )
                     })
 
+
+        # ---------- MLC ----------
+
+        if (
+            "mlc"
+            in titulo
+        ):
+
+            for j in range(i + 3, min(i + 4, len(rows))):
+                r = rows[j]
+
+                minimo = safe_float(get_col(r, 3))
+
+                oferta = get_col(r, 10)
+
+                if oferta:
+                    mlc.append({
+                        "minimo": minimo,
+                        "tasa": safe_float(oferta),
+                        "moneda": get_moneda(
+                            r,
+                            moneda_titulo
+                        )
+                    })
+                    
+                    
+        # ---------- USD ----------
+        
+        if (
+            "usd"
+            in titulo
+        ):
+
+            for j in range(i + 3, min(i + 4, len(rows))):
+                r = rows[j]
+
+                minimo = safe_float(get_col(r, 3))
+
+                oferta = get_col(r, 10)
+
+                if oferta:
+                    usd.append({
+                        "minimo": minimo,
+                        "tasa": safe_float(oferta),
+                        "moneda": get_moneda(
+                            r,
+                            moneda_titulo
+                        )
+                    })
+                    
+                    
+        # ---------- CLASICA ----------
+        if (
+            "clasica"
+            in titulo
+        ):
+
+            for j in range(i + 3, min(i + 4, len(rows))):
+                r = rows[j]
+
+                minimo = safe_float(get_col(r, 3))
+
+                oferta = get_col(r, 10)
+
+                if oferta:
+                    clasica.append({
+                        "minimo": minimo,
+                        "tasa": safe_float(oferta),
+                        "moneda": get_moneda(
+                            r,
+                            moneda_titulo
+                        )
+                    })
+                    
+
+
     # El sync solo desactiva registros que el propio sync creo antes.
 
     db.query(
@@ -426,6 +507,9 @@ def sync_ofertas(
         Oferta.servicio.in_(
             [
                 "transferencia",
+                "mlc",
+                "usd",
+                "clasica",
                 "efectivo"
             ]
         )
@@ -466,6 +550,36 @@ def sync_ofertas(
             "Efectivo",
             item
         )
+        
+    # crear o reactivar mlc
+
+    for item in mlc:
+        upsert_oferta_sheet(
+            db,
+            "mlc",
+            "MLC",
+            item
+        )
+
+    # crear o reactivar usd
+
+    for item in usd:
+        upsert_oferta_sheet(
+            db,
+            "usd",
+            "USD",
+            item
+        )
+
+    # crear o reactivar clasica
+
+    for item in clasica:
+        upsert_oferta_sheet(
+            db,
+            "clasica",
+            "Clasica",
+            item
+        )
 
     # crear o reactivar paquetes de saldo
 
@@ -484,6 +598,15 @@ def sync_ofertas(
 
         "efectivo":
         efectivo,
+
+        "mlc":
+        mlc,
+
+        "usd":
+        usd,
+
+        "clasica":
+        clasica,
 
         "saldo":
         saldo
