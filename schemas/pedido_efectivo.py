@@ -27,4 +27,4 @@ class PedidoEfectivoCreate(
 
     cliente_id: int | None = None
 
-    punto_recogida_id: int
+    punto_recogida_id: int | None = None

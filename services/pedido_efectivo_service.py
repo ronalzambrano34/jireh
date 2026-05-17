@@ -24,22 +24,34 @@ def crear_pedido_efectivo(
         )
     )
 
-    punto = (
-        db.query(
-            PuntoRecogida
+    punto_recogida_id = (
+        getattr(
+            data,
+            "punto_recogida_id",
+            None
         )
-        .filter(
-            PuntoRecogida.id
-            == data.punto_recogida_id
-        )
-        .first()
     )
 
-    if not punto:
+    # Convertir 0 a None para evitar FK error
+    if punto_recogida_id == 0:
+        punto_recogida_id = None
 
-        raise Exception(
-            "Punto de recogida no encontrado"
+    if punto_recogida_id:
+        punto = (
+            db.query(
+                PuntoRecogida
+            )
+            .filter(
+                PuntoRecogida.id
+                == punto_recogida_id
+            )
+            .first()
         )
+
+        if not punto:
+            raise Exception(
+                "Punto de recogida no encontrado"
+            )
 
     payload = {
 
@@ -66,7 +78,7 @@ def crear_pedido_efectivo(
         data.tipo_pago_id,
 
         "punto_recogida_id":
-        data.punto_recogida_id,
+        punto_recogida_id,
 
         "bonificacion_manual":
         getattr(

@@ -29,9 +29,18 @@ def render_template(
         variables.items()
     ):
 
+        # Reemplazar {{key}} (double braces)
         template = (
             template.replace(
                 f"{{{{{key}}}}}",
+                str(value or "")
+            )
+        )
+
+        # Reemplazar {key} (single braces)
+        template = (
+            template.replace(
+                f"{{{key}}}",
                 str(value or "")
             )
         )
@@ -48,9 +57,18 @@ def render_text_template(
         variables.items()
     ):
 
+        # Reemplazar {{key}} (double braces)
         template = (
             template.replace(
                 f"{{{{{key}}}}}",
+                str(value or "")
+            )
+        )
+
+        # Reemplazar {key} (single braces)
+        template = (
+            template.replace(
+                f"{{{key}}}",
                 str(value or "")
             )
         )

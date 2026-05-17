@@ -24,6 +24,10 @@ from models.pedido_divisa import (
     PedidoDivisa
 )
 
+from models.cliente import (
+    Cliente
+)
+
 from services.template_service import (
     render_template,
     render_text_template
@@ -84,6 +88,24 @@ def generar_mensaje_operacion(
         else ""
     )
 
+    cliente = (
+        db.query(
+            Cliente
+        )
+        .filter(
+            Cliente.id
+            ==
+            pedido.cliente_id
+        )
+        .first()
+    )
+
+    cliente_nombre = (
+        cliente.nombre
+        if cliente
+        else ""
+    )
+
     variables = {
 
         "monto_pago":
@@ -99,7 +121,13 @@ def generar_mensaje_operacion(
         pedido.monto_resultado,
 
         "metodo_pago":
-        metodo_nombre
+        metodo_nombre,
+
+        "codigo_operacion":
+        pedido.codigo_operacion,
+
+        "cliente_nombre":
+        cliente_nombre
     }
 
     template_key = None

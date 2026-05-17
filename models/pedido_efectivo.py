@@ -32,5 +32,5 @@ class PedidoEfectivo(Base):
         ForeignKey(
             "puntos_recogida.id"
         ),
-        nullable=False
+        nullable=True
     )

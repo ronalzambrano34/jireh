@@ -375,7 +375,7 @@ def crear_pedido(
                 punto_recogida_id=
                 data.get(
                     "punto_recogida_id"
-                )
+                ) or None
             )
         )
 
