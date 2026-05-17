@@ -1,479 +1,775 @@
-Proceso del negocio de remesas para Cuba del Jireh Brasil / Uruguay.
-
-1. Todo comienza con el calculo de los precios de las ofertas (se hace en un exel en datasheet).
-https://docs.google.com/spreadsheets/d/1HUDTbhPLdZsAGn_l6-iPQtcGWbE9G0Vq/edit?pli=1&gid=31712518#gid=31712518
-
-2. Luego se crea la publicacion con los precios actualizados. Se hace en el grupo de whatsapp business.
-https://chat.whatsapp.com/C2MrbsxlD0XA7Vzz39fNhG
-
-3. El cliente nos contacta, y lo atendemos con un autoresponder y unos mensajes predeterminados. 
-El Jireh Brasil 👑 ¡Bienvenido a El Jireh de Cuba! 👑 Tu remesa segura y en tiempo récord. ⚡️
-​¿Qué servicio deseas realizar? 👇
-​🔹1 -  Saldo | Saldo móvil al instante.
-🔹 2 - Efectivo | Entrega de dinero físico.
-🔹 3 - Transferencia | Envíos directos.
-🔹 4 - Divisa | Recarga de tarjetas (MLC / USD / Clásica).
-🔹 5 - Otros | Consultas personalizadas.
-
-3.1. El cliente selecciona el servicio y le mandamos los pasos a seguir.
-​💳 PASOS PARA TRANSFERENCIA A TARJETA (CUP)
-​Para procesar tu envío de forma digital, por favor sigue estas instrucciones:
-​1️⃣ Realiza la transferencia PIX:
-🔑 Llave PIX: 48991233191
-👤 Titular: Ronal Zambrano Ferrer
-​2️⃣ Envía los datos de la operación:
-📄 Comprobante del pago PIX.
-💳 Número de tarjeta CUP del beneficiario. (NO Foto)
-📱 Teléfono de contacto (Opcional).
-​⚠️ Información Importante:
-​Rapidez: Una vez recibido el comprobante, procesamos tu envío en menos de 10 minutos (sujeto a la estabilidad de las plataformas bancarias externas).
-​Seguridad: Verifique bien los dígitos de la tarjeta CUP antes de enviarlos para evitar errores en el depósito.
-​Confirmación: Te enviaremos el comprobante de la transferencia en cuanto la operación sea completada con éxito.
---------------------------------------------------------------------
-​💵 PASOS PARA ENTREGA DE EFECTIVO (RECOGIDA)
-
-​Para procesar tu envío, por favor sigue estas instrucciones:
-​1️⃣ Realiza la transferencia PIX:
-🔑 Llave PIX: 48991233191 👤 Titular: Ronal Zambrano Ferrer
-​2️⃣ Envía los datos de la operación: 📄 Comprobante del pago PIX. 🆔 Carnet de Identidad de la persona que recibe.
-​📍 Puntos de Recogida disponibles:
-​Opción 1 (Sueño): Calle 2da No. 6 entre 6 y 7, Reparto Sueño. (Referencia: Detrás del Materno Norte).  ☎️+5353596149
-​Opción 2  : Calle nueva #11 entre San Antonio y San Mateo. ☎️+5354079725
-Horarios de entrega de 8am a 6pm.
-​⚠️ Notas muy importantes:
-​Instrucción de llegada: Al avisar a la persona que recibe, indíquele simplemente: "De parte de Jireh".
-​Seguridad: Por favor, evita usar la palabra "remesas" al llegar a las direcciones o al comunicarte por estas vías.
-​Logística: El beneficiario debe acudir directamente al punto de recogida.Si hay dudas con la dirección, puedes llamar o escribir por WhatsApp.
-​Rapidez: Una vez recibido el comprobante, gestionamos la entrega de forma inmediata.
-No realizamos entregas a domicilio para evitar costos adicionales en tu remesa.
---------------------------------------------------------------------------------------------------
-​📱 PASOS PARA RECARGA DE SALDO
-​Para realizar tu recarga de telefonía o datos, por favor sigue estas instrucciones:
-​1️⃣ Realiza la transferencia PIX: 🔑 Llave PIX: 48991233191 👤 Titular: Ronal Zambrano Ferrer
-​2️⃣ Envía los datos de la operación: 📄 Comprobante del pago PIX. 📱 Número de teléfono a recargar.
-​⚠️ Información Importante:
-​Rapidez: La recarga se procesa de forma inmediata tras recibir el comprobante de pago.
-​Verificación: Asegúrate de que el número de teléfono sea correcto para garantizar que el saldo llegue al destino deseado.
--------------------------------------------------------------------
-
-4. Creamos la orden en dependencia al servicio.
-*Transferencia.* 
-XXX(numero de la tarjeta a transferir) 
-*Móvil:* XXX (Opcional) 
-*Monto CUP:* XXX (cantidad de dinero a acreditar, es calculado pix*oferta) 
-*Pix:* XXX (cantidad de dinero transferido por el cliente)
-*TIpo de Pago* (creo que seria bueno que añadieras mas pagos, para cuando no solamente me paguen por PIX) *Oferta:* XXX (en este caso es el valor que se va a pagar en cup, segun la foto 118, esto se usa junto con el *Pix* para calcula la ganancia)
-*Oferta:* XXX (taxa de cambio vigente)
----------------------
-*Saldo Móvil* 
-*Número:* XXX (numero de telefono al que se acreditara el saldo) 
-*Saldo:* XXX (cantidad de dinero a acreditar, es calculado pix*oferta) 
-*Pix:* XXX (cantidad de dinero transferido por el cliente)
----------------------
-*Recoger de parte del Jireh*
-XXX CUP (cantidad de dinero a acreditar, es calculado pix*oferta) 
-Calle nueva #11 entre San Antonio y San Mateo. (Esta direccion cambia en dependencia de la direccion que escoja el cliente)
-Telf: 5 4079725 (depende de la direccion)
-Escribir y coordinar recogida solo por WhatsApp.
-Importante: Nada de palabra REMESAS, no preguntar a los vecinos.. y cualquier duda llamar directamente al número telefónico
-*Pix:* XXX (cantidad de dinero transferido por el cliente)
-*Oferta:* XXX (taxa de cambio vigente)
---------------------------
-
-5- Esa orden es enviada a realizarse dentro de otro grupo de whatsapp.
-https://chat.whatsapp.com/K2mp7DMOook8jWH9yq2YPV (Operaciones a realizar)
-
-6. Se realiza la Operacion y en el mismo grupo me envian el comprobante (captura de pantalla), el cual le envio al cliente con un mensaje de OK.
-​🏁 ¡Listo! Dinero acreditado. ⚡️
-
-​Te adjunto el comprobante. 
-Si estás satisfecho con la rapidez de nuestro servicio... ¡recomiéndanos con tus amigos y familiares! 🗣️
-
-🔗 Únete a nuestro grupo de Remesas:
-https://chat.whatsapp.com/C2MrbsxlD0XA7Vzz39fNhG
-
-​Gracias por elegir El Jireh de Cuba. 👑
-
-7. Para finalizar el tramite, el comprobante que se envia al grupo de Operaciones a Realizar, tambien lo envio a otro grupo de whatsapp llamado Operaciones Finalizadas.
-https://chat.whatsapp.com/JlzYU62rFmrExNqaxSwLqL
-
-8. Del grupo Operaciones Realizadas, se pasan los datos hacia otra hoja en el exel, el cual es el informe de ventas, ganancias, etc.
-https://docs.google.com/spreadsheets/d/1HUDTbhPLdZsAGn_l6-iPQtcGWbE9G0Vq/edit?pli=1&gid=1172835479#gid=1172835479
+MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
+Actualizado: 2026-05-17
 
-9. Lo que tengo pensado, Para la primera Etapa es comenzar haciendo un sistema que maneje ese flujo, una web para crear y manejar las operaciones de forma mas facil, estilo formulario y que se envie a los grupos las oeraciones.
-Segunda Etapa es que no se usen los grupos de operaciones y que todos utilicen el sistema para trabajar los estados de los pedidos dentro del mismo sistema WEB. En esta etapa, los trabajadores ya tienen un sistema de login, en el que se registran y es utilizado, para llevar la contabilidad, trazabilidad  y el control de las opreaciones que realizan.  
+1. PROPOSITO DEL NEGOCIO
 
-Tercera Etapa es que el sistema tenga un login. Para que los mismos clientes accedan al sitio y realicen sus pedidos directo de la Web.
+El Jireh Brasil / Uruguay es un servicio de remesas y operaciones financieras hacia Cuba. El objetivo es permitir que clientes fuera de Cuba paguen en una moneda disponible para ellos, principalmente BRL o UYU, y que el beneficiario en Cuba reciba valor mediante alguno de estos servicios:
 
-Tambien tengo pensado un sistema de referidos, Bono de Referidos, Ofertas especiales, Promociones, Descuento de miembro nuevo. Y en el final del sistema, una apk y vinculaciond de pasarela de pago para que el servicio sea totalmente autonomo.
+- Transferencia a tarjeta CUP.
+- Entrega de efectivo en punto de recogida.
+- Recarga de saldo movil.
+- Recarga o acreditacion de divisa en tarjetas MLC, USD o Clasica.
 
+El valor principal del negocio es rapidez, confianza, claridad en las instrucciones y trazabilidad de cada operacion.
 
+2. ESTADO ACTUAL DEL NEGOCIO
 
-OJO, esto fue una revision y sugerencias que me dio chatGPT, confiere que falta, que ya esta hecho y si ha sido optimizado.
+El negocio funciona principalmente por WhatsApp. El flujo actual combina atencion manual, grupos de operaciones y calculos basados en una hoja de precios.
 
-1. Estados del pedido (RECOMENDADOS)
-Te recomiendo:
-CREADO
-PENDIENTE_PAGO
-PAGO_CONFIRMADO
-EN_OPERACION
-COMPLETADO
-CANCELADO
-ERROR_OPERACION
-REEMBOLSO
+Flujo operativo actual:
 
-Flujo real
-Cliente escribe
-↓
-CREADO
+1. Se actualizan las tasas y ofertas en una hoja de calculo.
+2. Se publican precios actualizados en el grupo o canal comercial de WhatsApp.
+3. El cliente contacta por WhatsApp y selecciona el servicio deseado.
+4. Se le envian instrucciones de pago y datos requeridos segun el servicio.
+5. El cliente envia comprobante de pago y datos del beneficiario.
+6. Se crea una orden interna.
+7. La orden se envia al grupo de operaciones.
+8. Un operador realiza la operacion en Cuba.
+9. El operador envia comprobante o confirmacion al grupo.
+10. Se envia confirmacion final al cliente.
+11. La operacion finalizada se archiva o se reporta para control de ventas, ganancias y trazabilidad.
 
-Cliente manda comprobante
-↓
-PAGO_CONFIRMADO
+El sistema actual que se esta construyendo busca reemplazar progresivamente la parte manual de creacion, control y seguimiento de operaciones.
 
-Se envía al grupo Operaciones
-↓
-EN_OPERACION
+3. SERVICIOS OFRECIDOS
 
-Operador hace la operación
-↓
-COMPLETADO
+3.1 Transferencia a tarjeta CUP
 
-Se manda comprobante al cliente
-↓
-ARCHIVADO
+Descripcion:
+El cliente paga desde el exterior y el beneficiario recibe CUP en una tarjeta cubana.
 
+Datos requeridos:
 
-2. Tipo de pago
+- Monto pagado por el cliente.
+- Moneda de pago, por ejemplo BRL o UYU.
+- Metodo de pago.
+- Numero de tarjeta CUP.
+- Telefono de contacto opcional.
+- Operador responsable.
+- Cliente asociado, opcional en la etapa actual.
 
-PIX
-Transferencia bancaria
-Mercado Pago
-Efectivo
-Banco Itaú
-Banco República Uruguay
-Crypto
-Zelle
+Calculo:
 
-3. Tipo de moneda del cliente
+monto_resultado = monto_pago * tasa_final
 
-Esto falta.
+tasa_final se congela en el pedido para conservar el historico aunque la oferta cambie despues.
 
-Ejemplo:
+Estado en el sistema:
+Implementado.
 
-Un cliente puede pagar:
+Endpoint actual:
+POST /pedido/transferencia
 
-100 BRL o 800 UYU
+3.2 Entrega de efectivo
 
-pero recibir: 11800 CUP
+Descripcion:
+El cliente paga desde el exterior y el beneficiario recoge efectivo en Cuba en un punto definido.
 
-Necesitas guardar:
+Datos requeridos:
 
-moneda_pago
-monto_pago
-moneda_destino
-monto_destino
+- Monto pagado por el cliente.
+- Moneda de pago.
+- Metodo de pago.
+- Punto de recogida.
+- Operador responsable.
+- Cliente asociado, opcional en la etapa actual.
 
+Calculo:
 
-4. Oferta congelada en el pedido (MUY IMPORTANTE)
+monto_resultado = monto_pago * tasa_final
 
-Esto es crítico en remesas.
+Estado en el sistema:
+Implementado.
 
-No basta con guardar:
+Endpoint actual:
+POST /pedido/efectivo
 
-oferta_id
+3.3 Recarga de saldo movil
 
-Porque la oferta cambia.
+Descripcion:
+El cliente paga desde el exterior y se recarga saldo movil a un numero cubano.
 
-Debes congelar el valor usado:
+Modalidades actuales:
 
-Pedido:
+- Por paquete de saldo existente.
+- Manual, enviando monto_pago y saldo_cup.
 
-tasa_aplicada = 118
+Datos requeridos:
 
-Porque si mañana cambia a:
+- Numero de telefono a recargar.
+- Metodo de pago.
+- Operador responsable.
+- paquete_saldo_id, o monto_pago + saldo_cup.
+- Cliente asociado, opcional en la etapa actual.
 
-120
+Calculo por paquete:
+El sistema usa el monto y saldo definidos en el paquete activo.
 
-tu historial queda roto.
+Calculo manual:
 
-Ejemplo real:
+tasa_final = saldo_cup / monto_pago
+monto_resultado = saldo_cup
 
-Cliente pagó cuando:
+Estado en el sistema:
+Implementado.
 
-1 BRL = 118 CUP
+Endpoint actual:
+POST /pedido/saldo
 
-No puedes recalcular luego con:
+3.4 Divisa: MLC, USD o Clasica
 
-120
-5. Operador asignado
+Descripcion:
+El cliente paga desde el exterior y se acredita divisa en una tarjeta cubana.
 
-Etapa 2 te lo va a exigir.
+Datos requeridos:
 
-Hoy el grupo hace todo.
+- Monto pagado por el cliente.
+- Moneda de pago.
+- Metodo de pago.
+- Tipo de tarjeta: MLC, USD o Clasica.
+- Numero de tarjeta.
+- Monto de divisa a acreditar.
+- Operador responsable.
+- Cliente asociado, opcional en la etapa actual.
 
-Mañana:
+Calculo actual:
 
-Pedido → Operador
+tasa_final = monto_divisa / monto_pago
+monto_resultado = monto_divisa
 
-Ejemplo:
+Estado en el sistema:
+Implementado y unificado con el flujo central de pedidos.
 
-Ronal
-Maykol
-Operador Santiago
-Operador Habana
+Endpoint actual:
+POST /pedido/divisa
 
-Modelo:
+4. CICLO DE VIDA DEL PEDIDO
 
-usuario_asignado_id
+Estados definidos en el sistema:
 
-y
+- creado
+- pendiente_pago
+- pago_confirmado
+- en_operacion
+- completado
+- cancelado
+- error
 
-fecha_asignacion
-6. Puntos de recogida dinámicos
+Flujo recomendado:
 
-Ahora están hardcodeados.
+1. creado
+   El cliente inicio una solicitud, pero aun no se completo la informacion o el pago.
 
-Eso luego será un dolor.
+2. pendiente_pago
+   El pedido ya fue creado y queda esperando comprobante o confirmacion de pago.
 
-Haz tabla:
+3. pago_confirmado
+   Se confirmo que el pago del cliente fue recibido.
 
-PuntoRecogida
+4. en_operacion
+   La operacion fue enviada o asignada para ejecucion.
 
-Campos:
+5. completado
+   El operador ejecuto la operacion y existe confirmacion.
 
-nombre
-direccion
-telefono
-horario
-activo
-ciudad
-instrucciones
+6. cancelado
+   La operacion no se realizara.
 
-Ejemplo:
+7. error
+   Hubo un problema operativo, dato incorrecto, falla bancaria, rechazo, o situacion que requiere revision.
 
-Sueño
-Calle 2da No.6
-5353596149
-8am–6pm
-activo=True
+Compatibilidad actual:
+El sistema acepta algunos nombres viejos y los normaliza:
 
-Cuando el cliente elige:
+- pendiente -> pendiente_pago
+- en_proceso -> en_operacion
+- realizado -> completado
+- finalizado -> completado
+- error_operacion -> error
 
-punto_recogida_id
+Estado en el sistema:
+Implementado con historial de cambios en PedidoHistorial.
 
-El mensaje se construye automático.
+Endpoint para cambiar estado:
+PATCH /pedido/{codigo_operacion}/estado
 
-7. Plantillas de mensajes (MUY NECESARIO)
+5. ENTIDADES PRINCIPALES DEL SISTEMA
 
-Esto lo mencionaste.
+5.1 Cliente
 
-Debes tener:
+Representa a la persona que solicita o administra una operacion.
 
-mensaje_bienvenida
-mensaje_transferencia
-mensaje_efectivo
-mensaje_saldo
-mensaje_completado
-mensaje_operaciones
+Campos actuales importantes:
 
-con placeholders:
+- nombre
+- email
+- telefono
+- pais
+- moneda_preferida
+- codigo_referido
+- referido_por_id
+- perfil_completo
+- activo
+- es_admin
 
-Hola {nombre}
+Estado actual:
+Existe modelo Cliente. El sistema crea un cliente admin inicial al arrancar si no existe.
 
-Tu pedido de {monto_pago} {moneda_pago}
-equivale a {monto_cup} CUP.
+Pendiente:
+Crear endpoints publicos o internos para alta, busqueda y edicion de clientes.
 
-Porque seguro cambiarás textos 100 veces.
+5.2 Pedido
 
-8. Evidencias / comprobantes
+Entidad central del negocio. Guarda la operacion, sus montos, tasas, estado y referencias.
 
-Importantísimo.
+Campos actuales importantes:
 
-Necesitas tabla:
+- codigo_operacion
+- cliente_id
+- operador_id
+- servicio
+- estado
+- monto_pago
+- moneda_pago
+- tipo_pago_id
+- oferta_id
+- tasa_usada
+- bonificacion
+- tasa_final
+- monto_resultado
+- ganancia
+- comprobante_pago
+- observaciones
+- fechas de control: pago confirmado, en operacion, completado
 
+Estado actual:
+Implementado.
+
+Muy importante:
+El pedido guarda tasa_usada, tasa_final y monto_resultado. Esto congela la oferta usada y evita que cambios futuros en la hoja de precios dañen el historico.
+
+5.3 Detalles por tipo de pedido
+
+Transferencia:
+Tabla pedido_transferencia.
+Guarda numero_tarjeta, telefono_opcional y monto_cup.
+
+Efectivo:
+Tabla pedido_efectivo.
+Guarda monto_cup y punto_recogida_id.
+
+Saldo:
+Tabla pedido_saldo.
+Guarda numero_telefono y saldo_cup.
+
+Divisa:
+Tabla pedido_divisa.
+Guarda tipo_tarjeta, numero_tarjeta y monto_divisa.
+
+Estado actual:
+Implementado.
+
+5.4 Oferta
+
+Representa una tasa disponible para transferencia, efectivo u otros servicios sincronizados desde Google Sheets o registrados manualmente.
+
+Campos actuales:
+
+- servicio
+- nombre
+- tasa
+- minimo_pago
+- moneda_pago
+- origen
+- activa
+
+Estado actual:
+Implementado.
+
+5.5 PaqueteSaldo
+
+Representa paquetes de recarga de saldo movil.
+
+Campos actuales:
+
+- nombre
+- monto_pago
+- moneda_pago
+- origen
+- saldo_cup
+- activo
+
+Estado actual:
+Implementado.
+
+5.6 MetodoPago
+
+Representa una forma de pago disponible para el cliente.
+
+Campos actuales:
+
+- nombre
+- moneda
+- activo
+
+Estado actual:
+Implementado.
+
+Regla actual:
+El pedido valida que el metodo de pago exista, este activo y coincida con la moneda del pedido.
+
+5.7 PuntoRecogida
+
+Representa un lugar donde el beneficiario puede recoger efectivo.
+
+Campos actuales:
+
+- nombre
+- direccion
+- telefono
+- activo
+
+Estado actual:
+Implementado.
+
+Pendiente recomendado:
+Agregar ciudad, horario e instrucciones para que el mensaje de efectivo se genere completo desde datos estructurados.
+
+5.8 Operador
+
+Representa a una persona o equipo que ejecuta operaciones.
+
+Campos actuales:
+
+- nombre
+- codigo_operador
+- telefono
+- activo
+
+Estado actual:
+Implementado.
+
+Uso actual:
+El codigo del operador forma parte del codigo_operacion.
+
+5.9 Configuracion y templates
+
+La tabla configuraciones se usa para valores configurables y plantillas de mensajes.
+
+Templates actuales esperados:
+
+- template_transferencia
+- template_efectivo
+- template_saldo
+- template_divisa
+
+Estado actual:
+Implementado.
+
+Mejora ya aplicada:
+Si falta una plantilla, el sistema tiene mensajes por defecto para no romper la creacion del pedido.
+
+6. CODIGO DE OPERACION
+
+El codigo de operacion identifica cada pedido.
+
+Formato actual aproximado:
+
+JH-{codigo_operador}{anio}{mes}{dia}-{servicio_codigo}-{random}
+
+Ejemplo conceptual:
+
+JH-JA123E17-T1-A7K
+
+Componentes:
+
+- JH: prefijo del negocio.
+- codigo_operador: identifica al operador asociado.
+- anio, mes y dia: fecha de creacion.
+- servicio_codigo: tipo de servicio.
+- random: evita colisiones.
+
+Estado actual:
+Implementado.
+
+7. OFERTAS Y SINCRONIZACION CON GOOGLE SHEETS
+
+El negocio usa una hoja de calculo como fuente operativa de tasas y paquetes.
+
+Servicios sincronizados actualmente:
+
+- transferencia
+- efectivo
+- saldo
+- mlc
+- usd
+- clasica
+
+El sync crea o reactiva ofertas/paquetes cuyo origen es google_sheet y desactiva los que ya no aparecen en la hoja.
+
+Endpoint actual:
+POST /sync/ofertas
+
+Estado actual:
+Implementado parcialmente.
+
+Riesgos actuales:
+
+- El parseo depende de posiciones especificas de la hoja.
+- Si cambia la estructura del Google Sheet, el sync puede traer datos incompletos o incorrectos.
+- Debe documentarse el formato esperado de la hoja.
+
+8. MENSAJES Y WHATSAPP
+
+El negocio se apoya en WhatsApp para:
+
+- Atender clientes.
+- Enviar instrucciones de pago.
+- Enviar ordenes al grupo de operaciones.
+- Recibir comprobantes de operadores.
+- Confirmar operaciones completadas al cliente.
+
+Estado actual del sistema:
+
+- Genera mensaje_operacion.
+- Genera whatsapp_url con texto prellenado.
+- Tiene endpoint /test para webhook basico.
+
+Pendiente:
+
+- Integracion real con WhatsApp API.
+- Envio automatico a grupos o destinatarios.
+- Recepcion y procesamiento de mensajes entrantes.
+- Manejo de archivos/comprobantes.
+
+9. CONTABILIDAD Y GANANCIA
+
+Datos que ya existen en Pedido:
+
+- monto_pago
+- moneda_pago
+- tasa_usada
+- bonificacion
+- tasa_final
+- monto_resultado
+- ganancia
+
+Estado actual:
+Implementado de forma basica.
+
+Pendiente recomendado:
+
+- Guardar costo real de operacion.
+- Guardar moneda destino.
+- Guardar monto destino con nombre mas general.
+- Calcular ganancia real por moneda.
+- Generar reportes por fecha, operador, metodo de pago, servicio y moneda.
+
+10. SEGURIDAD Y CONTROL
+
+Estado actual:
+
+- El repositorio ya debe ignorar .env y credentials.json.
+- No se debe versionar credenciales.
+- Se recomienda rotar credenciales que hayan sido subidas al repositorio, incluso si el repositorio es privado.
+
+Pendiente critico:
+
+- Login de usuarios.
+- Roles y permisos.
+- Auditoria completa por usuario.
+- Proteccion de endpoints administrativos.
+- Manejo seguro de archivos y comprobantes.
+
+Roles recomendados para etapa 2:
+
+- ADMIN
+- OPERADOR
+- CAJERO
+- SUPERVISOR
+- ATENCION_CLIENTE
+
+11. CONTROL DE COMPROBANTES Y EVIDENCIAS
+
+Problema actual:
+Los comprobantes viven principalmente en WhatsApp. Eso no es suficiente como historial confiable.
+
+Modelo recomendado:
 ArchivoPedido
 
-Ejemplo:
+Campos sugeridos:
+
+- id
+- pedido_id
+- tipo
+- ruta_archivo
+- nombre_archivo
+- mime_type
+- usuario_id
+- created_at
+
+Tipos sugeridos:
+
+- comprobante_cliente
+- captura_operador
+- comprobante_final
+- documento_identidad
+- otro
+
+Estado actual:
+No implementado.
+
+12. ANTIFRAUDE Y REVISION
+
+Riesgos reales del negocio:
+
+- Comprobante reutilizado.
+- Captura falsa o editada.
+- Tarjeta mal escrita.
+- Numero de telefono incorrecto.
+- Pedido duplicado.
+- Dos operadores intentando ejecutar el mismo pedido.
+- Metodo de pago incorrecto.
+- Error humano al copiar datos a WhatsApp.
 
-comprobante_cliente
-captura_operador
-comprobante_final
+Campos recomendados:
 
-Campos:
+- requiere_revision
+- bloqueado
+- motivo_revision
+- hash_comprobante
+- revisado_por_id
+- fecha_revision
+
+Estado actual:
+No implementado.
 
-pedido_id
-tipo
-ruta_archivo
-fecha
-usuario_id
+13. ETAPAS DEL PRODUCTO
 
-Porque WhatsApp no es historial confiable.
+Etapa 1: Sistema operativo interno
 
-9. Auditoría / logs
+Objetivo:
+Crear y consultar pedidos, calcular montos, generar mensajes y ordenar la operacion.
 
-Cuando empieces a tener trabajadores:
+Estado actual:
+En desarrollo avanzado para backend basico.
 
-Necesitas saber:
+Ya existe:
 
-Quién cambió qué
-Cuándo
-Desde qué estado
+- API FastAPI.
+- Modelos principales.
+- Creacion de pedidos por servicio.
+- Listado y consulta por codigo.
+- Cambio de estados.
+- Historial de estados.
+- Metodos de pago.
+- Ofertas y paquetes de saldo.
+- Puntos de recogida.
+- Operadores.
+- Templates.
+- Sync de ofertas desde Google Sheets.
 
-Ejemplo:
+Pendiente de etapa 1:
 
-Pedido 291
-EN_OPERACION → COMPLETADO
-Usuario: Leslie
-Hora: 14:33
+- Frontend web operativo.
+- Login minimo para operadores/admin.
+- Upload de comprobantes.
+- Reportes basicos.
+- Seed o CRUD de metodos de pago, puntos y ofertas manuales.
+- Integracion WhatsApp real o semiautomatica.
 
-Tabla:
+Etapa 2: Operacion interna completa
 
-PedidoHistorial
-10. Sistema antifraude / errores
+Objetivo:
+Que el equipo trabaje dentro del sistema y no dependa de grupos de WhatsApp para control operativo.
 
-Debes prevenir:
+Pendiente:
 
-Doble comprobante
+- Usuarios internos.
+- Roles.
+- Asignacion de pedidos.
+- Panel por estado.
+- Bloqueo de pedido mientras un operador lo ejecuta.
+- Evidencias por pedido.
+- Auditoria por usuario.
 
-Cliente intenta reutilizar screenshot.
+Etapa 3: Portal de clientes
 
-Pedido duplicado
+Objetivo:
+Que clientes puedan entrar, registrarse y crear pedidos desde la web o app.
 
-2 operadores ejecutan el mismo pedido.
+Pendiente:
 
-Error humano
+- Registro y login de clientes.
+- Perfil de cliente.
+- Historial de pedidos del cliente.
+- Referidos.
+- Promociones.
+- Bonos.
+- Pasarela de pago.
+- Notificaciones automaticas.
 
-Tarjeta mal escrita.
+Etapa 4: Automatizacion avanzada
 
-Añade:
+Objetivo:
+Reducir trabajo manual y escalar el negocio.
 
-bloqueado
-requiere_revision
-observaciones
-11. Número único de pedido
+Pendiente:
 
-MUY necesario.
+- WhatsApp API completa.
+- Conciliacion de pagos.
+- Deteccion de comprobantes duplicados.
+- Reportes contables.
+- App movil.
+- Integracion con canales adicionales.
 
-Ejemplo:
+14. ENDPOINTS ACTUALES
 
-JRH-20260515-00091
+General:
 
-Cliente dice:
+GET /
+GET /test
 
-Mi pedido 91
+Pedidos:
 
-y lo encuentras rápido.
+POST /pedido/transferencia
+POST /pedido/efectivo
+POST /pedido/saldo
+POST /pedido/divisa
+POST /pedido/
+GET /pedido/
+GET /pedido/{codigo_operacion}
+PATCH /pedido/{codigo_operacion}/estado
 
-12. Ganancias reales
+Operadores:
 
-Tu Excel ya lo hace.
+POST /operador/
 
-Pero modela:
+Metodos de pago:
 
-Pedido:
+GET /metodos-pago/
 
-monto_pago
-tasa_aplicada
-monto_entregado
-costo_operacion
-ganancia
+Calculadora:
 
-Ejemplo:
+POST /calculadora/
 
-100 BRL
-tasa 118
+Configuracion:
 
-cliente recibe:
-11800 CUP
+GET /configuracion/{clave}
+POST /configuracion/
+PUT /configuracion/{clave}
 
-operador entregó:
-11600 CUP
+Templates:
 
-ganancia:
-200 CUP equivalente
-13. Sistema de permisos (Etapa 2)
+GET /templates/
+GET /templates/{clave}
+PUT /templates/{clave}
 
-No todos deben ver todo.
+Sync:
 
-Roles:
+POST /sync/ofertas
 
-ADMIN
-OPERADOR
-CAJERO
-SUPERVISOR
-ATENCION_CLIENTE
-14. Canales
+15. PRIORIDADES TECNICAS RECOMENDADAS
 
-Hoy:
+Prioridad 1: Seguridad y base del repo
 
-WhatsApp
+- No versionar .env ni credentials.json.
+- Rotar credenciales expuestas.
+- Mantener .gitignore actualizado.
 
-Mañana:
+Estado:
+En proceso / parcialmente resuelto.
 
-Web
-Telegram
-Instagram
-APK
+Prioridad 2: Consistencia del pedido
 
-Pedido:
+- Estados unificados.
+- Creacion centralizada.
+- Validacion de cliente, operador y metodo de pago.
+- Divisa integrada al flujo central.
+- Saldo por paquete y manual.
 
-canal_origen
-Arquitectura recomendada
+Estado:
+Implementado recientemente.
 
-Tus modelos principales deberían ser:
+Prioridad 3: CRUD administrativo minimo
 
-Cliente
-Pedido
-PedidoHistorial
-Oferta
-MetodoPago
-PuntoRecogida
-Operador
-Usuario
-Configuracion
-ArchivoPedido
-PaqueteSaldo
-Promocion
-BonoReferido
-Mi recomendación fuerte
+Falta crear endpoints para administrar:
 
-Antes de seguir programando:
+- Clientes.
+- Puntos de recogida.
+- Metodos de pago.
+- Ofertas manuales.
+- Paquetes de saldo.
 
-Haz un documento funcional del sistema.
+Prioridad 4: Evidencias
 
-Porque ya estás construyendo algo serio, no un CRUD.
+Agregar ArchivoPedido y upload de comprobantes.
 
-Define:
+Prioridad 5: Frontend operativo
 
-entidades
-flujo
-estados
-reglas de negocio
-permisos
-automatizaciones
-mensajes
-cálculos
+Crear una web interna con:
 
-Eso te va a ahorrar meses de refactor.
+- Crear pedido.
+- Listar pedidos.
+- Filtrar por estado.
+- Ver detalle.
+- Cambiar estado.
+- Copiar o enviar mensaje.
 
-Tu negocio ya tiene potencial real de convertirse en una mini-fintech de remesas para Cuba si la arquitectura nace bien desde esta Etapa 1.
+Prioridad 6: Reportes
 
+- Ventas por dia.
+- Ganancia por servicio.
+- Ganancia por moneda.
+- Pedidos por operador.
+- Pedidos por estado.
 
+16. GLOSARIO
 
+monto_pago:
+Cantidad pagada por el cliente.
 
+moneda_pago:
+Moneda en la que el cliente paga, por ejemplo BRL, UYU, USD o EUR.
 
+tasa_usada:
+Tasa base tomada de la oferta o calculada para el pedido.
 
+bonificacion:
+Ajuste extra sobre la tasa.
 
+tasa_final:
+Tasa realmente aplicada al pedido.
 
+monto_resultado:
+Monto que recibe el beneficiario, o monto acreditado segun el tipo de servicio.
 
+codigo_operacion:
+Identificador unico del pedido.
 
+pedido:
+Operacion completa registrada en el sistema.
 
+operador:
+Persona o equipo responsable de ejecutar una operacion.
 
+oferta:
+Regla de tasa por servicio, moneda y minimo de pago.
 
+paquete_saldo:
+Paquete fijo de recarga movil.
 
+17. REGLA GENERAL PARA FUTUROS CAMBIOS
 
+Antes de agregar una funcionalidad nueva, verificar:
 
+1. Que exista una entidad clara.
+2. Que el dato no este duplicado innecesariamente.
+3. Que el pedido conserve historico aunque cambien ofertas futuras.
+4. Que el flujo funcione para los cuatro servicios principales.
+5. Que no se guarden secretos en git.
+6. Que los errores sean claros para el operador.
+7. Que el cambio ayude al negocio actual, no solo a una idea futura.
 
-
-
+Este documento debe actualizarse cada vez que cambie una regla importante del negocio o del sistema.
