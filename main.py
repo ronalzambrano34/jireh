@@ -33,6 +33,7 @@ from routes.sync import (router as sync_router)
 
 from services.db_maintenance import ensure_runtime_columns
 from services.seed_admin import (seed_admin_cliente)
+from routes.template import (router as template_router)
 
 app = FastAPI()
 
@@ -60,7 +61,7 @@ app.include_router(divisa_router)
 app.include_router(configuracion_router)
 app.include_router(webhook_router)
 app.include_router(calculadora_router)
-
+app.include_router(template_router)
 
 app.include_router(metodo_pago_router)
 app.include_router(sync_router)

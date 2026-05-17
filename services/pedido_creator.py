@@ -11,12 +11,20 @@ from models.pedido_saldo import (
     PedidoSaldo
 )
 
+from models.operador import (
+    Operador
+)
+
 from services.calculadora_oferta import (
     calcular_operacion
 )
 
 from services.generador_codigo import (
     generar_codigo_operacion
+)
+
+from services.mensaje_operacion import (
+    generar_mensaje_operacion
 )
 
 
@@ -43,14 +51,30 @@ def crear_pedido(
         )
     )
 
+    operador = (
+        db.query(
+            Operador
+        )
+        .filter(
+            Operador.id
+            ==
+            data[
+                "operador_id"
+            ]
+        )
+        .first()
+    )
+
+    if not operador:
+
+        raise Exception(
+            "Operador no encontrado"
+        )
+
     codigo = (
         generar_codigo_operacion(
             codigo_operador=
-            str(
-                data[
-                    "operador_id"
-                ]
-            ),
+            operador.codigo_operador,
 
             servicio=
             data[
@@ -235,7 +259,15 @@ def crear_pedido(
         pedido
     )
 
+    mensaje_data = (
+        generar_mensaje_operacion(
+            db=db,
+            pedido=pedido
+        )
+    )
+
     return {
+
         "pedido_id":
         pedido.id,
 
@@ -249,5 +281,15 @@ def crear_pedido(
         pedido.monto_resultado,
 
         "tasa_final":
-        pedido.tasa_final
+        pedido.tasa_final,
+
+        "mensaje_operacion":
+        mensaje_data[
+            "mensaje"
+        ],
+
+        "whatsapp_url":
+        mensaje_data[
+            "whatsapp_url"
+        ]
     }

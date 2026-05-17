@@ -27,4 +27,4 @@ class PedidoTransferenciaCreate(
 
     tipo_pago_id: int
 
-    operador_codigo: str
+    operador_id: int
