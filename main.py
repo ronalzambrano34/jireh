@@ -33,6 +33,7 @@ from routes.sync import (router as sync_router)
 
 from services.db_maintenance import ensure_runtime_columns
 from services.seed_admin import (seed_admin_cliente)
+from services.seed_metodos_pago import (seed_metodos_pago)
 from routes.template import (router as template_router)
 
 app = FastAPI()
@@ -48,6 +49,9 @@ try:
         _db
     )
     seed_admin_cliente(
+        _db
+    )
+    seed_metodos_pago(
         _db
     )
 finally:
