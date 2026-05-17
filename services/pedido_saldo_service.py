@@ -1,67 +1,16 @@
 from sqlalchemy.orm import Session
 
-from models.operador import Operador
-from models.paquete_saldo import PaqueteSaldo
-from models.pedido import Pedido
-from models.pedido_saldo import PedidoSaldo
-
-from services.configuracion_service import (
-    render_template
+from models.paquete_saldo import (
+    PaqueteSaldo
 )
-from services.generador_codigo import (
-    generar_codigo_operacion
+
+from services.pedido_creator import (
+    crear_pedido
 )
-from services.monedas import normalizar_moneda
 
-
-MENSAJE_SALDO_DEFAULT = """
-*Saldo Móvil*
-
-*Número:* {numero_telefono}
-
-*Saldo:* {saldo_cup} CUP
-
-*Pago:* {monto_pago} {moneda_pago}
-"""
-
-
-def buscar_paquete_saldo(
-    db: Session,
-    paquete_saldo_id: int | None,
-    monto_pago: float | None,
-    moneda_pago: str
-):
-    query = (
-        db.query(
-            PaqueteSaldo
-        )
-        .filter(
-            PaqueteSaldo.activo == True
-        )
-    )
-
-    if paquete_saldo_id is not None:
-        return (
-            query
-            .filter(
-                PaqueteSaldo.id == paquete_saldo_id
-            )
-            .first()
-        )
-
-    if monto_pago is None:
-        raise Exception(
-            "Debe enviar paquete_saldo_id o monto_pago"
-        )
-
-    return (
-        query
-        .filter(
-            PaqueteSaldo.moneda_pago == moneda_pago,
-            PaqueteSaldo.monto_pago == monto_pago
-        )
-        .first()
-    )
+from services.monedas import (
+    normalizar_moneda
+)
 
 
 def crear_pedido_saldo(
@@ -69,111 +18,62 @@ def crear_pedido_saldo(
     data
 ):
 
-    moneda_pago = normalizar_moneda(
-        data.moneda_pago
-    )
-
-    paquete = buscar_paquete_saldo(
-        db,
-        data.paquete_saldo_id,
-        data.monto_pago,
-        moneda_pago
-    )
-
-    if not paquete:
-        raise Exception(
-            "No existe paquete de saldo activo "
-            f"para {moneda_pago}"
+    moneda_pago = (
+        normalizar_moneda(
+            data.moneda_pago
         )
-
-    monto_pago = float(
-        paquete.monto_pago
     )
 
-    saldo_cup = float(
-        paquete.saldo_cup
-    )
-
-    tasa_usada = (
-        saldo_cup / monto_pago
-        if monto_pago
-        else 0
-    )
-
-    operador = (
+    paquete = (
         db.query(
-            Operador
+            PaqueteSaldo
         )
         .filter(
-            Operador.codigo_operador
-            == data.operador_codigo
+            PaqueteSaldo.id
+            == data.paquete_saldo_id,
+            PaqueteSaldo.activo
+            == True
         )
         .first()
     )
 
-    if not operador:
+    if not paquete:
+
         raise Exception(
-            "Operador no encontrado"
+            "Paquete saldo no encontrado"
         )
 
-    codigo = generar_codigo_operacion(
-        operador.codigo_operador,
-        "saldo"
-    )
+    payload = {
 
-    pedido = Pedido(
-        codigo_operacion=codigo,
-        operador_id=operador.id,
-        servicio="saldo",
-        estado="pendiente",
-        monto_pago=monto_pago,
-        moneda_pago=moneda_pago,
-        tipo_pago_id=data.tipo_pago_id,
-        oferta_id=None,
-        tasa_usada=tasa_usada,
-        bonificacion=0,
-        tasa_final=tasa_usada,
-        monto_resultado=saldo_cup
-    )
+        "cliente_id":
+        1,
 
-    db.add(
-        pedido
-    )
+        "operador_id":
+        data.operador_id,
 
-    db.commit()
+        "servicio":
+        "saldo",
 
-    db.refresh(
-        pedido
-    )
+        "moneda_pago":
+        moneda_pago,
 
-    detalle = PedidoSaldo(
-        pedido_id=pedido.id,
-        numero_telefono=data.numero_telefono,
-        saldo_cup=saldo_cup
-    )
+        "monto_pago":
+        paquete.monto_pago,
 
-    db.add(
-        detalle
-    )
+        "tipo_pago_id":
+        data.tipo_pago_id,
 
-    db.commit()
+        "numero_telefono":
+        data.numero_telefono,
 
-    mensaje = render_template(
-        db,
-        "mensaje_saldo",
-        MENSAJE_SALDO_DEFAULT,
-        {
-            "codigo": codigo,
-            "numero_telefono": data.numero_telefono,
-            "saldo_cup": saldo_cup,
-            "monto_pago": monto_pago,
-            "moneda_pago": moneda_pago,
-            "tasa": tasa_usada,
-            "paquete": paquete.nombre
-        }
-    )
+        "saldo_cup":
+        paquete.saldo_cup,
 
-    return {
-        "codigo": codigo,
-        "mensaje": mensaje
+        "bonificacion_manual":
+        0
     }
+
+    return crear_pedido(
+        db=db,
+        data=payload
+    )

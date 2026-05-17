@@ -1,9 +1,5 @@
 from sqlalchemy.orm import Session
 
-from models.operador import (
-    Operador
-)
-
 from services.pedido_creator import (
     crear_pedido
 )
@@ -14,33 +10,13 @@ def crear_pedido_transferencia(
     data
 ):
 
-    operador = (
-        db.query(
-            Operador
-        )
-        .filter(
-            Operador.id
-            ==
-            data.operador_id
-        )
-        .first()
-    )
-
-    if not operador:
-        raise Exception(
-            "Operador no encontrado"
-        )
-
     payload = {
 
         "cliente_id":
         1,
 
         "operador_id":
-        operador.id,
-
-        "operador_codigo":
-        operador.codigo_operador,
+        data.operador_id,
 
         "servicio":
         "transferencia",
