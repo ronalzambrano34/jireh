@@ -2,6 +2,10 @@ class PedidoEstado:
 
     CREADO = "creado"
 
+    PENDIENTE_PAGO = (
+        "pendiente_pago"
+    )
+
     PAGO_CONFIRMADO = (
         "pago_confirmado"
     )
@@ -22,6 +26,7 @@ class PedidoEstado:
 
     TODOS = [
         CREADO,
+        PENDIENTE_PAGO,
         PAGO_CONFIRMADO,
         EN_OPERACION,
         COMPLETADO,

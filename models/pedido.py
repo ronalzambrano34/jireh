@@ -6,10 +6,6 @@ from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
 from sqlalchemy.sql import func
 
-from sqlalchemy import (DateTime)
-
-from sqlalchemy.sql import (func)
-
 from sqlalchemy.orm import (relationship)
 
 from services.pedido_estado import (PedidoEstado)
@@ -55,11 +51,6 @@ class Pedido(Base):
         nullable=False,
         default=PedidoEstado.CREADO
     )
-    
-    observaciones = Column(
-    String,
-    nullable=True
-    )
 
     fecha_pago_confirmado = Column(
         DateTime,
@@ -74,17 +65,6 @@ class Pedido(Base):
     fecha_completado = Column(
         DateTime,
         nullable=True
-    )
-
-    created_at = Column(
-        DateTime,
-        server_default=func.now()
-    )
-
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now()
     )
 
     monto_pago = Column(

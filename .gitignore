@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+.env.*
+credentials.json
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Local databases and runtime files
+*.db
+*.sqlite
+*.sqlite3
+
+# Local scratch files
+*.save
+prueba.py
+prueba_*.py

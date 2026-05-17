@@ -26,6 +26,9 @@ from services.generador_codigo import (
 from services.mensaje_operacion import (
     generar_mensaje_operacion
 )
+from services.pedido_estado import (
+    PedidoEstado
+)
 
 
 def crear_pedido(
@@ -194,7 +197,7 @@ def crear_pedido(
         ),
 
         estado=
-        "pendiente"
+        PedidoEstado.PENDIENTE_PAGO
     )
 
     db.add(

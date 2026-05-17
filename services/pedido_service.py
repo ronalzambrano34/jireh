@@ -1,26 +1,33 @@
 from sqlalchemy.orm import Session
 
+from datetime import datetime
+
 from models.pedido import Pedido
 from models.pedido_divisa import PedidoDivisa
 from models.pedido_efectivo import PedidoEfectivo
 from models.pedido_saldo import PedidoSaldo
 from models.pedido_transferencia import PedidoTransferencia
 
-from datetime import datetime
 from models.pedido_historial import (PedidoHistorial)
 from services.pedido_estado import (PedidoEstado)
 
-ESTADOS_PERMITIDOS = {
-    "pendiente",
-    "en_proceso",
-    "realizado",
-    "finalizado",
-    "completado",
-    "cancelado",
-    "error",
+ESTADOS_ALIASES = {
+    "pendiente": PedidoEstado.PENDIENTE_PAGO,
+    "pendiente_pago": PedidoEstado.PENDIENTE_PAGO,
+    "en_proceso": PedidoEstado.EN_OPERACION,
+    "realizado": PedidoEstado.COMPLETADO,
+    "finalizado": PedidoEstado.COMPLETADO,
+    "error_operacion": PedidoEstado.ERROR,
 }
 
-ESTADOS_ALIASES = {"completado": "finalizado",}
+ESTADOS_PERMITIDOS = (
+    set(
+        PedidoEstado.TODOS
+    )
+    | set(
+        ESTADOS_ALIASES
+    )
+)
 
 
 def pedido_base_dict(
@@ -196,8 +203,18 @@ def listar_pedidos(
     )
 
     if estado:
+        estado_normalizado = (
+            estado
+            .strip()
+            .lower()
+        )
+        estado_normalizado = ESTADOS_ALIASES.get(
+            estado_normalizado,
+            estado_normalizado
+        )
+
         query = query.filter(
-            Pedido.estado == estado.strip().lower()
+            Pedido.estado == estado_normalizado
         )
 
     if servicio:

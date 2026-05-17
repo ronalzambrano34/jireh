@@ -11,6 +11,7 @@ from services.generador_codigo import (
     generar_codigo_operacion
 )
 from services.monedas import normalizar_moneda
+from services.pedido_estado import PedidoEstado
 
 
 MENSAJE_DIVISA_DEFAULT = """
@@ -78,7 +79,7 @@ def crear_pedido_divisa(
         codigo_operacion=codigo,
         operador_id=operador.id,
         servicio="divisa",
-        estado="pendiente",
+        estado=PedidoEstado.PENDIENTE_PAGO,
         monto_pago=monto_pago,
         moneda_pago=moneda_pago,
         tipo_pago_id=data.tipo_pago_id,
