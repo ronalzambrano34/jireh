@@ -98,7 +98,14 @@ def crear_pedido_saldo(
             data,
             "cliente_id",
             None
-        ) or 1,
+        ),
+
+        "numero_telefono_cliente":
+        getattr(
+            data,
+            "numero_telefono_cliente",
+            None
+        ),
 
         "operador_id":
         data.operador_id,

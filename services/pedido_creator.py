@@ -39,6 +39,10 @@ from services.pedido_estado import (
     PedidoEstado
 )
 
+from services.cliente_service import (
+    obtener_o_crear_cliente_por_telefono
+)
+
 
 def crear_pedido(
     db: Session,
@@ -178,24 +182,54 @@ def crear_pedido(
             "Operador no encontrado"
         )
 
-    cliente = (
-        db.query(
-            Cliente
+    cliente = None
+
+    # Buscar cliente por teléfono si se proporciona
+    if data.get("numero_telefono_cliente"):
+        cliente = (
+            obtener_o_crear_cliente_por_telefono(
+                db=db,
+                numero_telefono=(
+                    data["numero_telefono_cliente"]
+                ),
+                nombre=data.get(
+                    "nombre_cliente"
+                )
+            )
         )
-        .filter(
-            Cliente.id
-            ==
-            data[
-                "cliente_id"
-            ]
+    
+    # Si no, buscar por cliente_id
+    elif data.get("cliente_id"):
+        cliente = (
+            db.query(
+                Cliente
+            )
+            .filter(
+                Cliente.id
+                ==
+                data[
+                    "cliente_id"
+                ]
+            )
+            .first()
         )
-        .first()
-    )
+    
+    # Fallback: usar cliente_id 1 por defecto (admin)
+    else:
+        cliente = (
+            db.query(
+                Cliente
+            )
+            .filter(
+                Cliente.id == 1
+            )
+            .first()
+        )
 
     if not cliente:
 
         raise Exception(
-            "Cliente no encontrado"
+            "Cliente no encontrado o no pudo ser creado"
         )
 
     metodo_pago = (
@@ -249,9 +283,7 @@ def crear_pedido(
         codigo,
 
         cliente_id=
-        data[
-            "cliente_id"
-        ],
+        cliente.id,
 
         operador_id=
         data[

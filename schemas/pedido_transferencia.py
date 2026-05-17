@@ -30,3 +30,5 @@ class PedidoTransferenciaCreate(
     operador_id: int
 
     cliente_id: int | None = None
+
+    numero_telefono_cliente: str | None = None
