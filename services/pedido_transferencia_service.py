@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from services.pedido_creator import (
     crear_pedido
 )
+from services.monedas import (
+    normalizar_moneda
+)
 
 
 def crear_pedido_transferencia(
@@ -26,7 +29,9 @@ def crear_pedido_transferencia(
         "transferencia",
 
         "moneda_pago":
-        data.moneda_pago,
+        normalizar_moneda(
+            data.moneda_pago
+        ),
 
         "monto_pago":
         data.monto_pago,

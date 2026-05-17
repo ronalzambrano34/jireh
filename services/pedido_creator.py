@@ -20,6 +20,9 @@ from models.operador import (
 from models.cliente import (
     Cliente
 )
+from models.metodo_pago import (
+    MetodoPago
+)
 
 from services.calculadora_oferta import (
     calcular_operacion
@@ -193,6 +196,39 @@ def crear_pedido(
 
         raise Exception(
             "Cliente no encontrado"
+        )
+
+    metodo_pago = (
+        db.query(
+            MetodoPago
+        )
+        .filter(
+            MetodoPago.id
+            ==
+            data[
+                "tipo_pago_id"
+            ],
+            MetodoPago.activo
+            == True
+        )
+        .first()
+    )
+
+    if not metodo_pago:
+
+        raise Exception(
+            "Metodo de pago no encontrado"
+        )
+
+    if (
+        metodo_pago.moneda
+        and
+        metodo_pago.moneda.upper()
+        !=
+        data["moneda_pago"].upper()
+    ):
+        raise Exception(
+            "El metodo de pago no corresponde a la moneda del pedido"
         )
 
     codigo = (
