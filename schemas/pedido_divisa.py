@@ -30,3 +30,5 @@ class PedidoDivisaCreate(
     tipo_pago_id: int
 
     operador_id: int
+
+    cliente_id: int | None = None

@@ -18,6 +18,8 @@ class PedidoSaldoCreate(
 
     operador_id: int
 
+    cliente_id: int | None = None
+
     paquete_saldo_id: int | None = None
 
     monto_pago: float | None = Field(

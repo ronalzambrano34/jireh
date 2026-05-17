@@ -17,6 +17,9 @@ from models.pedido_divisa import (
 from models.operador import (
     Operador
 )
+from models.cliente import (
+    Cliente
+)
 
 from services.calculadora_oferta import (
     calcular_operacion
@@ -170,6 +173,26 @@ def crear_pedido(
 
         raise Exception(
             "Operador no encontrado"
+        )
+
+    cliente = (
+        db.query(
+            Cliente
+        )
+        .filter(
+            Cliente.id
+            ==
+            data[
+                "cliente_id"
+            ]
+        )
+        .first()
+    )
+
+    if not cliente:
+
+        raise Exception(
+            "Cliente no encontrado"
         )
 
     codigo = (

@@ -25,4 +25,6 @@ class PedidoEfectivoCreate(
 
     operador_id: int
 
+    cliente_id: int | None = None
+
     punto_recogida_id: int

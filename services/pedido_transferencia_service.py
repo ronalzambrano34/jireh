@@ -13,7 +13,11 @@ def crear_pedido_transferencia(
     payload = {
 
         "cliente_id":
-        1,
+        getattr(
+            data,
+            "cliente_id",
+            None
+        ) or 1,
 
         "operador_id":
         data.operador_id,

@@ -94,7 +94,11 @@ def crear_pedido_saldo(
     payload = {
 
         "cliente_id":
-        1,
+        getattr(
+            data,
+            "cliente_id",
+            None
+        ) or 1,
 
         "operador_id":
         data.operador_id,
