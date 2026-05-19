@@ -33,6 +33,11 @@ class PedidoDivisa(Base):
         nullable=False
     )
 
+    telefono_destinatario = Column(
+        String,
+        nullable=True
+    )
+
     monto_divisa = Column(
         Float,
         nullable=False

@@ -50,6 +50,13 @@ def crear_pedido_divisa(
         "numero_tarjeta":
         data.numero_tarjeta,
 
+        "telefono_destinatario":
+        getattr(
+            data,
+            "telefono_destinatario",
+            None
+        ),
+
         "monto_divisa":
         data.monto_divisa,
 

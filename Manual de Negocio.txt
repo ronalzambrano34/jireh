@@ -71,6 +71,7 @@ Datos requeridos:
 - Monto pagado por el cliente.
 - Moneda de pago.
 - Metodo de pago.
+- telefono_destinatario: contacto del beneficiario o familiar.
 - Punto de recogida.
 - Operador responsable.
 - Cliente asociado, opcional en la etapa actual.
@@ -97,7 +98,7 @@ Modalidades actuales:
 
 Datos requeridos:
 
-- Numero de telefono a recargar.
+- telefono_destinatario: numero cubano a recargar.
 - Metodo de pago.
 - Operador responsable.
 - paquete_saldo_id, o monto_pago + saldo_cup.
@@ -253,19 +254,19 @@ El pedido guarda tasa_usada, tasa_final y monto_resultado. Esto congela la ofert
 
 Transferencia:
 Tabla pedido_transferencia.
-Guarda numero_tarjeta, telefono_opcional y monto_cup.
+Guarda numero_tarjeta, telefono_destinatario y monto_cup.
 
 Efectivo:
 Tabla pedido_efectivo.
-Guarda monto_cup y punto_recogida_id.
+Guarda monto_cup, telefono_destinatario y punto_recogida_id.
 
 Saldo:
 Tabla pedido_saldo.
-Guarda numero_telefono y saldo_cup.
+Guarda telefono_destinatario y saldo_cup.
 
 Divisa:
 Tabla pedido_divisa.
-Guarda tipo_tarjeta, numero_tarjeta y monto_divisa.
+Guarda tipo_tarjeta, numero_tarjeta, telefono_destinatario y monto_divisa.
 
 Estado actual:
 Implementado.
@@ -527,7 +528,7 @@ Riesgos reales del negocio:
 - Comprobante reutilizado.
 - Captura falsa o editada.
 - Tarjeta mal escrita.
-- Numero de telefono incorrecto.
+- Telefono destinatario incorrecto o no cubano.
 - Pedido duplicado.
 - Dos operadores intentando ejecutar el mismo pedido.
 - Metodo de pago incorrecto.

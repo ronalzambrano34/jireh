@@ -49,10 +49,10 @@ def crear_pedido_transferencia(
         "numero_tarjeta":
         data.numero_tarjeta,
 
-        "telefono_opcional":
+        "telefono_destinatario":
         getattr(
             data,
-            "telefono",
+            "telefono_destinatario",
             None
         ),
 

@@ -42,6 +42,34 @@ from services.pedido_estado import (
 from services.cliente_service import (
     obtener_o_crear_cliente_por_telefono
 )
+from services.telefonos import (
+    normalizar_telefono
+)
+
+
+def normalizar_telefono_destinatario(
+    numero: str | None,
+    requerido: bool = False
+):
+    if numero is None or not str(numero).strip():
+        if requerido:
+            raise Exception(
+                "telefono_destinatario es requerido"
+            )
+
+        return None
+
+    telefono = normalizar_telefono(
+        str(numero),
+        "cu"
+    )
+
+    if not telefono.startswith("+53"):
+        raise Exception(
+            "telefono_destinatario debe ser un numero de Cuba (+53)"
+        )
+
+    return telefono
 
 
 def crear_pedido(
@@ -194,6 +222,10 @@ def crear_pedido(
                 ),
                 nombre=data.get(
                     "nombre_cliente"
+                ),
+                pais=data.get(
+                    "moneda_pago",
+                    "br"
                 )
             )
         )
@@ -369,9 +401,11 @@ def crear_pedido(
                     "numero_tarjeta"
                 ],
 
-                telefono_opcional=
-                data.get(
-                    "telefono_opcional"
+                telefono_destinatario=
+                normalizar_telefono_destinatario(
+                    data.get(
+                        "telefono_destinatario"
+                    )
                 ),
 
                 monto_cup=
@@ -404,6 +438,14 @@ def crear_pedido(
                     "monto_resultado"
                 ],
 
+                telefono_destinatario=
+                normalizar_telefono_destinatario(
+                    data.get(
+                        "telefono_destinatario"
+                    ),
+                    requerido=True
+                ),
+
                 punto_recogida_id=
                 data.get(
                     "punto_recogida_id"
@@ -429,10 +471,13 @@ def crear_pedido(
                 pedido_id=
                 pedido.id,
 
-                numero_telefono=
-                data[
-                    "numero_telefono"
-                ],
+                telefono_destinatario=
+                normalizar_telefono_destinatario(
+                    data.get(
+                        "telefono_destinatario"
+                    ),
+                    requerido=True
+                ),
 
                 saldo_cup=
                 calculo[
@@ -461,6 +506,13 @@ def crear_pedido(
 
                 numero_tarjeta=
                 data["numero_tarjeta"],
+
+                telefono_destinatario=
+                normalizar_telefono_destinatario(
+                    data.get(
+                        "telefono_destinatario"
+                    )
+                ),
 
                 monto_divisa=
                 calculo["monto_resultado"]

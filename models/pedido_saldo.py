@@ -23,7 +23,7 @@ class PedidoSaldo(Base):
         nullable=False
     )
 
-    numero_telefono = Column(
+    telefono_destinatario = Column(
         String,
         nullable=False
     )

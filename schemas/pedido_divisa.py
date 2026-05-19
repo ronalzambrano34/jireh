@@ -1,7 +1,5 @@
-from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import ConfigDict
-from pydantic import Field
 
 
 class PedidoDivisaCreate(
@@ -9,21 +7,18 @@ class PedidoDivisaCreate(
 ):
 
     model_config = ConfigDict(
-        populate_by_name=True
+        extra="forbid"
     )
 
-    monto_pago: float = Field(
-        validation_alias=AliasChoices(
-            "monto_pago",
-            "pix"
-        )
-    )
+    monto_pago: float
 
     moneda_pago: str = "BRL"
 
     tipo_tarjeta: str
 
     numero_tarjeta: str
+
+    telefono_destinatario: str | None = None
 
     monto_divisa: float
 

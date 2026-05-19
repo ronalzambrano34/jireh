@@ -2,6 +2,7 @@ from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import Float
 from sqlalchemy import ForeignKey
+from sqlalchemy import String
 
 from database import Base
 
@@ -24,6 +25,11 @@ class PedidoEfectivo(Base):
 
     monto_cup = Column(
         Float,
+        nullable=False
+    )
+
+    telefono_destinatario = Column(
+        String,
         nullable=False
     )
 

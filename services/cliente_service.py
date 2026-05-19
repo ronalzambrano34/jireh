@@ -2,11 +2,18 @@ from sqlalchemy.orm import Session
 
 from models.cliente import Cliente
 
+from services.telefonos import (
+    normalizar_telefono,
+    obtener_nombre_pais,
+    detectar_pais_por_codigo_telefono
+)
+
 
 def obtener_o_crear_cliente_por_telefono(
     db: Session,
     numero_telefono: str,
-    nombre: str = None
+    nombre: str = None,
+    pais: str = "br"
 ):
     """
     Busca un cliente por número de teléfono.
@@ -16,10 +23,26 @@ def obtener_o_crear_cliente_por_telefono(
         db: Sesión de BD
         numero_telefono: Número de teléfono del cliente
         nombre: Nombre opcional para cliente nuevo
+        pais: Código de país (br, uy, cu) o moneda (BRL, UYU, CUP)
     
     Returns:
         Cliente encontrado o creado
     """
+    
+    # Normalizar el teléfono
+    telefono_normalizado = (
+        normalizar_telefono(
+            numero_telefono,
+            pais
+        )
+    )
+    
+    # Detectar país del teléfono
+    pais_detectado = (
+        detectar_pais_por_codigo_telefono(
+            telefono_normalizado
+        )
+    )
     
     cliente = (
         db.query(
@@ -27,7 +50,7 @@ def obtener_o_crear_cliente_por_telefono(
         )
         .filter(
             Cliente.telefono
-            == numero_telefono
+            == telefono_normalizado
         )
         .first()
     )
@@ -39,9 +62,12 @@ def obtener_o_crear_cliente_por_telefono(
     nuevo_cliente = Cliente(
         nombre=(
             nombre
-            or f"Cliente {numero_telefono}"
+            or f"Cliente {telefono_normalizado}"
         ),
-        telefono=numero_telefono
+        telefono=telefono_normalizado,
+        pais=obtener_nombre_pais(
+            pais_detectado
+        )
     )
     
     db.add(nuevo_cliente)

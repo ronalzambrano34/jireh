@@ -28,7 +28,7 @@ class PedidoTransferencia(Base):
         nullable=False
     )
 
-    telefono_opcional = Column(
+    telefono_destinatario = Column(
         String,
         nullable=True
     )

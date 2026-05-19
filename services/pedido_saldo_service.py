@@ -122,8 +122,8 @@ def crear_pedido_saldo(
         "tipo_pago_id":
         data.tipo_pago_id,
 
-        "numero_telefono":
-        data.numero_telefono,
+        "telefono_destinatario":
+        data.telefono_destinatario,
 
         "saldo_cup":
         saldo_cup,

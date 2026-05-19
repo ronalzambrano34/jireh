@@ -74,7 +74,7 @@ def detalle_transferencia(
 
     return {
         "numero_tarjeta": detalle.numero_tarjeta,
-        "telefono_opcional": detalle.telefono_opcional,
+        "telefono_destinatario": detalle.telefono_destinatario,
         "monto_cup": detalle.monto_cup,
     }
 
@@ -98,6 +98,7 @@ def detalle_efectivo(
 
     return {
         "monto_cup": detalle.monto_cup,
+        "telefono_destinatario": detalle.telefono_destinatario,
         "punto_recogida_id": detalle.punto_recogida_id,
     }
 
@@ -120,7 +121,7 @@ def detalle_saldo(
         return None
 
     return {
-        "numero_telefono": detalle.numero_telefono,
+        "telefono_destinatario": detalle.telefono_destinatario,
         "saldo_cup": detalle.saldo_cup,
     }
 
@@ -145,6 +146,7 @@ def detalle_divisa(
     return {
         "tipo_tarjeta": detalle.tipo_tarjeta,
         "numero_tarjeta": detalle.numero_tarjeta,
+        "telefono_destinatario": detalle.telefono_destinatario,
         "monto_divisa": detalle.monto_divisa,
     }
 

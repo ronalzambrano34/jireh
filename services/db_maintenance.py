@@ -126,3 +126,48 @@ def ensure_runtime_columns(
         "moneda_pago",
         "moneda_pago VARCHAR DEFAULT 'BRL'"
     )
+    _rename_column_if_needed(
+        db,
+        "pedido_transferencia",
+        "telefono_opcional",
+        "telefono_destinatario"
+    )
+    _add_column_if_missing(
+        db,
+        "pedido_transferencia",
+        "telefono_destinatario",
+        "telefono_destinatario VARCHAR"
+    )
+
+    _rename_column_if_needed(
+        db,
+        "pedido_efectivo",
+        "numero_telefono",
+        "telefono_destinatario"
+    )
+    _add_column_if_missing(
+        db,
+        "pedido_efectivo",
+        "telefono_destinatario",
+        "telefono_destinatario VARCHAR"
+    )
+
+    _rename_column_if_needed(
+        db,
+        "pedido_saldo",
+        "numero_telefono",
+        "telefono_destinatario"
+    )
+    _add_column_if_missing(
+        db,
+        "pedido_saldo",
+        "telefono_destinatario",
+        "telefono_destinatario VARCHAR"
+    )
+
+    _add_column_if_missing(
+        db,
+        "pedido_divisa",
+        "telefono_destinatario",
+        "telefono_destinatario VARCHAR"
+    )

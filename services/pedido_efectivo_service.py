@@ -87,6 +87,13 @@ def crear_pedido_efectivo(
         "punto_recogida_id":
         punto_recogida_id,
 
+        "telefono_destinatario":
+        getattr(
+            data,
+            "telefono_destinatario",
+            None
+        ),
+
         "bonificacion_manual":
         getattr(
             data,

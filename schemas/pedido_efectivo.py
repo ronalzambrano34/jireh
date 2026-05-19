@@ -1,7 +1,5 @@
-from pydantic import AliasChoices
 from pydantic import BaseModel
 from pydantic import ConfigDict
-from pydantic import Field
 
 
 class PedidoEfectivoCreate(
@@ -9,15 +7,10 @@ class PedidoEfectivoCreate(
 ):
 
     model_config = ConfigDict(
-        populate_by_name=True
+        extra="forbid"
     )
 
-    monto_pago: float = Field(
-        validation_alias=AliasChoices(
-            "monto_pago",
-            "pix"
-        )
-    )
+    monto_pago: float
 
     moneda_pago: str = "BRL"
 
@@ -27,6 +20,8 @@ class PedidoEfectivoCreate(
 
     cliente_id: int | None = None
 
-    numero_telefono: str | None = None
+    numero_telefono_cliente: str | None = None
+
+    telefono_destinatario: str
 
     punto_recogida_id: int | None = None

@@ -22,11 +22,11 @@ def seed_metodos_pago(db: Session):
             "moneda": "UYU"
         },
         {
-            "nombre": "Efectivo",
+            "nombre": "Efectivo (BRL)",
             "moneda": "BRL"
         },
         {
-            "nombre": "Efectivo",
+            "nombre": "Efectivo (UYU)",
             "moneda": "UYU"
         },
         {
@@ -54,11 +54,16 @@ def seed_metodos_pago(db: Session):
         )
 
         if not existe:
-            nuevo_metodo = MetodoPago(
-                nombre=metodo["nombre"],
-                moneda=metodo["moneda"],
-                activo=True
-            )
-            db.add(nuevo_metodo)
-
-    db.commit()
+            try:
+                nuevo_metodo = MetodoPago(
+                    nombre=metodo["nombre"],
+                    moneda=metodo["moneda"],
+                    activo=True
+                )
+                db.add(nuevo_metodo)
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                print(
+                    f"Error al crear método {metodo['nombre']} {metodo['moneda']}: {str(e)}"
+                )

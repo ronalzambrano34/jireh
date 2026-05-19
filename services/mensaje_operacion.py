@@ -38,19 +38,21 @@ DEFAULT_TEMPLATES = {
     "template_transferencia": (
         "*Transferencia*\n"
         "*Tarjeta:* {{numero_tarjeta}}\n"
+        "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}"
     ),
     "template_efectivo": (
         "*Efectivo*\n"
+        "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}"
     ),
     "template_saldo": (
         "*Saldo Movil*\n"
-        "*Numero:* {{numero_telefono}}\n"
+        "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Saldo:* {{saldo_cup}} CUP\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}"
     ),
@@ -58,6 +60,7 @@ DEFAULT_TEMPLATES = {
         "*Divisa*\n"
         "*Tipo de tarjeta:* {{tipo_tarjeta}}\n"
         "*Numero de tarjeta:* {{numero_tarjeta}}\n"
+        "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Monto divisa:* {{monto_divisa}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Tasa efectiva:* {{tasa_final}}"
@@ -153,8 +156,12 @@ def generar_mensaje_operacion(
             "numero_tarjeta":
             detalle.numero_tarjeta,
 
-            "telefono":
-            detalle.telefono_opcional
+            "telefono_destinatario":
+            (
+                detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
             or ""
         })
 
@@ -165,6 +172,29 @@ def generar_mensaje_operacion(
     # efectivo
 
     elif pedido.servicio == "efectivo":
+
+        detalle = (
+            db.query(
+                PedidoEfectivo
+            )
+            .filter(
+                PedidoEfectivo.pedido_id
+                ==
+                pedido.id
+            )
+            .first()
+        )
+
+        variables.update({
+
+            "telefono_destinatario":
+            (
+                detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
+            or ""
+        })
 
         template_key = (
             "template_efectivo"
@@ -188,8 +218,8 @@ def generar_mensaje_operacion(
 
         variables.update({
 
-            "numero_telefono":
-            detalle.numero_telefono,
+            "telefono_destinatario":
+            detalle.telefono_destinatario,
 
             "saldo_cup":
             detalle.saldo_cup
@@ -222,6 +252,14 @@ def generar_mensaje_operacion(
 
             "numero_tarjeta":
             detalle.numero_tarjeta,
+
+            "telefono_destinatario":
+            (
+                detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
+            or "",
 
             "monto_divisa":
             detalle.monto_divisa
