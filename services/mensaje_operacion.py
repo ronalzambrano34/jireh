@@ -162,6 +162,14 @@ def generar_mensaje_operacion(
                 if detalle
                 else ""
             )
+            or "",
+
+            "telefono":
+            (
+                detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
             or ""
         })
 
@@ -193,6 +201,14 @@ def generar_mensaje_operacion(
                 if detalle
                 else ""
             )
+            or "",
+
+            "telefono":
+            (
+                detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
             or ""
         })
 
@@ -219,6 +235,12 @@ def generar_mensaje_operacion(
         variables.update({
 
             "telefono_destinatario":
+            detalle.telefono_destinatario,
+
+            "telefono":
+            detalle.telefono_destinatario,
+
+            "numero_telefono":
             detalle.telefono_destinatario,
 
             "saldo_cup":
@@ -254,6 +276,14 @@ def generar_mensaje_operacion(
             detalle.numero_tarjeta,
 
             "telefono_destinatario":
+            (
+                detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
+            or "",
+
+            "telefono":
             (
                 detalle.telefono_destinatario
                 if detalle

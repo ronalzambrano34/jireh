@@ -774,3 +774,13 @@ Antes de agregar una funcionalidad nueva, verificar:
 7. Que el cambio ayude al negocio actual, no solo a una idea futura.
 
 Este documento debe actualizarse cada vez que cambie una regla importante del negocio o del sistema.
+
+
+
+
+------------------Ideas del futuro------------------
+-------------para la fase en la que el operario crea el pedido.-----------------
+Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el operario le pregunta si desea cambiar un minuto de su tiempo en la creacion de su cuenta, para obtener un descuento (BONO) en la siguiente compra, logicamente en el sistema que maneja el opeario le debio aparecer un boton de crear cuenta y al finalizar el pedido un modal preguntando si el cliente quiso crear cuenta o no. Logicamente tambien debe estar implementado el sistema de recompensa de nuevos integrantes,para poder realizar dicha oferta de bonificacion.
+
+
+//todo: implementar campo Observaciones (o comentario, el nombre que mas te convenga, pero es necesario por si se necesita hacer algun comentario en el pedido, principalmente para la entrega de efectivo) en los servicios y colocarlo en las planillas.

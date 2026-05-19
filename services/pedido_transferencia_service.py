@@ -16,9 +16,19 @@ def crear_pedido_transferencia(
     payload = {
 
         "cliente_id":
+        (
+            getattr(
+                data,
+                "cliente_id",
+                None
+            )
+            or None
+        ),
+
+        "nombre_cliente":
         getattr(
             data,
-            "cliente_id",
+            "nombre_cliente",
             None
         ),
 
