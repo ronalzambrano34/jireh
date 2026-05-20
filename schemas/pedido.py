@@ -8,3 +8,5 @@ class PedidoEstadoUpdate(
     estado: str
 
     comprobante_pago: str | None = None
+
+    observaciones: str | None = None

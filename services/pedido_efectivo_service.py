@@ -109,6 +109,13 @@ def crear_pedido_efectivo(
             data,
             "bonificacion_manual",
             0
+        ),
+
+        "observaciones":
+        getattr(
+            data,
+            "observaciones",
+            None
         )
     }
 

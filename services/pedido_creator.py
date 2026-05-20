@@ -372,6 +372,11 @@ def crear_pedido(
             "ganancia"
         ),
 
+        observaciones=
+        data.get(
+            "observaciones"
+        ),
+
         estado=
         PedidoEstado.PENDIENTE_PAGO
     )
@@ -557,6 +562,9 @@ def crear_pedido(
         mensaje_data[
             "mensaje"
         ],
+
+        "observaciones":
+        pedido.observaciones,
 
         "whatsapp_url":
         mensaje_data[

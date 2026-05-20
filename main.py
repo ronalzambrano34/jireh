@@ -13,6 +13,7 @@ from models.metodo_pago import MetodoPago
 from models.punto_recogida import PuntoRecogida
 from models.oferta import Oferta
 from models.pedido import Pedido
+from models.contacto import Contacto
 
 from models.pedido_transferencia import (PedidoTransferencia)
 from models.pedido_saldo import (PedidoSaldo)
@@ -26,6 +27,7 @@ from routes.pedido_saldo import (router as saldo_router)
 from routes.pedido_divisa import (router as divisa_router)
 from routes.configuracion import (router as configuracion_router)
 from routes.calculadora import (router as calculadora_router)
+from routes.contacto import (router as contacto_router)
 
 
 from routes.metodo_pago import (router as metodo_pago_router)
@@ -65,6 +67,7 @@ app.include_router(divisa_router)
 app.include_router(configuracion_router)
 app.include_router(webhook_router)
 app.include_router(calculadora_router)
+app.include_router(contacto_router)
 app.include_router(template_router)
 
 app.include_router(metodo_pago_router)

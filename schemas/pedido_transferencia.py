@@ -27,3 +27,5 @@ class PedidoTransferenciaCreate(
     nombre_cliente: str | None = None
 
     numero_telefono_cliente: str | None = None
+
+    observaciones: str | None = None

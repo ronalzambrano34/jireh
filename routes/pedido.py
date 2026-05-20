@@ -118,7 +118,8 @@ def actualizar_estado(
             db,
             codigo_operacion,
             data.estado,
-            data.comprobante_pago
+            data.comprobante_pago,
+            data.observaciones
         )
     except Exception as exc:
         raise HTTPException(

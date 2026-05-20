@@ -71,7 +71,14 @@ def crear_pedido_divisa(
         data.monto_divisa,
 
         "bonificacion_manual":
-        0
+        0,
+
+        "observaciones":
+        getattr(
+            data,
+            "observaciones",
+            None
+        )
     }
 
     return crear_pedido(

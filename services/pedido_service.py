@@ -46,6 +46,7 @@ def pedido_base_dict(
         "monto_resultado": pedido.monto_resultado,
         "ganancia": pedido.ganancia,
         "comprobante_pago": pedido.comprobante_pago,
+        "observaciones": pedido.observaciones,
         "cliente_id": pedido.cliente_id,
         "operador_id": pedido.operador_id,
         "tipo_pago_id": pedido.tipo_pago_id,
@@ -291,6 +292,7 @@ def actualizar_estado_pedido(
     codigo_operacion: str,
     estado: str,
     comprobante_pago: str | None = None,
+    observaciones: str | None = None,
     usuario: str | None = None,
     comentario: str | None = None
 ):
@@ -355,6 +357,14 @@ def actualizar_estado_pedido(
     ):
         pedido.comprobante_pago = (
             comprobante_pago
+        )
+
+    if (
+        observaciones
+        is not None
+    ):
+        pedido.observaciones = (
+            observaciones
         )
 
     # timestamps automáticos

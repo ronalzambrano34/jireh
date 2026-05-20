@@ -1,5 +1,5 @@
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-05-17
+Actualizado: 2026-05-20
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -371,6 +371,37 @@ Implementado.
 Mejora ya aplicada:
 Si falta una plantilla, el sistema tiene mensajes por defecto para no romper la creacion del pedido.
 
+5.10 Libreta de contactos
+
+Representa contactos frecuentes o beneficiarios que pueden asociarse opcionalmente a un cliente.
+
+Campos actuales:
+
+- cliente_id
+- nombre
+- telefono
+- pais
+- notas
+- activo
+
+Estado actual:
+Implementado.
+
+Reglas actuales:
+
+- El telefono se normaliza usando las reglas existentes por pais.
+- El sistema detecta el pais por codigo telefonico.
+- Un mismo cliente no puede tener dos contactos con el mismo telefono.
+- La eliminacion actual es logica: el contacto queda inactivo.
+
+Endpoints actuales:
+
+GET /contactos/
+GET /contactos/{contacto_id}
+POST /contactos/
+PUT /contactos/{contacto_id}
+DELETE /contactos/{contacto_id}
+
 6. CODIGO DE OPERACION
 
 El codigo de operacion identifica cada pedido.
@@ -570,6 +601,7 @@ Ya existe:
 - Operadores.
 - Templates.
 - Sync de ofertas desde Google Sheets.
+- Libreta de contactos.
 
 Pendiente de etapa 1:
 
@@ -667,6 +699,14 @@ GET /templates/
 GET /templates/{clave}
 PUT /templates/{clave}
 
+Contactos:
+
+GET /contactos/
+GET /contactos/{contacto_id}
+POST /contactos/
+PUT /contactos/{contacto_id}
+DELETE /contactos/{contacto_id}
+
 Sync:
 
 POST /sync/ofertas
@@ -698,6 +738,7 @@ Prioridad 3: CRUD administrativo minimo
 Falta crear endpoints para administrar:
 
 - Clientes.
+- Contactos: implementado.
 - Puntos de recogida.
 - Metodos de pago.
 - Ofertas manuales.
@@ -783,4 +824,5 @@ Este documento debe actualizarse cada vez que cambie una regla importante del ne
 Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el operario le pregunta si desea cambiar un minuto de su tiempo en la creacion de su cuenta, para obtener un descuento (BONO) en la siguiente compra, logicamente en el sistema que maneja el opeario le debio aparecer un boton de crear cuenta y al finalizar el pedido un modal preguntando si el cliente quiso crear cuenta o no. Logicamente tambien debe estar implementado el sistema de recompensa de nuevos integrantes,para poder realizar dicha oferta de bonificacion.
 
 
-//todo: implementar campo Observaciones (o comentario, el nombre que mas te convenga, pero es necesario por si se necesita hacer algun comentario en el pedido, principalmente para la entrega de efectivo) en los servicios y colocarlo en las planillas.
+Nota implementada:
+Las observaciones operativas del pedido se reciben, guardan y devuelven en los flujos externos de creacion y actualizacion de pedidos.

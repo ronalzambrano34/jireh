@@ -27,3 +27,5 @@ class PedidoEfectivoCreate(
     telefono_destinatario: str
 
     punto_recogida_id: int | None = None
+
+    observaciones: str | None = None

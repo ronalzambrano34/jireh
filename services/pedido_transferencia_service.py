@@ -71,6 +71,13 @@ def crear_pedido_transferencia(
             data,
             "bonificacion_manual",
             0
+        ),
+
+        "observaciones":
+        getattr(
+            data,
+            "observaciones",
+            None
         )
     }
 

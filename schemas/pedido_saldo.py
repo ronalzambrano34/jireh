@@ -29,3 +29,5 @@ class PedidoSaldoCreate(
     saldo_cup: float | None = None
 
     moneda_pago: str = "BRL"
+
+    observaciones: str | None = None
