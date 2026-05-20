@@ -864,4 +864,4 @@ Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el 
 Nota implementada:
 Las observaciones operativas del pedido se reciben, guardan y devuelven en los flujos externos de creacion y actualizacion de pedidos.
 
-//todo creo que se necesita un sistema de roles para los operarios ya que se necesita un panel admin para crear operarios, modificarlos, y controlar todas las funciones de la empresa. Todo esto para minimizar el error humano por clientes que esten comenzando a sumergirse en la informatica.
+Sistema de roles para operarios implementado: los operarios tienen rol admin, supervisor u operador. El panel administrativo puede crear, listar, modificar y desactivar operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.

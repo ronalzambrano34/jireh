@@ -1,4 +1,13 @@
 from pydantic import BaseModel
+from pydantic import ConfigDict
+from pydantic import Field
+
+
+ROLES_OPERADOR = (
+    "admin",
+    "supervisor",
+    "operador"
+)
 
 
 class OperadorCreate(
@@ -9,10 +18,29 @@ class OperadorCreate(
 
     telefono: str
 
+    rol: str = "operador"
+
+
+class OperadorUpdate(
+    BaseModel
+):
+
+    nombre: str | None = None
+
+    telefono: str | None = None
+
+    rol: str | None = None
+
+    activo: bool | None = None
+
 
 class OperadorResponse(
     BaseModel
 ):
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
     id: int
 
@@ -22,7 +50,10 @@ class OperadorResponse(
 
     telefono: str | None = None
 
+    rol: str
+
     activo: bool
 
-    class Config:
-        from_attributes = True
+    permisos: list[str] = Field(
+        default_factory=list
+    )

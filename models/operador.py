@@ -35,6 +35,12 @@ class Operador(Base):
         unique=True
     )
 
+    rol = Column(
+        String,
+        nullable=False,
+        default="operador"
+    )
+
     activo = Column(
         Boolean,
         default=True
@@ -44,4 +50,33 @@ class Operador(Base):
         DateTime,
         server_default=func.now()
     )
-    
+
+    @property
+    def permisos(self):
+        permisos_por_rol = {
+            "admin": [
+                "operadores:crear",
+                "operadores:editar",
+                "operadores:desactivar",
+                "empresa:control_total",
+                "pedidos:gestionar",
+                "clientes:gestionar",
+                "configuracion:gestionar"
+            ],
+            "supervisor": [
+                "pedidos:gestionar",
+                "clientes:gestionar",
+                "operadores:ver"
+            ],
+            "operador": [
+                "pedidos:crear",
+                "clientes:crear",
+                "contactos:gestionar"
+            ]
+        }
+
+        return permisos_por_rol.get(
+            self.rol,
+            permisos_por_rol["operador"]
+        )
+

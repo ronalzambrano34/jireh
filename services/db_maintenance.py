@@ -193,6 +193,13 @@ def ensure_runtime_columns(
 
     _add_column_if_missing(
         db,
+        "operadores",
+        "rol",
+        "rol VARCHAR DEFAULT 'operador'"
+    )
+
+    _add_column_if_missing(
+        db,
         "pedido_efectivo",
         "documento_identidad_url",
         "documento_identidad_url VARCHAR"
