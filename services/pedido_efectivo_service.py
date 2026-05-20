@@ -104,6 +104,13 @@ def crear_pedido_efectivo(
             None
         ),
 
+        "documento_identidad_url":
+        getattr(
+            data,
+            "documento_identidad_url",
+            None
+        ),
+
         "bonificacion_manual":
         getattr(
             data,

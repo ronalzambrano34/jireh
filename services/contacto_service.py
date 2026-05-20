@@ -12,9 +12,17 @@ from services.telefonos import (
 
 
 def _normalizar_datos_contacto(
-    telefono: str,
+    telefono: str | None,
     pais: str | None = "br"
 ):
+
+    if telefono is None or not str(telefono).strip():
+        return (
+            None,
+            obtener_nombre_pais(
+                pais or "br"
+            )
+        )
 
     telefono_normalizado = normalizar_telefono(
         telefono,
@@ -63,6 +71,9 @@ def listar_contactos(
                     patron
                 ),
                 Contacto.telefono.ilike(
+                    patron
+                ),
+                Contacto.numero_tarjeta.ilike(
                     patron
                 )
             )
@@ -128,28 +139,32 @@ def crear_contacto(
         data.pais
     )
 
-    existe = (
-        db.query(
-            Contacto
+    if telefono:
+        existe = (
+            db.query(
+                Contacto
+            )
+            .filter(
+                Contacto.cliente_id
+                == data.cliente_id,
+                Contacto.telefono
+                == telefono
+            )
+            .first()
         )
-        .filter(
-            Contacto.cliente_id
-            == data.cliente_id,
-            Contacto.telefono
-            == telefono
-        )
-        .first()
-    )
 
-    if existe:
-        raise Exception(
-            "El contacto ya existe"
-        )
+        if existe:
+            raise Exception(
+                "El contacto ya existe"
+            )
 
     contacto = Contacto(
         cliente_id=data.cliente_id,
         nombre=data.nombre,
         telefono=telefono,
+        numero_tarjeta=data.numero_tarjeta,
+        tipo_tarjeta=data.tipo_tarjeta,
+        documento_identidad_url=data.documento_identidad_url,
         pais=pais,
         notas=data.notas
     )
@@ -188,6 +203,27 @@ def actualizar_contacto(
                 contacto.pais
             )
         )
+        if telefono:
+            existe = (
+                db.query(
+                    Contacto
+                )
+                .filter(
+                    Contacto.cliente_id
+                    == contacto.cliente_id,
+                    Contacto.telefono
+                    == telefono,
+                    Contacto.id
+                    != contacto.id
+                )
+                .first()
+            )
+
+            if existe:
+                raise Exception(
+                    "El contacto ya existe"
+                )
+
         cambios["telefono"] = telefono
         cambios["pais"] = pais
 

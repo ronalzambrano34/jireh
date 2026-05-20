@@ -101,6 +101,7 @@ def detalle_efectivo(
         "monto_cup": detalle.monto_cup,
         "telefono_destinatario": detalle.telefono_destinatario,
         "punto_recogida_id": detalle.punto_recogida_id,
+        "documento_identidad_url": detalle.documento_identidad_url,
     }
 
 

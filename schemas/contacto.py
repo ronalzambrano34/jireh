@@ -8,7 +8,13 @@ class ContactoBase(
 
     nombre: str
 
-    telefono: str
+    telefono: str | None = None
+
+    numero_tarjeta: str | None = None
+
+    tipo_tarjeta: str | None = None
+
+    documento_identidad_url: str | None = None
 
     pais: str | None = "br"
 
@@ -29,6 +35,12 @@ class ContactoUpdate(
     nombre: str | None = None
 
     telefono: str | None = None
+
+    numero_tarjeta: str | None = None
+
+    tipo_tarjeta: str | None = None
+
+    documento_identidad_url: str | None = None
 
     pais: str | None = None
 
@@ -51,7 +63,13 @@ class ContactoResponse(
 
     nombre: str
 
-    telefono: str
+    telefono: str | None = None
+
+    numero_tarjeta: str | None = None
+
+    tipo_tarjeta: str | None = None
+
+    documento_identidad_url: str | None = None
 
     pais: str | None = None
 

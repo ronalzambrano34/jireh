@@ -12,6 +12,9 @@ from services.configuracion_service import (
     crear_o_actualizar_configuracion
 )
 from services.configuracion_service import (
+    listar_configuraciones
+)
+from services.configuracion_service import (
     obtener_configuracion
 )
 
@@ -19,6 +22,20 @@ router = APIRouter(
     prefix="/configuracion",
     tags=["Configuracion"]
 )
+
+
+@router.get(
+    "/",
+    response_model=list[ConfiguracionResponse]
+)
+def listar_configuraciones_route(
+    db: Session = Depends(
+        get_db
+    )
+):
+    return listar_configuraciones(
+        db
+    )
 
 
 @router.get(

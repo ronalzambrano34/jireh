@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 from pydantic import ConfigDict
 
@@ -34,3 +36,11 @@ class ConfiguracionResponse(
     )
 
     id: int
+
+    editable: bool = True
+
+    descripcion: str | None = None
+
+    created_at: datetime | None = None
+
+    updated_at: datetime | None = None

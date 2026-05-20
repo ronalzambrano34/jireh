@@ -19,6 +19,20 @@ def obtener_configuracion(
     )
 
 
+def listar_configuraciones(
+    db: Session
+):
+    return (
+        db.query(
+            Configuracion
+        )
+        .order_by(
+            Configuracion.clave.asc()
+        )
+        .all()
+    )
+
+
 def obtener_valor_configuracion(
     db: Session,
     clave: str,

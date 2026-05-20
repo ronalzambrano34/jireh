@@ -72,6 +72,7 @@ Datos requeridos:
 - Moneda de pago.
 - Metodo de pago.
 - telefono_destinatario: contacto del beneficiario o familiar.
+- documento_identidad_url: foto o referencia al documento de identidad del beneficiario.
 - Punto de recogida.
 - Operador responsable.
 - Cliente asociado, opcional en la etapa actual.
@@ -373,13 +374,18 @@ Si falta una plantilla, el sistema tiene mensajes por defecto para no romper la 
 
 5.10 Libreta de contactos
 
-Representa contactos frecuentes o beneficiarios que pueden asociarse opcionalmente a un cliente.
+Representa la libreta de beneficiarios o familiares en Cuba que pueden asociarse opcionalmente a un cliente. Sirve para reutilizar datos frecuentes al crear operaciones, tanto desde el panel de operarios como desde el futuro portal de clientes.
+
+Los datos guardados pertenecen al familiar o beneficiario en Cuba, no al cliente del sistema.
 
 Campos actuales:
 
 - cliente_id
 - nombre
 - telefono
+- numero_tarjeta
+- tipo_tarjeta
+- documento_identidad_url
 - pais
 - notas
 - activo
@@ -389,9 +395,12 @@ Implementado.
 
 Reglas actuales:
 
-- El telefono se normaliza usando las reglas existentes por pais.
+- El telefono se normaliza usando las reglas existentes por pais cuando se proporciona.
 - El sistema detecta el pais por codigo telefonico.
 - Un mismo cliente no puede tener dos contactos con el mismo telefono.
+- Transferencia y divisa pueden reutilizar numero_tarjeta, tipo_tarjeta y telefono_destinatario opcional.
+- Efectivo puede reutilizar telefono_destinatario y documento_identidad_url.
+- Saldo puede reutilizar telefono_destinatario.
 - La eliminacion actual es logica: el contacto queda inactivo.
 
 Endpoints actuales:
@@ -401,6 +410,34 @@ GET /contactos/{contacto_id}
 POST /contactos/
 PUT /contactos/{contacto_id}
 DELETE /contactos/{contacto_id}
+
+5.11 Clientes
+
+Representa a la persona que solicita y paga la operacion desde el exterior. En la etapa inicial el operador puede crear o localizar clientes mientras atiende por WhatsApp. En la etapa de portal, el cliente podra registrarse, iniciar sesion y autogestionar sus operaciones.
+
+Campos actuales:
+
+- nombre
+- email
+- telefono
+- pais
+- moneda_preferida
+- referido_por_id
+- codigo_referido
+- perfil_completo
+- activo
+- es_admin
+
+Endpoints actuales:
+
+GET /clientes/
+GET /clientes/buscar?telefono=...
+GET /clientes/{cliente_id}
+GET /clientes/{cliente_id}/contactos
+GET /clientes/{cliente_id}/pedidos
+POST /clientes/
+PUT /clientes/{cliente_id}
+DELETE /clientes/{cliente_id}
 
 6. CODIGO DE OPERACION
 
@@ -630,7 +667,7 @@ Pendiente:
 Etapa 3: Portal de clientes
 
 Objetivo:
-Que clientes puedan entrar, registrarse y crear pedidos desde la web o app.
+Que clientes puedan entrar, registrarse y crear pedidos desde la web o app. En la primera etapa los operarios crean las ordenes a partir del contacto por WhatsApp; en la tercera etapa los clientes podran autogestionarse, mientras los operarios siguen trabajando desde su panel.
 
 Pendiente:
 
@@ -826,3 +863,5 @@ Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el 
 
 Nota implementada:
 Las observaciones operativas del pedido se reciben, guardan y devuelven en los flujos externos de creacion y actualizacion de pedidos.
+
+//todo creo que se necesita un sistema de roles para los operarios ya que se necesita un panel admin para crear operarios, modificarlos, y controlar todas las funciones de la empresa. Todo esto para minimizar el error humano por clientes que esten comenzando a sumergirse en la informatica.

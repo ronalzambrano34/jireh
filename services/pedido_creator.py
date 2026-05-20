@@ -432,6 +432,13 @@ def crear_pedido(
         "efectivo"
     ):
 
+        if not data.get(
+            "documento_identidad_url"
+        ):
+            raise Exception(
+                "documento_identidad_url es requerido"
+            )
+
         detalle = (
             PedidoEfectivo(
 
@@ -454,7 +461,12 @@ def crear_pedido(
                 punto_recogida_id=
                 data.get(
                     "punto_recogida_id"
-                ) or None
+                ) or None,
+
+                documento_identidad_url=
+                data.get(
+                    "documento_identidad_url"
+                )
             )
         )
 

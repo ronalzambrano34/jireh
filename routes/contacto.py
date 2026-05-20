@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -56,10 +57,16 @@ def obtener_contacto_route(
     )
 ):
 
-    return obtener_contacto(
-        db,
-        contacto_id
-    )
+    try:
+        return obtener_contacto(
+            db,
+            contacto_id
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc)
+        ) from exc
 
 
 @router.post(
@@ -73,10 +80,16 @@ def crear_contacto_route(
     )
 ):
 
-    return crear_contacto(
-        db,
-        data
-    )
+    try:
+        return crear_contacto(
+            db,
+            data
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
 
 
 @router.put(
@@ -91,11 +104,17 @@ def actualizar_contacto_route(
     )
 ):
 
-    return actualizar_contacto(
-        db,
-        contacto_id,
-        data
-    )
+    try:
+        return actualizar_contacto(
+            db,
+            contacto_id,
+            data
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
 
 
 @router.delete(
@@ -109,7 +128,13 @@ def eliminar_contacto_route(
     )
 ):
 
-    return eliminar_contacto(
-        db,
-        contacto_id
-    )
+    try:
+        return eliminar_contacto(
+            db,
+            contacto_id
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc)
+        ) from exc

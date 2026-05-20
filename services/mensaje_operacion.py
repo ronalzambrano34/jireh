@@ -46,6 +46,7 @@ DEFAULT_TEMPLATES = {
     "template_efectivo": (
         "*Efectivo*\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
+        "*Documento identidad:* {{documento_identidad_url}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}"
@@ -206,6 +207,14 @@ def generar_mensaje_operacion(
             "telefono":
             (
                 detalle.telefono_destinatario
+                if detalle
+                else ""
+            )
+            or "",
+
+            "documento_identidad_url":
+            (
+                detalle.documento_identidad_url
                 if detalle
                 else ""
             )

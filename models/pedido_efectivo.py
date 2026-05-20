@@ -40,3 +40,8 @@ class PedidoEfectivo(Base):
         ),
         nullable=True
     )
+
+    documento_identidad_url = Column(
+        String,
+        nullable=True
+    )

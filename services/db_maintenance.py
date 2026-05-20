@@ -171,3 +171,30 @@ def ensure_runtime_columns(
         "telefono_destinatario",
         "telefono_destinatario VARCHAR"
     )
+
+    _add_column_if_missing(
+        db,
+        "contactos",
+        "numero_tarjeta",
+        "numero_tarjeta VARCHAR"
+    )
+    _add_column_if_missing(
+        db,
+        "contactos",
+        "tipo_tarjeta",
+        "tipo_tarjeta VARCHAR"
+    )
+    _add_column_if_missing(
+        db,
+        "contactos",
+        "documento_identidad_url",
+        "documento_identidad_url VARCHAR"
+    )
+
+    _add_column_if_missing(
+        db,
+        "pedido_efectivo",
+        "documento_identidad_url",
+        "documento_identidad_url VARCHAR"
+    )
+

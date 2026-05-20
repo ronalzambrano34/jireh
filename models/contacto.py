@@ -41,8 +41,23 @@ class Contacto(Base):
 
     telefono = Column(
         String,
-        nullable=False,
+        nullable=True,
         index=True
+    )
+
+    numero_tarjeta = Column(
+        String,
+        nullable=True
+    )
+
+    tipo_tarjeta = Column(
+        String,
+        nullable=True
+    )
+
+    documento_identidad_url = Column(
+        String,
+        nullable=True
     )
 
     pais = Column(
