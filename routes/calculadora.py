@@ -11,6 +11,9 @@ from sqlalchemy.orm import (
 from database import (
     get_db
 )
+from services.auth_service import (
+    require_any_permission
+)
 
 from services.calculadora_oferta import (
     calcular_operacion
@@ -27,6 +30,14 @@ def calcular(
     data: dict,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
 

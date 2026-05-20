@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_any_permission
+)
 from schemas.pedido_divisa import PedidoDivisaCreate
 from services.pedido_divisa_service import crear_pedido_divisa
 
@@ -21,6 +24,14 @@ def crear_divisa(
     data: PedidoDivisaCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
     try:

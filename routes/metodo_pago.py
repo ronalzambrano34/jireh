@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_permission
+)
 
 from schemas.metodo_pago import (
     MetodoPagoCreate,
@@ -21,7 +24,14 @@ from services.metodo_pago_service import (
 
 router = APIRouter(
     prefix="/metodos-pago",
-    tags=["Metodos Pago"]
+    tags=["Metodos Pago"],
+    dependencies=[
+        Depends(
+            require_permission(
+                "empresa:control_total"
+            )
+        )
+    ]
 )
 
 

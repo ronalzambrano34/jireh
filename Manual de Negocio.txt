@@ -522,7 +522,7 @@ Pendiente:
 - Integracion real con WhatsApp API.
 - Envio automatico a grupos o destinatarios.
 - Recepcion y procesamiento de mensajes entrantes.
-- Manejo de archivos/comprobantes.
+- Adjuntar automaticamente comprobantes al envio final de WhatsApp.
 
 9. CONTABILIDAD Y GANANCIA
 
@@ -542,13 +542,18 @@ Implementado de forma basica.
 Regla actual:
 La calculadora devuelve error 400 con mensaje claro cuando no existe una oferta activa para el monto, moneda y servicio solicitados.
 
+Estado implementado:
+
+- Existe GET /reportes/resumen con filtros por fecha, estado, servicio, moneda_pago y operador_id.
+- El reporte agrupa por estado, servicio, moneda y operador.
+
 Pendiente recomendado:
 
 - Guardar costo real de operacion.
 - Guardar moneda destino.
 - Guardar monto destino con nombre mas general.
 - Calcular ganancia real por moneda.
-- Generar reportes por fecha, operador, metodo de pago, servicio y moneda.
+- Agregar reportes por metodo de pago y exportacion CSV/Excel.
 
 10. SEGURIDAD Y CONTROL
 
@@ -561,13 +566,15 @@ Estado actual:
 - Existe /auth/bootstrap para crear el primer admin solo si no hay admin con contraseña.
 - Existe /auth/login y /auth/me.
 - CRUD de operadores requiere token y permisos basicos.
+- Endpoints administrativos de clientes, contactos, configuracion, templates, metodos de pago, puntos de recogida, sync, archivos de pedido, ofertas, paquetes de saldo y reportes requieren token y permiso por rol.
+- Endpoints de pedidos y calculadora requieren token y permisos de pedidos.
+- Upload binario local de archivos implementado bajo storage/pedidos/{codigo_operacion}.
 
 Pendiente critico:
 
-- Proteger el resto de endpoints administrativos con permisos por rol.
 - Auditoria completa por usuario.
 - Politicas de expiracion/rotacion de tokens para produccion.
-- Manejo seguro de upload binario de archivos y comprobantes.
+- Migrar storage local de uploads a almacenamiento productivo con politicas de acceso, tamano maximo y antivirus si aplica.
 
 Roles recomendados para etapa 2:
 
@@ -616,9 +623,10 @@ Endpoints actuales:
 
 GET /pedido/{codigo_operacion}/archivos
 POST /pedido/{codigo_operacion}/archivos
+POST /pedido/{codigo_operacion}/upload
 
 Estado actual:
-Implementado para registro de metadatos. Pendiente implementar upload binario a storage y control de permisos.
+Implementado para registro de metadatos, upload binario local y control de permisos por token. En produccion se debe migrar o montar storage persistente y definir limites de tamano/tipo de archivo.
 
 12. ANTIFRAUDE Y REVISION
 
@@ -653,7 +661,7 @@ Objetivo:
 Crear y consultar pedidos, calcular montos, generar mensajes y ordenar la operacion.
 
 Estado actual:
-En desarrollo avanzado para backend basico.
+Backend operativo avanzado para uso interno y listo para conectar frontend interno inicial, sujeto a checklist pre-produccion.
 
 Ya existe:
 
@@ -672,19 +680,22 @@ Ya existe:
 - Libreta de contactos.
 - Login minimo de operadores/admin con token Bearer.
 - CRUD de operadores protegido con permisos basicos.
-- Registro de evidencias/comprobantes por pedido como metadatos.
+- Endpoints de pedidos y calculadora protegidos con permisos por rol.
+- CRUD administrativo de ofertas y paquetes de saldo protegido.
+- Reportes basicos protegidos con filtros operativos.
+- Registro de evidencias/comprobantes por pedido como metadatos y upload binario local.
 - Smoke test local de pedidos con SQLite temporal: scripts/smoke_pedidos.py.
-- Smoke test cubre creacion de pedidos, consulta de detalles y registro de comprobante_cliente.
+- Smoke test administrativo con SQLite temporal: scripts/smoke_admin.py.
+- Smoke tests cubren creacion de pedidos, consulta de detalles, CRUD de ofertas/paquetes, reportes y evidencias.
 - Prueba real contra API/DB de transferencia, efectivo, saldo y divisa completada el 2026-05-20.
 
 Pendiente de etapa 1:
 
 - Frontend web operativo.
-- Proteger todos los endpoints administrativos con roles/permisos.
-- Upload binario de comprobantes a storage.
-- Reportes basicos.
-- Seed o CRUD de metodos de pago, puntos y ofertas manuales.
+- Hardening de storage de comprobantes para produccion.
+- CRUD completo de metodos de pago y puntos de recogida si el panel necesita altas/ediciones desde UI.
 - Integracion WhatsApp real o semiautomatica.
+- Auditoria por usuario en acciones sensibles.
 
 Etapa 2: Operacion interna completa
 
@@ -698,7 +709,7 @@ Pendiente:
 - Asignacion de pedidos.
 - Panel por estado.
 - Bloqueo de pedido mientras un operador lo ejecuta.
-- Upload binario y permisos de evidencias por pedido.
+- Permisos finos de evidencias por tipo de archivo.
 - Auditoria por usuario.
 
 Etapa 3: Portal de clientes
@@ -756,10 +767,15 @@ GET /pedido/{codigo_operacion}
 PATCH /pedido/{codigo_operacion}/estado
 GET /pedido/{codigo_operacion}/archivos
 POST /pedido/{codigo_operacion}/archivos
+POST /pedido/{codigo_operacion}/upload
 
 Operadores:
 
+GET /operador/
+GET /operador/{operador_id}
 POST /operador/
+PUT /operador/{operador_id}
+DELETE /operador/{operador_id}
 
 Metodos de pago:
 
@@ -789,6 +805,26 @@ POST /contactos/
 PUT /contactos/{contacto_id}
 DELETE /contactos/{contacto_id}
 
+Ofertas:
+
+GET /ofertas/
+GET /ofertas/{oferta_id}
+POST /ofertas/
+PUT /ofertas/{oferta_id}
+DELETE /ofertas/{oferta_id}
+
+Paquetes de saldo:
+
+GET /paquetes-saldo/
+GET /paquetes-saldo/{paquete_id}
+POST /paquetes-saldo/
+PUT /paquetes-saldo/{paquete_id}
+DELETE /paquetes-saldo/{paquete_id}
+
+Reportes:
+
+GET /reportes/resumen
+
 Sync:
 
 POST /sync/ofertas
@@ -801,10 +837,10 @@ Prioridad 1: Seguridad y base del repo
 - Rotar credenciales expuestas.
 - Mantener .gitignore actualizado.
 - Login minimo de operadores implementado.
-- Proteger endpoints administrativos restantes.
+- Proteger endpoints de pedidos y calculadora.
 
 Estado:
-En proceso / parcialmente resuelto.
+Implementado. Pendiente hardening de produccion, auditoria y politicas definitivas de tokens.
 
 Prioridad 2: Consistencia del pedido
 
@@ -819,18 +855,22 @@ Implementado recientemente.
 
 Prioridad 3: CRUD administrativo minimo
 
-Falta crear endpoints para administrar:
+Estado actual:
 
-- Clientes.
+- Clientes: endpoints protegidos existentes.
 - Contactos: implementado.
 - Puntos de recogida: implementado.
 - Metodos de pago: implementado.
-- Ofertas manuales.
-- Paquetes de saldo.
+- Ofertas manuales: implementado.
+- Paquetes de saldo: implementado.
+
+Pendiente recomendado:
+
+- Revisar si clientes, metodos de pago y puntos necesitan CRUD completo editable desde el frontend o si basta con seed/sync.
 
 Prioridad 4: Evidencias
 
-ArchivoPedido esta implementado para registrar metadatos de comprobantes. Falta upload binario a storage, permisos y validacion de archivos.
+ArchivoPedido esta implementado para registrar metadatos, listar archivos, actualizar comprobante_pago cuando corresponde y recibir upload binario local. Pendiente storage productivo, limites de archivo y validacion antivirus si aplica.
 
 Prioridad 5: Frontend operativo
 
@@ -845,11 +885,17 @@ Crear una web interna con:
 
 Prioridad 6: Reportes
 
+Estado actual:
+
+- GET /reportes/resumen implementado con filtros por fecha, estado, servicio, moneda y operador.
+- Resume total de pedidos, monto pagado, monto resultado y ganancia.
+- Agrupa por estado, servicio, moneda y operador.
+
+Pendiente recomendado:
+
 - Ventas por dia.
-- Ganancia por servicio.
-- Ganancia por moneda.
-- Pedidos por operador.
-- Pedidos por estado.
+- Reporte por metodo de pago.
+- Exportacion CSV/Excel.
 
 16. GLOSARIO
 
@@ -943,15 +989,18 @@ Datos y operacion:
 - Verificar paquetes de saldo activos.
 - Verificar puntos de recogida activos.
 - Revisar templates guardados en DB y variables disponibles.
-- Ejecutar smoke test local: venv/bin/python scripts/smoke_pedidos.py.
+- Ejecutar smoke test local de pedidos: venv/bin/python scripts/smoke_pedidos.py.
+- Ejecutar smoke test administrativo: venv/bin/python scripts/smoke_admin.py.
 - Probar contra API real los cuatro servicios: transferencia, efectivo, saldo y divisa.
 - Probar registro de evidencias/comprobantes por pedido.
+- Probar upload binario local o storage productivo.
+- Probar endpoints protegidos sin token y con token: pedidos, calculadora, ofertas, paquetes, reportes y archivos.
 
 Pendiente antes de operacion completa:
 
-- Implementar upload binario seguro de archivos a storage.
 - Implementar auditoria por usuario para acciones sensibles.
-- Proteger endpoints restantes de clientes, contactos, metodos de pago, puntos, templates, sync y pedidos segun rol.
+- Migrar upload local a storage productivo o montar volumen persistente con backups.
+- Configurar CORS para el dominio real del frontend.
 - Documentar formato exacto esperado del Google Sheet.
 
 ------------------Ideas del futuro------------------

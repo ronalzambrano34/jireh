@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_permission
+)
 
 from schemas.cliente import (
     ClienteCreate,
@@ -26,7 +29,14 @@ from services.cliente_service import (
 
 router = APIRouter(
     prefix="/clientes",
-    tags=["Clientes"]
+    tags=["Clientes"],
+    dependencies=[
+        Depends(
+            require_permission(
+                "clientes:gestionar"
+            )
+        )
+    ]
 )
 
 

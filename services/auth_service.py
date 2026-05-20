@@ -388,7 +388,11 @@ def require_permission(
             get_current_operador
         )
     ):
-        if permiso not in operador.permisos:
+        if (
+            permiso not in operador.permisos
+            and
+            "empresa:control_total" not in operador.permisos
+        ):
             raise HTTPException(
                 status_code=403,
                 detail="Permiso insuficiente"
@@ -408,3 +412,32 @@ def validar_rol_auth(
         )
 
     return rol
+
+
+def require_any_permission(
+    permisos: list[str]
+):
+    def dependency(
+        operador: Operador = Depends(
+            get_current_operador
+        )
+    ):
+        permisos_operador = set(
+            operador.permisos
+        )
+
+        if (
+            "empresa:control_total" not in permisos_operador
+            and
+            not permisos_operador.intersection(
+                permisos
+            )
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Permiso insuficiente"
+            )
+
+        return operador
+
+    return dependency

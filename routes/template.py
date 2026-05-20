@@ -10,6 +10,9 @@ from sqlalchemy.orm import (
 from database import (
     get_db
 )
+from services.auth_service import (
+    require_permission
+)
 
 from schemas.template import (
     TemplateUpdate
@@ -23,7 +26,14 @@ from services.template_service import (
 
 router = APIRouter(
     prefix="/templates",
-    tags=["Templates"]
+    tags=["Templates"],
+    dependencies=[
+        Depends(
+            require_permission(
+                "configuracion:gestionar"
+            )
+        )
+    ]
 )
 
 

@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_any_permission
+)
 from schemas.pedido_saldo import PedidoSaldoCreate
 from services.pedido_saldo_service import crear_pedido_saldo
 
@@ -21,6 +24,14 @@ def crear_saldo(
     data: PedidoSaldoCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
     try:

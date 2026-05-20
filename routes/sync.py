@@ -10,6 +10,9 @@ from sqlalchemy.orm import (
 from database import (
     get_db
 )
+from services.auth_service import (
+    require_permission
+)
 
 from services.google_sheet_sync import (
     sync_ofertas
@@ -17,7 +20,14 @@ from services.google_sheet_sync import (
 
 router = APIRouter(
     prefix="/sync",
-    tags=["Sync"]
+    tags=["Sync"],
+    dependencies=[
+        Depends(
+            require_permission(
+                "empresa:control_total"
+            )
+        )
+    ]
 )
 
 

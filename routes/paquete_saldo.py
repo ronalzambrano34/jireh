@@ -1,30 +1,26 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-
 from sqlalchemy.orm import Session
 
 from database import get_db
-from services.auth_service import (
-    require_permission
+from schemas.paquete_saldo import (
+    PaqueteSaldoCreate,
+    PaqueteSaldoResponse,
+    PaqueteSaldoUpdate
 )
-
-from schemas.punto_recogida import (
-    PuntoRecogidaCreate,
-    PuntoRecogidaResponse,
-    PuntoRecogidaUpdate
-)
-from services.punto_recogida_service import (
-    actualizar_punto_recogida,
-    crear_punto_recogida,
-    eliminar_punto_recogida,
-    listar_puntos_recogida,
-    obtener_punto_recogida
+from services.auth_service import require_permission
+from services.paquete_saldo_service import (
+    actualizar_paquete_saldo,
+    crear_paquete_saldo,
+    eliminar_paquete_saldo,
+    listar_paquetes_saldo,
+    obtener_paquete_saldo
 )
 
 router = APIRouter(
-    prefix="/puntos-recogida",
-    tags=["Puntos Recogida"],
+    prefix="/paquetes-saldo",
+    tags=["Paquetes Saldo"],
     dependencies=[
         Depends(
             require_permission(
@@ -37,20 +33,20 @@ router = APIRouter(
 
 @router.get(
     "/",
-    response_model=list[PuntoRecogidaResponse]
+    response_model=list[PaqueteSaldoResponse]
 )
-def listar_puntos_recogida_route(
-    busqueda: str | None = None,
+def listar_paquetes_saldo_route(
+    moneda_pago: str | None = None,
     incluir_inactivos: bool = False,
-    limit: int = 50,
+    limit: int = 100,
     offset: int = 0,
     db: Session = Depends(
         get_db
     )
 ):
-    return listar_puntos_recogida(
+    return listar_paquetes_saldo(
         db,
-        busqueda=busqueda,
+        moneda_pago=moneda_pago,
         incluir_inactivos=incluir_inactivos,
         limit=limit,
         offset=offset
@@ -58,19 +54,19 @@ def listar_puntos_recogida_route(
 
 
 @router.get(
-    "/{punto_id}",
-    response_model=PuntoRecogidaResponse
+    "/{paquete_id}",
+    response_model=PaqueteSaldoResponse
 )
-def obtener_punto_recogida_route(
-    punto_id: int,
+def obtener_paquete_saldo_route(
+    paquete_id: int,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return obtener_punto_recogida(
+        return obtener_paquete_saldo(
             db,
-            punto_id
+            paquete_id
         )
     except Exception as exc:
         raise HTTPException(
@@ -81,16 +77,16 @@ def obtener_punto_recogida_route(
 
 @router.post(
     "/",
-    response_model=PuntoRecogidaResponse
+    response_model=PaqueteSaldoResponse
 )
-def crear_punto_recogida_route(
-    data: PuntoRecogidaCreate,
+def crear_paquete_saldo_route(
+    data: PaqueteSaldoCreate,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return crear_punto_recogida(
+        return crear_paquete_saldo(
             db,
             data
         )
@@ -102,20 +98,20 @@ def crear_punto_recogida_route(
 
 
 @router.put(
-    "/{punto_id}",
-    response_model=PuntoRecogidaResponse
+    "/{paquete_id}",
+    response_model=PaqueteSaldoResponse
 )
-def actualizar_punto_recogida_route(
-    punto_id: int,
-    data: PuntoRecogidaUpdate,
+def actualizar_paquete_saldo_route(
+    paquete_id: int,
+    data: PaqueteSaldoUpdate,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return actualizar_punto_recogida(
+        return actualizar_paquete_saldo(
             db,
-            punto_id,
+            paquete_id,
             data
         )
     except Exception as exc:
@@ -126,19 +122,19 @@ def actualizar_punto_recogida_route(
 
 
 @router.delete(
-    "/{punto_id}",
-    response_model=PuntoRecogidaResponse
+    "/{paquete_id}",
+    response_model=PaqueteSaldoResponse
 )
-def eliminar_punto_recogida_route(
-    punto_id: int,
+def eliminar_paquete_saldo_route(
+    paquete_id: int,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return eliminar_punto_recogida(
+        return eliminar_paquete_saldo(
             db,
-            punto_id
+            paquete_id
         )
     except Exception as exc:
         raise HTTPException(

@@ -4,6 +4,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_permission
+)
 
 from schemas.contacto import (
     ContactoCreate,
@@ -21,7 +24,14 @@ from services.contacto_service import (
 
 router = APIRouter(
     prefix="/contactos",
-    tags=["Contactos"]
+    tags=["Contactos"],
+    dependencies=[
+        Depends(
+            require_permission(
+                "contactos:gestionar"
+            )
+        )
+    ]
 )
 
 

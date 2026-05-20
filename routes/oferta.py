@@ -1,30 +1,26 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-
 from sqlalchemy.orm import Session
 
 from database import get_db
-from services.auth_service import (
-    require_permission
+from schemas.oferta import (
+    OfertaCreate,
+    OfertaResponse,
+    OfertaUpdate
 )
-
-from schemas.punto_recogida import (
-    PuntoRecogidaCreate,
-    PuntoRecogidaResponse,
-    PuntoRecogidaUpdate
-)
-from services.punto_recogida_service import (
-    actualizar_punto_recogida,
-    crear_punto_recogida,
-    eliminar_punto_recogida,
-    listar_puntos_recogida,
-    obtener_punto_recogida
+from services.auth_service import require_permission
+from services.oferta_service import (
+    actualizar_oferta,
+    crear_oferta,
+    eliminar_oferta,
+    listar_ofertas,
+    obtener_oferta
 )
 
 router = APIRouter(
-    prefix="/puntos-recogida",
-    tags=["Puntos Recogida"],
+    prefix="/ofertas",
+    tags=["Ofertas"],
     dependencies=[
         Depends(
             require_permission(
@@ -37,40 +33,42 @@ router = APIRouter(
 
 @router.get(
     "/",
-    response_model=list[PuntoRecogidaResponse]
+    response_model=list[OfertaResponse]
 )
-def listar_puntos_recogida_route(
-    busqueda: str | None = None,
-    incluir_inactivos: bool = False,
-    limit: int = 50,
+def listar_ofertas_route(
+    servicio: str | None = None,
+    moneda_pago: str | None = None,
+    incluir_inactivas: bool = False,
+    limit: int = 100,
     offset: int = 0,
     db: Session = Depends(
         get_db
     )
 ):
-    return listar_puntos_recogida(
+    return listar_ofertas(
         db,
-        busqueda=busqueda,
-        incluir_inactivos=incluir_inactivos,
+        servicio=servicio,
+        moneda_pago=moneda_pago,
+        incluir_inactivas=incluir_inactivas,
         limit=limit,
         offset=offset
     )
 
 
 @router.get(
-    "/{punto_id}",
-    response_model=PuntoRecogidaResponse
+    "/{oferta_id}",
+    response_model=OfertaResponse
 )
-def obtener_punto_recogida_route(
-    punto_id: int,
+def obtener_oferta_route(
+    oferta_id: int,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return obtener_punto_recogida(
+        return obtener_oferta(
             db,
-            punto_id
+            oferta_id
         )
     except Exception as exc:
         raise HTTPException(
@@ -81,16 +79,16 @@ def obtener_punto_recogida_route(
 
 @router.post(
     "/",
-    response_model=PuntoRecogidaResponse
+    response_model=OfertaResponse
 )
-def crear_punto_recogida_route(
-    data: PuntoRecogidaCreate,
+def crear_oferta_route(
+    data: OfertaCreate,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return crear_punto_recogida(
+        return crear_oferta(
             db,
             data
         )
@@ -102,20 +100,20 @@ def crear_punto_recogida_route(
 
 
 @router.put(
-    "/{punto_id}",
-    response_model=PuntoRecogidaResponse
+    "/{oferta_id}",
+    response_model=OfertaResponse
 )
-def actualizar_punto_recogida_route(
-    punto_id: int,
-    data: PuntoRecogidaUpdate,
+def actualizar_oferta_route(
+    oferta_id: int,
+    data: OfertaUpdate,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return actualizar_punto_recogida(
+        return actualizar_oferta(
             db,
-            punto_id,
+            oferta_id,
             data
         )
     except Exception as exc:
@@ -126,19 +124,19 @@ def actualizar_punto_recogida_route(
 
 
 @router.delete(
-    "/{punto_id}",
-    response_model=PuntoRecogidaResponse
+    "/{oferta_id}",
+    response_model=OfertaResponse
 )
-def eliminar_punto_recogida_route(
-    punto_id: int,
+def eliminar_oferta_route(
+    oferta_id: int,
     db: Session = Depends(
         get_db
     )
 ):
     try:
-        return eliminar_punto_recogida(
+        return eliminar_oferta(
             db,
-            punto_id
+            oferta_id
         )
     except Exception as exc:
         raise HTTPException(

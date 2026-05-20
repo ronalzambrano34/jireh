@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_any_permission
+)
 
 from schemas.pedido import (
     PedidoEstadoUpdate
@@ -44,6 +47,14 @@ def crear_transferencia(
     PedidoTransferenciaCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
 
@@ -71,6 +82,13 @@ def listar(
     offset: int = 0,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
     return listar_pedidos(
@@ -89,6 +107,13 @@ def obtener_por_codigo(
     codigo_operacion: str,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -111,6 +136,13 @@ def actualizar_estado(
     data: PedidoEstadoUpdate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -133,6 +165,14 @@ def crear(
     data: dict,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar"
+            ]
+        )
     )
 ):
 

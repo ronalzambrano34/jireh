@@ -1,3 +1,7 @@
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from models.archivo_pedido import ArchivoPedido
@@ -142,4 +146,67 @@ def registrar_archivo_pedido(
 
     return archivo_pedido_dict(
         archivo
+    )
+
+
+def guardar_upload_pedido(
+    db: Session,
+    codigo_operacion: str,
+    tipo: str,
+    archivo: UploadFile,
+    usuario: str | None = None,
+    notas: str | None = None
+):
+    if not archivo.filename:
+        raise Exception(
+            "archivo es requerido"
+        )
+
+    extension = Path(
+        archivo.filename
+    ).suffix
+    nombre_seguro = (
+        str(
+            uuid4()
+        )
+        +
+        extension
+    )
+    carpeta = Path(
+        "storage"
+    ) / "pedidos" / codigo_operacion
+    carpeta.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+    destino = carpeta / nombre_seguro
+
+    with destino.open(
+        "wb"
+    ) as fh:
+        while True:
+            chunk = archivo.file.read(
+                1024 * 1024
+            )
+            if not chunk:
+                break
+            fh.write(
+                chunk
+            )
+
+    data = ArchivoPedidoCreate(
+        tipo=tipo,
+        ruta_archivo=str(
+            destino
+        ),
+        nombre_archivo=archivo.filename,
+        mime_type=archivo.content_type,
+        notas=notas,
+        usuario=usuario
+    )
+
+    return registrar_archivo_pedido(
+        db,
+        codigo_operacion,
+        data
     )

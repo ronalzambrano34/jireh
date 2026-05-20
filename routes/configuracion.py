@@ -5,6 +5,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
+from services.auth_service import (
+    require_permission
+)
 from schemas.configuracion import ConfiguracionCreate
 from schemas.configuracion import ConfiguracionResponse
 from schemas.configuracion import ConfiguracionUpdate
@@ -20,7 +23,14 @@ from services.configuracion_service import (
 
 router = APIRouter(
     prefix="/configuracion",
-    tags=["Configuracion"]
+    tags=["Configuracion"],
+    dependencies=[
+        Depends(
+            require_permission(
+                "configuracion:gestionar"
+            )
+        )
+    ]
 )
 
 
