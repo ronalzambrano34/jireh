@@ -1,6 +1,9 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from Backend.routes.webhook import router as webhook_router
+
+from Backend.config import FRONTEND_ORIGINS
 
 from Backend.database import Base
 from Backend.database import engine
@@ -42,11 +45,20 @@ from Backend.routes.punto_recogida import (router as punto_recogida_router)
 from Backend.routes.sync import (router as sync_router)
 
 from Backend.services.db_maintenance import ensure_runtime_columns
-from Backend.services.seed_admin import (seed_admin_cliente)
+from Backend.services.seed_admin import seed_admin_operador
+from Backend.services.seed_admin import seed_cliente_generico
 from Backend.services.seed_metodos_pago import (seed_metodos_pago)
 from Backend.routes.template import (router as template_router)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 Base.metadata.create_all(
@@ -58,7 +70,10 @@ try:
     ensure_runtime_columns(
         _db
     )
-    seed_admin_cliente(
+    seed_cliente_generico(
+        _db
+    )
+    seed_admin_operador(
         _db
     )
     seed_metodos_pago(

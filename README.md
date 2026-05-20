@@ -46,4 +46,40 @@ cd ..
 
 ## Frontend
 
-`Frontend/` queda reservado para la app web interna. La primera version debe cubrir login, bandeja de pedidos, creacion de pedidos, detalle, cambio de estado, upload de comprobantes y copiado de mensajes de WhatsApp.
+`Frontend/` contiene el primer scaffold de la app web interna con React, TypeScript y Vite.
+
+Incluye:
+
+- Login de operador con token Bearer.
+- Bandeja de pedidos por estado.
+- Detalle basico de pedido.
+- Creacion inicial de transferencia.
+- Cambio de estado.
+- Upload de comprobante.
+- Copiado del mensaje de WhatsApp.
+
+Antes de ejecutarlo hay que instalar Node.js/npm. Luego:
+
+```bash
+cd Frontend
+npm install
+npm run dev
+```
+
+El frontend consume la API con:
+
+```bash
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+El backend permite los origenes definidos en `FRONTEND_ORIGINS` dentro de `Backend/.env`; por defecto acepta `http://127.0.0.1:5173` y `http://localhost:5173`.
+
+Variables utiles en `Backend/.env`:
+
+```bash
+OPERADOR_ADMIN_NOMBRE="Ronal Zambrano Ferrer"
+OPERADOR_ADMIN_TELEFONO="+5548991233191"
+OPERADOR_ADMIN_PASSWORD="contraseña-local"
+```
+
+Al arrancar el backend se crea o actualiza ese operador como `admin`. La contraseña solo se toma de `.env`; no hay contraseña de admin escrita en el codigo.

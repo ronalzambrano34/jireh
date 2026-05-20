@@ -77,7 +77,6 @@ class ClienteResponse(
 
     activo: bool
 
-    es_admin: bool
 
     created_at: datetime | None = None
 

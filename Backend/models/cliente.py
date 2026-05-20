@@ -74,10 +74,6 @@ class Cliente(Base):
         default=True
     )
 
-    es_admin = Column(
-        Boolean,
-        default=False
-    )
 
     created_at = Column(
         DateTime,

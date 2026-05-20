@@ -217,10 +217,9 @@ Campos actuales importantes:
 - referido_por_id
 - perfil_completo
 - activo
-- es_admin
 
 Estado actual:
-Existe modelo Cliente. El sistema crea un cliente admin inicial al arrancar si no existe. Hay endpoints para alta, busqueda, edicion, eliminacion logica, contactos y pedidos por cliente.
+Existe modelo Cliente. El sistema crea un Cliente Generico inicial al arrancar si no existe; se usa como fallback operativo cuando una orden todavia no tiene cliente claro. Los permisos administrativos no viven en Cliente. Hay endpoints para alta, busqueda, edicion, eliminacion logica, contactos y pedidos por cliente.
 
 Pendiente:
 Definir reglas de login/registro cuando exista portal de clientes.
@@ -438,7 +437,9 @@ Campos actuales:
 - codigo_referido
 - perfil_completo
 - activo
-- es_admin
+
+Regla actual:
+Cliente no controla acceso administrativo. La administracion del sistema pertenece a Operador mediante rol y permisos.
 
 Endpoints actuales:
 
@@ -566,13 +567,14 @@ Estado actual:
 - Existe /auth/bootstrap para crear el primer admin solo si no hay admin con contraseña.
 - Existe /auth/login y /auth/me.
 - CRUD de operadores requiere token y permisos basicos.
+- El operador configurado por OPERADOR_ADMIN_TELEFONO se muestra como admin, pero queda protegido contra desactivacion, degradacion de rol, cambio de telefono y cambio de contraseña por otro operador.
 - Endpoints administrativos de clientes, contactos, configuracion, templates, metodos de pago, puntos de recogida, sync, archivos de pedido, ofertas, paquetes de saldo y reportes requieren token y permiso por rol.
 - Endpoints de pedidos y calculadora requieren token y permisos de pedidos.
 - Upload binario local de archivos implementado bajo storage/pedidos/{codigo_operacion}.
 
 Pendiente critico:
 
-- Auditoria completa por usuario.
+- Auditoria completa por usuario, especialmente intentos de modificar el admin protegido.
 - Politicas de expiracion/rotacion de tokens para produccion.
 - Migrar storage local de uploads a almacenamiento productivo con politicas de acceso, tamano maximo y antivirus si aplica.
 
@@ -658,7 +660,7 @@ No implementado.
 La aplicacion se divide en carpetas separadas:
 
 - Backend/: API FastAPI, modelos, rutas, servicios, schemas, scripts y requirements.txt.
-- Frontend/: app web interna pendiente de implementar.
+- Frontend/: app web interna React/Vite iniciada para login, bandeja, transferencia, detalle, estados y comprobantes.
 - Manual de Negocio.txt: documento raiz del negocio y fuente de verdad compartida.
 
 Comandos backend desde la raiz:
@@ -708,7 +710,7 @@ Ya existe:
 
 Pendiente de etapa 1:
 
-- Frontend web operativo.
+- Completar frontend web operativo para efectivo, saldo, divisa, administracion y reportes.
 - Hardening de storage de comprobantes para produccion.
 - CRUD completo de metodos de pago y puntos de recogida si el panel necesita altas/ediciones desde UI.
 - Integracion WhatsApp real o semiautomatica.
@@ -891,14 +893,19 @@ ArchivoPedido esta implementado para registrar metadatos, listar archivos, actua
 
 Prioridad 5: Frontend operativo
 
-Crear una web interna con:
+Estado actual:
 
-- Crear pedido.
-- Listar pedidos.
-- Filtrar por estado.
-- Ver detalle.
-- Cambiar estado.
-- Copiar o enviar mensaje.
+- Frontend/ creado con React, TypeScript y Vite.
+- Implementado scaffold inicial de login, bandeja de pedidos, filtro por estado, detalle, cambio de estado, upload de comprobante y creacion de transferencia.
+- Pendiente instalar Node.js/npm para ejecutar build y validar en navegador.
+
+Pendiente:
+
+- Crear pedidos de efectivo, saldo y divisa.
+- Seleccionar metodos de pago desde API en vez de escribir tipo_pago_id manual.
+- Administrar ofertas, paquetes, contactos y configuracion desde UI.
+- Pantalla de reportes.
+- Envio real o semiautomatico de mensajes WhatsApp.
 
 Prioridad 6: Reportes
 
@@ -983,7 +990,9 @@ Seguridad y secretos:
 
 Autenticacion y permisos:
 
-- Crear el primer admin con /auth/bootstrap.
+- Definir OPERADOR_ADMIN_NOMBRE, OPERADOR_ADMIN_TELEFONO y OPERADOR_ADMIN_PASSWORD en Backend/.env para la semilla segura del operador admin protegido.
+- Confirmar que el admin protegido no pueda ser desactivado, degradado, cambiado de telefono ni cambiado de contraseña por otro operador.
+- Crear el primer admin con /auth/bootstrap solo si se decide no usar la semilla de operador admin.
 - Confirmar que /auth/bootstrap no permita crear otro admin si ya existe uno con contraseña.
 - Proteger todos los endpoints administrativos con token y permisos por rol.
 - Confirmar que los roles admin, supervisor y operador tengan permisos adecuados.
@@ -1017,7 +1026,7 @@ Pendiente antes de operacion completa:
 
 - Implementar auditoria por usuario para acciones sensibles.
 - Migrar upload local a storage productivo o montar volumen persistente con backups.
-- Configurar CORS para el dominio real del frontend.
+- Configurar FRONTEND_ORIGINS/CORS para el dominio real del frontend.
 - Documentar formato exacto esperado del Google Sheet.
 
 ------------------Ideas del futuro------------------

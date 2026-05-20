@@ -394,7 +394,7 @@ def crear_pedido(
             .first()
         )
 
-    # Fallback: usar cliente_id 1 por defecto (admin)
+    # Fallback: usar cliente generico por defecto
     else:
         cliente = (
             db.query(

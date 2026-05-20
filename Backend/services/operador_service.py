@@ -1,6 +1,8 @@
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from Backend.config import OPERADOR_ADMIN_TELEFONO
+
 from Backend.models.operador import (
     Operador
 )
@@ -32,6 +34,65 @@ def _validar_rol(
         )
 
     return rol_normalizado
+
+
+def _normalizar_telefono(
+    telefono: str | None
+):
+    return (
+        telefono
+        or ""
+    ).strip()
+
+
+def _es_admin_protegido(
+    operador: Operador
+):
+    return (
+        operador.rol == "admin"
+        and _normalizar_telefono(
+            operador.telefono
+        ) == _normalizar_telefono(
+            OPERADOR_ADMIN_TELEFONO
+        )
+    )
+
+
+def _proteger_admin_configurado(
+    operador: Operador,
+    cambios: dict,
+    operador_actual: Operador | None = None
+):
+    if not _es_admin_protegido(
+        operador
+    ):
+        return
+
+    mismo_operador = (
+        operador_actual is not None
+        and operador_actual.id == operador.id
+    )
+
+    campos_bloqueados = {
+        "telefono",
+        "rol",
+        "activo"
+    }
+
+    if campos_bloqueados.intersection(
+        cambios.keys()
+    ):
+        raise Exception(
+            "El admin protegido no puede ser desactivado, degradado ni cambiar de telefono desde el panel"
+        )
+
+    if not mismo_operador and (
+        "password" in cambios
+        or "password_hash" in cambios
+    ):
+        raise Exception(
+            "La contraseña del admin protegido solo puede cambiarla ese mismo usuario"
+        )
 
 
 def listar_operadores(
@@ -217,7 +278,8 @@ def crear_operador(
 def actualizar_operador(
     db: Session,
     operador_id: int,
-    data
+    data,
+    operador_actual: Operador | None = None
 ):
 
     operador = obtener_operador(
@@ -227,6 +289,12 @@ def actualizar_operador(
 
     cambios = data.model_dump(
         exclude_unset=True
+    )
+
+    _proteger_admin_configurado(
+        operador,
+        cambios,
+        operador_actual
     )
 
     if "telefono" in cambios and cambios["telefono"]:
@@ -279,12 +347,21 @@ def actualizar_operador(
 
 def eliminar_operador(
     db: Session,
-    operador_id: int
+    operador_id: int,
+    operador_actual: Operador | None = None
 ):
 
     operador = obtener_operador(
         db,
         operador_id
+    )
+
+    _proteger_admin_configurado(
+        operador,
+        {
+            "activo": False
+        },
+        operador_actual
     )
 
     operador.activo = False

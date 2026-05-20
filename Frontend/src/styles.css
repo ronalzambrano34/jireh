@@ -1,0 +1,392 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f6f8;
+  color: #18212f;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.login-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #e9edf2;
+}
+
+.login-panel {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #d7dde5;
+  border-radius: 8px;
+  box-shadow: 0 18px 55px rgba(27, 39, 58, 0.12);
+}
+
+.login-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: #12343b;
+  color: #ffffff;
+  border-radius: 8px;
+}
+
+.login-panel h1,
+.toolbar h1,
+.detail-header h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #3a4657;
+}
+
+input, select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #cbd3dd;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #ffffff;
+  color: #18212f;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 232px 1fr;
+}
+
+.sidebar {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 24px;
+  padding: 22px;
+  background: #17212b;
+  color: #ffffff;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.operator {
+  margin-top: 8px;
+  color: #b9c4cf;
+  font-size: 13px;
+}
+
+.nav-stack {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.nav-stack button,
+.ghost-button,
+.icon-button,
+.primary-button,
+.upload-button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.nav-stack button {
+  justify-content: flex-start;
+  background: transparent;
+  color: #d8e1ea;
+}
+
+.nav-stack button.active,
+.nav-stack button:hover {
+  background: #243242;
+  color: #ffffff;
+}
+
+.ghost-button {
+  background: transparent;
+  border-color: #cbd3dd;
+  color: inherit;
+}
+
+.primary-button {
+  background: #176b5d;
+  border-color: #176b5d;
+  color: #ffffff;
+  font-weight: 750;
+}
+
+.icon-button {
+  width: 42px;
+  background: #ffffff;
+  border-color: #cbd3dd;
+  color: #18212f;
+}
+
+.workspace {
+  min-width: 0;
+  padding: 24px;
+}
+
+.toolbar {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.toolbar p,
+.detail-header p {
+  margin: 5px 0 0;
+  color: #6a7583;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(380px, 1.05fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.list-panel,
+.detail-panel,
+.form-panel {
+  background: #ffffff;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.filters,
+.state-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.pedido-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pedido-row {
+  width: 100%;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #d9e0e8;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.pedido-row.selected {
+  border-color: #176b5d;
+  box-shadow: inset 3px 0 0 #176b5d;
+}
+
+.pedido-row small {
+  display: block;
+  margin-top: 3px;
+  color: #6a7583;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #edf1f5;
+  color: #415063;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.status.completado {
+  background: #dff3e8;
+  color: #145c38;
+}
+
+.status.cancelado {
+  background: #fae2e2;
+  color: #9b2525;
+}
+
+.status.en_operacion,
+.status.pago_confirmado {
+  background: #fff0c7;
+  color: #815c00;
+}
+
+.detail-panel.empty {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  color: #6a7583;
+}
+
+.detail-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.metrics div {
+  padding: 10px;
+  background: #f4f6f8;
+  border-radius: 6px;
+}
+
+.metrics dt {
+  color: #6a7583;
+  font-size: 12px;
+}
+
+.metrics dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.message-box {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.message-box pre {
+  max-height: 260px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  background: #101820;
+  color: #ecf3f5;
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.upload-button {
+  border: 1px dashed #94a3b4;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.upload-button input {
+  display: none;
+}
+
+.archivo-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.archivo-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  background: #f4f6f8;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.form-panel {
+  max-width: 860px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.notice {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #eaf1fb;
+  color: #23415f;
+}
+
+.notice.error {
+  background: #fae2e2;
+  color: #9b2525;
+}
+
+@media (max-width: 920px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto;
+    align-items: center;
+  }
+
+  .nav-stack {
+    grid-auto-flow: column;
+  }
+
+  .content-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+}

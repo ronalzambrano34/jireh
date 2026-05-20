@@ -27,3 +27,26 @@ AUTH_TOKEN_MINUTES = int(
         "720"
     )
 )
+
+FRONTEND_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "FRONTEND_ORIGINS",
+        "http://127.0.0.1:5173,http://localhost:5173"
+    ).split(",")
+    if origin.strip()
+]
+
+OPERADOR_ADMIN_NOMBRE = os.getenv(
+    "OPERADOR_ADMIN_NOMBRE",
+    "Ronal Zambrano Ferrer"
+)
+
+OPERADOR_ADMIN_TELEFONO = os.getenv(
+    "OPERADOR_ADMIN_TELEFONO",
+    "+5548991233191"
+)
+
+OPERADOR_ADMIN_PASSWORD = os.getenv(
+    "OPERADOR_ADMIN_PASSWORD"
+)

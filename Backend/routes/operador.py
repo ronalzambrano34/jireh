@@ -129,7 +129,7 @@ def actualizar_operador_route(
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador_actual = Depends(
         require_permission(
             "operadores:editar"
         )
@@ -139,7 +139,8 @@ def actualizar_operador_route(
         return actualizar_operador(
             db,
             operador_id,
-            data
+            data,
+            operador_actual
         )
     except Exception as exc:
         raise HTTPException(
@@ -157,7 +158,7 @@ def eliminar_operador_route(
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador_actual = Depends(
         require_permission(
             "operadores:desactivar"
         )
@@ -166,7 +167,8 @@ def eliminar_operador_route(
     try:
         return eliminar_operador(
             db,
-            operador_id
+            operador_id,
+            operador_actual
         )
     except Exception as exc:
         raise HTTPException(
