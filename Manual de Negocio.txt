@@ -632,9 +632,9 @@ Ya existe:
 - Listado y consulta por codigo.
 - Cambio de estados.
 - Historial de estados.
-- Metodos de pago.
+- Metodos de pago: implementado.
 - Ofertas y paquetes de saldo.
-- Puntos de recogida.
+- Puntos de recogida: implementado.
 - Operadores.
 - Templates.
 - Sync de ofertas desde Google Sheets.
@@ -776,8 +776,8 @@ Falta crear endpoints para administrar:
 
 - Clientes.
 - Contactos: implementado.
-- Puntos de recogida.
-- Metodos de pago.
+- Puntos de recogida: implementado.
+- Metodos de pago: implementado.
 - Ofertas manuales.
 - Paquetes de saldo.
 

@@ -32,6 +32,7 @@ from routes.cliente import (router as cliente_router)
 
 
 from routes.metodo_pago import (router as metodo_pago_router)
+from routes.punto_recogida import (router as punto_recogida_router)
 from routes.sync import (router as sync_router)
 
 from services.db_maintenance import ensure_runtime_columns
@@ -73,6 +74,7 @@ app.include_router(cliente_router)
 app.include_router(template_router)
 
 app.include_router(metodo_pago_router)
+app.include_router(punto_recogida_router)
 app.include_router(sync_router)
 
 
