@@ -10,7 +10,9 @@ class PedidoSaldoCreate(
         extra="forbid"
     )
 
-    telefono_destinatario: str
+    telefono_destinatario: str | None = None
+
+    contacto_id: int | None = None
 
     tipo_pago_id: int
 

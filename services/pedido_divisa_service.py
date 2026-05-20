@@ -37,6 +37,13 @@ def crear_pedido_divisa(
             None
         ),
 
+        "contacto_id":
+        getattr(
+            data,
+            "contacto_id",
+            None
+        ),
+
         "operador_id":
         data.operador_id,
 
@@ -55,10 +62,18 @@ def crear_pedido_divisa(
         data.tipo_pago_id,
 
         "tipo_tarjeta":
-        data.tipo_tarjeta,
+        getattr(
+            data,
+            "tipo_tarjeta",
+            None
+        ),
 
         "numero_tarjeta":
-        data.numero_tarjeta,
+        getattr(
+            data,
+            "numero_tarjeta",
+            None
+        ),
 
         "telefono_destinatario":
         getattr(

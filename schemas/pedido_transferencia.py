@@ -14,9 +14,11 @@ class PedidoTransferenciaCreate(
 
     moneda_pago: str = "BRL"
 
-    numero_tarjeta: str
+    numero_tarjeta: str | None = None
 
     telefono_destinatario: str | None = None
+
+    contacto_id: int | None = None
 
     tipo_pago_id: int
 

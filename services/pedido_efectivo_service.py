@@ -79,6 +79,13 @@ def crear_pedido_efectivo(
             None
         ),
 
+        "contacto_id":
+        getattr(
+            data,
+            "contacto_id",
+            None
+        ),
+
         "operador_id":
         data.operador_id,
 

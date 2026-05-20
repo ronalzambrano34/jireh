@@ -48,6 +48,7 @@ Datos requeridos:
 - Telefono de contacto opcional.
 - Operador responsable.
 - Cliente asociado, opcional en la etapa actual.
+- contacto_id opcional para rellenar datos desde la libreta del beneficiario.
 
 Calculo:
 
@@ -76,6 +77,7 @@ Datos requeridos:
 - Punto de recogida.
 - Operador responsable.
 - Cliente asociado, opcional en la etapa actual.
+- contacto_id opcional para rellenar telefono_destinatario y documento_identidad_url desde la libreta del beneficiario.
 
 Calculo:
 
@@ -104,6 +106,7 @@ Datos requeridos:
 - Operador responsable.
 - paquete_saldo_id, o monto_pago + saldo_cup.
 - Cliente asociado, opcional en la etapa actual.
+- contacto_id opcional para rellenar telefono_destinatario desde la libreta del beneficiario.
 
 Calculo por paquete:
 El sistema usa el monto y saldo definidos en el paquete activo.
@@ -134,6 +137,7 @@ Datos requeridos:
 - Monto de divisa a acreditar.
 - Operador responsable.
 - Cliente asociado, opcional en la etapa actual.
+- contacto_id opcional para rellenar tipo_tarjeta, numero_tarjeta y telefono_destinatario desde la libreta del beneficiario.
 
 Calculo actual:
 
@@ -155,7 +159,7 @@ Estados definidos en el sistema:
 - pago_confirmado
 - en_operacion
 - completado
-- cancelado
+- canceladometodos-pago
 - error
 
 Flujo recomendado:
@@ -401,6 +405,7 @@ Reglas actuales:
 - Transferencia y divisa pueden reutilizar numero_tarjeta, tipo_tarjeta y telefono_destinatario opcional.
 - Efectivo puede reutilizar telefono_destinatario y documento_identidad_url.
 - Saldo puede reutilizar telefono_destinatario.
+- Cuando un pedido recibe contacto_id, el sistema copia los datos disponibles de la libreta al pedido; el pedido no depende del contacto para conservar el historico.
 - La eliminacion actual es logica: el contacto queda inactivo.
 
 Endpoints actuales:

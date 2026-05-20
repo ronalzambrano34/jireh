@@ -24,9 +24,11 @@ class PedidoEfectivoCreate(
 
     numero_telefono_cliente: str | None = None
 
-    telefono_destinatario: str
+    telefono_destinatario: str | None = None
 
-    documento_identidad_url: str
+    documento_identidad_url: str | None = None
+
+    contacto_id: int | None = None
 
     punto_recogida_id: int | None = None
 

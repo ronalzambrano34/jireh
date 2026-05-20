@@ -14,11 +14,13 @@ class PedidoDivisaCreate(
 
     moneda_pago: str = "BRL"
 
-    tipo_tarjeta: str
+    tipo_tarjeta: str | None = None
 
-    numero_tarjeta: str
+    numero_tarjeta: str | None = None
 
     telefono_destinatario: str | None = None
+
+    contacto_id: int | None = None
 
     monto_divisa: float
 

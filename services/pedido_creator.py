@@ -23,6 +23,9 @@ from models.cliente import (
 from models.metodo_pago import (
     MetodoPago
 )
+from models.contacto import (
+    Contacto
+)
 
 from services.calculadora_oferta import (
     calcular_operacion
@@ -70,6 +73,115 @@ def normalizar_telefono_destinatario(
         )
 
     return telefono
+
+
+
+
+def _valor_vacio(
+    valor
+):
+    return valor is None or not str(valor).strip()
+
+
+def _aplicar_contacto_a_pedido(
+    data: dict,
+    contacto: Contacto | None
+):
+    if not contacto:
+        return
+
+    campos = {
+        "telefono_destinatario": contacto.telefono,
+        "numero_tarjeta": contacto.numero_tarjeta,
+        "tipo_tarjeta": contacto.tipo_tarjeta,
+        "documento_identidad_url": contacto.documento_identidad_url,
+    }
+
+    for campo, valor in campos.items():
+        if _valor_vacio(
+            data.get(
+                campo
+            )
+        ) and not _valor_vacio(
+            valor
+        ):
+            data[campo] = valor
+
+
+
+
+def _validar_datos_servicio(
+    data: dict
+):
+    servicio = data.get(
+        "servicio"
+    )
+
+    if servicio == "transferencia":
+        if _valor_vacio(
+            data.get(
+                "numero_tarjeta"
+            )
+        ):
+            raise Exception(
+                "numero_tarjeta es requerido"
+            )
+
+        normalizar_telefono_destinatario(
+            data.get(
+                "telefono_destinatario"
+            )
+        )
+
+    elif servicio == "efectivo":
+        if _valor_vacio(
+            data.get(
+                "documento_identidad_url"
+            )
+        ):
+            raise Exception(
+                "documento_identidad_url es requerido"
+            )
+
+        normalizar_telefono_destinatario(
+            data.get(
+                "telefono_destinatario"
+            ),
+            requerido=True
+        )
+
+    elif servicio == "saldo":
+        normalizar_telefono_destinatario(
+            data.get(
+                "telefono_destinatario"
+            ),
+            requerido=True
+        )
+
+    elif servicio == "divisa":
+        if _valor_vacio(
+            data.get(
+                "tipo_tarjeta"
+            )
+        ):
+            raise Exception(
+                "tipo_tarjeta es requerido"
+            )
+
+        if _valor_vacio(
+            data.get(
+                "numero_tarjeta"
+            )
+        ):
+            raise Exception(
+                "numero_tarjeta es requerido"
+            )
+
+        normalizar_telefono_destinatario(
+            data.get(
+                "telefono_destinatario"
+            )
+        )
 
 
 def crear_pedido(
@@ -211,6 +323,30 @@ def crear_pedido(
         )
 
     cliente = None
+    contacto = None
+
+    if data.get(
+        "contacto_id"
+    ):
+        contacto = (
+            db.query(
+                Contacto
+            )
+            .filter(
+                Contacto.id
+                == data[
+                    "contacto_id"
+                ],
+                Contacto.activo
+                == True
+            )
+            .first()
+        )
+
+        if not contacto:
+            raise Exception(
+                "Contacto no encontrado"
+            )
 
     # Buscar cliente por teléfono si se proporciona
     if data.get("numero_telefono_cliente"):
@@ -229,7 +365,7 @@ def crear_pedido(
                 )
             )
         )
-    
+
     # Si no, buscar por cliente_id
     elif data.get("cliente_id"):
         cliente = (
@@ -245,7 +381,19 @@ def crear_pedido(
             )
             .first()
         )
-    
+
+    elif contacto and contacto.cliente_id:
+        cliente = (
+            db.query(
+                Cliente
+            )
+            .filter(
+                Cliente.id
+                == contacto.cliente_id
+            )
+            .first()
+        )
+
     # Fallback: usar cliente_id 1 por defecto (admin)
     else:
         cliente = (
@@ -263,6 +411,20 @@ def crear_pedido(
         raise Exception(
             "Cliente no encontrado o no pudo ser creado"
         )
+
+    if (
+        contacto
+        and contacto.cliente_id
+        and contacto.cliente_id != cliente.id
+    ):
+        raise Exception(
+            "El contacto no pertenece al cliente del pedido"
+        )
+
+    _aplicar_contacto_a_pedido(
+        data,
+        contacto
+    )
 
     metodo_pago = (
         db.query(
@@ -296,6 +458,10 @@ def crear_pedido(
         raise Exception(
             "El metodo de pago no corresponde a la moneda del pedido"
         )
+
+    _validar_datos_servicio(
+        data
+    )
 
     codigo = (
         generar_codigo_operacion(
@@ -395,6 +561,15 @@ def crear_pedido(
         "transferencia"
     ):
 
+        if _valor_vacio(
+            data.get(
+                "numero_tarjeta"
+            )
+        ):
+            raise Exception(
+                "numero_tarjeta es requerido"
+            )
+
         detalle = (
             PedidoTransferencia(
 
@@ -402,9 +577,9 @@ def crear_pedido(
                 pedido.id,
 
                 numero_tarjeta=
-                data[
+                data.get(
                     "numero_tarjeta"
-                ],
+                ),
 
                 telefono_destinatario=
                 normalizar_telefono_destinatario(
@@ -513,16 +688,38 @@ def crear_pedido(
         "divisa"
     ):
 
+        if _valor_vacio(
+            data.get(
+                "tipo_tarjeta"
+            )
+        ):
+            raise Exception(
+                "tipo_tarjeta es requerido"
+            )
+
+        if _valor_vacio(
+            data.get(
+                "numero_tarjeta"
+            )
+        ):
+            raise Exception(
+                "numero_tarjeta es requerido"
+            )
+
         detalle = (
             PedidoDivisa(
                 pedido_id=
                 pedido.id,
 
                 tipo_tarjeta=
-                data["tipo_tarjeta"],
+                data.get(
+                    "tipo_tarjeta"
+                ),
 
                 numero_tarjeta=
-                data["numero_tarjeta"],
+                data.get(
+                    "numero_tarjeta"
+                ),
 
                 telefono_destinatario=
                 normalizar_telefono_destinatario(

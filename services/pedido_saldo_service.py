@@ -117,6 +117,13 @@ def crear_pedido_saldo(
             None
         ),
 
+        "contacto_id":
+        getattr(
+            data,
+            "contacto_id",
+            None
+        ),
+
         "operador_id":
         data.operador_id,
 
@@ -133,7 +140,11 @@ def crear_pedido_saldo(
         data.tipo_pago_id,
 
         "telefono_destinatario":
-        data.telefono_destinatario,
+        getattr(
+            data,
+            "telefono_destinatario",
+            None
+        ),
 
         "saldo_cup":
         saldo_cup,
