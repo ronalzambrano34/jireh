@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
-    Depends
+    Depends,
+    HTTPException
 )
 
 from sqlalchemy.orm import (
@@ -29,14 +30,20 @@ def calcular(
     )
 ):
 
-    return calcular_operacion(
-        db=db,
-        servicio=
-        data["servicio"],
+    try:
+        return calcular_operacion(
+            db=db,
+            servicio=
+            data["servicio"],
 
-        moneda_pago=
-        data["moneda_pago"],
+            moneda_pago=
+            data["moneda_pago"],
 
-        monto_pago=
-        data["monto_pago"]
-    )
+            monto_pago=
+            data["monto_pago"]
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc

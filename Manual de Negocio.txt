@@ -45,7 +45,7 @@ Datos requeridos:
 - Moneda de pago, por ejemplo BRL o UYU.
 - Metodo de pago.
 - Numero de tarjeta CUP.
-- Telefono de contacto opcional.
+- telefono_destinatario opcional: contacto del beneficiario o familiar en Cuba.
 - Operador responsable.
 - Cliente asociado, opcional en la etapa actual.
 - contacto_id opcional para rellenar datos desde la libreta del beneficiario.
@@ -57,7 +57,7 @@ monto_resultado = monto_pago * tasa_final
 tasa_final se congela en el pedido para conservar el historico aunque la oferta cambie despues.
 
 Estado en el sistema:
-Implementado.
+Implementado y probado contra la API real.
 
 Endpoint actual:
 POST /pedido/transferencia
@@ -84,7 +84,7 @@ Calculo:
 monto_resultado = monto_pago * tasa_final
 
 Estado en el sistema:
-Implementado.
+Implementado y probado contra la API real.
 
 Endpoint actual:
 POST /pedido/efectivo
@@ -117,7 +117,7 @@ tasa_final = saldo_cup / monto_pago
 monto_resultado = saldo_cup
 
 Estado en el sistema:
-Implementado.
+Implementado y probado contra la API real.
 
 Endpoint actual:
 POST /pedido/saldo
@@ -145,7 +145,7 @@ tasa_final = monto_divisa / monto_pago
 monto_resultado = monto_divisa
 
 Estado en el sistema:
-Implementado y unificado con el flujo central de pedidos.
+Implementado, unificado con el flujo central de pedidos y probado contra la API real.
 
 Endpoint actual:
 POST /pedido/divisa
@@ -220,10 +220,10 @@ Campos actuales importantes:
 - es_admin
 
 Estado actual:
-Existe modelo Cliente. El sistema crea un cliente admin inicial al arrancar si no existe.
+Existe modelo Cliente. El sistema crea un cliente admin inicial al arrancar si no existe. Hay endpoints para alta, busqueda, edicion, eliminacion logica, contactos y pedidos por cliente.
 
 Pendiente:
-Crear endpoints publicos o internos para alta, busqueda y edicion de clientes.
+Definir reglas de login/registro cuando exista portal de clientes.
 
 5.2 Pedido
 
@@ -399,6 +399,11 @@ Implementado.
 
 Reglas actuales:
 
+- numero_telefono_cliente identifica al cliente que solicita o paga la operacion.
+- telefono_destinatario identifica al beneficiario, familiar o linea en Cuba.
+- Todo telefono_destinatario se normaliza como Cuba (+53). Si viene con codigo de otro pais, el pedido se rechaza.
+- En transferencia y divisa telefono_destinatario es opcional, pero si viene debe ser cubano.
+- En efectivo y saldo telefono_destinatario es obligatorio.
 - El telefono se normaliza usando las reglas existentes por pais cuando se proporciona.
 - El sistema detecta el pais por codigo telefonico.
 - Un mismo cliente no puede tener dos contactos con el mismo telefono.
@@ -532,6 +537,9 @@ Datos que ya existen en Pedido:
 Estado actual:
 Implementado de forma basica.
 
+Regla actual:
+La calculadora devuelve error 400 con mensaje claro cuando no existe una oferta activa para el monto, moneda y servicio solicitados.
+
 Pendiente recomendado:
 
 - Guardar costo real de operacion.
@@ -644,6 +652,8 @@ Ya existe:
 - Templates.
 - Sync de ofertas desde Google Sheets.
 - Libreta de contactos.
+- Smoke test local de pedidos con SQLite temporal: scripts/smoke_pedidos.py.
+- Prueba real contra API/DB de transferencia, efectivo, saldo y divisa completada el 2026-05-20.
 
 Pendiente de etapa 1:
 
