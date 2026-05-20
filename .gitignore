@@ -28,3 +28,12 @@ storage/
 *.save
 prueba.py
 prueba_*.py
+Backend/.env
+Backend/.env.*
+Backend/credentials.json
+Backend/venv/
+Backend/storage/
+Backend/pedidos/
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.env.local

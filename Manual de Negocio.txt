@@ -653,7 +653,24 @@ Campos recomendados:
 Estado actual:
 No implementado.
 
-13. ETAPAS DEL PRODUCTO
+13. ESTRUCTURA ACTUAL DEL PROYECTO
+
+La aplicacion se divide en carpetas separadas:
+
+- Backend/: API FastAPI, modelos, rutas, servicios, schemas, scripts y requirements.txt.
+- Frontend/: app web interna pendiente de implementar.
+- Manual de Negocio.txt: documento raiz del negocio y fuente de verdad compartida.
+
+Comandos backend desde la raiz:
+
+- Backend/venv/bin/python -m uvicorn Backend.main:app --reload
+- Backend/venv/bin/python Backend/scripts/smoke_pedidos.py
+- Backend/venv/bin/python Backend/scripts/smoke_admin.py
+
+Nota tecnica:
+Si el venv se mueve de carpeta, los ejecutables como uvicorn pueden conservar rutas viejas en su shebang. En ese caso usar Backend/venv/bin/python -m uvicorn o recrear el venv dentro de Backend/.
+
+14. ETAPAS DEL PRODUCTO
 
 Etapa 1: Sistema operativo interno
 
@@ -684,8 +701,8 @@ Ya existe:
 - CRUD administrativo de ofertas y paquetes de saldo protegido.
 - Reportes basicos protegidos con filtros operativos.
 - Registro de evidencias/comprobantes por pedido como metadatos y upload binario local.
-- Smoke test local de pedidos con SQLite temporal: scripts/smoke_pedidos.py.
-- Smoke test administrativo con SQLite temporal: scripts/smoke_admin.py.
+- Smoke test local de pedidos con SQLite temporal: Backend/scripts/smoke_pedidos.py.
+- Smoke test administrativo con SQLite temporal: Backend/scripts/smoke_admin.py.
 - Smoke tests cubren creacion de pedidos, consulta de detalles, CRUD de ofertas/paquetes, reportes y evidencias.
 - Prueba real contra API/DB de transferencia, efectivo, saldo y divisa completada el 2026-05-20.
 
@@ -742,7 +759,7 @@ Pendiente:
 - App movil.
 - Integracion con canales adicionales.
 
-14. ENDPOINTS ACTUALES
+15. ENDPOINTS ACTUALES
 
 General:
 
@@ -829,7 +846,7 @@ Sync:
 
 POST /sync/ofertas
 
-15. PRIORIDADES TECNICAS RECOMENDADAS
+16. PRIORIDADES TECNICAS RECOMENDADAS
 
 Prioridad 1: Seguridad y base del repo
 
@@ -897,7 +914,7 @@ Pendiente recomendado:
 - Reporte por metodo de pago.
 - Exportacion CSV/Excel.
 
-16. GLOSARIO
+17. GLOSARIO
 
 monto_pago:
 Cantidad pagada por el cliente.
@@ -932,7 +949,7 @@ Regla de tasa por servicio, moneda y minimo de pago.
 paquete_saldo:
 Paquete fijo de recarga movil.
 
-17. REGLA GENERAL PARA FUTUROS CAMBIOS
+18. REGLA GENERAL PARA FUTUROS CAMBIOS
 
 Antes de agregar una funcionalidad nueva, verificar:
 
@@ -950,7 +967,7 @@ Este documento debe actualizarse cada vez que cambie una regla importante del ne
 
 
 
-18. CHECKLIST PRE-PRODUCCION
+19. CHECKLIST PRE-PRODUCCION
 
 Antes de sacar el sistema a produccion, revisar y completar obligatoriamente:
 
@@ -989,8 +1006,8 @@ Datos y operacion:
 - Verificar paquetes de saldo activos.
 - Verificar puntos de recogida activos.
 - Revisar templates guardados en DB y variables disponibles.
-- Ejecutar smoke test local de pedidos: venv/bin/python scripts/smoke_pedidos.py.
-- Ejecutar smoke test administrativo: venv/bin/python scripts/smoke_admin.py.
+- Ejecutar smoke test local de pedidos: Backend/venv/bin/python Backend/scripts/smoke_pedidos.py.
+- Ejecutar smoke test administrativo: Backend/venv/bin/python Backend/scripts/smoke_admin.py.
 - Probar contra API real los cuatro servicios: transferencia, efectivo, saldo y divisa.
 - Probar registro de evidencias/comprobantes por pedido.
 - Probar upload binario local o storage productivo.
