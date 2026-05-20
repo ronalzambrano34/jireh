@@ -12,6 +12,9 @@ from schemas.operador import (
     OperadorUpdate
 )
 
+from services.auth_service import (
+    require_permission
+)
 from services.operador_service import (
     actualizar_operador,
     crear_operador,
@@ -38,6 +41,11 @@ def listar_operadores_route(
     offset: int = 0,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "operadores:ver"
+        )
     )
 ):
     try:
@@ -64,6 +72,11 @@ def obtener_operador_route(
     operador_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "operadores:ver"
+        )
     )
 ):
     try:
@@ -86,6 +99,11 @@ def crear_operador_route(
     data: OperadorCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "operadores:crear"
+        )
     )
 ):
 
@@ -110,6 +128,11 @@ def actualizar_operador_route(
     data: OperadorUpdate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "operadores:editar"
+        )
     )
 ):
     try:
@@ -133,6 +156,11 @@ def eliminar_operador_route(
     operador_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "operadores:desactivar"
+        )
     )
 ):
     try:

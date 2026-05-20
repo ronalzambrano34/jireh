@@ -2,6 +2,8 @@ from sqlalchemy import inspect
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from models.archivo_pedido import ArchivoPedido
+
 
 def _get_columns(
     db: Session,
@@ -76,6 +78,9 @@ def _rename_column_if_needed(
 def ensure_runtime_columns(
     db: Session
 ):
+    ensure_runtime_tables(
+        db
+    )
     _rename_column_if_needed(
         db,
         "ofertas",
@@ -197,6 +202,12 @@ def ensure_runtime_columns(
         "rol",
         "rol VARCHAR DEFAULT 'operador'"
     )
+    _add_column_if_missing(
+        db,
+        "operadores",
+        "password_hash",
+        "password_hash VARCHAR"
+    )
 
     _add_column_if_missing(
         db,
@@ -205,3 +216,12 @@ def ensure_runtime_columns(
         "documento_identidad_url VARCHAR"
     )
 
+
+
+def ensure_runtime_tables(
+    db: Session
+):
+    ArchivoPedido.__table__.create(
+        bind=db.get_bind(),
+        checkfirst=True
+    )

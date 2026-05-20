@@ -14,3 +14,13 @@ TOKEN = os.getenv(
 PHONE_ID = os.getenv(
     "PHONE_ID"
 )
+AUTH_SECRET = os.getenv(
+    "AUTH_SECRET"
+) or TOKEN or "dev-secret-change-me"
+
+AUTH_TOKEN_MINUTES = int(
+    os.getenv(
+        "AUTH_TOKEN_MINUTES",
+        "720"
+    )
+)

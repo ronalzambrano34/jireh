@@ -18,6 +18,8 @@ class OperadorCreate(
 
     telefono: str
 
+    password: str | None = None
+
     rol: str = "operador"
 
 
@@ -28,6 +30,8 @@ class OperadorUpdate(
     nombre: str | None = None
 
     telefono: str | None = None
+
+    password: str | None = None
 
     rol: str | None = None
 

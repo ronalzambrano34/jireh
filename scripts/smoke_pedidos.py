@@ -25,11 +25,16 @@ from models.pedido_saldo import PedidoSaldo
 from models.pedido_transferencia import PedidoTransferencia
 from models.punto_recogida import PuntoRecogida
 
+from schemas.archivo_pedido import ArchivoPedidoCreate
 from schemas.pedido_divisa import PedidoDivisaCreate
 from schemas.pedido_efectivo import PedidoEfectivoCreate
 from schemas.pedido_saldo import PedidoSaldoCreate
 from schemas.pedido_transferencia import PedidoTransferenciaCreate
 
+from services.archivo_pedido_service import (
+    listar_archivos_pedido,
+    registrar_archivo_pedido
+)
 from services.pedido_divisa_service import crear_pedido_divisa
 from services.pedido_efectivo_service import crear_pedido_efectivo
 from services.pedido_saldo_service import crear_pedido_saldo
@@ -215,11 +220,46 @@ def run():
                 numero_telefono_cliente="9595959595"
             )
         )
-        assert_pedido(
+        pedido_transferencia = assert_pedido(
             db,
             transferencia,
             "transferencia",
             "+5312345678"
+        )
+        archivo = registrar_archivo_pedido(
+            db,
+            transferencia["codigo_operacion"],
+            ArchivoPedidoCreate(
+                tipo="comprobante_cliente",
+                ruta_archivo="comprobantes/smoke-transferencia.jpg",
+                nombre_archivo="smoke-transferencia.jpg",
+                mime_type="image/jpeg",
+                usuario="smoke"
+            )
+        )
+        _assert(
+            archivo["tipo"] == "comprobante_cliente",
+            "archivo: tipo inesperado"
+        )
+        archivos = listar_archivos_pedido(
+            db,
+            transferencia["codigo_operacion"]
+        )
+        _assert(
+            len(archivos) == 1,
+            "archivo: no se listo el comprobante registrado"
+        )
+        pedido_transferencia = obtener_pedido_por_codigo(
+            db,
+            transferencia["codigo_operacion"]
+        )
+        _assert(
+            pedido_transferencia.get("comprobante_pago") == "comprobantes/smoke-transferencia.jpg",
+            "archivo: comprobante_cliente no actualizo comprobante_pago"
+        )
+        _assert(
+            len(pedido_transferencia.get("archivos", [])) == 1,
+            "archivo: obtener_pedido_por_codigo no incluye archivos"
         )
 
         efectivo = crear_pedido_efectivo(

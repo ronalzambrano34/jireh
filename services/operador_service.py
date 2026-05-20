@@ -12,6 +12,9 @@ from schemas.operador import (
 from services.generador_operador import (
     generar_codigo_operador
 )
+from services.auth_service import (
+    hash_password
+)
 
 
 def _validar_rol(
@@ -187,6 +190,14 @@ def crear_operador(
             data.rol
         ),
 
+        password_hash=(
+            hash_password(
+                data.password
+            )
+            if data.password
+            else None
+        ),
+
         codigo_operador=codigo
     )
 
@@ -241,6 +252,15 @@ def actualizar_operador(
         cambios["rol"] = _validar_rol(
             cambios["rol"]
         )
+
+    if "password" in cambios:
+        password = cambios.pop(
+            "password"
+        )
+        if password:
+            cambios["password_hash"] = hash_password(
+                password
+            )
 
     for campo, valor in cambios.items():
         setattr(

@@ -35,6 +35,11 @@ class Operador(Base):
         unique=True
     )
 
+    password_hash = Column(
+        String,
+        nullable=True
+    )
+
     rol = Column(
         String,
         nullable=False,
@@ -55,6 +60,7 @@ class Operador(Base):
     def permisos(self):
         permisos_por_rol = {
             "admin": [
+                "operadores:ver",
                 "operadores:crear",
                 "operadores:editar",
                 "operadores:desactivar",

@@ -351,13 +351,15 @@ Campos actuales:
 - nombre
 - codigo_operador
 - telefono
+- password_hash
+- rol
 - activo
 
 Estado actual:
 Implementado.
 
 Uso actual:
-El codigo del operador forma parte del codigo_operacion.
+El codigo del operador forma parte del codigo_operacion. El rol define permisos basicos para endpoints protegidos.
 
 5.9 Configuracion y templates
 
@@ -555,14 +557,17 @@ Estado actual:
 - El repositorio ya debe ignorar .env y credentials.json.
 - No se debe versionar credenciales.
 - Se recomienda rotar credenciales que hayan sido subidas al repositorio, incluso si el repositorio es privado.
+- Login minimo de operadores implementado con password_hash PBKDF2 y token Bearer firmado.
+- Existe /auth/bootstrap para crear el primer admin solo si no hay admin con contraseña.
+- Existe /auth/login y /auth/me.
+- CRUD de operadores requiere token y permisos basicos.
 
 Pendiente critico:
 
-- Login de usuarios.
-- Roles y permisos.
+- Proteger el resto de endpoints administrativos con permisos por rol.
 - Auditoria completa por usuario.
-- Proteccion de endpoints administrativos.
-- Manejo seguro de archivos y comprobantes.
+- Politicas de expiracion/rotacion de tokens para produccion.
+- Manejo seguro de upload binario de archivos y comprobantes.
 
 Roles recomendados para etapa 2:
 
@@ -577,10 +582,10 @@ Roles recomendados para etapa 2:
 Problema actual:
 Los comprobantes viven principalmente en WhatsApp. Eso no es suficiente como historial confiable.
 
-Modelo recomendado:
+Modelo actual:
 ArchivoPedido
 
-Campos sugeridos:
+Campos actuales:
 
 - id
 - pedido_id
@@ -588,10 +593,11 @@ Campos sugeridos:
 - ruta_archivo
 - nombre_archivo
 - mime_type
-- usuario_id
+- notas
+- usuario
 - created_at
 
-Tipos sugeridos:
+Tipos permitidos:
 
 - comprobante_cliente
 - captura_operador
@@ -599,8 +605,20 @@ Tipos sugeridos:
 - documento_identidad
 - otro
 
+Reglas actuales:
+
+- Los archivos se registran como metadatos vinculados a un pedido por codigo_operacion.
+- ruta_archivo puede ser una URL, ruta interna o referencia temporal al archivo.
+- Si el tipo es comprobante_cliente, tambien se actualiza pedido.comprobante_pago para compatibilidad con el flujo anterior.
+- La consulta por codigo de pedido incluye la lista de archivos registrados.
+
+Endpoints actuales:
+
+GET /pedido/{codigo_operacion}/archivos
+POST /pedido/{codigo_operacion}/archivos
+
 Estado actual:
-No implementado.
+Implementado para registro de metadatos. Pendiente implementar upload binario a storage y control de permisos.
 
 12. ANTIFRAUDE Y REVISION
 
@@ -652,14 +670,18 @@ Ya existe:
 - Templates.
 - Sync de ofertas desde Google Sheets.
 - Libreta de contactos.
+- Login minimo de operadores/admin con token Bearer.
+- CRUD de operadores protegido con permisos basicos.
+- Registro de evidencias/comprobantes por pedido como metadatos.
 - Smoke test local de pedidos con SQLite temporal: scripts/smoke_pedidos.py.
+- Smoke test cubre creacion de pedidos, consulta de detalles y registro de comprobante_cliente.
 - Prueba real contra API/DB de transferencia, efectivo, saldo y divisa completada el 2026-05-20.
 
 Pendiente de etapa 1:
 
 - Frontend web operativo.
-- Login minimo para operadores/admin.
-- Upload de comprobantes.
+- Proteger todos los endpoints administrativos con roles/permisos.
+- Upload binario de comprobantes a storage.
 - Reportes basicos.
 - Seed o CRUD de metodos de pago, puntos y ofertas manuales.
 - Integracion WhatsApp real o semiautomatica.
@@ -676,7 +698,7 @@ Pendiente:
 - Asignacion de pedidos.
 - Panel por estado.
 - Bloqueo de pedido mientras un operador lo ejecuta.
-- Evidencias por pedido.
+- Upload binario y permisos de evidencias por pedido.
 - Auditoria por usuario.
 
 Etapa 3: Portal de clientes
@@ -716,6 +738,12 @@ General:
 GET /
 GET /test
 
+Auth:
+
+POST /auth/bootstrap
+POST /auth/login
+GET /auth/me
+
 Pedidos:
 
 POST /pedido/transferencia
@@ -726,6 +754,8 @@ POST /pedido/
 GET /pedido/
 GET /pedido/{codigo_operacion}
 PATCH /pedido/{codigo_operacion}/estado
+GET /pedido/{codigo_operacion}/archivos
+POST /pedido/{codigo_operacion}/archivos
 
 Operadores:
 
@@ -770,6 +800,8 @@ Prioridad 1: Seguridad y base del repo
 - No versionar .env ni credentials.json.
 - Rotar credenciales expuestas.
 - Mantener .gitignore actualizado.
+- Login minimo de operadores implementado.
+- Proteger endpoints administrativos restantes.
 
 Estado:
 En proceso / parcialmente resuelto.
@@ -798,7 +830,7 @@ Falta crear endpoints para administrar:
 
 Prioridad 4: Evidencias
 
-Agregar ArchivoPedido y upload de comprobantes.
+ArchivoPedido esta implementado para registrar metadatos de comprobantes. Falta upload binario a storage, permisos y validacion de archivos.
 
 Prioridad 5: Frontend operativo
 
@@ -870,6 +902,57 @@ Este documento debe actualizarse cada vez que cambie una regla importante del ne
 
 
 
+
+
+18. CHECKLIST PRE-PRODUCCION
+
+Antes de sacar el sistema a produccion, revisar y completar obligatoriamente:
+
+Seguridad y secretos:
+
+- Configurar AUTH_SECRET real en .env. No usar dev-secret-change-me.
+- Configurar AUTH_TOKEN_MINUTES segun politica operativa.
+- Confirmar que .env no este versionado.
+- Confirmar que credentials.json no este versionado.
+- Rotar credenciales que hayan estado expuestas, incluso si el repositorio es privado.
+- Revisar DATABASE_URL y credenciales de Supabase/Postgres.
+- Revisar TOKEN y PHONE_ID de WhatsApp si se usan en produccion.
+
+Autenticacion y permisos:
+
+- Crear el primer admin con /auth/bootstrap.
+- Confirmar que /auth/bootstrap no permita crear otro admin si ya existe uno con contraseña.
+- Proteger todos los endpoints administrativos con token y permisos por rol.
+- Confirmar que los roles admin, supervisor y operador tengan permisos adecuados.
+- Probar /auth/login y /auth/me en el entorno de produccion.
+- Definir politica para cambio y recuperacion de contraseña.
+
+Infraestructura y despliegue:
+
+- Usar HTTPS.
+- Configurar CORS solo para dominios permitidos.
+- Configurar host, puerto y proxy segun el proveedor de despliegue.
+- Revisar logs para no imprimir secretos ni datos sensibles.
+- Confirmar backups de base de datos.
+- Confirmar que las tablas y columnas runtime se hayan creado correctamente.
+
+Datos y operacion:
+
+- Verificar metodos de pago activos y monedas correctas.
+- Verificar ofertas activas para transferencia y efectivo.
+- Verificar paquetes de saldo activos.
+- Verificar puntos de recogida activos.
+- Revisar templates guardados en DB y variables disponibles.
+- Ejecutar smoke test local: venv/bin/python scripts/smoke_pedidos.py.
+- Probar contra API real los cuatro servicios: transferencia, efectivo, saldo y divisa.
+- Probar registro de evidencias/comprobantes por pedido.
+
+Pendiente antes de operacion completa:
+
+- Implementar upload binario seguro de archivos a storage.
+- Implementar auditoria por usuario para acciones sensibles.
+- Proteger endpoints restantes de clientes, contactos, metodos de pago, puntos, templates, sync y pedidos segun rol.
+- Documentar formato exacto esperado del Google Sheet.
 
 ------------------Ideas del futuro------------------
 -------------para la fase en la que el operario crea el pedido.-----------------

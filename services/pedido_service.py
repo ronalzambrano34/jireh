@@ -7,6 +7,7 @@ from models.pedido_divisa import PedidoDivisa
 from models.pedido_efectivo import PedidoEfectivo
 from models.pedido_saldo import PedidoSaldo
 from models.pedido_transferencia import PedidoTransferencia
+from models.archivo_pedido import ArchivoPedido
 
 from models.pedido_historial import (PedidoHistorial)
 from services.pedido_estado import (PedidoEstado)
@@ -153,6 +154,39 @@ def detalle_divisa(
     }
 
 
+def listar_archivos_dict(
+    db: Session,
+    pedido_id: int
+):
+    archivos = (
+        db.query(
+            ArchivoPedido
+        )
+        .filter(
+            ArchivoPedido.pedido_id == pedido_id
+        )
+        .order_by(
+            ArchivoPedido.created_at.desc(),
+            ArchivoPedido.id.desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": archivo.id,
+            "tipo": archivo.tipo,
+            "ruta_archivo": archivo.ruta_archivo,
+            "nombre_archivo": archivo.nombre_archivo,
+            "mime_type": archivo.mime_type,
+            "notas": archivo.notas,
+            "usuario": archivo.usuario,
+            "created_at": archivo.created_at,
+        }
+        for archivo in archivos
+    ]
+
+
 def obtener_detalle(
     db: Session,
     pedido: Pedido
@@ -190,6 +224,10 @@ def pedido_dict(
         data["detalle"] = obtener_detalle(
             db,
             pedido
+        )
+        data["archivos"] = listar_archivos_dict(
+            db,
+            pedido.id
         )
 
     return data
