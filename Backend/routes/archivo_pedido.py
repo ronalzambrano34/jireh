@@ -66,13 +66,19 @@ def registrar_archivo_route(
     data: ArchivoPedidoCreate,
     db: Session = Depends(
         get_db
+    ),
+    operador = Depends(
+        require_permission(
+            "pedidos:gestionar"
+        )
     )
 ):
     try:
         return registrar_archivo_pedido(
             db,
             codigo_operacion,
-            data
+            data,
+            operador=operador
         )
     except Exception as exc:
         raise HTTPException(
@@ -101,6 +107,11 @@ def upload_archivo_route(
     ),
     db: Session = Depends(
         get_db
+    ),
+    operador = Depends(
+        require_permission(
+            "pedidos:gestionar"
+        )
     )
 ):
     try:
@@ -110,7 +121,8 @@ def upload_archivo_route(
             tipo,
             archivo,
             usuario=usuario,
-            notas=notas
+            notas=notas,
+            operador=operador
         )
     except Exception as exc:
         raise HTTPException(

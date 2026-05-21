@@ -29,6 +29,11 @@ export type PedidoResumen = {
   monto_resultado: number;
   tasa_final: number;
   created_at?: string;
+  operador_asignado_id?: number | null;
+  operador_asignado_nombre?: string | null;
+  asignado_en?: string | null;
+  lock_expires_at?: string | null;
+  lock_activo?: boolean;
   detalle?: Record<string, unknown> | null;
 };
 

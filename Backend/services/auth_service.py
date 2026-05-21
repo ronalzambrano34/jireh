@@ -51,11 +51,12 @@ def _b64decode(
 
 
 def hash_password(
-    password: str
+    password: str,
+    min_length: int = 6
 ):
-    if not password or len(password) < 6:
+    if not password or len(password) < min_length:
         raise Exception(
-            "La contraseña debe tener al menos 6 caracteres"
+            f"La contraseña debe tener al menos {min_length} caracteres"
         )
 
     salt = os.urandom(

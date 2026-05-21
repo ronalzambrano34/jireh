@@ -41,6 +41,22 @@ class Pedido(Base):
         nullable=True
     )
 
+    operador_asignado_id = Column(
+        Integer,
+        ForeignKey("operadores.id"),
+        nullable=True
+    )
+
+    asignado_en = Column(
+        DateTime,
+        nullable=True
+    )
+
+    lock_expires_at = Column(
+        DateTime,
+        nullable=True
+    )
+
     servicio = Column(
         String,
         nullable=False

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from datetime import datetime
+from datetime import timedelta
 
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
@@ -8,6 +9,7 @@ from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.pedido_saldo import PedidoSaldo
 from Backend.models.pedido_transferencia import PedidoTransferencia
 from Backend.models.archivo_pedido import ArchivoPedido
+from Backend.models.operador import Operador
 
 from Backend.models.pedido_historial import (PedidoHistorial)
 from Backend.services.pedido_estado import (PedidoEstado)
@@ -29,6 +31,114 @@ ESTADOS_PERMITIDOS = (
         ESTADOS_ALIASES
     )
 )
+
+LOCK_MINUTES = 15
+
+
+def _utcnow():
+    return datetime.utcnow()
+
+
+def _lock_activo(
+    pedido: Pedido,
+    now: datetime | None = None
+):
+    if not pedido.operador_asignado_id or not pedido.lock_expires_at:
+        return False
+
+    return pedido.lock_expires_at > (now or _utcnow())
+
+
+def _operador_puede_tomar_bloqueo(
+    operador: Operador | None
+):
+    if not operador:
+        return False
+
+    return (
+        operador.rol in ("admin", "supervisor")
+        or "empresa:control_total" in operador.permisos
+    )
+
+
+def _operador_asignado_nombre(
+    db: Session,
+    operador_id: int | None
+):
+    if not operador_id:
+        return None
+
+    operador = (
+        db.query(
+            Operador
+        )
+        .filter(
+            Operador.id == operador_id
+        )
+        .first()
+    )
+
+    return operador.nombre if operador else None
+
+
+def _lock_dict(
+    db: Session,
+    pedido: Pedido
+):
+    lock_activo = _lock_activo(
+        pedido
+    )
+    return {
+        "operador_asignado_id": pedido.operador_asignado_id,
+        "operador_asignado_nombre": _operador_asignado_nombre(
+            db,
+            pedido.operador_asignado_id
+        ),
+        "asignado_en": pedido.asignado_en,
+        "lock_expires_at": pedido.lock_expires_at,
+        "lock_activo": lock_activo,
+    }
+
+
+def validar_bloqueo_pedido(
+    db: Session,
+    pedido: Pedido,
+    operador: Operador | None
+):
+    if not _lock_activo(
+        pedido
+    ):
+        return
+
+    if operador and pedido.operador_asignado_id == operador.id:
+        return
+
+    if _operador_puede_tomar_bloqueo(
+        operador
+    ):
+        return
+
+    nombre = _operador_asignado_nombre(
+        db,
+        pedido.operador_asignado_id
+    ) or "otro operador"
+    raise Exception(
+        f"Esta operacion esta siendo trabajada por {nombre}."
+    )
+
+
+def _asignar_bloqueo(
+    pedido: Pedido,
+    operador: Operador
+):
+    now = _utcnow()
+    if pedido.operador_asignado_id != operador.id:
+        pedido.operador_asignado_id = operador.id
+        pedido.asignado_en = now
+
+    pedido.lock_expires_at = now + timedelta(
+        minutes=LOCK_MINUTES
+    )
 
 
 def pedido_base_dict(
@@ -230,6 +340,13 @@ def pedido_dict(
             pedido.id
         )
 
+    data.update(
+        _lock_dict(
+            db,
+            pedido
+        )
+    )
+
     return data
 
 
@@ -327,6 +444,131 @@ def obtener_pedido_por_codigo(
     )
 
 
+def _obtener_modelo_pedido_por_codigo(
+    db: Session,
+    codigo_operacion: str
+):
+    pedido = (
+        db.query(
+            Pedido
+        )
+        .filter(
+            Pedido.codigo_operacion == codigo_operacion
+        )
+        .first()
+    )
+
+    if not pedido:
+        raise Exception(
+            "Pedido no encontrado"
+        )
+
+    return pedido
+
+
+def tomar_operacion_pedido(
+    db: Session,
+    codigo_operacion: str,
+    operador: Operador
+):
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+
+    validar_bloqueo_pedido(
+        db,
+        pedido,
+        operador
+    )
+    _asignar_bloqueo(
+        pedido,
+        operador
+    )
+
+    db.commit()
+    db.refresh(
+        pedido
+    )
+
+    return pedido_dict(
+        db,
+        pedido,
+        incluir_detalle=True
+    )
+
+
+def renovar_bloqueo_pedido(
+    db: Session,
+    codigo_operacion: str,
+    operador: Operador
+):
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+
+    validar_bloqueo_pedido(
+        db,
+        pedido,
+        operador
+    )
+    _asignar_bloqueo(
+        pedido,
+        operador
+    )
+
+    db.commit()
+    db.refresh(
+        pedido
+    )
+
+    return pedido_dict(
+        db,
+        pedido,
+        incluir_detalle=True
+    )
+
+
+def liberar_bloqueo_pedido(
+    db: Session,
+    codigo_operacion: str,
+    operador: Operador
+):
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+
+    if (
+        pedido.operador_asignado_id
+        and pedido.operador_asignado_id != operador.id
+        and not _operador_puede_tomar_bloqueo(
+            operador
+        )
+    ):
+        validar_bloqueo_pedido(
+            db,
+            pedido,
+            operador
+        )
+
+    pedido.operador_asignado_id = None
+    pedido.asignado_en = None
+    pedido.lock_expires_at = None
+
+    db.commit()
+    db.refresh(
+        pedido
+    )
+
+    return pedido_dict(
+        db,
+        pedido,
+        incluir_detalle=True
+    )
+
+
 def actualizar_estado_pedido(
     db: Session,
     codigo_operacion: str,
@@ -334,7 +576,8 @@ def actualizar_estado_pedido(
     comprobante_pago: str | None = None,
     observaciones: str | None = None,
     usuario: str | None = None,
-    comentario: str | None = None
+    comentario: str | None = None,
+    operador: Operador | None = None
 ):
 
     estado_normalizado = (
@@ -364,21 +607,21 @@ def actualizar_estado_pedido(
         )
     )
 
-    pedido = (
-        db.query(
-            Pedido
-        )
-        .filter(
-            Pedido.codigo_operacion
-            ==
-            codigo_operacion
-        )
-        .first()
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
     )
 
-    if not pedido:
-        raise Exception(
-            "Pedido no encontrado"
+    validar_bloqueo_pedido(
+        db,
+        pedido,
+        operador
+    )
+
+    if operador:
+        _asignar_bloqueo(
+            pedido,
+            operador
         )
 
     estado_anterior = (

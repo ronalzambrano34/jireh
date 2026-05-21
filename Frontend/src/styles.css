@@ -1048,3 +1048,582 @@ textarea {
   border-color: #176b5d;
   box-shadow: inset 3px 0 0 #176b5d;
 }
+
+
+/* Mobile-first operations shell */
+.workspace {
+  padding-bottom: 92px;
+}
+
+.brand {
+  letter-spacing: 0;
+}
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  border: 1px solid #f0c36d;
+  border-radius: 8px;
+  background: #fff8e1;
+  color: #6f4d00;
+  font-weight: 750;
+}
+
+.filters {
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.search-box {
+  flex: 1 1 280px;
+  min-width: min(280px, 100%);
+  min-height: 42px;
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid #cbd3dd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #526173;
+}
+
+.search-box input {
+  min-height: 40px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  outline: none;
+}
+
+.status-filters {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 14px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+}
+
+.status-filters button,
+.view-toggle button {
+  min-height: 38px;
+  border: 1px solid #d4dce6;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: #ffffff;
+  color: #415063;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.status-filters button.active {
+  border-color: #176b5d;
+  background: #e2f2ee;
+  color: #0f5d4f;
+}
+
+.view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #d4dce6;
+  border-radius: 999px;
+  background: #eef2f6;
+}
+
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.view-toggle button.active {
+  background: #ffffff;
+  color: #18212f;
+  box-shadow: 0 1px 3px rgba(24, 33, 47, 0.12);
+}
+
+.chat-order-list {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-order-card {
+  width: 100%;
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  padding: 13px;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(24, 33, 47, 0.04);
+}
+
+.chat-order-card.selected {
+  border-color: #176b5d;
+  box-shadow: inset 4px 0 0 #176b5d, 0 4px 14px rgba(23, 107, 93, 0.12);
+}
+
+.chat-card-main,
+.chat-card-side {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+}
+
+.chat-card-side {
+  justify-items: end;
+  align-content: space-between;
+  text-align: right;
+}
+
+.chat-card-side small {
+  color: #6a7583;
+}
+
+.pedido-card-fields.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.status.pendiente_pago,
+.status.pago_confirmado {
+  background: #fff0c7;
+  color: #815c00;
+}
+
+.status.en_operacion {
+  background: #dcecff;
+  color: #195d9d;
+}
+
+.status.completado {
+  background: #dff3e8;
+  color: #145c38;
+}
+
+.status.cancelado,
+.status.error {
+  background: #fae2e2;
+  color: #9b2525;
+}
+
+.floating-create {
+  position: fixed;
+  right: 22px;
+  bottom: 24px;
+  z-index: 45;
+  width: 58px;
+  height: 58px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #176b5d;
+  color: #ffffff;
+  box-shadow: 0 14px 32px rgba(23, 107, 93, 0.3);
+}
+
+.bottom-nav {
+  display: none;
+}
+
+.profile-panel {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.profile-avatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #e2f2ee;
+  color: #176b5d;
+}
+
+.profile-panel h2,
+.profile-panel p,
+.profile-data {
+  margin: 0;
+}
+
+.profile-panel p {
+  color: #6a7583;
+}
+
+.profile-data {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-data div {
+  padding: 10px;
+  border: 1px solid #e1e7ef;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.profile-data dt {
+  color: #6a7583;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-data dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.danger-action {
+  color: #9b2525;
+  border-color: #efb8b8;
+}
+
+@media (max-width: 920px) {
+  .workspace {
+    padding: 18px 14px 98px;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .toolbar {
+    align-items: flex-start;
+  }
+
+  .toolbar h1 {
+    font-size: 24px;
+  }
+
+  .list-panel,
+  .form-panel,
+  .profile-panel {
+    padding: 14px;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+    border-top: 1px solid #d9e0e8;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -8px 24px rgba(24, 33, 47, 0.12);
+  }
+
+  .bottom-nav button {
+    min-width: 0;
+    min-height: 52px;
+    display: grid;
+    place-items: center;
+    gap: 2px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #526173;
+    font-size: 12px;
+    font-weight: 750;
+  }
+
+  .bottom-nav button.active {
+    background: #e2f2ee;
+    color: #176b5d;
+  }
+
+  .floating-create {
+    right: 18px;
+    bottom: 88px;
+  }
+}
+
+@media (max-width: 720px) {
+  .filters select,
+  .filters .primary-button,
+  .view-toggle {
+    width: 100%;
+  }
+
+  .view-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .view-toggle button {
+    justify-content: center;
+  }
+
+  .chat-order-card {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-card-side {
+    grid-template-columns: 1fr auto;
+    justify-items: start;
+    align-items: end;
+    text-align: left;
+  }
+
+  .chat-card-side .status {
+    grid-column: 1 / -1;
+  }
+
+  .pedido-card-fields.compact,
+  .profile-data {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Kanban view: states stay as stacked list groups, orders fan out inside each group */
+.pedido-board {
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.pedido-column {
+  align-content: start;
+}
+
+.pedido-column .pedido-list {
+  grid-template-columns: repeat(auto-fill, minmax(270px, 320px));
+  justify-content: start;
+}
+
+.pedido-column .pedido-row {
+  min-height: 0;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(24, 33, 47, 0.04);
+}
+
+.pedido-column .pedido-row.selected {
+  border-color: #176b5d;
+  box-shadow: inset 4px 0 0 #176b5d, 0 4px 14px rgba(23, 107, 93, 0.12);
+}
+
+.kanban-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.kanban-card-top .pedido-card-head {
+  min-width: 0;
+}
+
+.kanban-card-top > strong {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.compact-pay {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  color: #6a7583;
+}
+
+@media (max-width: 720px) {
+  .pedido-column .pedido-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.notice.success {
+  background: #dff3e8;
+  color: #145c38;
+}
+
+.notice.warning {
+  background: #fff0c7;
+  color: #815c00;
+}
+
+.disabled-upload {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+
+/* Order card polish: clearer header, state accent and richer surface */
+.chat-order-card,
+.pedido-column .pedido-row {
+  position: relative;
+  overflow: hidden;
+  border-color: #d3dce6;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 5px 18px rgba(24, 33, 47, 0.07);
+}
+
+.chat-order-card:hover,
+.pedido-column .pedido-row:hover {
+  border-color: #b9c7d6;
+  box-shadow: 0 10px 26px rgba(24, 33, 47, 0.1);
+}
+
+.chat-order-card::before,
+.pedido-column .pedido-row::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: 0;
+  width: 5px;
+  height: 28px;
+  border-radius: 0 999px 999px 0;
+  background: #94a3b4;
+}
+
+.chat-order-card:has(.status.pendiente_pago)::before,
+.chat-order-card:has(.status.pago_confirmado)::before,
+.pedido-column:has(.status.pendiente_pago) .pedido-row::before,
+.pedido-column:has(.status.pago_confirmado) .pedido-row::before {
+  background: #d69e00;
+}
+
+.chat-order-card:has(.status.en_operacion)::before,
+.pedido-column:has(.status.en_operacion) .pedido-row::before {
+  background: #2274b8;
+}
+
+.chat-order-card:has(.status.completado)::before,
+.pedido-column:has(.status.completado) .pedido-row::before {
+  background: #1f8f56;
+}
+
+.chat-order-card:has(.status.cancelado)::before,
+.pedido-column:has(.status.cancelado) .pedido-row::before {
+  background: #c43d3d;
+}
+
+.chat-card-main .pedido-card-head,
+.kanban-card-top {
+  padding-bottom: 9px;
+  border-bottom: 1px solid #e1e7ef;
+}
+
+.chat-card-main .pedido-card-fields.compact,
+.pedido-column .pedido-card-fields.compact {
+  padding-top: 1px;
+}
+
+.status-filters button:nth-child(2),
+.status-filters button:nth-child(3) {
+  border-color: #f0c36d;
+}
+
+.status-filters button:nth-child(2).active,
+.status-filters button:nth-child(3).active {
+  background: #fff0c7;
+  color: #815c00;
+}
+
+.status-filters button:nth-child(4) {
+  border-color: #9dc8f2;
+}
+
+.status-filters button:nth-child(4).active {
+  background: #dcecff;
+  color: #195d9d;
+}
+
+.status-filters button:nth-child(5) {
+  border-color: #9bd8b7;
+}
+
+.status-filters button:nth-child(5).active {
+  background: #dff3e8;
+  color: #145c38;
+}
+
+.status-filters button:nth-child(6) {
+  border-color: #efb8b8;
+}
+
+.status-filters button:nth-child(6).active {
+  background: #fae2e2;
+  color: #9b2525;
+}
+
+
+/* State-colored order borders */
+.chat-order-card:has(.status.pendiente_pago),
+.chat-order-card:has(.status.pago_confirmado),
+.pedido-column:has(.status.pendiente_pago) .pedido-row,
+.pedido-column:has(.status.pago_confirmado) .pedido-row {
+  border-color: #f0c36d;
+}
+
+.chat-order-card:has(.status.en_operacion),
+.pedido-column:has(.status.en_operacion) .pedido-row {
+  border-color: #9dc8f2;
+}
+
+.chat-order-card:has(.status.completado),
+.pedido-column:has(.status.completado) .pedido-row {
+  border-color: #9bd8b7;
+}
+
+.chat-order-card:has(.status.cancelado),
+.pedido-column:has(.status.cancelado) .pedido-row {
+  border-color: #efb8b8;
+}
+
+.chat-order-card.selected:has(.status.pendiente_pago),
+.chat-order-card.selected:has(.status.pago_confirmado),
+.pedido-column:has(.status.pendiente_pago) .pedido-row.selected,
+.pedido-column:has(.status.pago_confirmado) .pedido-row.selected {
+  border-color: #d69e00;
+}
+
+.chat-order-card.selected:has(.status.en_operacion),
+.pedido-column:has(.status.en_operacion) .pedido-row.selected {
+  border-color: #2274b8;
+}
+
+.chat-order-card.selected:has(.status.completado),
+.pedido-column:has(.status.completado) .pedido-row.selected {
+  border-color: #1f8f56;
+}
+
+.chat-order-card.selected:has(.status.cancelado),
+.pedido-column:has(.status.cancelado) .pedido-row.selected {
+  border-color: #c43d3d;
+}
+
+.filters .primary-button {
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .filters .primary-button {
+    margin-left: 0;
+  }
+}

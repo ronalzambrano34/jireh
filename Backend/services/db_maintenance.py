@@ -131,6 +131,25 @@ def ensure_runtime_columns(
         "moneda_pago",
         "moneda_pago VARCHAR DEFAULT 'BRL'"
     )
+
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "operador_asignado_id",
+        "operador_asignado_id INTEGER"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "asignado_en",
+        "asignado_en TIMESTAMP"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "lock_expires_at",
+        "lock_expires_at TIMESTAMP"
+    )
     _rename_column_if_needed(
         db,
         "pedido_transferencia",

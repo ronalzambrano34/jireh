@@ -4,8 +4,8 @@ import { login, setToken } from '../api/client';
 import type { Operador } from '../types/api';
 
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
-  const [telefono, setTelefono] = useState('');
-  const [password, setPassword] = useState('');
+  const [telefono, setTelefono] = useState(import.meta.env.VITE_TEST_LOGIN_TELEFONO ?? '');
+  const [password, setPassword] = useState(import.meta.env.VITE_TEST_LOGIN_PASSWORD ?? '');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [mostrarPassword, setMostrarPassword] = useState(false);

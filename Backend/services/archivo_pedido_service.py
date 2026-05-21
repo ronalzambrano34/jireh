@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.pedido import Pedido
+from Backend.models.operador import Operador
 
 from Backend.schemas.archivo_pedido import (
     ArchivoPedidoCreate,
     TIPOS_ARCHIVO_PEDIDO
 )
+from Backend.services.pedido_service import validar_bloqueo_pedido
 
 
 def _obtener_pedido_por_codigo(
@@ -92,7 +94,8 @@ def listar_archivos_pedido(
 def registrar_archivo_pedido(
     db: Session,
     codigo_operacion: str,
-    data: ArchivoPedidoCreate
+    data: ArchivoPedidoCreate,
+    operador: Operador | None = None
 ):
     tipo = (
         data.tipo
@@ -123,6 +126,11 @@ def registrar_archivo_pedido(
     pedido = _obtener_pedido_por_codigo(
         db,
         codigo_operacion
+    )
+    validar_bloqueo_pedido(
+        db,
+        pedido,
+        operador
     )
 
     archivo = ArchivoPedido(
@@ -158,7 +166,8 @@ def guardar_upload_pedido(
     tipo: str,
     archivo: UploadFile,
     usuario: str | None = None,
-    notas: str | None = None
+    notas: str | None = None,
+    operador: Operador | None = None
 ):
     if not archivo.filename:
         raise Exception(
@@ -232,5 +241,6 @@ def guardar_upload_pedido(
     return registrar_archivo_pedido(
         db,
         codigo_operacion,
-        data
+        data,
+        operador=operador
     )

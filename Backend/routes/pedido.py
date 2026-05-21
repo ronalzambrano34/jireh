@@ -17,13 +17,12 @@ from Backend.schemas.pedido_transferencia import (
 )
 
 from Backend.services.pedido_service import (
-    actualizar_estado_pedido
-)
-from Backend.services.pedido_service import (
-    listar_pedidos
-)
-from Backend.services.pedido_service import (
-    obtener_pedido_por_codigo
+    actualizar_estado_pedido,
+    liberar_bloqueo_pedido,
+    listar_pedidos,
+    obtener_pedido_por_codigo,
+    renovar_bloqueo_pedido,
+    tomar_operacion_pedido
 )
 from Backend.services.pedido_transferencia_service import (
     crear_pedido_transferencia
@@ -137,7 +136,7 @@ def actualizar_estado(
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador = Depends(
         require_any_permission(
             [
                 "pedidos:gestionar"
@@ -151,11 +150,100 @@ def actualizar_estado(
             codigo_operacion,
             data.estado,
             data.comprobante_pago,
-            data.observaciones
+            data.observaciones,
+            usuario=operador.nombre,
+            operador=operador
         )
     except Exception as exc:
         raise HTTPException(
             status_code=400,
+            detail=str(exc)
+        ) from exc
+
+
+@router.post(
+    "/{codigo_operacion}/tomar"
+)
+def tomar_operacion(
+    codigo_operacion: str,
+    db: Session = Depends(
+        get_db
+    ),
+    operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
+    )
+):
+    try:
+        return tomar_operacion_pedido(
+            db,
+            codigo_operacion,
+            operador
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc)
+        ) from exc
+
+
+@router.post(
+    "/{codigo_operacion}/renovar"
+)
+def renovar_operacion(
+    codigo_operacion: str,
+    db: Session = Depends(
+        get_db
+    ),
+    operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
+    )
+):
+    try:
+        return renovar_bloqueo_pedido(
+            db,
+            codigo_operacion,
+            operador
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc)
+        ) from exc
+
+
+@router.post(
+    "/{codigo_operacion}/liberar"
+)
+def liberar_operacion(
+    codigo_operacion: str,
+    db: Session = Depends(
+        get_db
+    ),
+    operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
+    )
+):
+    try:
+        return liberar_bloqueo_pedido(
+            db,
+            codigo_operacion,
+            operador
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=409,
             detail=str(exc)
         ) from exc
 

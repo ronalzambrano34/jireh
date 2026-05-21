@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LogOut, Plus, RefreshCw } from 'lucide-react';
+import { BarChart3, ClipboardList, Columns3, Home, LayoutList, LogOut, Plus, RefreshCw, Search, Settings, UserCircle, WifiOff } from 'lucide-react';
 import { clearToken, getMe, getToken, listarPedidos } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -30,6 +30,9 @@ const servicios = [
 
 const estadosBandeja = estados.filter((item) => item.value);
 
+function estadoLabel(value: string) {
+  return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
+}
 
 function detalleValor(pedido: PedidoResumen, key: string) {
   const value = pedido.detalle?.[key];
@@ -75,16 +78,42 @@ function camposTarjetaPedido(pedido: PedidoResumen) {
   ];
 }
 
+function resumenPedido(pedido: PedidoResumen) {
+  return camposTarjetaPedido(pedido)
+    .filter((field) => field.value)
+    .slice(0, 2);
+}
+
+function tiempoRelativo(value?: string) {
+  if (!value) return null;
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return null;
+
+  const diffMs = Date.now() - fecha.getTime();
+  const diffMin = Math.max(0, Math.floor(diffMs / 60000));
+  if (diffMin < 1) return 'hace instantes';
+  if (diffMin < 60) return `hace ${diffMin} min`;
+
+  const diffHoras = Math.floor(diffMin / 60);
+  if (diffHoras < 24) return `hace ${diffHoras} h`;
+
+  const diffDias = Math.floor(diffHoras / 24);
+  return `hace ${diffDias} d`;
+}
+
 export function App() {
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
   const [estado, setEstado] = useState('');
   const [servicio, setServicio] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
-  const [vista, setVista] = useState<'bandeja' | 'crear' | 'reportes' | 'admin'>('bandeja');
+  const [vista, setVista] = useState<'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('bandeja');
+  const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('lista');
   const [servicioCrear, setServicioCrear] = useState<'transferencia' | 'efectivo' | 'saldo' | 'divisa'>('transferencia');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -101,15 +130,31 @@ export function App() {
     [operador],
   );
 
+  const pedidosFiltrados = useMemo(() => {
+    const term = busqueda.trim().toLowerCase();
+    if (!term) return pedidos;
+
+    return pedidos.filter((pedido) => {
+      const detalle = pedido.detalle ? Object.values(pedido.detalle).join(' ') : '';
+      return [
+        pedido.codigo_operacion,
+        pedido.servicio,
+        pedido.estado,
+        pedido.moneda_pago,
+        detalle,
+      ].join(' ').toLowerCase().includes(term);
+    });
+  }, [busqueda, pedidos]);
+
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
       .filter((item) => !estado || item.value === estado)
       .map((item) => ({
         ...item,
-        pedidos: pedidos.filter((pedido) => pedido.estado === item.value),
+        pedidos: pedidosFiltrados.filter((pedido) => pedido.estado === item.value),
       }))
       .filter((grupo) => grupo.pedidos.length > 0 || Boolean(estado));
-  }, [estado, pedidos]);
+  }, [estado, pedidosFiltrados]);
 
   async function cargarPedidos() {
     setLoading(true);
@@ -137,6 +182,19 @@ export function App() {
     if (operador) void cargarPedidos();
   }, [operador, estado, servicio]);
 
+  useEffect(() => {
+    function syncOnline() {
+      setOnline(navigator.onLine);
+    }
+
+    window.addEventListener('online', syncOnline);
+    window.addEventListener('offline', syncOnline);
+    return () => {
+      window.removeEventListener('online', syncOnline);
+      window.removeEventListener('offline', syncOnline);
+    };
+  }, []);
+
   if (!operador) {
     return <LoginPage onLogin={setOperador} />;
   }
@@ -145,14 +203,15 @@ export function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div>
-          <div className="brand">Jireh</div>
+          <div className="brand">EL JIREH</div>
           <div className="operator">{operador.nombre}</div>
         </div>
         <nav className="nav-stack">
-          <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => setVista('bandeja')}>Pedidos</button>
-          <button className={vista === 'crear' ? 'active' : ''} onClick={() => setVista('crear')} disabled={!puedeCrear}>Crear</button>
-          <button className={vista === 'reportes' ? 'active' : ''} onClick={() => setVista('reportes')} disabled={!puedeReportes}>Reportes</button>
-          <button className={vista === 'admin' ? 'active' : ''} onClick={() => setVista('admin')} disabled={!puedeAdmin}>Admin</button>
+          <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => setVista('bandeja')}><ClipboardList size={18} /> Pedidos</button>
+          <button className={vista === 'crear' ? 'active' : ''} onClick={() => setVista('crear')} disabled={!puedeCrear}><Plus size={18} /> Crear</button>
+          <button className={vista === 'reportes' ? 'active' : ''} onClick={() => setVista('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
+          <button className={vista === 'admin' ? 'active' : ''} onClick={() => setVista('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
+          <button className={vista === 'perfil' ? 'active' : ''} onClick={() => setVista('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
         <button className="ghost-button" onClick={() => { clearToken(); setOperador(null); }}>
           <LogOut size={18} /> Salir
@@ -160,17 +219,22 @@ export function App() {
       </aside>
 
       <main className="workspace">
+        {!online && (
+          <div className="offline-banner">
+            <WifiOff size={18} /> Sin conexion, los datos del formulario se conservan en esta pantalla.
+          </div>
+        )}
         <header className="toolbar">
           <div>
-            <h1>{vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : 'Bandeja de pedidos'}</h1>
-            <p>{vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : 'Seguimiento de operaciones por estado'}</p>
+            <h1>{vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'perfil' ? 'Perfil' : 'Bandeja de pedidos'}</h1>
+            <p>{vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           {vista === 'bandeja' && (
             <button className="icon-button" onClick={cargarPedidos} title="Actualizar pedidos">
               <RefreshCw size={18} />
             </button>
           )}
-          {(vista === 'crear' || vista === 'reportes' || vista === 'admin') && (
+          {(vista === 'crear' || vista === 'reportes' || vista === 'admin' || vista === 'perfil') && (
             <button className="primary-button" onClick={() => setVista('bandeja')}>
               Ver pedidos
             </button>
@@ -181,6 +245,22 @@ export function App() {
           <AdminCatalogosPage />
         ) : vista === 'reportes' ? (
           <ReportesPage />
+        ) : vista === 'perfil' ? (
+          <section className="profile-panel">
+            <div className="profile-avatar"><UserCircle size={34} /></div>
+            <div>
+              <h2>{operador.nombre}</h2>
+              <p>{operador.telefono}</p>
+            </div>
+            <dl className="profile-data">
+              <div><dt>Codigo</dt><dd>{operador.codigo_operador}</dd></div>
+              <div><dt>Rol</dt><dd>{operador.rol}</dd></div>
+              <div><dt>Estado</dt><dd>{operador.activo ? 'Activo' : 'Inactivo'}</dd></div>
+            </dl>
+            <button className="ghost-button danger-action" onClick={() => { clearToken(); setOperador(null); }}>
+              <LogOut size={18} /> Salir
+            </button>
+          </section>
         ) : vista === 'crear' ? (
           <section className="create-stack">
             <div className="service-tabs">
@@ -231,64 +311,130 @@ export function App() {
             <section className="content-grid orders-content-grid">
               <div className="list-panel orders-list-panel">
                 <div className="filters">
-                  <select value={estado} onChange={(event) => setEstado(event.target.value)}>
-                    {estados.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
+                  <label className="search-box">
+                    <Search size={18} />
+                    <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
+                  </label>
                   <select value={servicio} onChange={(event) => setServicio(event.target.value)}>
                     {servicios.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
+                  <div className="view-toggle" aria-label="Vista de pedidos">
+                    <button type="button" className={vistaPedidos === 'lista' ? 'active' : ''} onClick={() => setVistaPedidos('lista')} title="Vista lista">
+                      <LayoutList size={18} /> Lista
+                    </button>
+                    <button type="button" className={vistaPedidos === 'kanban' ? 'active' : ''} onClick={() => setVistaPedidos('kanban')} title="Vista Kanban">
+                      <Columns3 size={18} /> Kanban
+                    </button>
+                  </div>
                   {puedeCrear && (
                     <button className="primary-button" onClick={() => setVista('crear')}>
                       <Plus size={18} /> Crear pedido
                     </button>
                   )}
                 </div>
-                {error && <div className="notice error">{error}</div>}
-                {loading && <div className="notice">Cargando pedidos...</div>}
-                {pedidosPorEstado.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
-                <div className="pedido-board">
-                  {pedidosPorEstado.map((grupo) => (
-                    <section className="pedido-column" key={grupo.value}>
-                      <header className="pedido-column-header">
-                        <span className={`status ${grupo.value}`}>{grupo.label}</span>
-                        <strong>{grupo.pedidos.length}</strong>
-                      </header>
-                      <div className="pedido-list">
-                        {grupo.pedidos.map((pedido) => (
-                          <button
-                            key={pedido.codigo_operacion}
-                            className={seleccionado === pedido.codigo_operacion ? 'pedido-row selected' : 'pedido-row'}
-                            onClick={() => setSeleccionado(pedido.codigo_operacion)}
-                          >
-                            <span className="pedido-card-head">
-                              <strong>{pedido.servicio}</strong>
-                              <small>{pedido.codigo_operacion}</small>
-                            </span>
-                            <span className="pedido-card-fields">
-                              {camposTarjetaPedido(pedido).filter((field) => field.value).map((field) => (
-                                <span className="pedido-card-field" key={field.label}>
-                                  <small>{field.label}</small>
-                                  <strong>{field.value}</strong>
-                                </span>
-                              ))}
-                            </span>
-                            <span className="pedido-card-pay">
-                              <small>Pago</small>
-                              <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
-                              <small>Tasa {pedido.tasa_final}</small>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
+                <div className="status-filters" aria-label="Filtros por estado">
+                  {estados.map((item) => (
+                    <button
+                      key={item.value || 'todos'}
+                      type="button"
+                      className={estado === item.value ? 'active' : ''}
+                      onClick={() => setEstado(item.value)}
+                    >
+                      {item.label}
+                    </button>
                   ))}
                 </div>
+                {error && <div className="notice error">{error}</div>}
+                {loading && <div className="notice">Cargando pedidos...</div>}
+                {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
+                {vistaPedidos === 'lista' ? (
+                  <div className="chat-order-list">
+                    {pedidosFiltrados.map((pedido) => (
+                      <button
+                        key={pedido.codigo_operacion}
+                        className={seleccionado === pedido.codigo_operacion ? 'chat-order-card selected' : 'chat-order-card'}
+                        onClick={() => setSeleccionado(pedido.codigo_operacion)}
+                      >
+                        <span className="chat-card-main">
+                          <span className="pedido-card-head">
+                            <strong>{pedido.servicio}</strong>
+                            <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
+                          </span>
+                          <span className="pedido-card-fields compact">
+                            {resumenPedido(pedido).map((field) => (
+                              <span className="pedido-card-field" key={field.label}>
+                                <small>{field.label}</small>
+                                <strong>{field.value}</strong>
+                              </span>
+                            ))}
+                          </span>
+                        </span>
+                        <span className="chat-card-side">
+                          <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
+                          <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
+                          <small>Recibe {pedido.monto_resultado}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="pedido-board">
+                    {pedidosPorEstado.map((grupo) => (
+                      <section className="pedido-column" key={grupo.value}>
+                        <header className="pedido-column-header">
+                          <span className={`status ${grupo.value}`}>{grupo.label}</span>
+                          <strong>{grupo.pedidos.length}</strong>
+                        </header>
+                        <div className="pedido-list">
+                          {grupo.pedidos.map((pedido) => (
+                            <button
+                              key={pedido.codigo_operacion}
+                              className={seleccionado === pedido.codigo_operacion ? 'pedido-row selected' : 'pedido-row'}
+                              onClick={() => setSeleccionado(pedido.codigo_operacion)}
+                            >
+                              <span className="kanban-card-top">
+                                <span className="pedido-card-head">
+                                  <strong>{pedido.servicio}</strong>
+                                  <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
+                                </span>
+                                <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
+                              </span>
+                              <span className="pedido-card-fields compact">
+                                {resumenPedido(pedido).map((field) => (
+                                  <span className="pedido-card-field" key={field.label}>
+                                    <small>{field.label}</small>
+                                    <strong>{field.value}</strong>
+                                  </span>
+                                ))}
+                              </span>
+                              <span className="pedido-card-pay compact-pay">
+                                <small>Recibe {pedido.monto_resultado}</small>
+                                <small>Tasa {pedido.tasa_final}</small>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                )}
               </div>
             </section>
-            <PedidoDetallePanel codigo={seleccionado} onChanged={cargarPedidos} onClose={() => setSeleccionado(null)} />
+            <PedidoDetallePanel codigo={seleccionado} operadorId={operador.id} onChanged={cargarPedidos} onClose={() => setSeleccionado(null)} />
           </>
         )}
       </main>
+      {puedeCrear && vista !== 'crear' && (
+        <button className="floating-create" onClick={() => setVista('crear')} title="Nuevo pedido">
+          <Plus size={24} />
+        </button>
+      )}
+      <nav className="bottom-nav" aria-label="Navegacion principal">
+        <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => setVista('bandeja')}><Home size={20} /> Inicio</button>
+        <button className={vista === 'crear' ? 'active' : ''} onClick={() => setVista('crear')} disabled={!puedeCrear}><Plus size={20} /> Pedidos</button>
+        <button className={vista === 'reportes' ? 'active' : ''} onClick={() => setVista('reportes')} disabled={!puedeReportes}><BarChart3 size={20} /> Reportes</button>
+        <button className={vista === 'perfil' ? 'active' : ''} onClick={() => setVista('perfil')}><UserCircle size={20} /> Perfil</button>
+      </nav>
     </div>
   );
 }

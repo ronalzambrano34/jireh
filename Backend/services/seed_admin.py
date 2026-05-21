@@ -3,9 +3,12 @@ import string
 
 from sqlalchemy.orm import Session
 
+from Backend.config import ENABLE_TEST_LOGIN
 from Backend.config import OPERADOR_ADMIN_NOMBRE
 from Backend.config import OPERADOR_ADMIN_PASSWORD
 from Backend.config import OPERADOR_ADMIN_TELEFONO
+from Backend.config import TEST_ADMIN_PASSWORD
+from Backend.config import TEST_ADMIN_TELEFONO
 from Backend.models.cliente import Cliente
 from Backend.models.operador import Operador
 from Backend.services.auth_service import hash_password
@@ -138,6 +141,55 @@ def seed_admin_operador(
         operador.password_hash = hash_password(
             OPERADOR_ADMIN_PASSWORD
         )
+
+    db.commit()
+    db.refresh(
+        operador
+    )
+
+    return operador
+
+
+def seed_test_admin_operador(
+    db: Session
+):
+    if not ENABLE_TEST_LOGIN:
+        return None
+
+    operador = (
+        db.query(
+            Operador
+        )
+        .filter(
+            Operador.telefono
+            ==
+            TEST_ADMIN_TELEFONO
+        )
+        .first()
+    )
+
+    if not operador:
+        operador = Operador(
+            nombre="Admin Prueba",
+            telefono=TEST_ADMIN_TELEFONO,
+            codigo_operador=generar_codigo_operador(
+                "Admin Prueba"
+            ),
+            rol="admin",
+            activo=True
+        )
+        db.add(
+            operador
+        )
+    else:
+        operador.nombre = "Admin Prueba"
+        operador.rol = "admin"
+        operador.activo = True
+
+    operador.password_hash = hash_password(
+        TEST_ADMIN_PASSWORD,
+        min_length=1
+    )
 
     db.commit()
     db.refresh(

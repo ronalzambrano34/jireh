@@ -51,6 +51,26 @@ OPERADOR_ADMIN_PASSWORD = os.getenv(
     "OPERADOR_ADMIN_PASSWORD"
 )
 
+ENABLE_TEST_LOGIN = os.getenv(
+    "ENABLE_TEST_LOGIN",
+    "false"
+).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "si"
+}
+
+TEST_ADMIN_TELEFONO = os.getenv(
+    "TEST_ADMIN_TELEFONO",
+    "admin"
+)
+
+TEST_ADMIN_PASSWORD = os.getenv(
+    "TEST_ADMIN_PASSWORD",
+    "admin"
+)
+
 
 UPLOAD_MAX_BYTES = int(
     os.getenv(

@@ -135,6 +135,24 @@ export function obtenerPedido(codigo: string) {
   return request<PedidoDetalle>(`/pedido/${codigo}`);
 }
 
+export function tomarOperacion(codigo: string) {
+  return request<PedidoDetalle>(`/pedido/${codigo}/tomar`, {
+    method: 'POST',
+  });
+}
+
+export function renovarOperacion(codigo: string) {
+  return request<PedidoDetalle>(`/pedido/${codigo}/renovar`, {
+    method: 'POST',
+  });
+}
+
+export function liberarOperacion(codigo: string) {
+  return request<PedidoDetalle>(`/pedido/${codigo}/liberar`, {
+    method: 'POST',
+  });
+}
+
 export function crearTransferencia(payload: CrearTransferenciaPayload) {
   return request<PedidoDetalle>('/pedido/transferencia', {
     method: 'POST',
