@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ArrowRight, Banknote, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
-import { obtenerTasasOperativas } from '../api/client';
+import { obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import tasasBanner from '../assets/brand/banner-jireh.jpeg';
@@ -16,6 +16,7 @@ type GrupoMoneda = {
 };
 
 type InicioPageProps = {
+  canSyncTasas?: boolean;
   onCreate: (servicio: ServicioCrear) => void;
 };
 
@@ -140,9 +141,10 @@ function fechaActualizacion(value?: string) {
   return `Actualizado ${date.toLocaleDateString('es-UY')} ${date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-export function InicioPage({ onCreate }: InicioPageProps) {
+export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) {
   const [data, setData] = useState<TasaOperativaResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function cargarTasas() {
@@ -154,6 +156,24 @@ export function InicioPage({ onCreate }: InicioPageProps) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las tasas');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function actualizarTasas() {
+    if (!canSyncTasas) {
+      await cargarTasas();
+      return;
+    }
+
+    setSyncing(true);
+    setError(null);
+    try {
+      await sincronizarOfertas();
+      setData(await obtenerTasasOperativas());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron sincronizar las tasas');
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -214,8 +234,8 @@ export function InicioPage({ onCreate }: InicioPageProps) {
             <h2>Tasas del dia</h2>
             <p>{fechaActualizacion(data?.generated_at)}</p>
           </div>
-          <button className="ghost-button hero-refresh" onClick={cargarTasas} disabled={loading}>
-            <RefreshCw size={17} /> {loading ? 'Cargando...' : 'Actualizar'}
+          <button className="ghost-button hero-refresh" onClick={actualizarTasas} disabled={loading || syncing}>
+            <RefreshCw size={17} /> {syncing ? 'Sincronizando...' : loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
       </div>

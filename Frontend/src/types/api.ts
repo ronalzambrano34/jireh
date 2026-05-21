@@ -196,6 +196,30 @@ export type Oferta = {
 
 
 
+export type SyncOfertaItem = {
+  minimo: number;
+  tasa: number;
+  moneda: string;
+  fila?: number;
+};
+
+export type SyncSaldoItem = {
+  monto_pago: number;
+  cup: number;
+  moneda: string;
+  fila?: number;
+};
+
+export type SyncOfertasResponse = {
+  transferencia: SyncOfertaItem[];
+  efectivo: SyncOfertaItem[];
+  mlc: SyncOfertaItem[];
+  usd: SyncOfertaItem[];
+  clasica: SyncOfertaItem[];
+  saldo: SyncSaldoItem[];
+  meta?: Record<string, unknown>;
+};
+
 export type OfertaOperativa = Oferta;
 
 export type PaqueteSaldoOperativo = PaqueteSaldo;

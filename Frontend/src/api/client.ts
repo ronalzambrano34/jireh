@@ -17,6 +17,7 @@ import type {
   ReporteGeneral,
   TemplateConfig,
   TasaOperativaResponse,
+  SyncOfertasResponse,
 } from '../types/api';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
@@ -98,6 +99,12 @@ export function getMe() {
 
 export function obtenerTasasOperativas() {
   return request<TasaOperativaResponse>('/tasas-operativas/');
+}
+
+export function sincronizarOfertas() {
+  return request<SyncOfertasResponse>('/sync/ofertas', {
+    method: 'POST',
+  });
 }
 
 export function listarPaquetesSaldo(monedaPago?: string, incluirInactivos = false) {

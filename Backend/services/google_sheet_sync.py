@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from datetime import datetime
 from pathlib import Path
+import re
+import unicodedata
 
 import gspread
 
 from sqlalchemy.orm import Session
 
 from Backend.models.oferta import Oferta
-from Backend.models.paquete_saldo import (PaqueteSaldo)
+from Backend.models.paquete_saldo import PaqueteSaldo
 from Backend.services.db_maintenance import ensure_runtime_columns
 from Backend.services.monedas import normalizar_moneda
 
@@ -13,657 +20,448 @@ from Backend.services.monedas import normalizar_moneda
 SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
 ORIGEN_GOOGLE_SHEET = "google_sheet"
 CREDENTIALS_FILE = Path(__file__).resolve().parents[1] / "credentials.json"
+SERVICIOS_OFERTAS = {"transferencia", "efectivo", "mlc", "usd", "clasica"}
+NOMBRES_SERVICIO = {
+    "transferencia": "Transferencia",
+    "efectivo": "Efectivo",
+    "mlc": "MLC",
+    "usd": "USD",
+    "clasica": "Clasica",
+}
+
+
+@dataclass
+class SeccionSheet:
+    servicio: str
+    moneda: str
+    fecha: date | None
+    fila_inicio: int
+    items: list[dict]
+
+
+def texto_normalizado(value) -> str:
+    texto = str(value or "").strip().lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(char for char in texto if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", " ", texto).strip()
 
 
 def safe_float(value):
     if value is None:
         return 0.0
-    value = str(value).replace(",", ".").strip()
-    if value == "":
+
+    texto = str(value).strip()
+    if not texto:
         return 0.0
+
+    texto = texto.replace(" ", "")
+    if "," in texto and "." in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+    else:
+        texto = texto.replace(",", ".")
+
     try:
-        return float(value)
+        return float(texto)
     except ValueError:
         return 0.0
 
 
 def get_col(row, index, default=""):
-    return row[index].strip() if len(row) > index else default
+    return row[index].strip() if len(row) > index and row[index] is not None else default
 
 
-def get_moneda(
-    row,
-    fallback="BRL"
-):
+def key_float(value):
+    return round(float(value or 0), 4)
+
+
+def detectar_servicio(row) -> str | None:
+    titulo = texto_normalizado(get_col(row, 1))
+
+    if not titulo:
+        return None
+
+    if titulo == "usd" or titulo.startswith("usd "):
+        return "usd"
+    if titulo == "mlc" or titulo.startswith("mlc "):
+        return "mlc"
+    if "clasica" in titulo:
+        return "clasica"
+    if "transf" in titulo:
+        return "transferencia"
+    if "efect" in titulo:
+        return "efectivo"
+    if "saldo" in titulo or "saido" in titulo:
+        return "saldo"
+
+    return None
+
+
+def normalizar_moneda_segura(value, default=""):
+    texto = str(value or "")
+    if "USDT" in texto.upper():
+        return default
+    return normalizar_moneda(texto, default=default)
+
+
+def moneda_desde_fila(row, fallback="BRL"):
+    moneda = normalizar_moneda_segura(get_col(row, 3), default="")
+    if moneda:
+        return moneda
+
     for cell in row:
-        moneda = normalizar_moneda(
-            cell,
-            default=""
-        )
-
+        moneda = normalizar_moneda_segura(cell, default="")
         if moneda:
             return moneda
 
     return fallback
 
 
-def deduplicar_ofertas(items):
-    deduplicadas = {}
+def fecha_desde_fila(row) -> date | None:
+    for cell in row:
+        match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", str(cell or ""))
+        if not match:
+            continue
 
+        dia, mes, anio = match.groups()
+        try:
+            return datetime(int(anio), int(mes), int(dia)).date()
+        except ValueError:
+            return None
+
+    return None
+
+
+def es_fila_vacia(row) -> bool:
+    return not any(str(cell or "").strip() for cell in row)
+
+
+def es_fila_encabezado(row) -> bool:
+    return any("oferta" in texto_normalizado(cell) for cell in row)
+
+
+def buscar_encabezado(rows, inicio):
+    for index in range(inicio + 1, min(inicio + 8, len(rows))):
+        if detectar_servicio(rows[index]):
+            return None
+        if es_fila_encabezado(rows[index]):
+            return index
+    return None
+
+
+def compactar_ofertas(items):
+    por_minimo = {}
     for item in items:
-        key = (
-            item["moneda"],
-            float(item["minimo"])
-        )
-        deduplicadas[key] = item
+        por_minimo[key_float(item["minimo"])] = item
 
-    return list(
-        deduplicadas.values()
-    )
+    compactadas = []
+    ultima_tasa = None
+    for item in sorted(por_minimo.values(), key=lambda value: key_float(value["minimo"])):
+        tasa = key_float(item["tasa"])
+        if ultima_tasa is None or tasa != ultima_tasa:
+            compactadas.append(item)
+            ultima_tasa = tasa
+
+    return compactadas
 
 
 def deduplicar_saldo(items):
     deduplicadas = {}
-
     for item in items:
         key = (
             item["moneda"],
-            float(item["monto_pago"]),
-            int(item["cup"])
+            key_float(item["monto_pago"]),
+            int(item["cup"]),
         )
         deduplicadas[key] = item
+    return list(deduplicadas.values())
 
-    return list(
-        deduplicadas.values()
+
+def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
+    items = []
+    vio_datos = False
+
+    for index in range(fila_encabezado + 1, len(rows)):
+        row = rows[index]
+
+        if detectar_servicio(row):
+            break
+        if es_fila_vacia(row):
+            if vio_datos:
+                break
+            continue
+
+        monto_pago = safe_float(get_col(row, 3))
+        if monto_pago <= 0:
+            continue
+
+        if servicio == "saldo":
+            saldo_cup = int(safe_float(get_col(row, 11)))
+            if saldo_cup <= 0:
+                continue
+            items.append({
+                "monto_pago": monto_pago,
+                "cup": saldo_cup,
+                "moneda": moneda,
+                "fila": index + 1,
+            })
+            vio_datos = True
+            continue
+
+        tasa = safe_float(get_col(row, 10))
+        if tasa <= 0:
+            continue
+
+        items.append({
+            "minimo": monto_pago,
+            "tasa": tasa,
+            "moneda": moneda,
+            "fila": index + 1,
+        })
+        vio_datos = True
+
+    if servicio == "saldo":
+        return deduplicar_saldo(items)
+    return compactar_ofertas(items)
+
+
+def parsear_secciones(rows):
+    secciones = []
+
+    for index, row in enumerate(rows):
+        servicio = detectar_servicio(row)
+        if not servicio:
+            continue
+
+        fila_encabezado = buscar_encabezado(rows, index)
+        if fila_encabezado is None:
+            continue
+
+        moneda = moneda_desde_fila(rows[fila_encabezado], fallback=moneda_desde_fila(row))
+        items = leer_items_seccion(rows, index, fila_encabezado, servicio, moneda)
+        if not items:
+            continue
+
+        secciones.append(SeccionSheet(
+            servicio=servicio,
+            moneda=moneda,
+            fecha=fecha_desde_fila(row),
+            fila_inicio=index + 1,
+            items=items,
+        ))
+
+    return secciones
+
+
+def seleccionar_secciones_vigentes(secciones):
+    vigentes = {}
+
+    for seccion in secciones:
+        key = (seccion.servicio, seccion.moneda)
+        actual = vigentes.get(key)
+        if not actual:
+            vigentes[key] = seccion
+            continue
+
+        fecha_actual = actual.fecha or date.min
+        fecha_nueva = seccion.fecha or date.min
+        if (fecha_nueva, seccion.fila_inicio) >= (fecha_actual, actual.fila_inicio):
+            vigentes[key] = seccion
+
+    return sorted(
+        vigentes.values(),
+        key=lambda seccion: (seccion.servicio, seccion.moneda),
     )
 
 
-def oferta_cambio_detectado(
-    oferta,
-    item: dict
-):
+def construir_resultado(secciones):
+    resultado = {
+        "transferencia": [],
+        "efectivo": [],
+        "mlc": [],
+        "usd": [],
+        "clasica": [],
+        "saldo": [],
+    }
+    meta = []
 
-    if not oferta:
-        return True
+    for seccion in secciones:
+        resultado[seccion.servicio].extend(seccion.items)
+        meta.append({
+            "servicio": seccion.servicio,
+            "moneda": seccion.moneda,
+            "fecha": seccion.fecha.isoformat() if seccion.fecha else None,
+            "fila_inicio": seccion.fila_inicio,
+            "items": len(seccion.items),
+        })
 
-    return any([
-        float(
-            oferta.tasa
-        ) != float(
-            item["tasa"]
-        ),
-
-        float(
-            oferta.minimo_pago
-        ) != float(
-            item["minimo"]
-        ),
-
-        oferta.moneda_pago
-        !=
-        item["moneda"],
-
-        not oferta.activa
-    ])
+    resultado["meta"] = {
+        "secciones_usadas": meta,
+    }
+    return resultado
 
 
-def upsert_oferta_sheet(
-    db: Session,
-    servicio: str,
-    nombre: str,
-    item: dict
-):
+def obtener_rows_sheet():
+    gc = gspread.service_account(
+        filename=str(CREDENTIALS_FILE)
+    )
+    sheet = gc.open_by_key(SHEET_ID)
+    worksheet = sheet.get_worksheet(0)
+    return worksheet.get_all_values()
 
-    oferta = (
-        db.query(
-            Oferta
-        )
+
+def cargar_ofertas_existentes(db: Session):
+    existentes = {}
+    duplicadas = []
+
+    ofertas = (
+        db.query(Oferta)
         .filter(
-            Oferta.origen
-            ==
-            ORIGEN_GOOGLE_SHEET,
-
-            Oferta.servicio
-            ==
-            servicio,
-
-            Oferta.minimo_pago
-            ==
-            item["minimo"],
-
-            Oferta.moneda_pago
-            ==
-            item["moneda"]
+            Oferta.origen == ORIGEN_GOOGLE_SHEET,
+            Oferta.servicio.in_(list(SERVICIOS_OFERTAS)),
         )
-        .first()
+        .order_by(Oferta.id.desc())
+        .all()
     )
 
-    cambio = oferta_cambio_detectado(
-        oferta,
-        item
+    for oferta in ofertas:
+        key = (
+            oferta.servicio,
+            oferta.moneda_pago,
+            key_float(oferta.minimo_pago),
+        )
+        if key in existentes:
+            duplicadas.append(oferta)
+            continue
+        existentes[key] = oferta
+
+    return existentes, duplicadas
+
+
+def cargar_saldos_existentes(db: Session):
+    existentes = {}
+    duplicadas = []
+
+    paquetes = (
+        db.query(PaqueteSaldo)
+        .filter(PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET)
+        .order_by(PaqueteSaldo.id.desc())
+        .all()
     )
 
-    if not oferta:
-
-        oferta = Oferta(
-
-            servicio=
-            servicio,
-
-            nombre=
-            nombre,
-
-            minimo_pago=
-            item["minimo"],
-
-            moneda_pago=
-            item["moneda"],
-
-            tasa=
-            item["tasa"],
-
-            origen=
-            ORIGEN_GOOGLE_SHEET,
-
-            activa=True
+    for paquete in paquetes:
+        key = (
+            paquete.moneda_pago,
+            key_float(paquete.monto_pago),
+            int(paquete.saldo_cup),
         )
+        if key in existentes:
+            duplicadas.append(paquete)
+            continue
+        existentes[key] = paquete
 
-        db.add(
-            oferta
-        )
-
-        print(
-            f"🆕 Nueva oferta "
-            f"{servicio} "
-            f"{item['moneda']} "
-            f"{item['minimo']}"
-        )
-
-        return oferta
-
-    # Si no cambió nada → no tocar DB
-
-    if not cambio:
-
-        print(
-            f"✅ Sin cambios "
-            f"{servicio} "
-            f"{item['moneda']} "
-            f"{item['minimo']}"
-        )
-
-        oferta.activa = True
-
-        return oferta
-
-    print(
-        f"🔄 Oferta actualizada "
-        f"{servicio} "
-        f"{item['moneda']} "
-        f"{item['minimo']}"
-    )
-
-    oferta.nombre = nombre
-    oferta.tasa = item["tasa"]
-    oferta.origen = ORIGEN_GOOGLE_SHEET
-    oferta.activa = True
-
-    return oferta
+    return existentes, duplicadas
 
 
-def saldo_cambio_detectado(
-    paquete,
-    item
-):
+def upsert_ofertas(db: Session, resultado):
+    existentes, duplicadas = cargar_ofertas_existentes(db)
 
-    if not paquete:
-        return True
+    db.query(Oferta).filter(
+        Oferta.origen == ORIGEN_GOOGLE_SHEET,
+        Oferta.servicio.in_(list(SERVICIOS_OFERTAS)),
+    ).update({"activa": False}, synchronize_session=False)
 
-    return any([
-        float(
-            paquete.monto_pago
-        ) != float(
-            item["monto_pago"]
-        ),
+    for oferta in duplicadas:
+        oferta.activa = False
 
-        paquete.moneda_pago
-        !=
-        item["moneda"],
-
-        int(
-            paquete.saldo_cup
-        ) != int(
-            item["cup"]
-        ),
-
-        not paquete.activo
-    ])
-
-
-def upsert_paquete_saldo_sheet(
-    db: Session,
-    item: dict
-):
-
-    paquete = (
-        db.query(
-            PaqueteSaldo
-        )
-        .filter(
-            PaqueteSaldo.origen
-            ==
-            ORIGEN_GOOGLE_SHEET,
-
-            PaqueteSaldo.monto_pago
-            ==
-            item["monto_pago"],
-
-            PaqueteSaldo.moneda_pago
-            ==
-            item["moneda"],
-
-            PaqueteSaldo.saldo_cup
-            ==
-            item["cup"]
-        )
-        .first()
-    )
-
-    cambio = saldo_cambio_detectado(
-        paquete,
-        item
-    )
-
-    if not paquete:
-
-        paquete = (
-            PaqueteSaldo(
-
-                monto_pago=
-                item["monto_pago"],
-
-                moneda_pago=
+    for servicio in SERVICIOS_OFERTAS:
+        for item in resultado[servicio]:
+            key = (
+                servicio,
                 item["moneda"],
-
-                saldo_cup=
-                item["cup"],
-
-                nombre=
-                f'{item["cup"]} CUP',
-
-                origen=
-                ORIGEN_GOOGLE_SHEET,
-
-                activo=True
+                key_float(item["minimo"]),
             )
+            oferta = existentes.get(key)
+            if not oferta:
+                oferta = Oferta(
+                    servicio=servicio,
+                    nombre=NOMBRES_SERVICIO[servicio],
+                    minimo_pago=item["minimo"],
+                    moneda_pago=item["moneda"],
+                    tasa=item["tasa"],
+                    origen=ORIGEN_GOOGLE_SHEET,
+                    activa=True,
+                )
+                db.add(oferta)
+                existentes[key] = oferta
+                continue
+
+            oferta.nombre = NOMBRES_SERVICIO[servicio]
+            oferta.minimo_pago = item["minimo"]
+            oferta.moneda_pago = item["moneda"]
+            oferta.tasa = item["tasa"]
+            oferta.origen = ORIGEN_GOOGLE_SHEET
+            oferta.activa = True
+
+    return len(duplicadas)
+
+
+def upsert_saldos(db: Session, resultado):
+    existentes, duplicadas = cargar_saldos_existentes(db)
+
+    db.query(PaqueteSaldo).filter(
+        PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET,
+    ).update({"activo": False}, synchronize_session=False)
+
+    for paquete in duplicadas:
+        paquete.activo = False
+
+    for item in resultado["saldo"]:
+        key = (
+            item["moneda"],
+            key_float(item["monto_pago"]),
+            int(item["cup"]),
         )
+        paquete = existentes.get(key)
+        if not paquete:
+            paquete = PaqueteSaldo(
+                monto_pago=item["monto_pago"],
+                moneda_pago=item["moneda"],
+                saldo_cup=item["cup"],
+                nombre=f'{item["cup"]} CUP',
+                origen=ORIGEN_GOOGLE_SHEET,
+                activo=True,
+            )
+            db.add(paquete)
+            existentes[key] = paquete
+            continue
 
-        db.add(
-            paquete
-        )
-
-        print(
-            f"🆕 Nuevo saldo "
-            f"{item['cup']} CUP"
-        )
-
-        return paquete
-
-    if not cambio:
-
-        print(
-            f"✅ Saldo sin cambios "
-            f"{item['cup']} CUP"
-        )
-
+        paquete.monto_pago = item["monto_pago"]
+        paquete.moneda_pago = item["moneda"]
+        paquete.saldo_cup = item["cup"]
+        paquete.nombre = f'{item["cup"]} CUP'
+        paquete.origen = ORIGEN_GOOGLE_SHEET
         paquete.activo = True
 
-        return paquete
+    return len(duplicadas)
 
-    print(
-        f"🔄 Saldo actualizado "
-        f"{item['cup']} CUP"
+
+def sync_ofertas(db: Session):
+    ensure_runtime_columns(db)
+
+    rows = obtener_rows_sheet()
+    secciones = seleccionar_secciones_vigentes(
+        parsear_secciones(rows)
     )
-
-    paquete.nombre = (
-        f'{item["cup"]} CUP'
-    )
-
-    paquete.origen = (
-        ORIGEN_GOOGLE_SHEET
-    )
-
-    paquete.activo = True
-
-    return paquete
-
-
-def sync_ofertas(
-    db: Session
-):
-
-    ensure_runtime_columns(
-        db
-    )
-
-    gc = gspread.service_account(
-        filename=str(
-            CREDENTIALS_FILE
-        )
-    )
-
-    sheet = gc.open_by_key(
-        SHEET_ID
-    )
-
-    worksheet = (
-        sheet.get_worksheet(0)
-    )
-
-    rows = (
-        worksheet.get_all_values()
-    )
-
-    transferencia = []
-    efectivo = []
-    saldo = []
-    mlc = []
-    usd = []
-    clasica = []
-
-    for i, row in enumerate(rows):
-
-        titulo = (
-            row[1]
-            .strip()
-            .lower()
-            if len(row) > 1
-            else ""
-        )
-
-        moneda_titulo = get_moneda(
-            row
-        )
-
-        # ---------- TRANSFERENCIA ----------
-
-        if (
-            "transferencia"
-            in titulo
-        ):
-
-            for j in range(i + 3, min(i + 8, len(rows))):
-                r = rows[j]
-
-                minimo = safe_float(get_col(r, 3))
-
-                oferta = get_col(r, 10)
-
-                if oferta:
-                    transferencia.append({
-                        "minimo": minimo,
-                        "tasa": safe_float(oferta),
-                        "moneda": get_moneda(
-                            r,
-                            moneda_titulo
-                        )
-                    })
-
-
-        # ---------- EFECTIVO ----------
-
-        if (
-            "efectivo"
-            in titulo
-        ):
-
-            for j in range(i + 3, min(i + 8, len(rows))):
-                r = rows[j]
-
-                minimo = safe_float(get_col(r, 3))
-
-                oferta = get_col(r, 10)
-
-                if oferta:
-                    efectivo.append({
-                        "minimo": minimo,
-                        "tasa": safe_float(oferta),
-                        "moneda": get_moneda(
-                            r,
-                            moneda_titulo
-                        )
-                    })
-
-
-        # ---------- SALDO ----------
-
-        if (
-            "saldo"
-            == titulo
-        ):
-
-            for j in range(i + 3, min(i + 7, len(rows))):
-                r = rows[j]
-
-                monto_pago = get_col(r, 3)
-                cup = get_col(r, 11)
-
-                if monto_pago and cup:
-                    saldo.append({
-                        "monto_pago": safe_float(monto_pago),
-                        "cup": int(safe_float(cup)),
-                        "moneda": get_moneda(
-                            r,
-                            moneda_titulo
-                        )
-                    })
-
-
-        # ---------- MLC ----------
-
-        if (
-            "mlc"
-            in titulo
-        ):
-
-            for j in range(i + 3, min(i + 4, len(rows))):
-                r = rows[j]
-
-                minimo = safe_float(get_col(r, 3))
-
-                oferta = get_col(r, 10)
-
-                if oferta:
-                    mlc.append({
-                        "minimo": minimo,
-                        "tasa": safe_float(oferta),
-                        "moneda": get_moneda(
-                            r,
-                            moneda_titulo
-                        )
-                    })
-                    
-                    
-        # ---------- USD ----------
-        
-        if (
-            "usd"
-            in titulo
-        ):
-
-            for j in range(i + 3, min(i + 4, len(rows))):
-                r = rows[j]
-
-                minimo = safe_float(get_col(r, 3))
-
-                oferta = get_col(r, 10)
-
-                if oferta:
-                    usd.append({
-                        "minimo": minimo,
-                        "tasa": safe_float(oferta),
-                        "moneda": get_moneda(
-                            r,
-                            moneda_titulo
-                        )
-                    })
-                    
-                    
-        # ---------- CLASICA ----------
-        if (
-            "clasica"
-            in titulo
-        ):
-
-            for j in range(i + 3, min(i + 4, len(rows))):
-                r = rows[j]
-
-                minimo = safe_float(get_col(r, 3))
-
-                oferta = get_col(r, 10)
-
-                if oferta:
-                    clasica.append({
-                        "minimo": minimo,
-                        "tasa": safe_float(oferta),
-                        "moneda": get_moneda(
-                            r,
-                            moneda_titulo
-                        )
-                    })
-                    
-
-
-    transferencia = deduplicar_ofertas(
-        transferencia
-    )
-    efectivo = deduplicar_ofertas(
-        efectivo
-    )
-    mlc = deduplicar_ofertas(
-        mlc
-    )
-    usd = deduplicar_ofertas(
-        usd
-    )
-    clasica = deduplicar_ofertas(
-        clasica
-    )
-    saldo = deduplicar_saldo(
-        saldo
-    )
-
-    # El sync solo desactiva registros que el propio sync creo antes.
-
-    db.query(
-        Oferta
-    ).filter(
-        Oferta.origen == ORIGEN_GOOGLE_SHEET,
-        Oferta.servicio.in_(
-            [
-                "transferencia",
-                "mlc",
-                "usd",
-                "clasica",
-                "efectivo"
-            ]
-        )
-    ).update(
-        {
-            "activa": False
-        },
-        synchronize_session=False
-    )
-
-    db.query(
-        PaqueteSaldo
-    ).filter(
-        PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET
-    ).update(
-        {
-            "activo": False
-        },
-        synchronize_session=False
-    )
-
-    # crear o reactivar transferencias
-
-    for item in transferencia:
-        upsert_oferta_sheet(
-            db,
-            "transferencia",
-            "Transferencia",
-            item
-        )
-
-    # crear o reactivar efectivo
-
-    for item in efectivo:
-        upsert_oferta_sheet(
-            db,
-            "efectivo",
-            "Efectivo",
-            item
-        )
-        
-    # crear o reactivar mlc
-
-    for item in mlc:
-        upsert_oferta_sheet(
-            db,
-            "mlc",
-            "MLC",
-            item
-        )
-
-    # crear o reactivar usd
-
-    for item in usd:
-        upsert_oferta_sheet(
-            db,
-            "usd",
-            "USD",
-            item
-        )
-
-    # crear o reactivar clasica
-
-    for item in clasica:
-        upsert_oferta_sheet(
-            db,
-            "clasica",
-            "Clasica",
-            item
-        )
-
-    # crear o reactivar paquetes de saldo
-
-    for item in saldo:
-        upsert_paquete_saldo_sheet(
-            db,
-            item
-        )
+    resultado = construir_resultado(secciones)
+
+    duplicadas_ofertas = upsert_ofertas(db, resultado)
+    duplicadas_saldo = upsert_saldos(db, resultado)
+
+    resultado["meta"].update({
+        "filas_leidas": len(rows),
+        "duplicadas_ofertas_desactivadas": duplicadas_ofertas,
+        "duplicadas_saldo_desactivadas": duplicadas_saldo,
+    })
 
     db.commit()
-
-    return {
-
-        "transferencia":
-        transferencia,
-
-        "efectivo":
-        efectivo,
-
-        "mlc":
-        mlc,
-
-        "usd":
-        usd,
-
-        "clasica":
-        clasica,
-
-        "saldo":
-        saldo
-    }
-
+    return resultado

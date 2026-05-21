@@ -277,7 +277,7 @@ export function App() {
         </header>
 
         {vista === 'inicio' ? (
-          <InicioPage onCreate={abrirCrear} />
+          <InicioPage canSyncTasas={puedeAdministrar} onCreate={abrirCrear} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
         ) : vista === 'reportes' ? (
