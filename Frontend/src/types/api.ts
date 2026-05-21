@@ -195,6 +195,17 @@ export type Oferta = {
 };
 
 
+
+export type OfertaOperativa = Oferta;
+
+export type PaqueteSaldoOperativo = PaqueteSaldo;
+
+export type TasaOperativaResponse = {
+  generated_at: string;
+  ofertas: OfertaOperativa[];
+  paquetes_saldo: PaqueteSaldoOperativo[];
+};
+
 export type Configuracion = {
   id: number;
   clave: string;

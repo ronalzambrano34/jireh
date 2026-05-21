@@ -1,5 +1,5 @@
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-05-20
+Actualizado: 2026-05-21
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -1053,6 +1053,31 @@ Pendiente antes de operacion completa:
 - Migrar upload local a storage productivo o montar volumen persistente con backups.
 - Configurar FRONTEND_ORIGINS/CORS para el dominio real del frontend.
 - Documentar formato exacto esperado del Google Sheet.
+
+20. EXPERIENCIA OPERATIVA DEL FRONTEND
+
+El sistema debe priorizar uso movil para operarios poco tecnicos. La navegacion principal queda organizada asi:
+
+- Inicio: dashboard operativo con tasas activas reales, logo, marca y accesos rapidos por servicio.
+- Pedidos: bandeja/lista/kanban para seguimiento de operaciones.
+- Crear: formulario por servicio, tambien accesible desde el FAB flotante.
+- Reportes: resumen operativo y exportacion.
+- Perfil: datos del operador y salida de sesion.
+
+Reglas de navegacion y marca:
+
+- El logo del sistema y el texto de marca EL JIREH en el header deben redirigir siempre al dashboard Inicio.
+- El logo/texto del menu lateral movil tambien debe redirigir a Inicio y cerrar el menu.
+- En vista Pedidos no debe mostrarse un boton Crear pedido dentro de la barra superior de filtros, porque la accion principal ya existe como boton flotante.
+- La barra de pedidos usa busqueda a la derecha en desktop, filtros por servicio en chips visibles y filtros por estado en chips visibles.
+- En movil debe existir boton de menu de tres rayitas en el header para abrir el menu lateral.
+
+Reglas visuales:
+
+- Mantener coherencia visual con el dashboard: cards con sombras suaves, bordes por estado, separadores claros y botones grandes.
+- Los datos operativos dentro de cards, como tarjetas, telefonos, tasas y montos, deben mantenerse en una linea con truncado si no caben.
+- Cancelados debe aparecer al final del orden visual de estados.
+
 
 ------------------Ideas del futuro------------------
 -------------para la fase en la que el operario crea el pedido.-----------------

@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import { login, setToken } from '../api/client';
 import type { Operador } from '../types/api';
+import logoJireh from '../assets/brand/logo-jireh.jpeg';
 
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
   const [telefono, setTelefono] = useState(import.meta.env.VITE_TEST_LOGIN_TELEFONO ?? '');
@@ -27,9 +28,16 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
 
   return (
     <main className="login-screen">
+      <img className="login-bg-logo" src={logoJireh} alt="" aria-hidden="true" />
       <form className="login-panel" onSubmit={handleSubmit}>
-        <div className="login-mark"><LockKeyhole size={24} /></div>
-        <h1>Jireh Operaciones</h1>
+        <div className="login-brand">
+          <img src={logoJireh} alt="El Jireh" />
+          <span className="login-mark"><LockKeyhole size={22} /></span>
+        </div>
+        <div className="login-title">
+          <h1>Jireh Operaciones</h1>
+          <p>Panel interno de pedidos y tasas</p>
+        </div>
         <label>
           Telefono
           <input value={telefono} onChange={(event) => setTelefono(event.target.value)} autoComplete="username" />

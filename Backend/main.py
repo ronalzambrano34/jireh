@@ -43,6 +43,7 @@ from Backend.routes.archivo_pedido import (router as archivo_pedido_router)
 from Backend.routes.metodo_pago import (router as metodo_pago_router)
 from Backend.routes.punto_recogida import (router as punto_recogida_router)
 from Backend.routes.sync import (router as sync_router)
+from Backend.routes.tasa_operativa import (router as tasa_operativa_router)
 
 from Backend.services.db_maintenance import ensure_runtime_columns
 from Backend.services.seed_admin import seed_admin_operador
@@ -106,6 +107,7 @@ app.include_router(template_router)
 app.include_router(metodo_pago_router)
 app.include_router(punto_recogida_router)
 app.include_router(sync_router)
+app.include_router(tasa_operativa_router)
 
 
 @app.get("/")

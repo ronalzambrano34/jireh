@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, ClipboardList, Columns3, Home, LayoutList, LogOut, Plus, RefreshCw, Search, Settings, UserCircle, WifiOff } from 'lucide-react';
+import { BarChart3, ClipboardList, Columns3, Home, LayoutList, LogOut, Menu, Plus, RefreshCw, Search, Settings, UserCircle, WifiOff, X } from 'lucide-react';
 import { clearToken, getMe, getToken, listarPedidos } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -10,6 +10,8 @@ import { SaldoForm } from './pages/SaldoForm';
 import { TransferenciaForm } from './pages/TransferenciaForm';
 import { ReportesPage } from './pages/ReportesPage';
 import { AdminCatalogosPage } from './pages/AdminCatalogosPage';
+import { InicioPage } from './pages/InicioPage';
+import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const estados = [
   { value: '', label: 'Todos' },
@@ -108,12 +110,13 @@ export function App() {
   const [servicio, setServicio] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
-  const [vista, setVista] = useState<'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('bandeja');
+  const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('lista');
   const [servicioCrear, setServicioCrear] = useState<'transferencia' | 'efectivo' | 'saldo' | 'divisa'>('transferencia');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -149,12 +152,24 @@ export function App() {
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
       .filter((item) => !estado || item.value === estado)
-      .map((item) => ({
+      .map((item, index) => ({
         ...item,
+        orden: index,
         pedidos: pedidosFiltrados.filter((pedido) => pedido.estado === item.value),
       }))
       .filter((grupo) => grupo.pedidos.length > 0 || Boolean(estado));
   }, [estado, pedidosFiltrados]);
+
+  function navegar(nextVista: typeof vista) {
+    setVista(nextVista);
+    setMobileMenuOpen(false);
+  }
+
+  function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa') {
+    setServicioCrear(servicio);
+    setVista('crear');
+    setMobileMenuOpen(false);
+  }
 
   async function cargarPedidos() {
     setLoading(true);
@@ -201,22 +216,33 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <aside className={mobileMenuOpen ? 'sidebar mobile-open' : 'sidebar'}>
         <div>
-          <div className="brand">EL JIREH</div>
+          <div className="mobile-sidebar-head">
+            <button className="brand-button" onClick={() => navegar('inicio')} title="Ir al inicio">
+              <img src={logoJireh} alt="El Jireh" />
+              <span>EL JIREH</span>
+            </button>
+            <button className="icon-button mobile-menu-close" onClick={() => setMobileMenuOpen(false)} title="Cerrar menu">
+              <X size={18} />
+            </button>
+          </div>
           <div className="operator">{operador.nombre}</div>
         </div>
         <nav className="nav-stack">
-          <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => setVista('bandeja')}><ClipboardList size={18} /> Pedidos</button>
-          <button className={vista === 'crear' ? 'active' : ''} onClick={() => setVista('crear')} disabled={!puedeCrear}><Plus size={18} /> Crear</button>
-          <button className={vista === 'reportes' ? 'active' : ''} onClick={() => setVista('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
-          <button className={vista === 'admin' ? 'active' : ''} onClick={() => setVista('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
-          <button className={vista === 'perfil' ? 'active' : ''} onClick={() => setVista('perfil')}><UserCircle size={18} /> Perfil</button>
+          <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={18} /> Inicio</button>
+          <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
+          <button className={vista === 'crear' ? 'active' : ''} onClick={() => abrirCrear(servicioCrear)} disabled={!puedeCrear}><Plus size={18} /> Crear</button>
+          <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
+          <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
+          <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
-        <button className="ghost-button" onClick={() => { clearToken(); setOperador(null); }}>
+        <button className="ghost-button" onClick={() => { clearToken(); setOperador(null); setMobileMenuOpen(false); }}>
           <LogOut size={18} /> Salir
         </button>
       </aside>
+
+      {mobileMenuOpen && <button className="mobile-menu-backdrop" aria-label="Cerrar menu" onClick={() => setMobileMenuOpen(false)} />}
 
       <main className="workspace">
         {!online && (
@@ -225,23 +251,34 @@ export function App() {
           </div>
         )}
         <header className="toolbar">
-          <div>
-            <h1>{vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'perfil' ? 'Perfil' : 'Bandeja de pedidos'}</h1>
-            <p>{vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
+          <button className="header-brand" onClick={() => navegar('inicio')} title="Ir al dashboard">
+            <img src={logoJireh} alt="El Jireh"/>
+            <span>EL JIREH</span>
+          </button>
+          <div className="toolbar-title">
+            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'perfil' ? 'Perfil' : 'Bandeja de pedidos'}</h1>
+            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
-          {vista === 'bandeja' && (
-            <button className="icon-button" onClick={cargarPedidos} title="Actualizar pedidos">
-              <RefreshCw size={18} />
+          <div className="toolbar-actions">
+            {vista === 'bandeja' && (
+              <button className="icon-button" onClick={cargarPedidos} title="Actualizar pedidos">
+                <RefreshCw size={18} />
+              </button>
+            )}
+            <button className="icon-button mobile-menu-button" onClick={() => setMobileMenuOpen(true)} title="Abrir menu">
+              <Menu size={20} />
             </button>
-          )}
+          </div>
           {(vista === 'crear' || vista === 'reportes' || vista === 'admin' || vista === 'perfil') && (
-            <button className="primary-button" onClick={() => setVista('bandeja')}>
+            <button className="primary-button toolbar-back-button" onClick={() => navegar('bandeja')}>
               Ver pedidos
             </button>
           )}
         </header>
 
-        {vista === 'admin' ? (
+        {vista === 'inicio' ? (
+          <InicioPage onCreate={abrirCrear} />
+        ) : vista === 'admin' ? (
           <AdminCatalogosPage />
         ) : vista === 'reportes' ? (
           <ReportesPage />
@@ -310,14 +347,7 @@ export function App() {
           <>
             <section className="content-grid orders-content-grid">
               <div className="list-panel orders-list-panel">
-                <div className="filters">
-                  <label className="search-box">
-                    <Search size={18} />
-                    <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
-                  </label>
-                  <select value={servicio} onChange={(event) => setServicio(event.target.value)}>
-                    {servicios.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
+                <div className="filters orders-toolbar-row">
                   <div className="view-toggle" aria-label="Vista de pedidos">
                     <button type="button" className={vistaPedidos === 'lista' ? 'active' : ''} onClick={() => setVistaPedidos('lista')} title="Vista lista">
                       <LayoutList size={18} /> Lista
@@ -326,11 +356,22 @@ export function App() {
                       <Columns3 size={18} /> Kanban
                     </button>
                   </div>
-                  {puedeCrear && (
-                    <button className="primary-button" onClick={() => setVista('crear')}>
-                      <Plus size={18} /> Crear pedido
+                  <label className="search-box orders-search-box">
+                    <Search size={18} />
+                    <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
+                  </label>
+                </div>
+                <div className="service-filters" aria-label="Filtros por servicio">
+                  {servicios.map((item) => (
+                    <button
+                      key={item.value || 'todos-servicios'}
+                      type="button"
+                      className={servicio === item.value ? 'active' : ''}
+                      onClick={() => setServicio(item.value)}
+                    >
+                      {item.value ? item.label : 'Todos'}
                     </button>
-                  )}
+                  ))}
                 </div>
                 <div className="status-filters" aria-label="Filtros por estado">
                   {estados.map((item) => (
@@ -380,7 +421,7 @@ export function App() {
                 ) : (
                   <div className="pedido-board">
                     {pedidosPorEstado.map((grupo) => (
-                      <section className="pedido-column" key={grupo.value}>
+                      <section className="pedido-column" key={grupo.value} style={{ order: grupo.orden }}>
                         <header className="pedido-column-header">
                           <span className={`status ${grupo.value}`}>{grupo.label}</span>
                           <strong>{grupo.pedidos.length}</strong>
@@ -425,15 +466,15 @@ export function App() {
         )}
       </main>
       {puedeCrear && vista !== 'crear' && (
-        <button className="floating-create" onClick={() => setVista('crear')} title="Nuevo pedido">
+        <button className="floating-create" onClick={() => abrirCrear('transferencia')} title="Nuevo pedido">
           <Plus size={24} />
         </button>
       )}
       <nav className="bottom-nav" aria-label="Navegacion principal">
-        <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => setVista('bandeja')}><Home size={20} /> Inicio</button>
-        <button className={vista === 'crear' ? 'active' : ''} onClick={() => setVista('crear')} disabled={!puedeCrear}><Plus size={20} /> Pedidos</button>
-        <button className={vista === 'reportes' ? 'active' : ''} onClick={() => setVista('reportes')} disabled={!puedeReportes}><BarChart3 size={20} /> Reportes</button>
-        <button className={vista === 'perfil' ? 'active' : ''} onClick={() => setVista('perfil')}><UserCircle size={20} /> Perfil</button>
+        <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={20} /> Inicio</button>
+        <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={20} /> Pedidos</button>
+        <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={20} /> Reportes</button>
+        <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={20} /> Perfil</button>
       </nav>
     </div>
   );

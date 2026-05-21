@@ -16,6 +16,7 @@ import type {
   PuntoRecogida,
   ReporteGeneral,
   TemplateConfig,
+  TasaOperativaResponse,
 } from '../types/api';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000';
@@ -93,6 +94,10 @@ export function login(telefono: string, password: string) {
 
 export function getMe() {
   return request<AuthMeResponse>('/auth/me').then((data) => data.operador);
+}
+
+export function obtenerTasasOperativas() {
+  return request<TasaOperativaResponse>('/tasas-operativas/');
 }
 
 export function listarPaquetesSaldo(monedaPago?: string, incluirInactivos = false) {
