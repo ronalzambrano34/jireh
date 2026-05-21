@@ -135,9 +135,12 @@ export function App() {
 
   const pedidosFiltrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
-    if (!term) return pedidos;
 
     return pedidos.filter((pedido) => {
+      if (estado && pedido.estado !== estado) return false;
+      if (servicio && pedido.servicio !== servicio) return false;
+      if (!term) return true;
+
       const detalle = pedido.detalle ? Object.values(pedido.detalle).join(' ') : '';
       return [
         pedido.codigo_operacion,
@@ -147,7 +150,7 @@ export function App() {
         detalle,
       ].join(' ').toLowerCase().includes(term);
     });
-  }, [busqueda, pedidos]);
+  }, [busqueda, estado, pedidos, servicio]);
 
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
@@ -159,6 +162,10 @@ export function App() {
       }))
       .filter((grupo) => grupo.pedidos.length > 0 || Boolean(estado));
   }, [estado, pedidosFiltrados]);
+
+  const pedidosListaOrdenada = useMemo(() => {
+    return pedidosPorEstado.flatMap((grupo) => grupo.pedidos);
+  }, [pedidosPorEstado]);
 
   function navegar(nextVista: typeof vista) {
     setVista(nextVista);
@@ -175,7 +182,7 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      setPedidos(await listarPedidos({ estado: estado || undefined, servicio: servicio || undefined }));
+      setPedidos(await listarPedidos({ limit: 200 }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar los pedidos');
     } finally {
@@ -195,7 +202,7 @@ export function App() {
 
   useEffect(() => {
     if (operador) void cargarPedidos();
-  }, [operador, estado, servicio]);
+  }, [operador]);
 
   useEffect(() => {
     function syncOnline() {
@@ -277,7 +284,7 @@ export function App() {
         </header>
 
         {vista === 'inicio' ? (
-          <InicioPage canSyncTasas={puedeAdministrar} onCreate={abrirCrear} />
+          <InicioPage canSyncTasas={puedeAdmin} onCreate={abrirCrear} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
         ) : vista === 'reportes' ? (
@@ -390,7 +397,7 @@ export function App() {
                 {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
-                    {pedidosFiltrados.map((pedido) => (
+                    {pedidosListaOrdenada.map((pedido) => (
                       <button
                         key={pedido.codigo_operacion}
                         className={seleccionado === pedido.codigo_operacion ? 'chat-order-card selected' : 'chat-order-card'}

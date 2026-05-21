@@ -135,11 +135,11 @@ export function buscarClientePorTelefono(telefono: string, pais = 'br') {
   return request<Cliente>(`/clientes/buscar?${query.toString()}`);
 }
 
-export function listarPedidos(params: { estado?: string; servicio?: string } = {}) {
+export function listarPedidos(params: { estado?: string; servicio?: string; limit?: number } = {}) {
   const query = new URLSearchParams();
   if (params.estado) query.set('estado', params.estado);
   if (params.servicio) query.set('servicio', params.servicio);
-  query.set('limit', '50');
+  query.set('limit', String(params.limit ?? 200));
   return request<PedidoResumen[]>(`/pedido/?${query.toString()}`);
 }
 

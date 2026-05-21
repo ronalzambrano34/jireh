@@ -497,9 +497,10 @@ Reglas actuales del parser:
 - Detecta secciones por nombre de servicio en la columna B; acepta variantes con errores comunes como Transferecia, Efectlvo y Saido.
 - Usa la fecha de la fila de titulo para elegir la seccion vigente cuando hay mas de una seccion para el mismo servicio y moneda. Si la fecha empata, gana la seccion que este mas abajo en la hoja.
 - Detecta la moneda de pago principalmente desde la columna D de la fila de encabezado, para evitar confundir USDT con USD.
-- Para transferencia, efectivo, mlc, usd y clasica lee monto/minimo en columna D y tasa/oferta en columna K.
+- Para transferencia y efectivo lee monto/minimo en columna D y tasa/oferta en columna K; si K esta vacia, calcula la tasa con OFERTA CUP de columna I dividido entre el monto de columna D.
+- Para mlc, usd y clasica lee monto/minimo en columna D y tasa/oferta en columna K.
 - Para saldo lee monto de pago en columna D y saldo CUP en columna L.
-- Las tasas repetidas consecutivas se compactan: solo se guarda el primer minimo donde cambia la tasa.
+- Cada fila valida de oferta se sincroniza como una oferta independiente; solo se deduplican filas con la misma moneda y el mismo minimo exacto.
 - El endpoint devuelve meta.secciones_usadas para auditar que filas fueron sincronizadas.
 
 Endpoint actual:
@@ -510,7 +511,7 @@ Implementado.
 
 Riesgos actuales:
 
-- Si la hoja cambia las columnas D, K o L, debe actualizarse el parser.
+- Si la hoja cambia las columnas D, I, K o L, debe actualizarse el parser.
 - Si una seccion no tiene fecha, puede ser reemplazada por otra seccion del mismo servicio y moneda con fecha valida.
 
 8. MENSAJES Y WHATSAPP
@@ -1081,11 +1082,13 @@ Reglas de navegacion y marca:
 - El logo/texto del menu lateral movil tambien debe redirigir a Inicio y cerrar el menu.
 - En vista Pedidos no debe mostrarse un boton Crear pedido dentro de la barra superior de filtros, porque la accion principal ya existe como boton flotante.
 - La barra de pedidos usa busqueda a la derecha en desktop, filtros por servicio en chips visibles y filtros por estado en chips visibles.
+- La vista Pedidos carga un lote reciente de pedidos y aplica filtros de estado, servicio y busqueda en el frontend para que los chips respondan sin latencia; el boton de actualizar pedidos recarga el lote desde el backend.
+- Las vistas Lista y Kanban deben ordenar los pedidos por el mismo orden visual de estados; cancelados siempre queda al final cuando se muestran todos los estados.
 - En movil debe existir boton de menu de tres rayitas en el header para abrir el menu lateral.
 
 Reglas de datos del dashboard Inicio:
 
-- Transferencia y efectivo leen solamente ofertas activas de servicios transferencia y efectivo.
+- Transferencia y efectivo leen solamente ofertas activas de servicios transferencia y efectivo, mostrando todas las ofertas/minimos activos de cada moneda.
 - Las tasas del dashboard Inicio se agrupan primero por moneda de pago y luego por servicio; por ejemplo, transferencia pagada en BRL debe verse separada de transferencia pagada en UYU.
 - El orden visual recomendado es mostrar primero todos los servicios con pago en BRL, despues todos los servicios con pago en UYU, y luego otras monedas activas.
 - Dentro de cada moneda, solo se muestran cards/tablas de servicios con oferta o paquete activo; no se deben mostrar servicios vacios en estado sin tasa.

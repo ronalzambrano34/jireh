@@ -100,16 +100,6 @@ function ofertasServicio(ofertas: OfertaOperativa[], servicio: ServicioCrear) {
   return ordenarOfertas(ofertas.filter((oferta) => oferta.servicio === servicio));
 }
 
-function ofertaBase(ofertas: OfertaOperativa[]) {
-  return ofertas.find((oferta) => Number(oferta.minimo_pago ?? 0) <= 0) ?? ofertas[0];
-}
-
-function ofertaVolumen(ofertas: OfertaOperativa[]) {
-  return [...ofertas]
-    .filter((oferta) => Number(oferta.minimo_pago ?? 0) > 0)
-    .sort((a, b) => Number(a.minimo_pago ?? 0) - Number(b.minimo_pago ?? 0))[0];
-}
-
 function etiquetaDivisa(oferta: OfertaOperativa) {
   const etiquetas: Record<string, string> = {
     mlc: 'MLC',
@@ -263,9 +253,7 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                 const ofertas = esDivisa || esSaldo ? [] : ofertasServicio(grupo.ofertas, card.servicio);
                 const ofertasDivisa = grupo.ofertasDivisa;
                 const paquetesSaldo = grupo.paquetesSaldo;
-                const base = ofertaBase(ofertas);
-                const volumen = ofertaVolumen(ofertas);
-                const tieneDatos = esSaldo ? paquetesSaldo.length > 0 : esDivisa ? ofertasDivisa.length > 0 : Boolean(base);
+                const tieneDatos = esSaldo ? paquetesSaldo.length > 0 : esDivisa ? ofertasDivisa.length > 0 : ofertas.length > 0;
                 if (!tieneDatos) return null;
 
                 return (
@@ -300,16 +288,13 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                       </div>
                     ) : (
                       <div className="rate-lines">
-                        <div className="rate-line primary">
-                          <span>1 {monedaPago(base?.moneda_pago ?? grupo.moneda)}</span>
-                          <ArrowRight size={18} />
-                          <strong>{base ? `${formatNumber(base.tasa)} CUP` : '-'}</strong>
-                        </div>
-                        <div className="rate-line">
-                          <span>{volumen ? `${formatNumber(volumen.minimo_pago)}+ ${monedaPago(volumen.moneda_pago ?? grupo.moneda)}` : 'Volumen'}</span>
-                          <ArrowRight size={17} />
-                          <strong>{volumen ? `${formatNumber(volumen.tasa)} CUP` : '-'}</strong>
-                        </div>
+                        {ofertas.map((oferta, index) => (
+                          <div className={`rate-line ${index === 0 ? 'primary' : ''}`} key={oferta.id}>
+                            <span>{`${formatNumber(oferta.minimo_pago ?? 0)}+ ${monedaPago(oferta.moneda_pago ?? grupo.moneda)}`}</span>
+                            <ArrowRight size={index === 0 ? 18 : 17} />
+                            <strong>{formatNumber(oferta.tasa)} CUP</strong>
+                          </div>
+                        ))}
                       </div>
                     )}
 

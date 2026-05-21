@@ -80,18 +80,18 @@ def detectar_servicio(row) -> str | None:
     if not titulo:
         return None
 
-    if titulo == "usd" or titulo.startswith("usd "):
-        return "usd"
-    if titulo == "mlc" or titulo.startswith("mlc "):
-        return "mlc"
-    if "clasica" in titulo:
-        return "clasica"
-    if "transf" in titulo:
-        return "transferencia"
-    if "efect" in titulo:
-        return "efectivo"
-    if "saldo" in titulo or "saido" in titulo:
-        return "saldo"
+    # if titulo == "usd" or titulo.startswith("usd "):
+    #     return "usd"
+    # if titulo == "mlc" or titulo.startswith("mlc "):
+    #     return "mlc"
+    # if "clasica" in titulo:
+    #     return "clasica"
+    # if "transf" in titulo:
+    #     return "transferencia"
+    # if "efect" in titulo:
+    #     return "efectivo"
+    # if "saldo" in titulo or "saido" in titulo:
+    #     return "saldo"
 
     return None
 
@@ -148,20 +148,18 @@ def buscar_encabezado(rows, inicio):
     return None
 
 
-def compactar_ofertas(items):
-    por_minimo = {}
+def deduplicar_ofertas(items):
+    deduplicadas = {}
     for item in items:
-        por_minimo[key_float(item["minimo"])] = item
-
-    compactadas = []
-    ultima_tasa = None
-    for item in sorted(por_minimo.values(), key=lambda value: key_float(value["minimo"])):
-        tasa = key_float(item["tasa"])
-        if ultima_tasa is None or tasa != ultima_tasa:
-            compactadas.append(item)
-            ultima_tasa = tasa
-
-    return compactadas
+        key = (
+            item["moneda"],
+            key_float(item["minimo"]),
+        )
+        deduplicadas[key] = item
+    return sorted(
+        deduplicadas.values(),
+        key=lambda value: key_float(value["minimo"]),
+    )
 
 
 def deduplicar_saldo(items):
@@ -208,6 +206,11 @@ def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
             continue
 
         tasa = safe_float(get_col(row, 10))
+        if tasa <= 0 and servicio in {"transferencia", "efectivo"}:
+            oferta_cup = safe_float(get_col(row, 8))
+            if oferta_cup > 0:
+                tasa = oferta_cup / monto_pago
+
         if tasa <= 0:
             continue
 
@@ -221,7 +224,7 @@ def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
 
     if servicio == "saldo":
         return deduplicar_saldo(items)
-    return compactar_ofertas(items)
+    return deduplicar_ofertas(items)
 
 
 def parsear_secciones(rows):
