@@ -489,6 +489,8 @@ Servicios sincronizados actualmente:
 - clasica
 
 El sync crea o reactiva ofertas/paquetes cuyo origen es google_sheet y desactiva los que ya no aparecen en la hoja.
+El sync debe cargar credentials.json desde la carpeta Backend, sin depender del directorio desde donde se arranque Uvicorn.
+Antes de escribir, el sync deduplica filas por servicio, moneda y minimo de pago; los paquetes de saldo se deduplican por moneda, monto de pago y saldo CUP.
 
 Endpoint actual:
 POST /sync/ofertas
@@ -1071,6 +1073,16 @@ Reglas de navegacion y marca:
 - En vista Pedidos no debe mostrarse un boton Crear pedido dentro de la barra superior de filtros, porque la accion principal ya existe como boton flotante.
 - La barra de pedidos usa busqueda a la derecha en desktop, filtros por servicio en chips visibles y filtros por estado en chips visibles.
 - En movil debe existir boton de menu de tres rayitas en el header para abrir el menu lateral.
+
+Reglas de datos del dashboard Inicio:
+
+- Transferencia y efectivo leen solamente ofertas activas de servicios transferencia y efectivo.
+- Las tasas del dashboard Inicio se agrupan primero por moneda de pago y luego por servicio; por ejemplo, transferencia pagada en BRL debe verse separada de transferencia pagada en UYU.
+- El orden visual recomendado es mostrar primero todos los servicios con pago en BRL, despues todos los servicios con pago en UYU, y luego otras monedas activas.
+- Dentro de cada moneda, solo se muestran cards/tablas de servicios con oferta o paquete activo; no se deben mostrar servicios vacios en estado sin tasa.
+- Recargas moviles leen solamente paquetes_saldo activos agrupados por moneda_pago; no deben mezclarse con ofertas.
+- Tarjetas en divisa leen ofertas activas de servicios mlc, usd y clasica agrupadas por moneda_pago; no usan paquetes_saldo ni ofertas de transferencia/efectivo.
+- El endpoint GET /tasas-operativas/ es de lectura operativa para dashboard y separa ofertas, ofertas_divisa y paquetes_saldo.
 
 Reglas visuales:
 

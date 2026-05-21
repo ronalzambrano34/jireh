@@ -15,6 +15,10 @@ router = APIRouter(
 )
 
 
+SERVICIOS_OFERTAS_DASHBOARD = {"transferencia", "efectivo"}
+SERVICIOS_DIVISA_DASHBOARD = {"mlc", "usd", "clasica"}
+
+
 def _oferta_dict(oferta):
     return {
         "id": oferta.id,
@@ -68,11 +72,26 @@ def obtener_tasas_operativas(
         limit=300
     )
 
+    ofertas_dashboard = [
+        oferta
+        for oferta in ofertas
+        if oferta.servicio in SERVICIOS_OFERTAS_DASHBOARD
+    ]
+    ofertas_divisa = [
+        oferta
+        for oferta in ofertas
+        if oferta.servicio in SERVICIOS_DIVISA_DASHBOARD
+    ]
+
     return {
         "generated_at": datetime.utcnow(),
         "ofertas": [
             _oferta_dict(oferta)
-            for oferta in ofertas
+            for oferta in ofertas_dashboard
+        ],
+        "ofertas_divisa": [
+            _oferta_dict(oferta)
+            for oferta in ofertas_divisa
         ],
         "paquetes_saldo": [
             _paquete_dict(paquete)

@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
-    Depends
+    Depends,
+    HTTPException
 )
 
 from sqlalchemy.orm import (
@@ -40,8 +41,20 @@ def sincronizar(
     )
 ):
 
-    return (
-        sync_ofertas(
-            db
+    try:
+        return (
+            sync_ofertas(
+                db
+            )
         )
-    )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "No se pudieron sincronizar las ofertas desde Google Sheets. "
+                f"Detalle tecnico: {type(exc).__name__}: {exc}"
+            )
+        ) from exc

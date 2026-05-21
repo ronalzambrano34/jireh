@@ -8,6 +8,13 @@ import tasasBanner from '../assets/brand/banner-jireh.jpeg';
 
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa';
 
+type GrupoMoneda = {
+  moneda: string;
+  ofertas: OfertaOperativa[];
+  ofertasDivisa: OfertaOperativa[];
+  paquetesSaldo: PaqueteSaldoOperativo[];
+};
+
 type InicioPageProps = {
   onCreate: (servicio: ServicioCrear) => void;
 };
@@ -58,10 +65,38 @@ function formatNumber(value: number | string | null | undefined) {
   return new Intl.NumberFormat('es-UY', { maximumFractionDigits: 2 }).format(numeric);
 }
 
+function monedaPago(moneda?: string | null) {
+  return (moneda || 'BRL').trim().toUpperCase();
+}
+
+function etiquetaMoneda(moneda: string) {
+  const etiquetas: Record<string, string> = {
+    BRL: 'Pago en reales',
+    UYU: 'Pago en pesos uruguayos',
+    USD: 'Pago en dolares',
+  };
+  return etiquetas[moneda] || `Pago en ${moneda}`;
+}
+
+function ordenMoneda(moneda: string) {
+  const orden: Record<string, number> = {
+    BRL: 1,
+    UYU: 2,
+    USD: 3,
+  };
+  return orden[moneda] ?? 50;
+}
+
+function ordenarOfertas(ofertas: OfertaOperativa[]) {
+  return [...ofertas].sort((a, b) => {
+    const servicio = a.servicio.localeCompare(b.servicio);
+    if (servicio !== 0) return servicio;
+    return Number(a.minimo_pago ?? 0) - Number(b.minimo_pago ?? 0);
+  });
+}
+
 function ofertasServicio(ofertas: OfertaOperativa[], servicio: ServicioCrear) {
-  return ofertas
-    .filter((oferta) => oferta.servicio === servicio)
-    .sort((a, b) => Number(a.minimo_pago ?? 0) - Number(b.minimo_pago ?? 0));
+  return ordenarOfertas(ofertas.filter((oferta) => oferta.servicio === servicio));
 }
 
 function ofertaBase(ofertas: OfertaOperativa[]) {
@@ -72,6 +107,30 @@ function ofertaVolumen(ofertas: OfertaOperativa[]) {
   return [...ofertas]
     .filter((oferta) => Number(oferta.minimo_pago ?? 0) > 0)
     .sort((a, b) => Number(a.minimo_pago ?? 0) - Number(b.minimo_pago ?? 0))[0];
+}
+
+function etiquetaDivisa(oferta: OfertaOperativa) {
+  const etiquetas: Record<string, string> = {
+    mlc: 'MLC',
+    usd: 'USD',
+    clasica: 'Clasica',
+  };
+  return oferta.nombre || etiquetas[oferta.servicio] || oferta.servicio.toUpperCase();
+}
+
+function unidadDivisa(oferta: OfertaOperativa) {
+  const unidades: Record<string, string> = {
+    mlc: 'MLC',
+    usd: 'USD',
+    clasica: 'Clasica',
+  };
+  return unidades[oferta.servicio] || etiquetaDivisa(oferta);
+}
+
+function etiquetaLineaDivisa(oferta: OfertaOperativa) {
+  const minimo = Number(oferta.minimo_pago ?? 0);
+  if (minimo > 0) return `${etiquetaDivisa(oferta)} · ${formatNumber(minimo)}+ ${monedaPago(oferta.moneda_pago)}`;
+  return etiquetaDivisa(oferta);
 }
 
 function fechaActualizacion(value?: string) {
@@ -102,8 +161,47 @@ export function InicioPage({ onCreate }: InicioPageProps) {
     void cargarTasas();
   }, []);
 
-  const paquetesSaldo = useMemo(() => {
-    return [...(data?.paquetes_saldo ?? [])].sort((a: PaqueteSaldoOperativo, b: PaqueteSaldoOperativo) => Number(a.monto_pago) - Number(b.monto_pago));
+  const gruposMoneda = useMemo(() => {
+    const grupos = new Map<string, GrupoMoneda>();
+
+    function obtenerGrupo(moneda: string) {
+      const normalizada = monedaPago(moneda);
+      const existente = grupos.get(normalizada);
+      if (existente) return existente;
+      const nuevo: GrupoMoneda = {
+        moneda: normalizada,
+        ofertas: [],
+        ofertasDivisa: [],
+        paquetesSaldo: [],
+      };
+      grupos.set(normalizada, nuevo);
+      return nuevo;
+    }
+
+    for (const oferta of data?.ofertas ?? []) {
+      obtenerGrupo(oferta.moneda_pago ?? 'BRL').ofertas.push(oferta);
+    }
+
+    for (const oferta of data?.ofertas_divisa ?? []) {
+      obtenerGrupo(oferta.moneda_pago ?? 'BRL').ofertasDivisa.push(oferta);
+    }
+
+    for (const paquete of data?.paquetes_saldo ?? []) {
+      obtenerGrupo(paquete.moneda_pago ?? 'BRL').paquetesSaldo.push(paquete);
+    }
+
+    return [...grupos.values()]
+      .map((grupo) => ({
+        ...grupo,
+        ofertas: ordenarOfertas(grupo.ofertas),
+        ofertasDivisa: ordenarOfertas(grupo.ofertasDivisa),
+        paquetesSaldo: [...grupo.paquetesSaldo].sort((a, b) => Number(a.monto_pago) - Number(b.monto_pago)),
+      }))
+      .sort((a, b) => {
+        const orden = ordenMoneda(a.moneda) - ordenMoneda(b.moneda);
+        if (orden !== 0) return orden;
+        return a.moneda.localeCompare(b.moneda);
+      });
   }, [data]);
 
   return (
@@ -123,59 +221,87 @@ export function InicioPage({ onCreate }: InicioPageProps) {
       </div>
 
       {error && <div className="notice error">{error}</div>}
-      {!error && !loading && data && data.ofertas.length === 0 && paquetesSaldo.length === 0 && (
+      {!error && !loading && data && gruposMoneda.length === 0 && (
         <div className="notice warning">No hay tasas activas configuradas</div>
       )}
 
-      <div className="rates-grid">
-        {serviceCards.map((card) => {
-          const ofertas = ofertasServicio(data?.ofertas ?? [], card.servicio);
-          const base = ofertaBase(ofertas);
-          const volumen = ofertaVolumen(ofertas);
-          const tieneDatos = card.servicio === 'saldo' ? paquetesSaldo.length > 0 : Boolean(base);
+      <div className="rates-currency-sections">
+        {gruposMoneda.map((grupo) => (
+          <section className="rates-currency-section" key={grupo.moneda}>
+            <header className="rates-currency-header">
+              <div>
+                <h3>{etiquetaMoneda(grupo.moneda)}</h3>
+                <p>Servicios activos separados por moneda de pago</p>
+              </div>
+              <strong>{grupo.moneda}</strong>
+            </header>
 
-          return (
-            <article className={`rate-card ${card.tone}`} key={card.servicio}>
-              <header className="rate-card-header">
-                <span className="rate-icon">{card.icon}</span>
-                <span>
-                  <h3>{card.title}</h3>
-                  <small>{card.subtitle}</small>
-                </span>
-                <strong className={tieneDatos ? 'rate-state active' : 'rate-state'}>{tieneDatos ? 'Activa' : 'Sin tasa'}</strong>
-              </header>
+            <div className="rates-grid">
+              {serviceCards.map((card) => {
+                const esSaldo = card.servicio === 'saldo';
+                const esDivisa = card.servicio === 'divisa';
+                const ofertas = esDivisa || esSaldo ? [] : ofertasServicio(grupo.ofertas, card.servicio);
+                const ofertasDivisa = grupo.ofertasDivisa;
+                const paquetesSaldo = grupo.paquetesSaldo;
+                const base = ofertaBase(ofertas);
+                const volumen = ofertaVolumen(ofertas);
+                const tieneDatos = esSaldo ? paquetesSaldo.length > 0 : esDivisa ? ofertasDivisa.length > 0 : Boolean(base);
+                if (!tieneDatos) return null;
 
-              {card.servicio === 'saldo' ? (
-                <div className="rate-packages">
-                  {paquetesSaldo.slice(0, 4).map((paquete) => (
-                    <div key={paquete.id}>
-                      <span>{formatNumber(paquete.saldo_cup)} saldo</span>
-                      <strong>{formatNumber(paquete.monto_pago)} {paquete.moneda_pago ?? 'BRL'}</strong>
-                    </div>
-                  ))}
-                  {paquetesSaldo.length === 0 && <p>No hay paquetes activos</p>}
-                </div>
-              ) : (
-                <div className="rate-lines">
-                  <div className="rate-line primary">
-                    <span>1 {base?.moneda_pago ?? 'BRL'}</span>
-                    <ArrowRight size={18} />
-                    <strong>{base ? `${formatNumber(base.tasa)} CUP` : '-'}</strong>
-                  </div>
-                  <div className="rate-line">
-                    <span>{volumen ? `${formatNumber(volumen.minimo_pago)}+ ${volumen.moneda_pago ?? 'BRL'}` : 'Volumen'}</span>
-                    <ArrowRight size={17} />
-                    <strong>{volumen ? `${formatNumber(volumen.tasa)} CUP` : '-'}</strong>
-                  </div>
-                </div>
-              )}
+                return (
+                  <article className={`rate-card ${card.tone}`} key={`${grupo.moneda}-${card.servicio}`}>
+                    <header className="rate-card-header">
+                      <span className="rate-icon">{card.icon}</span>
+                      <span>
+                        <h3>{card.title}</h3>
+                        <small>{card.subtitle}</small>
+                      </span>
+                      <strong className={tieneDatos ? 'rate-state active' : 'rate-state'}>{tieneDatos ? 'Activa' : 'Sin tasa'}</strong>
+                    </header>
 
-              <button className="primary-button rate-action" onClick={() => onCreate(card.servicio)} disabled={!tieneDatos}>
-                Crear {card.servicio}
-              </button>
-            </article>
-          );
-        })}
+                    {esSaldo ? (
+                      <div className="rate-packages">
+                        {paquetesSaldo.slice(0, 4).map((paquete) => (
+                          <div key={paquete.id}>
+                            <span>{formatNumber(paquete.saldo_cup)} saldo</span>
+                            <strong>{formatNumber(paquete.monto_pago)} {monedaPago(paquete.moneda_pago ?? grupo.moneda)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : esDivisa ? (
+                      <div className="rate-lines">
+                        {ofertasDivisa.slice(0, 4).map((oferta, index) => (
+                          <div className={`rate-line ${index === 0 ? 'primary' : ''}`} key={oferta.id}>
+                            <span>{etiquetaLineaDivisa(oferta)}</span>
+                            <ArrowRight size={17} />
+                            <strong>{formatNumber(oferta.tasa)} {unidadDivisa(oferta)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rate-lines">
+                        <div className="rate-line primary">
+                          <span>1 {monedaPago(base?.moneda_pago ?? grupo.moneda)}</span>
+                          <ArrowRight size={18} />
+                          <strong>{base ? `${formatNumber(base.tasa)} CUP` : '-'}</strong>
+                        </div>
+                        <div className="rate-line">
+                          <span>{volumen ? `${formatNumber(volumen.minimo_pago)}+ ${monedaPago(volumen.moneda_pago ?? grupo.moneda)}` : 'Volumen'}</span>
+                          <ArrowRight size={17} />
+                          <strong>{volumen ? `${formatNumber(volumen.tasa)} CUP` : '-'}</strong>
+                        </div>
+                      </div>
+                    )}
+
+                    <button className="primary-button rate-action" onClick={() => onCreate(card.servicio)} disabled={!tieneDatos}>
+                      Crear {card.servicio}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </section>
   );

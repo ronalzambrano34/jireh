@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import gspread
 
 from sqlalchemy.orm import Session
@@ -10,6 +12,7 @@ from Backend.services.monedas import normalizar_moneda
 
 SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
 ORIGEN_GOOGLE_SHEET = "google_sheet"
+CREDENTIALS_FILE = Path(__file__).resolve().parents[1] / "credentials.json"
 
 
 def safe_float(value):
@@ -42,6 +45,37 @@ def get_moneda(
             return moneda
 
     return fallback
+
+
+def deduplicar_ofertas(items):
+    deduplicadas = {}
+
+    for item in items:
+        key = (
+            item["moneda"],
+            float(item["minimo"])
+        )
+        deduplicadas[key] = item
+
+    return list(
+        deduplicadas.values()
+    )
+
+
+def deduplicar_saldo(items):
+    deduplicadas = {}
+
+    for item in items:
+        key = (
+            item["moneda"],
+            float(item["monto_pago"]),
+            int(item["cup"])
+        )
+        deduplicadas[key] = item
+
+    return list(
+        deduplicadas.values()
+    )
 
 
 def oferta_cambio_detectado(
@@ -313,7 +347,9 @@ def sync_ofertas(
     )
 
     gc = gspread.service_account(
-        filename="credentials.json"
+        filename=str(
+            CREDENTIALS_FILE
+        )
     )
 
     sheet = gc.open_by_key(
@@ -497,6 +533,25 @@ def sync_ofertas(
                     })
                     
 
+
+    transferencia = deduplicar_ofertas(
+        transferencia
+    )
+    efectivo = deduplicar_ofertas(
+        efectivo
+    )
+    mlc = deduplicar_ofertas(
+        mlc
+    )
+    usd = deduplicar_ofertas(
+        usd
+    )
+    clasica = deduplicar_ofertas(
+        clasica
+    )
+    saldo = deduplicar_saldo(
+        saldo
+    )
 
     # El sync solo desactiva registros que el propio sync creo antes.
 

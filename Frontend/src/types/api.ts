@@ -203,6 +203,7 @@ export type PaqueteSaldoOperativo = PaqueteSaldo;
 export type TasaOperativaResponse = {
   generated_at: string;
   ofertas: OfertaOperativa[];
+  ofertas_divisa: OfertaOperativa[];
   paquetes_saldo: PaqueteSaldoOperativo[];
 };
 

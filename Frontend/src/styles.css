@@ -1724,6 +1724,49 @@ textarea {
   backdrop-filter: blur(8px);
 }
 
+.rates-currency-sections {
+  display: grid;
+  gap: 18px;
+}
+
+.rates-currency-section {
+  display: grid;
+  gap: 12px;
+}
+
+.rates-currency-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  padding: 0 2px 2px;
+}
+
+.rates-currency-header h3 {
+  margin: 0;
+  color: #14243a;
+  font-size: 21px;
+}
+
+.rates-currency-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.rates-currency-header strong {
+  min-width: 58px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c7d3df;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #173c67;
+  box-shadow: 0 6px 16px rgba(24, 33, 47, 0.07);
+}
+
 .rates-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(220px, 1fr));
@@ -1835,16 +1878,22 @@ textarea {
 
 .rate-line span,
 .rate-packages span {
+  min-width: 0;
+  overflow: hidden;
   color: #334155;
   font-weight: 800;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .rate-line strong,
 .rate-packages strong {
+  min-width: 0;
   justify-self: end;
+  overflow: hidden;
   color: #102033;
   font-size: 20px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1852,6 +1901,7 @@ textarea {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.rate-lines p,
 .rate-packages p {
   margin: 0;
   color: #6a7583;
@@ -1890,6 +1940,18 @@ textarea {
 
   .rates-hero h2 {
     font-size: 28px;
+  }
+
+  .rates-currency-header {
+    align-items: start;
+  }
+
+  .rates-currency-header h3 {
+    font-size: 19px;
+  }
+
+  .rates-currency-header p {
+    font-size: 13px;
   }
 
   .rates-grid {
@@ -2572,27 +2634,5 @@ textarea {
 
   .sidebar.mobile-open > .ghost-button {
     justify-self: stretch;
-  }
-}
-
-
-/* Larger main header logo */
-.header-brand img {
-  width: 66px;
-  height: 66px;
-}
-
-.header-brand {
-  min-height: 70px;
-}
-
-@media (max-width: 920px) {
-  .header-brand img {
-    width: 58px;
-    height: 58px;
-  }
-
-  .header-brand {
-    min-height: 62px;
   }
 }
