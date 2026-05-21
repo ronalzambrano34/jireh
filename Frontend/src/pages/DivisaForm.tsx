@@ -1,22 +1,25 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { crearTransferencia, listarMetodosPago } from '../api/client';
+import { crearDivisa, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
 import type { MetodoPago } from '../types/api';
 
-export function TransferenciaForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
+export function DivisaForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
   const [form, setForm] = useState({
     monto_pago: '230',
+    monto_divisa: '100',
     moneda_pago: 'BRL',
+    tipo_pago_id: '',
+    tipo_tarjeta: 'MLC',
     numero_tarjeta: '',
     telefono_destinatario: '',
-    tipo_pago_id: '1',
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
+    observaciones: '',
   });
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
 
   const metodosFiltrados = useMemo(
@@ -59,16 +62,19 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
     setLoading(true);
     setError(null);
     try {
-      const response = await crearTransferencia({
+      const response = await crearDivisa({
         monto_pago: Number(form.monto_pago),
         moneda_pago: form.moneda_pago,
-        numero_tarjeta: form.numero_tarjeta,
-        telefono_destinatario: form.telefono_destinatario || undefined,
+        monto_divisa: Number(form.monto_divisa),
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
+        tipo_tarjeta: form.tipo_tarjeta || undefined,
+        numero_tarjeta: form.numero_tarjeta || undefined,
+        telefono_destinatario: form.telefono_destinatario || undefined,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente || undefined,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+        observaciones: form.observaciones || undefined,
       });
       onCreated(response.codigo_operacion);
     } catch (err) {
@@ -104,10 +110,21 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
           >
             {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
             {metodosFiltrados.map((metodo) => (
-              <option key={metodo.id} value={metodo.id}>
-                {metodo.nombre} · {metodo.moneda}
-              </option>
+              <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
             ))}
+          </select>
+        </label>
+        <label>
+          Monto divisa
+          <input value={form.monto_divisa} onChange={(event) => update('monto_divisa', event.target.value)} inputMode="decimal" required />
+        </label>
+        <label>
+          Tipo tarjeta
+          <select value={form.tipo_tarjeta} onChange={(event) => update('tipo_tarjeta', event.target.value)}>
+            <option value="MLC">MLC</option>
+            <option value="CUP">CUP</option>
+            <option value="USD">USD</option>
+            <option value="OTRA">Otra</option>
           </select>
         </label>
         <label>
@@ -130,10 +147,14 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
           }))}
           onError={setError}
         />
+        <label className="wide">
+          Observaciones
+          <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
+        </label>
       </div>
       {error && <div className="notice error">{error}</div>}
       <button className="primary-button" disabled={loading || !form.tipo_pago_id}>
-        {loading ? 'Creando...' : 'Crear transferencia'}
+        {loading ? 'Creando...' : 'Crear divisa'}
       </button>
     </form>
   );

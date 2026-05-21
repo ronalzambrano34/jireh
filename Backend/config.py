@@ -50,3 +50,22 @@ OPERADOR_ADMIN_TELEFONO = os.getenv(
 OPERADOR_ADMIN_PASSWORD = os.getenv(
     "OPERADOR_ADMIN_PASSWORD"
 )
+
+
+UPLOAD_MAX_BYTES = int(
+    os.getenv(
+        "UPLOAD_MAX_BYTES",
+        str(
+            5 * 1024 * 1024
+        )
+    )
+)
+
+UPLOAD_ALLOWED_MIME_TYPES = {
+    mime.strip()
+    for mime in os.getenv(
+        "UPLOAD_ALLOWED_MIME_TYPES",
+        "image/jpeg,image/png,image/webp,application/pdf,application/octet-stream"
+    ).split(",")
+    if mime.strip()
+}

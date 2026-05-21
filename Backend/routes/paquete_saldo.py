@@ -9,6 +9,7 @@ from Backend.schemas.paquete_saldo import (
     PaqueteSaldoResponse,
     PaqueteSaldoUpdate
 )
+from Backend.services.auth_service import require_any_permission
 from Backend.services.auth_service import require_permission
 from Backend.services.paquete_saldo_service import (
     actualizar_paquete_saldo,
@@ -20,14 +21,7 @@ from Backend.services.paquete_saldo_service import (
 
 router = APIRouter(
     prefix="/paquetes-saldo",
-    tags=["Paquetes Saldo"],
-    dependencies=[
-        Depends(
-            require_permission(
-                "empresa:control_total"
-            )
-        )
-    ]
+    tags=["Paquetes Saldo"]
 )
 
 
@@ -42,6 +36,15 @@ def listar_paquetes_saldo_route(
     offset: int = 0,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "empresa:control_total"
+            ]
+        )
     )
 ):
     return listar_paquetes_saldo(
@@ -61,6 +64,15 @@ def obtener_paquete_saldo_route(
     paquete_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "empresa:control_total"
+            ]
+        )
     )
 ):
     try:
@@ -83,6 +95,11 @@ def crear_paquete_saldo_route(
     data: PaqueteSaldoCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
@@ -106,6 +123,11 @@ def actualizar_paquete_saldo_route(
     data: PaqueteSaldoUpdate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
@@ -129,6 +151,11 @@ def eliminar_paquete_saldo_route(
     paquete_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:

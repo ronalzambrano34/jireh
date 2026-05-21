@@ -1,41 +1,47 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { crearTransferencia, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
-import type { MetodoPago } from '../types/api';
+import { crearEfectivo, listarMetodosPago, listarPuntosRecogida } from '../api/client';
+import type { MetodoPago, PuntoRecogida } from '../types/api';
 
-export function TransferenciaForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
+export function EfectivoForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
   const [form, setForm] = useState({
     monto_pago: '230',
     moneda_pago: 'BRL',
-    numero_tarjeta: '',
+    tipo_pago_id: '',
+    punto_recogida_id: '',
     telefono_destinatario: '',
-    tipo_pago_id: '1',
+    documento_identidad_url: '',
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
+    observaciones: '',
   });
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
+  const [puntos, setPuntos] = useState<PuntoRecogida[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
-  const [cargandoMetodos, setCargandoMetodos] = useState(false);
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
 
-  const metodosFiltrados = useMemo(
+  const metodosFiltrados = useMemo<MetodoPago[]>(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
     [form.moneda_pago, metodosPago],
   );
 
   useEffect(() => {
-    setCargandoMetodos(true);
-    listarMetodosPago()
-      .then((data) => {
-        setMetodosPago(data);
-        const primero = data.find((metodo) => metodo.moneda === form.moneda_pago);
-        if (primero) {
-          setForm((current) => ({ ...current, tipo_pago_id: String(primero.id) }));
-        }
+    setCargandoCatalogos(true);
+    Promise.all([listarMetodosPago(), listarPuntosRecogida()])
+      .then(([metodos, puntosData]) => {
+        setMetodosPago(metodos);
+        setPuntos(puntosData);
+        const metodo = metodos.find((item) => item.moneda === form.moneda_pago);
+        setForm((current) => ({
+          ...current,
+          tipo_pago_id: metodo ? String(metodo.id) : '',
+          punto_recogida_id: puntosData[0] ? String(puntosData[0].id) : '',
+        }));
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
-      .finally(() => setCargandoMetodos(false));
+      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos'))
+      .finally(() => setCargandoCatalogos(false));
   }, []);
 
   useEffect(() => {
@@ -59,16 +65,18 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
     setLoading(true);
     setError(null);
     try {
-      const response = await crearTransferencia({
+      const response = await crearEfectivo({
         monto_pago: Number(form.monto_pago),
         moneda_pago: form.moneda_pago,
-        numero_tarjeta: form.numero_tarjeta,
-        telefono_destinatario: form.telefono_destinatario || undefined,
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente || undefined,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+        telefono_destinatario: form.telefono_destinatario || undefined,
+        documento_identidad_url: form.documento_identidad_url || undefined,
+        punto_recogida_id: form.punto_recogida_id ? Number(form.punto_recogida_id) : null,
+        observaciones: form.observaciones || undefined,
       });
       onCreated(response.codigo_operacion);
     } catch (err) {
@@ -100,23 +108,34 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
             value={form.tipo_pago_id}
             onChange={(event) => update('tipo_pago_id', event.target.value)}
             required
-            disabled={cargandoMetodos || metodosFiltrados.length === 0}
+            disabled={cargandoCatalogos || metodosFiltrados.length === 0}
           >
             {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
             {metodosFiltrados.map((metodo) => (
-              <option key={metodo.id} value={metodo.id}>
-                {metodo.nombre} · {metodo.moneda}
-              </option>
+              <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
             ))}
           </select>
         </label>
         <label>
-          Tarjeta destinatario
-          <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
+          Punto de recogida
+          <select
+            value={form.punto_recogida_id}
+            onChange={(event) => update('punto_recogida_id', event.target.value)}
+            disabled={cargandoCatalogos || puntos.length === 0}
+          >
+            {puntos.length === 0 && <option value="">Sin puntos activos</option>}
+            {puntos.map((punto) => (
+              <option key={punto.id} value={punto.id}>{punto.nombre}</option>
+            ))}
+          </select>
         </label>
         <label>
           Telefono destinatario Cuba
-          <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
+          <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+        </label>
+        <label>
+          Documento identidad URL
+          <input value={form.documento_identidad_url} onChange={(event) => update('documento_identidad_url', event.target.value)} />
         </label>
         <ClienteLookup
           telefono={form.numero_telefono_cliente}
@@ -130,10 +149,14 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
           }))}
           onError={setError}
         />
+        <label className="wide">
+          Observaciones
+          <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
+        </label>
       </div>
       {error && <div className="notice error">{error}</div>}
       <button className="primary-button" disabled={loading || !form.tipo_pago_id}>
-        {loading ? 'Creando...' : 'Crear transferencia'}
+        {loading ? 'Creando...' : 'Crear efectivo'}
       </button>
     </form>
   );

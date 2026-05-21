@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { LockKeyhole } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import { login, setToken } from '../api/client';
 import type { Operador } from '../types/api';
 
@@ -8,6 +8,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -35,7 +36,23 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
         </label>
         <label>
           Contrasena
-          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
+          <div className="password-field">
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type={mostrarPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setMostrarPassword((value) => !value)}
+              title={mostrarPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+              aria-label={mostrarPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+            >
+              {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </label>
         {error && <div className="notice error">{error}</div>}
         <button className="primary-button" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>

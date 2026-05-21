@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
+    require_any_permission,
     require_permission
 )
 
@@ -29,14 +30,7 @@ from Backend.services.cliente_service import (
 
 router = APIRouter(
     prefix="/clientes",
-    tags=["Clientes"],
-    dependencies=[
-        Depends(
-            require_permission(
-                "clientes:gestionar"
-            )
-        )
-    ]
+    tags=["Clientes"]
 )
 
 
@@ -51,6 +45,15 @@ def listar_clientes_route(
     offset: int = 0,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "clientes:gestionar"
+            ]
+        )
     )
 ):
     return listar_clientes(
@@ -71,6 +74,15 @@ def buscar_cliente_route(
     pais: str | None = "br",
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "clientes:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -94,6 +106,15 @@ def obtener_cliente_route(
     cliente_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "clientes:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -118,6 +139,15 @@ def listar_contactos_cliente_route(
     incluir_inactivos: bool = False,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "clientes:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -144,6 +174,14 @@ def listar_pedidos_cliente_route(
     incluir_detalle: bool = False,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar",
+                "clientes:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -169,6 +207,14 @@ def crear_cliente_route(
     data: ClienteCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "clientes:crear",
+                "clientes:gestionar"
+            ]
+        )
     )
 ):
     try:
@@ -192,6 +238,11 @@ def actualizar_cliente_route(
     data: ClienteUpdate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "clientes:gestionar"
+        )
     )
 ):
     try:
@@ -215,6 +266,11 @@ def eliminar_cliente_route(
     cliente_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "clientes:gestionar"
+        )
     )
 ):
     try:

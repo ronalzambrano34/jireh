@@ -294,7 +294,8 @@ def listar_pedidos(
     return [
         pedido_dict(
             db,
-            pedido
+            pedido,
+            incluir_detalle=True
         )
         for pedido in pedidos
     ]

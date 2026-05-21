@@ -2,6 +2,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
+
+from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
+from Backend.config import UPLOAD_MAX_BYTES
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
@@ -162,9 +165,15 @@ def guardar_upload_pedido(
             "archivo es requerido"
         )
 
+    content_type = archivo.content_type or "application/octet-stream"
+    if content_type not in UPLOAD_ALLOWED_MIME_TYPES:
+        raise Exception(
+            "Tipo de archivo no permitido"
+        )
+
     extension = Path(
         archivo.filename
-    ).suffix
+    ).suffix.lower()
     nombre_seguro = (
         str(
             uuid4()
@@ -181,18 +190,33 @@ def guardar_upload_pedido(
     )
     destino = carpeta / nombre_seguro
 
-    with destino.open(
-        "wb"
-    ) as fh:
-        while True:
-            chunk = archivo.file.read(
-                1024 * 1024
-            )
-            if not chunk:
-                break
-            fh.write(
-                chunk
-            )
+    total_bytes = 0
+    try:
+        with destino.open(
+            "wb"
+        ) as fh:
+            while True:
+                chunk = archivo.file.read(
+                    1024 * 1024
+                )
+                if not chunk:
+                    break
+
+                total_bytes += len(
+                    chunk
+                )
+                if total_bytes > UPLOAD_MAX_BYTES:
+                    raise Exception(
+                        "Archivo excede el tamano maximo permitido"
+                    )
+
+                fh.write(
+                    chunk
+                )
+    except Exception:
+        if destino.exists():
+            destino.unlink()
+        raise
 
     data = ArchivoPedidoCreate(
         tipo=tipo,
@@ -200,7 +224,7 @@ def guardar_upload_pedido(
             destino
         ),
         nombre_archivo=archivo.filename,
-        mime_type=archivo.content_type,
+        mime_type=content_type,
         notas=notas,
         usuario=usuario
     )

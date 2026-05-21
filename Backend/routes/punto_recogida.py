@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
+    require_any_permission,
     require_permission
 )
 
@@ -24,14 +25,7 @@ from Backend.services.punto_recogida_service import (
 
 router = APIRouter(
     prefix="/puntos-recogida",
-    tags=["Puntos Recogida"],
-    dependencies=[
-        Depends(
-            require_permission(
-                "empresa:control_total"
-            )
-        )
-    ]
+    tags=["Puntos Recogida"]
 )
 
 
@@ -46,6 +40,15 @@ def listar_puntos_recogida_route(
     offset: int = 0,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "empresa:control_total"
+            ]
+        )
     )
 ):
     return listar_puntos_recogida(
@@ -65,6 +68,15 @@ def obtener_punto_recogida_route(
     punto_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "empresa:control_total"
+            ]
+        )
     )
 ):
     try:
@@ -87,6 +99,11 @@ def crear_punto_recogida_route(
     data: PuntoRecogidaCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
@@ -110,6 +127,11 @@ def actualizar_punto_recogida_route(
     data: PuntoRecogidaUpdate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
@@ -133,6 +155,11 @@ def eliminar_punto_recogida_route(
     punto_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:

@@ -2,6 +2,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from Backend.models.pedido import Pedido
+from Backend.models.metodo_pago import MetodoPago
 
 
 def _query_pedidos(
@@ -157,6 +158,125 @@ def _agrupar(
     ]
 
 
+def _agrupar_por_dia(query):
+    campo = func.date(
+        Pedido.created_at
+    )
+
+    filas = (
+        query.with_entities(
+            campo.label(
+                "clave"
+            ),
+            func.count(
+                Pedido.id
+            ).label(
+                "cantidad"
+            ),
+            func.coalesce(
+                func.sum(
+                    Pedido.monto_pago
+                ),
+                0
+            ).label(
+                "monto_pago"
+            ),
+            func.coalesce(
+                func.sum(
+                    Pedido.ganancia
+                ),
+                0
+            ).label(
+                "ganancia"
+            )
+        )
+        .group_by(
+            campo
+        )
+        .order_by(
+            campo.desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "clave": str(
+                fila.clave
+            ),
+            "cantidad": fila.cantidad,
+            "monto_pago": float(
+                fila.monto_pago
+            ),
+            "ganancia": float(
+                fila.ganancia
+            ),
+        }
+        for fila in filas
+    ]
+
+
+def _agrupar_por_metodo_pago(query):
+    filas = (
+        query.outerjoin(
+            MetodoPago,
+            Pedido.tipo_pago_id == MetodoPago.id
+        )
+        .with_entities(
+            func.coalesce(
+                MetodoPago.nombre,
+                "Sin metodo"
+            ).label(
+                "clave"
+            ),
+            func.count(
+                Pedido.id
+            ).label(
+                "cantidad"
+            ),
+            func.coalesce(
+                func.sum(
+                    Pedido.monto_pago
+                ),
+                0
+            ).label(
+                "monto_pago"
+            ),
+            func.coalesce(
+                func.sum(
+                    Pedido.ganancia
+                ),
+                0
+            ).label(
+                "ganancia"
+            )
+        )
+        .group_by(
+            MetodoPago.nombre
+        )
+        .order_by(
+            func.count(
+                Pedido.id
+            ).desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "clave": fila.clave,
+            "cantidad": fila.cantidad,
+            "monto_pago": float(
+                fila.monto_pago
+            ),
+            "ganancia": float(
+                fila.ganancia
+            ),
+        }
+        for fila in filas
+    ]
+
+
 def reporte_general(
     db: Session,
     fecha_desde=None,
@@ -195,5 +315,11 @@ def reporte_general(
         "por_operador": _agrupar(
             query,
             Pedido.operador_id
+        ),
+        "por_metodo_pago": _agrupar_por_metodo_pago(
+            query
+        ),
+        "por_dia": _agrupar_por_dia(
+            query
         ),
     }

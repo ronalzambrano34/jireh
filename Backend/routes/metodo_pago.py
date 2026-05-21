@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
+    require_any_permission,
     require_permission
 )
 
@@ -24,14 +25,7 @@ from Backend.services.metodo_pago_service import (
 
 router = APIRouter(
     prefix="/metodos-pago",
-    tags=["Metodos Pago"],
-    dependencies=[
-        Depends(
-            require_permission(
-                "empresa:control_total"
-            )
-        )
-    ]
+    tags=["Metodos Pago"]
 )
 
 
@@ -47,6 +41,15 @@ def listar_metodos_pago_route(
     offset: int = 0,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "empresa:control_total"
+            ]
+        )
     )
 ):
     try:
@@ -73,6 +76,15 @@ def obtener_metodo_pago_route(
     metodo_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar",
+                "empresa:control_total"
+            ]
+        )
     )
 ):
     try:
@@ -95,6 +107,11 @@ def crear_metodo_pago_route(
     data: MetodoPagoCreate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
@@ -118,6 +135,11 @@ def actualizar_metodo_pago_route(
     data: MetodoPagoUpdate,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
@@ -141,6 +163,11 @@ def eliminar_metodo_pago_route(
     metodo_id: int,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
     )
 ):
     try:
