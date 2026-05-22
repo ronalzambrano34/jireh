@@ -43,6 +43,10 @@ function tituloTema(tema: AdminTema | null) {
   return 'Catalogos';
 }
 
+function servicioLabel(value: string) {
+  return value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
+}
+
 
 export function AdminCatalogosPage() {
   const [metodos, setMetodos] = useState<MetodoPago[]>([]);
@@ -74,6 +78,15 @@ export function AdminCatalogosPage() {
   const metodosVisibles = useMemo(() => metodos.filter((metodo) => metodo.activo === mostrarActivos), [metodos, mostrarActivos]);
   const puntosVisibles = useMemo(() => puntos.filter((punto) => punto.activo === mostrarActivos), [puntos, mostrarActivos]);
   const ofertasVisibles = useMemo(() => ofertas.filter((oferta) => oferta.activa === mostrarActivos), [ofertas, mostrarActivos]);
+  const ofertasPorServicio = useMemo(() => {
+    const grupos = new Map<string, Oferta[]>();
+    ofertasVisibles.forEach((oferta) => {
+      const servicio = oferta.servicio || 'sin_servicio';
+      grupos.set(servicio, [...(grupos.get(servicio) ?? []), oferta]);
+    });
+
+    return Array.from(grupos.entries()).sort(([servicioA], [servicioB]) => servicioA.localeCompare(servicioB));
+  }, [ofertasVisibles]);
   const paquetesVisibles = useMemo(() => paquetes.filter((paquete) => paquete.activo === mostrarActivos), [paquetes, mostrarActivos]);
   const clientesVisibles = useMemo(() => clientes.filter((cliente) => cliente.activo === mostrarActivos), [clientes, mostrarActivos]);
   const contactosVisibles = useMemo(() => contactos.filter((contacto) => contacto.activo === mostrarActivos), [contactos, mostrarActivos]);
@@ -514,14 +527,26 @@ export function AdminCatalogosPage() {
             <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
             <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
           </div>
-          <div className="admin-card-list">
+          <div className="admin-service-groups">
             {ofertasVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
-            {ofertasVisibles.map((oferta) => (
-              <div className="catalog-row" key={oferta.id}>
-                <span><strong>{oferta.servicio} · {oferta.tasa}</strong><small>{oferta.moneda_pago} · minimo {oferta.minimo_pago ?? 0} · {oferta.origen}</small></span>
-                <span className={oferta.activa ? 'status completado' : 'status cancelado'}>{oferta.activa ? 'activa' : 'inactiva'}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => toggleOferta(oferta)}><Power size={18} /> {oferta.activa ? 'Desactivar' : 'Activar'}</button>
-              </div>
+            {ofertasPorServicio.map(([servicio, ofertasGrupo]) => (
+              <section className="admin-service-group" key={servicio}>
+                <header className="admin-service-group-header">
+                  <strong>{servicioLabel(servicio)}</strong>
+                  <small>{ofertasGrupo.length} {ofertasGrupo.length === 1 ? 'oferta' : 'ofertas'}</small>
+                </header>
+                <div className="admin-card-list">
+                  {ofertasGrupo.map((oferta) => (
+                    <div className="catalog-row catalog-row-offer" key={oferta.id}>
+                      <span><strong>{oferta.nombre || `${servicioLabel(oferta.servicio)} · ${oferta.tasa}`}</strong><small>{oferta.moneda_pago} · minimo {oferta.minimo_pago ?? 0} · {oferta.origen}</small></span>
+                      <div className="catalog-offer-actions">
+                        <span className={oferta.activa ? 'status completado' : 'status cancelado'}>{oferta.activa ? 'activa' : 'inactiva'}</span>
+                        <button className="ghost-button catalog-toggle-action" onClick={() => toggleOferta(oferta)}><Power size={18} /> {oferta.activa ? 'Desactivar' : 'Activar'}</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>

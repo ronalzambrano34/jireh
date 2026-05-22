@@ -354,20 +354,20 @@ export function App() {
               </button>
               {supportOpen && (
                 <div className="profile-support-panel">
-                  <a className="support-whatsapp-link" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                  <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
                     <MessageCircle size={20} />
                     <span>
-                      <strong>Contactar Brasil</strong>
+                      <strong>WhatsApp Brasil</strong>
                       <small>+55 48 91233191</small>
                     </span>
                   </a>
-                  <div className="support-whatsapp-link disabled" aria-disabled="true">
+                  <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
                     <MessageCircle size={20} />
                     <span>
-                      <strong>Contactar Uruguay</strong>
-                      <small>Pendiente de configurar</small>
+                      <strong>WhatsApp Uruguay</strong>
+                      <small>+598 94 207 862</small>
                     </span>
-                  </div>
+                  </a>
                 </div>
               )}
               <button className="profile-option danger" type="button" onClick={() => { clearToken(); setOperador(null); }}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
