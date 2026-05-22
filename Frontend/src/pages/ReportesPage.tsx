@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { Banknote, BriefcaseBusiness, CalendarRange, ChevronDown, CircleDot, Coins, Download, RefreshCw, Smartphone, UserRound, WalletCards, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Banknote, BriefcaseBusiness, CalendarRange, ChevronDown, CircleDot, Coins, Download, Smartphone, UserRound, WalletCards, X } from 'lucide-react';
 import { descargarReporteCsv, listarOperadores, obtenerReporte } from '../api/client';
 import type { Operador, ReporteGeneral, ReporteGrupo } from '../types/api';
 
@@ -138,18 +138,6 @@ export function ReportesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function cargar() {
-    setLoading(true);
-    setError(null);
-    try {
-      setReporte(await obtenerReporte(filters));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function cargarOperadores() {
     setOperadoresLoading(true);
     try {
@@ -162,9 +150,31 @@ export function ReportesPage() {
   }
 
   useEffect(() => {
-    void cargar();
     void cargarOperadores();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function cargarReporteActual() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await obtenerReporte(filters);
+        if (active) setReporte(data);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void cargarReporteActual();
+
+    return () => {
+      active = false;
+    };
+  }, [filters]);
 
   function update(field: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [field]: value }));
@@ -188,11 +198,6 @@ export function ReportesPage() {
     setOperadorSheetOpen(false);
   }
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    void cargar();
-  }
-
   async function exportarCsv() {
     setError(null);
     try {
@@ -210,7 +215,7 @@ export function ReportesPage() {
 
   return (
     <section className="reports-page">
-      <form className="filters report-filters" onSubmit={handleSubmit}>
+      <div className="filters report-filters">
         <div className="report-filter-field">
           <CalendarRange className="report-filter-icon" size={17} />
           <button type="button" className="filter-modal-button" onClick={() => setPeriodoSheetOpen(true)} aria-haspopup="dialog" aria-expanded={periodoSheetOpen}>
@@ -251,7 +256,7 @@ export function ReportesPage() {
             <ChevronDown className="filter-modal-caret" size={17} />
           </button>
         </div>
-        <div className="report-filter-field">
+        <div className="report-filter-field report-filter-field-wide">
           <UserRound className="report-filter-icon" size={17} />
           <button type="button" className="filter-modal-button" onClick={() => setOperadorSheetOpen(true)} aria-haspopup="dialog" aria-expanded={operadorSheetOpen} disabled={operadoresLoading}>
             <span>{filters.operador_id ? operadores.find((item) => String(item.id) === filters.operador_id)?.nombre ?? 'Operador' : 'Operador'}</span>
@@ -259,14 +264,11 @@ export function ReportesPage() {
           </button>
         </div>
         <div className="report-filter-actions">
-          <button className="primary-button" disabled={loading}>
-            <RefreshCw size={18} /> {loading ? 'Cargando...' : 'Aplicar'}
-          </button>
           <button type="button" className="ghost-button" onClick={exportarCsv} disabled={loading}>
             <Download size={18} /> CSV
           </button>
         </div>
-      </form>
+      </div>
 
       {error && <div className="notice error">{error}</div>}
 

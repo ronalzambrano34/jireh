@@ -43,7 +43,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
           <input value={telefono} onChange={(event) => setTelefono(event.target.value)} autoComplete="username" />
         </label>
         <label>
-          Contrasena
+          Contraseña
           <div className="password-field">
             <input
               value={password}
@@ -55,8 +55,8 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
               type="button"
               className="password-toggle"
               onClick={() => setMostrarPassword((value) => !value)}
-              title={mostrarPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
-              aria-label={mostrarPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+              title={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             >
               {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>

@@ -1,5 +1,5 @@
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-05-21
+Actualizado: 2026-05-22
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -159,7 +159,7 @@ Estados definidos en el sistema:
 - pago_confirmado
 - en_operacion
 - completado
-- canceladometodos-pago
+- cancelado
 - error
 
 Flujo recomendado:
@@ -564,6 +564,8 @@ Estado implementado:
 - Existe GET /reportes/resumen con filtros por fecha tipo date, estado, servicio, moneda_pago y operador_id.
 - Existe GET /reportes/resumen.csv para exportar el resumen operativo en CSV.
 - El reporte agrupa por dia, estado, servicio, moneda, metodo de pago y operador.
+- El frontend de reportes usa filtros operativos por periodo, estado, servicio, moneda y operador. Estos filtros se presentan como hojas inferiores tipo modal, con opcion Todos dentro del modal. Si se selecciona periodo Personalizado, aparecen los campos Desde y Hasta.
+- El frontend muestra resumen de Pedidos, Monto pago, Monto resultado y Ganancia en tarjetas compactas y exporta CSV desde la pantalla.
 
 Pendiente recomendado:
 
@@ -647,7 +649,32 @@ POST /pedido/{codigo_operacion}/upload
 Estado actual:
 Implementado para registro de metadatos, upload binario local y control de permisos por token. El upload binario local valida tamano maximo y tipos MIME permitidos configurables por .env. En produccion se debe migrar o montar storage persistente y definir antivirus/politicas de acceso.
 
-12. ANTIFRAUDE Y REVISION
+12. VISTA DETALLE DE PEDIDO
+
+Estado actual:
+
+- El detalle se abre como modal desde la bandeja de pedidos.
+- Al abrir, el sistema intenta tomar/bloquear la operacion para el operador actual.
+- Si el bloqueo es propio, se renueva periodicamente mientras el panel siga abierto.
+- Si otro operador tiene el bloqueo activo, el panel permite revisar pero bloquea edicion de estado y subida de comprobantes.
+- Al cerrar, se intenta liberar el bloqueo propio.
+- Muestra codigo, servicio, moneda, estado, enviado, tasa y recibe.
+- Muestra datos especificos de operacion segun tipo de pedido.
+- Permite cambiar estado del pedido.
+- Muestra mensaje_operacion y boton para copiarlo.
+- Si existe whatsapp_url, muestra acceso directo a WhatsApp.
+- Permite subir comprobante_cliente y lista archivos asociados.
+
+Pendiente recomendado para la proxima fase visual, tecnica y operacional:
+
+- Reorganizar la vista detalle para lectura rapida en movil y escritorio.
+- Separar claramente datos del cliente, datos del beneficiario, datos de pago, ejecucion y evidencias.
+- Convertir el cambio de estado a control modal o flujo guiado con confirmacion cuando sea necesario.
+- Mostrar historial de estados y operador responsable.
+- Mejorar etiquetas, formato de moneda y copiado rapido de campos criticos.
+- Preparar el detalle para antifraude: comprobantes, hash, revision y alertas.
+
+13. ANTIFRAUDE Y REVISION
 
 Riesgos reales del negocio:
 
@@ -672,12 +699,12 @@ Campos recomendados:
 Estado actual:
 No implementado.
 
-13. ESTRUCTURA ACTUAL DEL PROYECTO
+14. ESTRUCTURA ACTUAL DEL PROYECTO
 
 La aplicacion se divide en carpetas separadas:
 
 - Backend/: API FastAPI, modelos, rutas, servicios, schemas, scripts y requirements.txt.
-- Frontend/: app web interna React/Vite iniciada para login, bandeja, transferencia, detalle, estados y comprobantes.
+- Frontend/: app web interna React/Vite para login, inicio/tasas, bandeja de pedidos, creacion de pedidos, detalle operativo, administracion y reportes.
 - Manual de Negocio.txt: documento raiz del negocio y fuente de verdad compartida.
 
 Comandos backend desde la raiz:
@@ -689,7 +716,7 @@ Comandos backend desde la raiz:
 Nota tecnica:
 Si el venv se mueve de carpeta, los ejecutables como uvicorn pueden conservar rutas viejas en su shebang. En ese caso usar Backend/venv/bin/python -m uvicorn o recrear el venv dentro de Backend/.
 
-14. ETAPAS DEL PRODUCTO
+15. ETAPAS DEL PRODUCTO
 
 Etapa 1: Sistema operativo interno
 
@@ -730,6 +757,9 @@ Pendiente de etapa 1:
 - Validar frontend web operativo en navegador contra API real: pedidos, administracion y reportes.
 - Hardening de storage de comprobantes para produccion.
 - UI Admin inicial disponible para metodos de pago, puntos de recogida, ofertas, paquetes de saldo, clientes, contactos, configuracion y templates.
+- Vista interna de pedidos disponible en modo lista y cuadricula, con filtros de Servicio y Estado mediante hojas inferiores tipo modal. El filtro Servicio usa los mismos iconos visuales de las ofertas: tarjeta, billete, movil y tarjeta de divisa.
+- Vista de reportes disponible con filtros modales por periodo, estado, servicio, moneda y operador, y exportacion CSV.
+- Vista detalle de pedido disponible con toma/liberacion de operacion, renovacion de bloqueo, cambio de estado, datos operativos, mensaje para WhatsApp y subida/listado de comprobantes.
 - Integracion WhatsApp real o semiautomatica.
 - Auditoria por usuario en acciones sensibles.
 
@@ -778,7 +808,7 @@ Pendiente:
 - App movil.
 - Integracion con canales adicionales.
 
-15. ENDPOINTS ACTUALES
+16. ENDPOINTS ACTUALES
 
 General:
 
@@ -878,7 +908,7 @@ Sync:
 
 POST /sync/ofertas
 
-16. PRIORIDADES TECNICAS RECOMENDADAS
+17. PRIORIDADES TECNICAS RECOMENDADAS
 
 Prioridad 1: Seguridad y base del repo
 
@@ -1118,12 +1148,16 @@ Las observaciones operativas del pedido se reciben, guardan y devuelven en los f
 
 Sistema de roles para operarios implementado: los operarios tienen rol admin, supervisor u operador. El panel administrativo puede crear, listar, modificar y desactivar operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.
 
-Pendiente:
--agregar el panel para modificar y opciones de perfil.
--OJO: El sistema principalmente va a ser usado en telefonos, o al menos asi es como estan trabajando ahora y personas que conocen poco de informatica, asi q uay que intentar darle la mejor experiencia posible
--en la entrega de efectivo. el telefono deberia tener al lado un boton de llamada por whatsap.
--dentro de la vista detalle de pedido los numero de tarjeta, telefono del familiar, monto a enviar deberian tener un boton para copiar.
--las ofertas si la presionas, te redirigen a un crear pedido con los datos de la oferta que seleccionaste
+Implementado en frontend interno:
+- Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones de cuenta, seguridad, soporte y salida.
+- Criterio de producto: el sistema debe priorizar uso en telefonos y usuarios con poca experiencia informatica; las acciones frecuentes deben ser grandes, claras y con pocos pasos.
+- En entrega de efectivo, el telefono del destinatario tiene acceso directo a WhatsApp al lado del campo.
+- En detalle de pedido, tarjeta, telefono destinatario y montos principales tienen boton de copiar.
+- Las ofertas y paquetes del inicio pueden abrir la creacion de pedido con datos precargados de la oferta seleccionada.
+
+Pendiente siguiente:
+- Hacer funcionales las opciones internas del perfil: editar datos, cambiar contraseña y ayuda.
+- Ajustar visual, tecnica y operacionalmente la vista detalle de pedido.
 
 
 

@@ -3,13 +3,15 @@ import { crearDivisa, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
 import type { MetodoPago } from '../types/api';
 
-export function DivisaForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
+type DivisaInitialData = { monto_pago?: string; monto_divisa?: string; moneda_pago?: string; tipo_tarjeta?: string };
+
+export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: DivisaInitialData }) {
   const [form, setForm] = useState({
-    monto_pago: '230',
-    monto_divisa: '100',
-    moneda_pago: 'BRL',
+    monto_pago: initialData?.monto_pago ?? '230',
+    monto_divisa: initialData?.monto_divisa ?? '100',
+    moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
-    tipo_tarjeta: 'MLC',
+    tipo_tarjeta: initialData?.tipo_tarjeta ?? 'MLC',
     numero_tarjeta: '',
     telefono_destinatario: '',
     cliente_id: '',

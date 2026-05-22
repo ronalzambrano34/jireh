@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Home, LayoutGrid, LayoutList, LogOut, Menu, Plus, RefreshCw, Search, Settings, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, MessageCircle, LayoutGrid, LayoutList, LogOut, Menu, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { clearToken, getMe, getToken, listarPedidos } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -29,6 +29,14 @@ const servicios = [
   { value: 'saldo', label: 'Saldo' },
   { value: 'divisa', label: 'Divisa' },
 ];
+
+type CrearPedidoDraft = {
+  monto_pago?: string;
+  moneda_pago?: string;
+  paquete_saldo_id?: string;
+  monto_divisa?: string;
+  tipo_tarjeta?: string;
+};
 
 const estadosBandeja = estados.filter((item) => item.value);
 
@@ -121,12 +129,14 @@ export function App() {
   const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('lista');
   const [servicioCrear, setServicioCrear] = useState<'transferencia' | 'efectivo' | 'saldo' | 'divisa'>('transferencia');
+  const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
   const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -178,14 +188,17 @@ export function App() {
   }, [pedidosPorEstado]);
 
   function navegar(nextVista: typeof vista) {
+    if (nextVista !== 'crear') setCrearDraft({});
     setVista(nextVista);
     setMobileMenuOpen(false);
     setServicioSheetOpen(false);
     setEstadoSheetOpen(false);
+    setSupportOpen(false);
   }
 
-  function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa') {
+  function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa', draft: CrearPedidoDraft = {}) {
     setServicioCrear(servicio);
+    setCrearDraft(draft);
     setVista('crear');
     setMobileMenuOpen(false);
     setServicioSheetOpen(false);
@@ -253,7 +266,6 @@ export function App() {
         <nav className="nav-stack">
           <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={18} /> Inicio</button>
           <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
-          <button className={vista === 'crear' ? 'active' : ''} onClick={() => abrirCrear(servicioCrear)} disabled={!puedeCrear}><Plus size={18} /> Crear</button>
           <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
           <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
           <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
@@ -299,20 +311,67 @@ export function App() {
         ) : vista === 'reportes' ? (
           <ReportesPage />
         ) : vista === 'perfil' ? (
-          <section className="profile-panel">
-            <div className="profile-avatar"><UserCircle size={34} /></div>
-            <div>
-              <h2>{operador.nombre}</h2>
-              <p>{operador.telefono}</p>
+          <section className="profile-page">
+            <div className="profile-hero-card">
+              <div className="profile-hero-main">
+                <div className="profile-avatar initials">{operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</div>
+                <div>
+                  <h2>{operador.nombre}</h2>
+                  <p>{operador.telefono}</p>
+                </div>
+              </div>
+              <div className="profile-hero-meta">
+                <span>Codigo: <strong>{operador.codigo_operador}</strong></span>
+                <span>Rol: <strong>{operador.rol}</strong></span>
+                <button className="icon-button" onClick={() => navigator.clipboard.writeText(operador.codigo_operador)} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
+              </div>
             </div>
-            <dl className="profile-data">
-              <div><dt>Codigo</dt><dd>{operador.codigo_operador}</dd></div>
-              <div><dt>Rol</dt><dd>{operador.rol}</dd></div>
-              <div><dt>Estado</dt><dd>{operador.activo ? 'Activo' : 'Inactivo'}</dd></div>
-            </dl>
-            <button className="ghost-button danger-action" onClick={() => { clearToken(); setOperador(null); }}>
-              <LogOut size={18} /> Salir
-            </button>
+
+            <div className="profile-section">
+              <h3>Mi cuenta</h3>
+              <button className="profile-option" type="button"><UserCircle size={22} /><span>Mis datos</span><ChevronDown size={18} /></button>
+              <button className="profile-option" type="button"><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown size={18} /></button>
+              <button className="profile-option" type="button"><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown size={18} /></button>
+            </div>
+
+            <div className="profile-section">
+              <h3>Seguridad</h3>
+              <button className="profile-option" type="button"><KeyRound size={22} /><span>Cambiar contraseña</span><ChevronDown size={18} /></button>
+              <button className="profile-option" type="button"><ShieldCheck size={22} /><span>Sesion y acceso</span><ChevronDown size={18} /></button>
+            </div>
+
+            <div className="profile-section">
+              <h3>Soporte</h3>
+              <button
+                className={supportOpen ? 'profile-option active' : 'profile-option'}
+                type="button"
+                onClick={() => setSupportOpen((current) => !current)}
+                aria-expanded={supportOpen}
+              >
+                <HelpCircle size={22} />
+                <span>Ayuda para operar</span>
+                <ChevronDown className={supportOpen ? 'chevron-open' : ''} size={18} />
+              </button>
+              {supportOpen && (
+                <div className="profile-support-panel">
+                  <a className="support-whatsapp-link" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                    <MessageCircle size={20} />
+                    <span>
+                      <strong>Contactar Brasil</strong>
+                      <small>+55 48 91233191</small>
+                    </span>
+                  </a>
+                  <div className="support-whatsapp-link disabled" aria-disabled="true">
+                    <MessageCircle size={20} />
+                    <span>
+                      <strong>Contactar Uruguay</strong>
+                      <small>Pendiente de configurar</small>
+                    </span>
+                  </div>
+                </div>
+              )}
+              <button className="profile-option danger" type="button" onClick={() => { clearToken(); setOperador(null); }}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
+            </div>
           </section>
         ) : vista === 'crear' ? (
           <section className="create-stack">
@@ -320,43 +379,43 @@ export function App() {
               <button
                 type="button"
                 className={servicioCrear === 'transferencia' ? 'active' : ''}
-                onClick={() => setServicioCrear('transferencia')}
+                onClick={() => { setServicioCrear('transferencia'); setCrearDraft({}); }}
               >
                 Transferencia
               </button>
               <button
                 type="button"
                 className={servicioCrear === 'efectivo' ? 'active' : ''}
-                onClick={() => setServicioCrear('efectivo')}
+                onClick={() => { setServicioCrear('efectivo'); setCrearDraft({}); }}
               >
                 Efectivo
               </button>
               <button
                 type="button"
                 className={servicioCrear === 'saldo' ? 'active' : ''}
-                onClick={() => setServicioCrear('saldo')}
+                onClick={() => { setServicioCrear('saldo'); setCrearDraft({}); }}
               >
                 Saldo
               </button>
               <button
                 type="button"
                 className={servicioCrear === 'divisa' ? 'active' : ''}
-                onClick={() => setServicioCrear('divisa')}
+                onClick={() => { setServicioCrear('divisa'); setCrearDraft({}); }}
               >
                 Divisa
               </button>
             </div>
             {servicioCrear === 'transferencia' && (
-              <TransferenciaForm operadorId={operador.id} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <TransferenciaForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
             )}
             {servicioCrear === 'efectivo' && (
-              <EfectivoForm operadorId={operador.id} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <EfectivoForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
             )}
             {servicioCrear === 'saldo' && (
-              <SaldoForm operadorId={operador.id} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <SaldoForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
             )}
             {servicioCrear === 'divisa' && (
-              <DivisaForm operadorId={operador.id} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <DivisaForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
             )}
           </section>
         ) : (

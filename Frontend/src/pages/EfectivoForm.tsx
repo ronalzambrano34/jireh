@@ -1,12 +1,22 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { crearEfectivo, listarMetodosPago, listarPuntosRecogida } from '../api/client';
 import type { MetodoPago, PuntoRecogida } from '../types/api';
 
-export function EfectivoForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
+type EfectivoInitialData = { monto_pago?: string; moneda_pago?: string };
+
+function whatsappHref(phone: string) {
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return '';
+  const normalized = digits.startsWith('53') ? digits : `53${digits}`;
+  return `https://wa.me/${normalized}`;
+}
+
+export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: EfectivoInitialData }) {
   const [form, setForm] = useState({
-    monto_pago: '230',
-    moneda_pago: 'BRL',
+    monto_pago: initialData?.monto_pago ?? '230',
+    moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
     punto_recogida_id: '',
     telefono_destinatario: '',
@@ -138,7 +148,19 @@ export function EfectivoForm({ operadorId, onCreated }: { operadorId: number; on
         </label>
         <label>
           Telefono destinatario Cuba
-          <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+          <span className="input-action-row">
+            <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+            <a
+              className={form.telefono_destinatario ? 'icon-button field-action-button' : 'icon-button field-action-button disabled-link'}
+              href={whatsappHref(form.telefono_destinatario) || undefined}
+              target="_blank"
+              rel="noreferrer"
+              title="Llamar por WhatsApp"
+              aria-label="Llamar por WhatsApp"
+            >
+              <MessageCircle size={18} />
+            </a>
+          </span>
         </label>
         <label>
           Documento identidad URL

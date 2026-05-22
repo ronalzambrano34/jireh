@@ -50,6 +50,12 @@ function mostrarValor(value: unknown) {
   return String(value);
 }
 
+const camposCopiables = new Set(['numero_tarjeta', 'telefono_destinatario', 'monto_cup', 'saldo_cup', 'monto_divisa']);
+
+function copiarTexto(value: unknown) {
+  void navigator.clipboard.writeText(mostrarValor(value));
+}
+
 export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: { codigo: string | null; operadorId: number; onChanged: () => void; onClose: () => void }) {
   const [pedido, setPedido] = useState<PedidoDetalle | null>(null);
   const [estado, setEstado] = useState('');
@@ -172,9 +178,9 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       {bloqueoPropio && <div className="notice success">Operacion tomada por ti. Se mantendra reservada mientras este panel siga abierto.</div>}
       {bloqueadoPorOtro && <div className="notice warning">En uso por {pedido.operador_asignado_nombre ?? 'otro operador'}. Puedes revisar, pero no editar.</div>}
       <dl className="metrics">
-        <div><dt>Enviado</dt><dd>{pedido.monto_pago} {pedido.moneda_pago}</dd></div>
+        <div><dt>Enviado</dt><dd>{pedido.monto_pago} {pedido.moneda_pago}<button className="inline-copy-button" type="button" onClick={() => copiarTexto(`${pedido.monto_pago} ${pedido.moneda_pago}`)} title="Copiar enviado" aria-label="Copiar enviado"><Copy size={14} /></button></dd></div>
         <div><dt>Tasa</dt><dd>{pedido.tasa_final}</dd></div>
-        <div><dt>Recibe</dt><dd>{pedido.monto_resultado}</dd></div>
+        <div><dt>Recibe</dt><dd>{pedido.monto_resultado}<button className="inline-copy-button" type="button" onClick={() => copiarTexto(pedido.monto_resultado)} title="Copiar recibe" aria-label="Copiar recibe"><Copy size={14} /></button></dd></div>
       </dl>
       <div className="state-row">
         <select value={estado} onChange={(event) => setEstado(event.target.value)} disabled={bloqueadoPorOtro}>
@@ -189,7 +195,14 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
             {detalleEntries(pedido).map(([key, value], index) => (
               <div key={key} className={index === 0 ? 'primary-detail' : undefined}>
                 <span>{detalleLabel(key)}</span>
-                <strong>{mostrarValor(value)}</strong>
+                <strong>
+                  {mostrarValor(value)}
+                  {camposCopiables.has(key) && (
+                    <button className="inline-copy-button" type="button" onClick={() => copiarTexto(value)} title={`Copiar ${detalleLabel(key)}`} aria-label={`Copiar ${detalleLabel(key)}`}>
+                      <Copy size={14} />
+                    </button>
+                  )}
+                </strong>
               </div>
             ))}
           </div>

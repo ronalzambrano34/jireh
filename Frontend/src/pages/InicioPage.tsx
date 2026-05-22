@@ -15,9 +15,17 @@ type GrupoMoneda = {
   paquetesSaldo: PaqueteSaldoOperativo[];
 };
 
+type OfertaCreateDraft = {
+  monto_pago?: string;
+  moneda_pago?: string;
+  paquete_saldo_id?: string;
+  monto_divisa?: string;
+  tipo_tarjeta?: string;
+};
+
 type InicioPageProps = {
   canSyncTasas?: boolean;
-  onCreate: (servicio: ServicioCrear) => void;
+  onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void;
 };
 
 type ServiceCard = {
@@ -122,6 +130,13 @@ function etiquetaLineaDivisa(oferta: OfertaOperativa) {
   const minimo = Number(oferta.minimo_pago ?? 0);
   if (minimo > 0) return `${etiquetaDivisa(oferta)} · ${formatNumber(minimo)}+ ${monedaPago(oferta.moneda_pago)}`;
   return etiquetaDivisa(oferta);
+}
+
+function tipoTarjetaDesdeOferta(oferta: OfertaOperativa) {
+  const servicio = oferta.servicio.toLowerCase();
+  if (servicio === 'usd') return 'USD';
+  if (servicio === 'clasica') return 'OTRA';
+  return 'MLC';
 }
 
 function fechaActualizacion(value?: string) {
@@ -270,30 +285,50 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                     {esSaldo ? (
                       <div className="rate-packages">
                         {paquetesSaldo.slice(0, 4).map((paquete) => (
-                          <div key={paquete.id}>
+                          <button
+                            type="button"
+                            className="rate-package-option"
+                            key={paquete.id}
+                            onClick={() => onCreate('saldo', { moneda_pago: monedaPago(paquete.moneda_pago ?? grupo.moneda), paquete_saldo_id: String(paquete.id) })}
+                          >
                             <span>{formatNumber(paquete.saldo_cup)} saldo</span>
                             <strong>{formatNumber(paquete.monto_pago)} {monedaPago(paquete.moneda_pago ?? grupo.moneda)}</strong>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     ) : esDivisa ? (
                       <div className="rate-lines">
                         {ofertasDivisa.slice(0, 4).map((oferta, index) => (
-                          <div className={`rate-line ${index === 0 ? 'primary' : ''}`} key={oferta.id}>
+                          <button
+                            type="button"
+                            className={`rate-line ${index === 0 ? 'primary' : ''}`}
+                            key={oferta.id}
+                            onClick={() => onCreate('divisa', {
+                              monto_pago: String(oferta.minimo_pago ?? ''),
+                              moneda_pago: monedaPago(oferta.moneda_pago ?? grupo.moneda),
+                              monto_divisa: String(oferta.tasa ?? ''),
+                              tipo_tarjeta: tipoTarjetaDesdeOferta(oferta),
+                            })}
+                          >
                             <span>{etiquetaLineaDivisa(oferta)}</span>
                             <ArrowRight size={17} />
                             <strong>{formatNumber(oferta.tasa)} {unidadDivisa(oferta)}</strong>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     ) : (
                       <div className="rate-lines">
                         {ofertas.map((oferta, index) => (
-                          <div className={`rate-line ${index === 0 ? 'primary' : ''}`} key={oferta.id}>
+                          <button
+                            type="button"
+                            className={`rate-line ${index === 0 ? 'primary' : ''}`}
+                            key={oferta.id}
+                            onClick={() => onCreate(card.servicio, { monto_pago: String(oferta.minimo_pago ?? ''), moneda_pago: monedaPago(oferta.moneda_pago ?? grupo.moneda) })}
+                          >
                             <span>{`${formatNumber(oferta.minimo_pago ?? 0)}+ ${monedaPago(oferta.moneda_pago ?? grupo.moneda)}`}</span>
                             <ArrowRight size={index === 0 ? 18 : 17} />
                             <strong>{formatNumber(oferta.tasa)} CUP</strong>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}

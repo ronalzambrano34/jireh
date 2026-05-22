@@ -3,11 +3,13 @@ import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/clien
 import { ClienteLookup } from '../components/ClienteLookup';
 import type { MetodoPago, PaqueteSaldo } from '../types/api';
 
-export function SaldoForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
+type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
+
+export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: SaldoInitialData }) {
   const [form, setForm] = useState({
-    moneda_pago: 'BRL',
+    moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
-    paquete_saldo_id: '',
+    paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
     telefono_destinatario: '',
     cliente_id: '',
     nombre_cliente: '',

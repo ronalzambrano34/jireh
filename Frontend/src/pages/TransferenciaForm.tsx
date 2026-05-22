@@ -3,10 +3,12 @@ import { crearTransferencia, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
 import type { MetodoPago } from '../types/api';
 
-export function TransferenciaForm({ operadorId, onCreated }: { operadorId: number; onCreated: (codigo: string) => void }) {
+type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
+
+export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
-    monto_pago: '230',
-    moneda_pago: 'BRL',
+    monto_pago: initialData?.monto_pago ?? '230',
+    moneda_pago: initialData?.moneda_pago ?? 'BRL',
     numero_tarjeta: '',
     telefono_destinatario: '',
     tipo_pago_id: '1',
