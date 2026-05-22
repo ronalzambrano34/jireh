@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, ClipboardList, Columns3, Home, LayoutList, LogOut, Menu, Plus, RefreshCw, Search, Settings, UserCircle, WifiOff, X } from 'lucide-react';
+import { BarChart3, BriefcaseBusiness, CircleDot, ClipboardList, Home, LayoutGrid, LayoutList, LogOut, Menu, Plus, RefreshCw, Search, Settings, UserCircle, WifiOff, X } from 'lucide-react';
 import { clearToken, getMe, getToken, listarPedidos } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -14,7 +14,7 @@ import { InicioPage } from './pages/InicioPage';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const estados = [
-  { value: '', label: 'Todos' },
+  { value: '', label: 'Estado' },
   { value: 'pendiente_pago', label: 'Pendiente pago' },
   { value: 'pago_confirmado', label: 'Pago confirmado' },
   { value: 'en_operacion', label: 'En operacion' },
@@ -23,7 +23,7 @@ const estados = [
 ];
 
 const servicios = [
-  { value: '', label: 'Todos los servicios' },
+  { value: '', label: 'Servicio' },
   { value: 'transferencia', label: 'Transferencia' },
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'saldo', label: 'Saldo' },
@@ -263,7 +263,7 @@ export function App() {
             <span>EL JIREH</span>
           </button>
           <div className="toolbar-title">
-            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'perfil' ? 'Perfil' : 'Bandeja de pedidos'}</h1>
+            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
@@ -350,46 +350,39 @@ export function App() {
             <section className="content-grid orders-content-grid">
               <div className="list-panel orders-list-panel">
                 <div className="filters orders-toolbar-row">
-                  <div className="view-toggle" aria-label="Vista de pedidos">
-                    <button type="button" className={vistaPedidos === 'lista' ? 'active' : ''} onClick={() => setVistaPedidos('lista')} title="Vista lista">
-                      <LayoutList size={18} /> Lista
-                    </button>
-                    <button type="button" className={vistaPedidos === 'kanban' ? 'active' : ''} onClick={() => setVistaPedidos('kanban')} title="Vista Kanban">
-                      <Columns3 size={18} /> Kanban
-                    </button>
-                  </div>
                   <label className="search-box orders-search-box">
                     <Search size={18} />
                     <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
                   </label>
                 </div>
-                <div className="service-filters" aria-label="Filtros por servicio">
-                  {servicios.map((item) => (
-                    <button
-                      key={item.value || 'todos-servicios'}
-                      type="button"
-                      className={servicio === item.value ? 'active' : ''}
-                      onClick={() => setServicio(item.value)}
-                    >
-                      {item.value ? item.label : 'Todos'}
-                    </button>
-                  ))}
-                </div>
-                <div className="status-filters" aria-label="Filtros por estado">
-                  {estados.map((item) => (
-                    <button
-                      key={item.value || 'todos'}
-                      type="button"
-                      className={estado === item.value ? 'active' : ''}
-                      onClick={() => setEstado(item.value)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                <div className="orders-filter-grid" aria-label="Filtros de pedidos">
+                  <label className="order-filter-field">
+                    <BriefcaseBusiness className="order-filter-icon" size={17} />
+                    <select aria-label="Servicio" value={servicio} onChange={(event) => setServicio(event.target.value)}>
+                      {servicios.map((item) => <option key={item.value || 'todos-servicios'} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="order-filter-field">
+                    <CircleDot className="order-filter-icon" size={17} />
+                    <select aria-label="Estado" value={estado} onChange={(event) => setEstado(event.target.value)}>
+                      {estados.map((item) => <option key={item.value || 'todos-estados'} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </label>
                 </div>
                 {error && <div className="notice error">{error}</div>}
                 {loading && <div className="notice">Cargando pedidos...</div>}
                 {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
+                <div className="orders-view-mode-row">
+                  <button
+                    type="button"
+                    className="view-toggle single-view-toggle"
+                    onClick={() => setVistaPedidos((current) => current === 'lista' ? 'kanban' : 'lista')}
+                    title={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
+                    aria-label={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
+                  >
+                    {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
+                  </button>
+                </div>
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
                     {pedidosListaOrdenada.map((pedido) => (

@@ -1119,5 +1119,11 @@ Las observaciones operativas del pedido se reciben, guardan y devuelven en los f
 Sistema de roles para operarios implementado: los operarios tienen rol admin, supervisor u operador. El panel administrativo puede crear, listar, modificar y desactivar operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.
 
 NOta a Implementar:
-agregar el panel para modificar y opciones de perfil.
-OJO: El sistema principalmente va a ser usado en telefonos, o al menos asi es como estan trabajando ahora y personas que conocen poco de informatica, asi q uay que intentar darle la mejor experiencia posible
+-agregar el panel para modificar y opciones de perfil.
+-OJO: El sistema principalmente va a ser usado en telefonos, o al menos asi es como estan trabajando ahora y personas que conocen poco de informatica, asi q uay que intentar darle la mejor experiencia posible
+-en la entrega de efectivo. el telefono deberia tener al lado un boton de llamada por whatsap.
+
+
+
+
+

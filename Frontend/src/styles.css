@@ -1378,21 +1378,28 @@ textarea {
   }
 
   .chat-order-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(86px, auto);
+    gap: 8px;
+    padding: 12px 10px 12px 13px;
   }
 
+  .chat-card-main,
   .chat-card-side {
-    grid-template-columns: 1fr auto;
-    justify-items: start;
-    align-items: end;
-    text-align: left;
+    gap: 7px;
   }
 
   .chat-card-side .status {
-    grid-column: 1 / -1;
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .pedido-card-fields.compact,
+  .pedido-card-fields.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 8px;
+  }
+
   .profile-data {
     grid-template-columns: 1fr;
   }
@@ -2326,6 +2333,41 @@ textarea {
   margin-left: auto;
 }
 
+.orders-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid #e1e7ef;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.order-filter-field {
+  position: relative;
+  gap: 0;
+  padding: 10px;
+  border: 1px solid #e1e7ef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.order-filter-field select {
+  border-color: #d7e0ea;
+  padding-left: 34px;
+}
+
+.order-filter-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  z-index: 1;
+  color: #176b5d;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
 .service-filters {
   display: flex;
   flex-wrap: wrap;
@@ -2364,6 +2406,10 @@ textarea {
     max-width: none;
     margin-left: 0;
     order: -1;
+  }
+
+  .orders-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .service-filters {
@@ -2640,5 +2686,251 @@ textarea {
   .sidebar.mobile-open > .ghost-button {
     align-self: end;
     justify-self: stretch;
+  }
+}
+
+/* Single orders view toggle */
+.single-view-toggle {
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-color: #d4dce6;
+  color: #18212f;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.single-view-toggle:hover {
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(24, 33, 47, 0.1);
+}
+
+/* Admin catalog kanban board */
+.admin-kanban-board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-kanban-column {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 6px 18px rgba(24, 33, 47, 0.06);
+}
+
+.admin-kanban-column .admin-card-list,
+.admin-kanban-column .admin-split-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 320px));
+  justify-content: start;
+  gap: 10px;
+}
+
+.admin-kanban-column .config-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-kanban-column .catalog-row,
+.admin-kanban-column .config-row {
+  position: relative;
+  min-height: 0;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+  border-color: #d3dce6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 5px 18px rgba(24, 33, 47, 0.07);
+}
+
+.admin-kanban-column .catalog-row {
+  grid-template-columns: 1fr auto;
+}
+
+.admin-kanban-column .catalog-row > span:first-child,
+.admin-kanban-column .config-row > strong {
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1e7ef;
+}
+
+.admin-kanban-column .catalog-row > .status {
+  justify-self: end;
+}
+
+.admin-kanban-column .catalog-row > .icon-button,
+.admin-kanban-column .catalog-row > .ghost-button {
+  width: 100%;
+}
+
+.admin-kanban-column .catalog-row > .icon-button {
+  grid-column: 1;
+}
+
+.admin-kanban-column .catalog-row > .ghost-button {
+  grid-column: 2;
+}
+
+@media (max-width: 720px) {
+  .single-view-toggle {
+    width: 100%;
+  }
+
+  .admin-kanban-column .admin-card-list,
+  .admin-kanban-column .admin-split-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-kanban-column .catalog-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-kanban-column .catalog-row > .status,
+  .admin-kanban-column .catalog-row > .icon-button,
+  .admin-kanban-column .catalog-row > .ghost-button {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+}
+
+/* Icon-only orders view toggle */
+.single-view-toggle {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+  border-color: #cbd3dd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #18212f;
+}
+
+/* Report filters in two columns */
+.report-filters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.report-filter-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.report-filter-field:last-of-type {
+  grid-column: 1 / -1;
+}
+
+.report-filter-field {
+  position: relative;
+  gap: 0;
+}
+
+.report-filter-field select,
+.report-filter-field input {
+  padding-left: 34px;
+}
+
+.report-filter-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  z-index: 1;
+  color: #176b5d;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 720px) {
+  .report-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-filter-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 360px) {
+  .report-filters,
+  .report-filter-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.orders-view-mode-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+}
+
+/* Reports: keep only summary cards in two columns */
+.report-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 920px) {
+  .report-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .report-summary {
+    gap: 8px;
+  }
+
+  .report-summary div {
+    padding: 12px 10px;
+  }
+
+  .report-summary strong {
+    font-size: 18px;
+  }
+}
+
+/* Report tables: compact columns without horizontal scroll */
+.report-table .data-row {
+  grid-template-columns: minmax(72px, 0.8fr) minmax(56px, 0.42fr) minmax(74px, 0.7fr) minmax(74px, 0.7fr);
+  gap: 6px;
+  padding: 10px 12px;
+  overflow: visible;
+}
+
+.report-table .data-row span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.report-table .data-row span:nth-child(2),
+.report-table .data-row span:nth-child(3),
+.report-table .data-row span:nth-child(4) {
+  min-width: 0;
+  text-align: center;
+}
+
+.report-table .data-row.header span:nth-child(2),
+.report-table .data-row.header span:nth-child(3),
+.report-table .data-row.header span:nth-child(4) {
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .report-table .data-row {
+    grid-template-columns: minmax(58px, 0.72fr) minmax(46px, 0.38fr) minmax(62px, 0.62fr) minmax(62px, 0.62fr);
+    gap: 4px;
+    padding: 9px 8px;
+    font-size: 12px;
   }
 }

@@ -356,8 +356,8 @@ export function AdminCatalogosPage() {
       {error && <div className="notice error">{error}</div>}
       {notice && <div className="notice">{notice}</div>}
 
-      <div className="admin-grid">
-        <section className="admin-panel">
+      <div className="admin-kanban-board">
+        <section className="admin-panel admin-kanban-column">
           <h2>Metodos de pago</h2>
           <form className="inline-form" onSubmit={guardarMetodo}>
             <input value={metodoForm.nombre} onChange={(event) => setMetodoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
@@ -366,7 +366,7 @@ export function AdminCatalogosPage() {
             </select>
             <button className="primary-button"><Save size={18} /> Crear</button>
           </form>
-          <div className="data-table compact">
+          <div className="data-table compact admin-card-list">
             {metodos.map((metodo) => (
               <div className="catalog-row" key={metodo.id}>
                 <span><strong>{metodo.nombre}</strong><small>{metodo.moneda}</small></span>
@@ -378,7 +378,7 @@ export function AdminCatalogosPage() {
           </div>
         </section>
 
-        <section className="admin-panel">
+        <section className="admin-panel admin-kanban-column">
           <h2>Puntos de recogida</h2>
           <form className="stack-form" onSubmit={guardarPunto}>
             <input value={puntoForm.nombre} onChange={(event) => setPuntoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
@@ -386,7 +386,7 @@ export function AdminCatalogosPage() {
             <input value={puntoForm.telefono} onChange={(event) => setPuntoForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono opcional" />
             <button className="primary-button"><Save size={18} /> Crear punto</button>
           </form>
-          <div className="data-table compact">
+          <div className="data-table compact admin-card-list">
             {puntos.map((punto) => (
               <div className="catalog-row" key={punto.id}>
                 <span><strong>{punto.nombre}</strong><small>{punto.direccion}</small></span>
@@ -399,7 +399,7 @@ export function AdminCatalogosPage() {
         </section>
 
 
-        <section className="admin-panel">
+        <section className="admin-panel admin-kanban-column">
           <h2>Ofertas</h2>
           <form className="stack-form" onSubmit={guardarOferta}>
             <select value={ofertaForm.servicio} onChange={(event) => setOfertaForm((current) => ({ ...current, servicio: event.target.value }))}>
@@ -415,7 +415,7 @@ export function AdminCatalogosPage() {
             </div>
             <button className="primary-button"><Save size={18} /> Crear oferta</button>
           </form>
-          <div className="data-table compact">
+          <div className="data-table compact admin-card-list">
             {ofertas.map((oferta) => (
               <div className="catalog-row" key={oferta.id}>
                 <span><strong>{oferta.servicio} · {oferta.tasa}</strong><small>{oferta.moneda_pago} · minimo {oferta.minimo_pago ?? 0} · {oferta.origen}</small></span>
@@ -427,7 +427,7 @@ export function AdminCatalogosPage() {
           </div>
         </section>
 
-        <section className="admin-panel">
+        <section className="admin-panel admin-kanban-column">
           <h2>Paquetes de saldo</h2>
           <form className="stack-form" onSubmit={guardarPaquete}>
             <input value={paqueteForm.nombre} onChange={(event) => setPaqueteForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
@@ -440,7 +440,7 @@ export function AdminCatalogosPage() {
             </div>
             <button className="primary-button"><Save size={18} /> Crear paquete</button>
           </form>
-          <div className="data-table compact">
+          <div className="data-table compact admin-card-list">
             {paquetes.map((paquete) => (
               <div className="catalog-row" key={paquete.id}>
                 <span><strong>{paquete.nombre}</strong><small>{paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP · {paquete.origen}</small></span>
@@ -454,7 +454,7 @@ export function AdminCatalogosPage() {
 
 
 
-        <section className="admin-panel wide-admin">
+        <section className="admin-panel admin-kanban-column wide-admin">
           <h2>Clientes y contactos</h2>
           <div className="config-grid">
             <form className="stack-form" onSubmit={guardarCliente}>
@@ -506,7 +506,7 @@ export function AdminCatalogosPage() {
           </div>
         </section>
 
-        <section className="admin-panel wide-admin">
+        <section className="admin-panel admin-kanban-column wide-admin">
           <h2>Configuracion y templates</h2>
           <div className="admin-actions-row">
             <button type="button" className="primary-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); setConfigModalOpen(true); }}>

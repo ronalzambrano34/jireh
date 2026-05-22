@@ -10,6 +10,7 @@ import type {
   CrearTransferenciaPayload,
   MetodoPago,
   Oferta,
+  Operador,
   PedidoDetalle,
   PaqueteSaldo,
   PedidoResumen,
@@ -100,6 +101,14 @@ export function getMe() {
 export function obtenerTasasOperativas() {
   return request<TasaOperativaResponse>('/tasas-operativas/');
 }
+
+export function listarOperadores(incluirInactivos = false) {
+  const query = new URLSearchParams();
+  query.set('limit', '100');
+  if (incluirInactivos) query.set('incluir_inactivos', 'true');
+  return request<Operador[]>(`/operador/?${query.toString()}`);
+}
+
 
 export function sincronizarOfertas() {
   return request<SyncOfertasResponse>('/sync/ofertas', {
