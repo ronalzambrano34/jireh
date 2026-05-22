@@ -488,20 +488,23 @@ Servicios sincronizados actualmente:
 - usd
 - clasica
 
-El sync crea o reactiva ofertas/paquetes cuyo origen es google_sheet y desactiva los que ya no aparecen en la hoja.
+El sync lee la pestana operativa Calcular Oferta y el rango A1:L160, para no cargar hojas historicas completas ni cientos de filas que no se usan en la operacion diaria.
 El sync debe cargar credentials.json desde la carpeta Backend, sin depender del directorio desde donde se arranque Uvicorn.
+La verificacion de tablas y columnas ocurre al arrancar el backend; el sync no debe repetir mantenimiento de schema en cada ejecucion para no demorar el boton Actualizar.
 Antes de escribir, el sync deduplica filas por servicio, moneda y minimo de pago; los paquetes de saldo se deduplican por moneda, monto de pago y saldo CUP.
+El sync aplica escritura diferencial: crea lo nuevo, actualiza lo que cambio, conserva sin tocar lo igual y desactiva solo los registros google_sheet que ya no aparecen en la seccion vigente. No debe apagar y reactivar todas las ofertas en cada ejecucion.
 
 Reglas actuales del parser:
 
 - Detecta secciones por nombre de servicio en la columna B; acepta variantes con errores comunes como Transferecia, Efectlvo y Saido.
-- Usa la fecha de la fila de titulo para elegir la seccion vigente cuando hay mas de una seccion para el mismo servicio y moneda. Si la fecha empata, gana la seccion que este mas abajo en la hoja.
+- Usa la fecha mas reciente por servicio como corte vigente. Las secciones antiguas del mismo servicio se ignoran aunque tengan otra moneda, para evitar publicar tasas viejas.
+- Si hay mas de una seccion del mismo servicio y moneda dentro de la fecha vigente, gana la seccion que este mas abajo en la hoja.
 - Detecta la moneda de pago principalmente desde la columna D de la fila de encabezado, para evitar confundir USDT con USD.
 - Para transferencia y efectivo lee monto/minimo en columna D y tasa/oferta en columna K; si K esta vacia, calcula la tasa con OFERTA CUP de columna I dividido entre el monto de columna D.
 - Para mlc, usd y clasica lee monto/minimo en columna D y tasa/oferta en columna K.
 - Para saldo lee monto de pago en columna D y saldo CUP en columna L.
 - Cada fila valida de oferta se sincroniza como una oferta independiente; solo se deduplican filas con la misma moneda y el mismo minimo exacto.
-- El endpoint devuelve meta.secciones_usadas para auditar que filas fueron sincronizadas.
+- El endpoint devuelve meta.secciones_usadas, meta.worksheet, meta.rango_leido, meta.ofertas_db, meta.saldo_db y meta.tiempos_seg para auditar que filas fueron sincronizadas y donde se consume el tiempo.
 
 Endpoint actual:
 POST /sync/ofertas
@@ -512,7 +515,8 @@ Implementado.
 Riesgos actuales:
 
 - Si la hoja cambia las columnas D, I, K o L, debe actualizarse el parser.
-- Si una seccion no tiene fecha, puede ser reemplazada por otra seccion del mismo servicio y moneda con fecha valida.
+- Si una seccion vigente no tiene fecha y existe otra del mismo servicio con fecha valida, la seccion sin fecha puede quedar ignorada por seguridad.
+- Si el negocio decide mantener monedas vigentes con fechas diferentes para un mismo servicio, debe ajustarse la regla de seleccion vigente y documentarse aqui antes de usarlo en produccion.
 
 8. MENSAJES Y WHATSAPP
 
@@ -1064,7 +1068,7 @@ Pendiente antes de operacion completa:
 - Implementar auditoria por usuario para acciones sensibles.
 - Migrar upload local a storage productivo o montar volumen persistente con backups.
 - Configurar FRONTEND_ORIGINS/CORS para el dominio real del frontend.
-- Documentar formato exacto esperado del Google Sheet.
+- Mantener actualizado el formato esperado del Google Sheet cada vez que cambien columnas, nombres de seccion o regla de vigencia.
 
 20. EXPERIENCIA OPERATIVA DEL FRONTEND
 

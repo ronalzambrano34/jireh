@@ -33,7 +33,10 @@ export function EfectivoForm({ operadorId, onCreated }: { operadorId: number; on
       .then(([metodos, puntosData]) => {
         setMetodosPago(metodos);
         setPuntos(puntosData);
-        const metodo = metodos.find((item) => item.moneda === form.moneda_pago);
+        // Buscar Pix para BRL, sino el primero disponible
+        const metodo = form.moneda_pago === 'BRL'
+          ? metodos.find((item) => item.moneda === 'BRL' && item.nombre.toLowerCase() === 'pix')
+          : metodos.find((item) => item.moneda === form.moneda_pago);
         setForm((current) => ({
           ...current,
           tipo_pago_id: metodo ? String(metodo.id) : '',
@@ -52,7 +55,11 @@ export function EfectivoForm({ operadorId, onCreated }: { operadorId: number; on
 
     const existe = metodosFiltrados.some((metodo) => String(metodo.id) === form.tipo_pago_id);
     if (!existe) {
-      setForm((current) => ({ ...current, tipo_pago_id: String(metodosFiltrados[0].id) }));
+      // Buscar Pix para BRL, sino el primero disponible
+      const metodo = form.moneda_pago === 'BRL'
+        ? metodosFiltrados.find((m) => m.nombre.toLowerCase() === 'pix')
+        : metodosFiltrados[0];
+      setForm((current) => ({ ...current, tipo_pago_id: String(metodo?.id || metodosFiltrados[0].id) }));
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 

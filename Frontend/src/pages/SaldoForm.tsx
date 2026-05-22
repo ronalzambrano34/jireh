@@ -36,7 +36,10 @@ export function SaldoForm({ operadorId, onCreated }: { operadorId: number; onCre
       .then(([metodos, paquetesData]) => {
         setMetodosPago(metodos);
         setPaquetes(paquetesData);
-        const metodo = metodos.find((item) => item.moneda === form.moneda_pago);
+        // Buscar Pix para BRL, sino el primero disponible
+        const metodo = form.moneda_pago === 'BRL'
+          ? metodos.find((item) => item.moneda === 'BRL' && item.nombre.toLowerCase() === 'pix')
+          : metodos.find((item) => item.moneda === form.moneda_pago);
         const paquete = paquetesData.find((item) => item.moneda_pago === form.moneda_pago);
         setForm((current) => ({
           ...current,
@@ -52,7 +55,11 @@ export function SaldoForm({ operadorId, onCreated }: { operadorId: number; onCre
     if (metodosFiltrados.length) {
       const existe = metodosFiltrados.some((metodo) => String(metodo.id) === form.tipo_pago_id);
       if (!existe) {
-        setForm((current) => ({ ...current, tipo_pago_id: String(metodosFiltrados[0].id) }));
+        // Buscar Pix para BRL, sino el primero disponible
+        const metodo = form.moneda_pago === 'BRL'
+          ? metodosFiltrados.find((m) => m.nombre.toLowerCase() === 'pix')
+          : metodosFiltrados[0];
+        setForm((current) => ({ ...current, tipo_pago_id: String(metodo?.id || metodosFiltrados[0].id) }));
       }
     } else {
       setForm((current) => ({ ...current, tipo_pago_id: '' }));

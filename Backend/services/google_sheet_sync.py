@@ -5,19 +5,22 @@ from datetime import date
 from datetime import datetime
 from pathlib import Path
 import re
+from time import perf_counter
 import unicodedata
 
 import gspread
+from gspread.exceptions import WorksheetNotFound
 
 from sqlalchemy.orm import Session
 
 from Backend.models.oferta import Oferta
 from Backend.models.paquete_saldo import PaqueteSaldo
-from Backend.services.db_maintenance import ensure_runtime_columns
 from Backend.services.monedas import normalizar_moneda
 
 
 SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
+WORKSHEET_TITLE = "Calcular Oferta"
+SHEET_RANGE = "A1:L160"
 ORIGEN_GOOGLE_SHEET = "google_sheet"
 CREDENTIALS_FILE = Path(__file__).resolve().parents[1] / "credentials.json"
 SERVICIOS_OFERTAS = {"transferencia", "efectivo", "mlc", "usd", "clasica"}
@@ -74,24 +77,28 @@ def key_float(value):
     return round(float(value or 0), 4)
 
 
+def float_distinto(actual, nuevo):
+    return key_float(actual) != key_float(nuevo)
+
+
 def detectar_servicio(row) -> str | None:
     titulo = texto_normalizado(get_col(row, 1))
 
     if not titulo:
         return None
 
-    # if titulo == "usd" or titulo.startswith("usd "):
-    #     return "usd"
-    # if titulo == "mlc" or titulo.startswith("mlc "):
-    #     return "mlc"
-    # if "clasica" in titulo:
-    #     return "clasica"
-    # if "transf" in titulo:
-    #     return "transferencia"
-    # if "efect" in titulo:
-    #     return "efectivo"
-    # if "saldo" in titulo or "saido" in titulo:
-    #     return "saldo"
+    if titulo == "usd" or titulo.startswith("usd "):
+        return "usd"
+    if titulo == "mlc" or titulo.startswith("mlc "):
+        return "mlc"
+    if "clasica" in titulo or "clasico" in titulo:
+        return "clasica"
+    if "transf" in titulo or "transfer" in titulo:
+        return "transferencia"
+    if "efect" in titulo or "efet" in titulo:
+        return "efectivo"
+    if "saldo" in titulo or "saido" in titulo:
+        return "saldo"
 
     return None
 
@@ -256,9 +263,21 @@ def parsear_secciones(rows):
 
 
 def seleccionar_secciones_vigentes(secciones):
+    fecha_vigente_por_servicio = {}
+
+    for seccion in secciones:
+        fecha = seccion.fecha or date.min
+        actual = fecha_vigente_por_servicio.get(seccion.servicio, date.min)
+        if fecha > actual:
+            fecha_vigente_por_servicio[seccion.servicio] = fecha
+
     vigentes = {}
 
     for seccion in secciones:
+        fecha = seccion.fecha or date.min
+        if fecha < fecha_vigente_por_servicio.get(seccion.servicio, date.min):
+            continue
+
         key = (seccion.servicio, seccion.moneda)
         actual = vigentes.get(key)
         if not actual:
@@ -308,8 +327,11 @@ def obtener_rows_sheet():
         filename=str(CREDENTIALS_FILE)
     )
     sheet = gc.open_by_key(SHEET_ID)
-    worksheet = sheet.get_worksheet(0)
-    return worksheet.get_all_values()
+    try:
+        worksheet = sheet.worksheet(WORKSHEET_TITLE)
+    except WorksheetNotFound:
+        worksheet = sheet.get_worksheet(0)
+    return worksheet.get(SHEET_RANGE)
 
 
 def cargar_ofertas_existentes(db: Session):
@@ -367,14 +389,19 @@ def cargar_saldos_existentes(db: Session):
 
 def upsert_ofertas(db: Session, resultado):
     existentes, duplicadas = cargar_ofertas_existentes(db)
-
-    db.query(Oferta).filter(
-        Oferta.origen == ORIGEN_GOOGLE_SHEET,
-        Oferta.servicio.in_(list(SERVICIOS_OFERTAS)),
-    ).update({"activa": False}, synchronize_session=False)
+    deseadas = set()
+    stats = {
+        "creadas": 0,
+        "actualizadas": 0,
+        "desactivadas": 0,
+        "sin_cambios": 0,
+        "duplicadas_desactivadas": 0,
+    }
 
     for oferta in duplicadas:
-        oferta.activa = False
+        if oferta.activa:
+            oferta.activa = False
+            stats["duplicadas_desactivadas"] += 1
 
     for servicio in SERVICIOS_OFERTAS:
         for item in resultado[servicio]:
@@ -383,6 +410,7 @@ def upsert_ofertas(db: Session, resultado):
                 item["moneda"],
                 key_float(item["minimo"]),
             )
+            deseadas.add(key)
             oferta = existentes.get(key)
             if not oferta:
                 oferta = Oferta(
@@ -396,27 +424,53 @@ def upsert_ofertas(db: Session, resultado):
                 )
                 db.add(oferta)
                 existentes[key] = oferta
+                stats["creadas"] += 1
                 continue
 
-            oferta.nombre = NOMBRES_SERVICIO[servicio]
-            oferta.minimo_pago = item["minimo"]
-            oferta.moneda_pago = item["moneda"]
-            oferta.tasa = item["tasa"]
-            oferta.origen = ORIGEN_GOOGLE_SHEET
-            oferta.activa = True
+            cambio = any([
+                oferta.nombre != NOMBRES_SERVICIO[servicio],
+                float_distinto(oferta.minimo_pago, item["minimo"]),
+                oferta.moneda_pago != item["moneda"],
+                float_distinto(oferta.tasa, item["tasa"]),
+                oferta.origen != ORIGEN_GOOGLE_SHEET,
+                not oferta.activa,
+            ])
+            if cambio:
+                oferta.nombre = NOMBRES_SERVICIO[servicio]
+                oferta.minimo_pago = item["minimo"]
+                oferta.moneda_pago = item["moneda"]
+                oferta.tasa = item["tasa"]
+                oferta.origen = ORIGEN_GOOGLE_SHEET
+                oferta.activa = True
+                stats["actualizadas"] += 1
+            else:
+                stats["sin_cambios"] += 1
 
-    return len(duplicadas)
+    for key, oferta in existentes.items():
+        if key in deseadas:
+            continue
+        if oferta.activa:
+            oferta.activa = False
+            stats["desactivadas"] += 1
+
+    return stats
 
 
 def upsert_saldos(db: Session, resultado):
     existentes, duplicadas = cargar_saldos_existentes(db)
-
-    db.query(PaqueteSaldo).filter(
-        PaqueteSaldo.origen == ORIGEN_GOOGLE_SHEET,
-    ).update({"activo": False}, synchronize_session=False)
+    deseadas = set()
+    stats = {
+        "creados": 0,
+        "actualizados": 0,
+        "desactivados": 0,
+        "sin_cambios": 0,
+        "duplicados_desactivados": 0,
+    }
 
     for paquete in duplicadas:
-        paquete.activo = False
+        if paquete.activo:
+            paquete.activo = False
+            stats["duplicados_desactivados"] += 1
 
     for item in resultado["saldo"]:
         key = (
@@ -424,6 +478,7 @@ def upsert_saldos(db: Session, resultado):
             key_float(item["monto_pago"]),
             int(item["cup"]),
         )
+        deseadas.add(key)
         paquete = existentes.get(key)
         if not paquete:
             paquete = PaqueteSaldo(
@@ -436,34 +491,69 @@ def upsert_saldos(db: Session, resultado):
             )
             db.add(paquete)
             existentes[key] = paquete
+            stats["creados"] += 1
             continue
 
-        paquete.monto_pago = item["monto_pago"]
-        paquete.moneda_pago = item["moneda"]
-        paquete.saldo_cup = item["cup"]
-        paquete.nombre = f'{item["cup"]} CUP'
-        paquete.origen = ORIGEN_GOOGLE_SHEET
-        paquete.activo = True
+        nombre = f'{item["cup"]} CUP'
+        cambio = any([
+            float_distinto(paquete.monto_pago, item["monto_pago"]),
+            paquete.moneda_pago != item["moneda"],
+            int(paquete.saldo_cup) != int(item["cup"]),
+            paquete.nombre != nombre,
+            paquete.origen != ORIGEN_GOOGLE_SHEET,
+            not paquete.activo,
+        ])
+        if cambio:
+            paquete.monto_pago = item["monto_pago"]
+            paquete.moneda_pago = item["moneda"]
+            paquete.saldo_cup = item["cup"]
+            paquete.nombre = nombre
+            paquete.origen = ORIGEN_GOOGLE_SHEET
+            paquete.activo = True
+            stats["actualizados"] += 1
+        else:
+            stats["sin_cambios"] += 1
 
-    return len(duplicadas)
+    for key, paquete in existentes.items():
+        if key in deseadas:
+            continue
+        if paquete.activo:
+            paquete.activo = False
+            stats["desactivados"] += 1
+
+    return stats
 
 
 def sync_ofertas(db: Session):
-    ensure_runtime_columns(db)
-
+    inicio_sync = perf_counter()
+    inicio_sheet = perf_counter()
     rows = obtener_rows_sheet()
+    tiempo_sheet = perf_counter() - inicio_sheet
+
+    inicio_parse = perf_counter()
     secciones = seleccionar_secciones_vigentes(
         parsear_secciones(rows)
     )
     resultado = construir_resultado(secciones)
+    tiempo_parse = perf_counter() - inicio_parse
 
-    duplicadas_ofertas = upsert_ofertas(db, resultado)
-    duplicadas_saldo = upsert_saldos(db, resultado)
+    inicio_db = perf_counter()
+    stats_ofertas = upsert_ofertas(db, resultado)
+    stats_saldo = upsert_saldos(db, resultado)
+    tiempo_db = perf_counter() - inicio_db
 
     resultado["meta"].update({
         "filas_leidas": len(rows),
-        "duplicadas_ofertas_desactivadas": duplicadas_ofertas,
-        "duplicadas_saldo_desactivadas": duplicadas_saldo,
+        "worksheet": WORKSHEET_TITLE,
+        "rango_leido": SHEET_RANGE,
+        "ofertas_db": stats_ofertas,
+        "saldo_db": stats_saldo,
+        "tiempos_seg": {
+            "sheet": round(tiempo_sheet, 3),
+            "parser": round(tiempo_parse, 3),
+            "db": round(tiempo_db, 3),
+            "total": round(perf_counter() - inicio_sync, 3),
+        },
     })
 
     db.commit()

@@ -1,0 +1,12 @@
+
+source venv/bin/activate
+
+
+cd /home/usuario/Documentos/jireh
+uvicorn Backend.main:app --reload --host 0.0.0.0
+
+
+cd /home/usuario/Documentos/jireh/Frontend
+flatpak-spawn --host npm run dev -- --host 0.0.0.0
+
+

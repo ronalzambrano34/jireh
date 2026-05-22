@@ -276,11 +276,6 @@ export function App() {
               <Menu size={20} />
             </button>
           </div>
-          {(vista === 'crear' || vista === 'reportes' || vista === 'admin' || vista === 'perfil') && (
-            <button className="primary-button toolbar-back-button" onClick={() => navegar('bandeja')}>
-              Ver pedidos
-            </button>
-          )}
         </header>
 
         {vista === 'inicio' ? (

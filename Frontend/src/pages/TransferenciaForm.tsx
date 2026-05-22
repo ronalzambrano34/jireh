@@ -29,9 +29,12 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
     listarMetodosPago()
       .then((data) => {
         setMetodosPago(data);
-        const primero = data.find((metodo) => metodo.moneda === form.moneda_pago);
-        if (primero) {
-          setForm((current) => ({ ...current, tipo_pago_id: String(primero.id) }));
+        // Buscar Pix para BRL, sino el primero disponible
+        const metodoSeleccionado = form.moneda_pago === 'BRL'
+          ? data.find((metodo) => metodo.moneda === 'BRL' && metodo.nombre.toLowerCase() === 'pix')
+          : data.find((metodo) => metodo.moneda === form.moneda_pago);
+        if (metodoSeleccionado) {
+          setForm((current) => ({ ...current, tipo_pago_id: String(metodoSeleccionado.id) }));
         }
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
@@ -46,7 +49,11 @@ export function TransferenciaForm({ operadorId, onCreated }: { operadorId: numbe
 
     const existe = metodosFiltrados.some((metodo) => String(metodo.id) === form.tipo_pago_id);
     if (!existe) {
-      setForm((current) => ({ ...current, tipo_pago_id: String(metodosFiltrados[0].id) }));
+      // Buscar Pix para BRL, sino el primero disponible
+      const metodo = form.moneda_pago === 'BRL'
+        ? metodosFiltrados.find((m) => m.nombre.toLowerCase() === 'pix')
+        : metodosFiltrados[0];
+      setForm((current) => ({ ...current, tipo_pago_id: String(metodo?.id || metodosFiltrados[0].id) }));
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
