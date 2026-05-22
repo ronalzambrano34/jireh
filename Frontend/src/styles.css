@@ -2347,15 +2347,53 @@ textarea {
 .order-filter-field {
   position: relative;
   gap: 0;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid #e1e7ef;
   border-radius: 8px;
   background: #ffffff;
+  color: #3a4657;
+  font-size: 13px;
+  font-weight: 650;
 }
 
-.order-filter-field select {
+.order-filter-field select,
+.report-filter-field select,
+.order-filter-button,
+.filter-modal-button {
   border-color: #d7e0ea;
   padding-left: 34px;
+}
+
+.order-filter-button,
+.filter-modal-button {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #d7e0ea;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #18212f;
+  font: inherit;
+  line-height: normal;
+  text-align: left;
+  padding: 8px 10px 8px 34px;
+}
+
+.order-filter-button span,
+.filter-modal-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-filter-caret,
+.filter-modal-caret {
+  flex: 0 0 auto;
+  color: #526173;
 }
 
 .order-filter-icon {
@@ -2834,7 +2872,8 @@ textarea {
 }
 
 .report-filter-field select,
-.report-filter-field input {
+.report-filter-field input,
+.report-filter-field .filter-modal-button {
   padding-left: 34px;
 }
 
@@ -2932,5 +2971,98 @@ textarea {
     gap: 4px;
     padding: 9px 8px;
     font-size: 12px;
+  }
+}
+
+/* Bottom sheet filter */
+.bottom-sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: grid;
+  align-items: end;
+}
+
+.bottom-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(11, 18, 28, 0.52);
+  animation: bottom-sheet-fade 0.18s ease-out both;
+}
+
+.bottom-sheet-panel {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  justify-self: center;
+  max-height: min(78vh, 520px);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border: 1px solid #d9e0e8;
+  border-radius: 14px 14px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -18px 48px rgba(12, 18, 28, 0.24);
+  overflow: hidden;
+  animation: bottom-sheet-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.bottom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e1e7ef;
+  background: #f8fafc;
+}
+
+.bottom-sheet-header strong {
+  color: #132235;
+  font-size: 16px;
+}
+
+.bottom-sheet-options {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px max(18px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.bottom-sheet-options button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 800;
+  text-align: left;
+}
+
+.bottom-sheet-options button svg {
+  color: #176b5d;
+}
+
+.bottom-sheet-options button.active {
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+@keyframes bottom-sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bottom-sheet-rise {
+  from {
+    opacity: 0.96;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

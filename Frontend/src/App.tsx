@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, BriefcaseBusiness, CircleDot, ClipboardList, Home, LayoutGrid, LayoutList, LogOut, Menu, Plus, RefreshCw, Search, Settings, UserCircle, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Home, LayoutGrid, LayoutList, LogOut, Menu, Plus, RefreshCw, Search, Settings, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { clearToken, getMe, getToken, listarPedidos } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -34,6 +34,14 @@ const estadosBandeja = estados.filter((item) => item.value);
 
 function estadoLabel(value: string) {
   return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
+}
+
+function servicioIcon(value: string, size = 18) {
+  if (value === 'transferencia') return <WalletCards size={size} />;
+  if (value === 'efectivo') return <Banknote size={size} />;
+  if (value === 'saldo') return <Smartphone size={size} />;
+  if (value === 'divisa') return <WalletCards size={size} />;
+  return <BriefcaseBusiness size={size} />;
 }
 
 function detalleValor(pedido: PedidoResumen, key: string) {
@@ -117,6 +125,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
+  const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -170,12 +180,16 @@ export function App() {
   function navegar(nextVista: typeof vista) {
     setVista(nextVista);
     setMobileMenuOpen(false);
+    setServicioSheetOpen(false);
+    setEstadoSheetOpen(false);
   }
 
   function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa') {
     setServicioCrear(servicio);
     setVista('crear');
     setMobileMenuOpen(false);
+    setServicioSheetOpen(false);
+    setEstadoSheetOpen(false);
   }
 
   async function cargarPedidos() {
@@ -356,18 +370,32 @@ export function App() {
                   </label>
                 </div>
                 <div className="orders-filter-grid" aria-label="Filtros de pedidos">
-                  <label className="order-filter-field">
-                    <BriefcaseBusiness className="order-filter-icon" size={17} />
-                    <select aria-label="Servicio" value={servicio} onChange={(event) => setServicio(event.target.value)}>
-                      {servicios.map((item) => <option key={item.value || 'todos-servicios'} value={item.value}>{item.label}</option>)}
-                    </select>
-                  </label>
-                  <label className="order-filter-field">
+                  <div className="order-filter-field">
+                    <span className="order-filter-icon">{servicioIcon(servicio, 17)}</span>
+                    <button
+                      type="button"
+                      className="order-filter-button"
+                      onClick={() => setServicioSheetOpen(true)}
+                      aria-haspopup="dialog"
+                      aria-expanded={servicioSheetOpen}
+                    >
+                      <span>{servicio ? servicios.find((item) => item.value === servicio)?.label : 'Servicio'}</span>
+                      <ChevronDown className="order-filter-caret" size={17} />
+                    </button>
+                  </div>
+                  <div className="order-filter-field">
                     <CircleDot className="order-filter-icon" size={17} />
-                    <select aria-label="Estado" value={estado} onChange={(event) => setEstado(event.target.value)}>
-                      {estados.map((item) => <option key={item.value || 'todos-estados'} value={item.value}>{item.label}</option>)}
-                    </select>
-                  </label>
+                    <button
+                      type="button"
+                      className="order-filter-button"
+                      onClick={() => setEstadoSheetOpen(true)}
+                      aria-haspopup="dialog"
+                      aria-expanded={estadoSheetOpen}
+                    >
+                      <span>{estado ? estadoLabel(estado) : 'Estado'}</span>
+                      <ChevronDown className="order-filter-caret" size={17} />
+                    </button>
+                  </div>
                 </div>
                 {error && <div className="notice error">{error}</div>}
                 {loading && <div className="notice">Cargando pedidos...</div>}
@@ -460,6 +488,58 @@ export function App() {
           </>
         )}
       </main>
+      {estadoSheetOpen && (
+        <div className="bottom-sheet-layer" role="presentation">
+          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de estado" onClick={() => setEstadoSheetOpen(false)} />
+          <section className="bottom-sheet-panel state-filter-sheet" role="dialog" aria-modal="true" aria-label="Filtrar pedidos por estado">
+            <header className="bottom-sheet-header">
+              <strong>Estado</strong>
+              <button className="icon-button" type="button" onClick={() => setEstadoSheetOpen(false)} title="Cerrar" aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <div className="bottom-sheet-options">
+              {estados.map((item) => (
+                <button
+                  key={item.value || 'todos-estados'}
+                  type="button"
+                  className={estado === item.value ? 'active' : ''}
+                  onClick={() => { setEstado(item.value); setEstadoSheetOpen(false); }}
+                >
+                  <CircleDot size={18} />
+                  <span>{item.value ? item.label : 'Todos'}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+      {servicioSheetOpen && (
+        <div className="bottom-sheet-layer" role="presentation">
+          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de servicio" onClick={() => setServicioSheetOpen(false)} />
+          <section className="bottom-sheet-panel service-filter-sheet" role="dialog" aria-modal="true" aria-label="Filtrar pedidos por servicio">
+            <header className="bottom-sheet-header">
+              <strong>Servicio</strong>
+              <button className="icon-button" type="button" onClick={() => setServicioSheetOpen(false)} title="Cerrar" aria-label="Cerrar">
+                <X size={18} />
+              </button>
+            </header>
+            <div className="bottom-sheet-options">
+              {servicios.map((item) => (
+                <button
+                  key={item.value || 'todos-servicios'}
+                  type="button"
+                  className={servicio === item.value ? 'active' : ''}
+                  onClick={() => { setServicio(item.value); setServicioSheetOpen(false); }}
+                >
+                  {servicioIcon(item.value, 18)}
+                  <span>{item.value ? item.label : 'Todos'}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
       {puedeCrear && vista !== 'crear' && (
         <button className="floating-create" onClick={() => abrirCrear('transferencia')} title="Nuevo pedido">
           <Plus size={24} />
