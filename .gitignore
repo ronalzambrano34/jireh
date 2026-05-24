@@ -37,3 +37,4 @@ Backend/pedidos/
 Frontend/node_modules/
 Frontend/dist/
 Frontend/.env.local
+*.tsbuildinfo

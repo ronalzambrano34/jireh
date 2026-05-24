@@ -52,7 +52,7 @@ Incluye:
 
 - Login de operador con token Bearer.
 - Bandeja de pedidos por estado.
-- Detalle basico de pedido.
+- Detalle operativo de pedido con bloqueo, cambio de estado, datos copiables, mensaje WhatsApp, evidencias e historial.
 - Creacion inicial de transferencia.
 - Cambio de estado.
 - Upload de comprobante.
@@ -83,3 +83,25 @@ OPERADOR_ADMIN_PASSWORD="contraseña-local"
 ```
 
 Al arrancar el backend se crea o actualiza ese operador como `admin`. La contraseña solo se toma de `.env`; no hay contraseña de admin escrita en el codigo.
+
+## Publicacion en GitHub Pages
+
+GitHub Pages puede publicar el frontend estatico de `Frontend/dist`. El backend FastAPI no corre en GitHub Pages; debe desplegarse en un servicio aparte como Render, Railway, Fly.io, VPS o similar.
+
+El repo incluye el workflow `.github/workflows/frontend-pages.yml`. Para usarlo:
+
+1. Subir el proyecto a un repositorio de GitHub.
+2. En GitHub, ir a `Settings > Pages` y seleccionar `GitHub Actions` como fuente.
+3. En `Settings > Secrets and variables > Actions > Variables`, crear `VITE_API_URL` con la URL publica del backend, por ejemplo `https://api.tudominio.com`.
+4. Hacer push a la rama `main`. GitHub Actions construye `Frontend/` y publica el sitio.
+
+Para probar localmente la misma salida:
+
+```bash
+cd Frontend
+npm ci
+npm run build
+npm run preview
+```
+
+Nunca subir `Backend/.env`, `Frontend/.env.local`, `credentials.json`, bases locales ni archivos dentro de `storage/`. Ya estan ignorados por `.gitignore`.

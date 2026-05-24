@@ -297,6 +297,37 @@ def listar_archivos_dict(
     ]
 
 
+def listar_historial_dict(
+    db: Session,
+    pedido_id: int
+):
+    historial = (
+        db.query(
+            PedidoHistorial
+        )
+        .filter(
+            PedidoHistorial.pedido_id == pedido_id
+        )
+        .order_by(
+            PedidoHistorial.created_at.desc(),
+            PedidoHistorial.id.desc()
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": item.id,
+            "estado_anterior": item.estado_anterior,
+            "estado_nuevo": item.estado_nuevo,
+            "usuario": item.usuario,
+            "comentario": item.comentario,
+            "created_at": item.created_at,
+        }
+        for item in historial
+    ]
+
+
 def obtener_detalle(
     db: Session,
     pedido: Pedido
@@ -336,6 +367,10 @@ def pedido_dict(
             pedido
         )
         data["archivos"] = listar_archivos_dict(
+            db,
+            pedido.id
+        )
+        data["historial"] = listar_historial_dict(
             db,
             pedido.id
         )
