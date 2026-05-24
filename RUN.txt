@@ -1,0 +1,26 @@
+
+#🔧 Backend
+
+#Activar el entorno virtual
+source venv/bin/activate
+
+# Ir al directorio del backend
+cd /home/usuario/Documentos/jireh
+
+# Levantar el servidor con uvicorn
+uvicorn Backend.main:app --reload --host 0.0.0.0
+
+
+#🎨 Frontend
+
+# Ir al directorio del frontend
+cd /home/usuario/Documentos/jireh/Frontend
+
+# Ejecutar npm con flatpak-spawn
+flatpak-spawn --host npm run dev -- --host 0.0.0.0
+
+
+
+ollama run codellama
+
+ollama run llama2:7b
