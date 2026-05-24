@@ -38,12 +38,30 @@ export type PedidoResumen = {
 };
 
 export type PedidoDetalle = PedidoResumen & {
+  tasa_usada?: number;
+  bonificacion?: number;
+  ganancia?: number;
+  observaciones?: string | null;
+  updated_at?: string;
+  fecha_pago_confirmado?: string | null;
+  fecha_en_operacion?: string | null;
+  fecha_completado?: string | null;
   cliente?: Record<string, unknown> | null;
   detalle?: Record<string, unknown> | null;
   archivos?: ArchivoPedido[];
+  historial?: PedidoHistorial[];
   mensaje_operacion?: string;
   whatsapp_url?: string;
   comprobante_pago?: string | null;
+};
+
+export type PedidoHistorial = {
+  id: number;
+  estado_anterior?: string | null;
+  estado_nuevo: string;
+  usuario?: string | null;
+  comentario?: string | null;
+  created_at?: string;
 };
 
 export type ArchivoPedido = {

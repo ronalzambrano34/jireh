@@ -1,9 +1,9 @@
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-05-22
+Actualizado: 2026-05-24
 
 1. PROPOSITO DEL NEGOCIO
 
-El Jireh Brasil / Uruguay es un servicio de remesas y operaciones financieras hacia Cuba. El objetivo es permitir que clientes fuera de Cuba paguen en una moneda disponible para ellos, principalmente BRL o UYU, y que el beneficiario en Cuba reciba valor mediante alguno de estos servicios:
+El Jireh Brasil / Uruguay / otros es un servicio de remesas y operaciones financieras hacia Cuba. El objetivo es permitir que clientes fuera de Cuba paguen en una moneda disponible para ellos, principalmente BRL o UYU, y que el beneficiario en Cuba reciba valor mediante alguno de estos servicios:
 
 - Transferencia a tarjeta CUP.
 - Entrega de efectivo en punto de recogida.
@@ -759,7 +759,7 @@ Pendiente de etapa 1:
 - UI Admin inicial disponible para metodos de pago, puntos de recogida, ofertas, paquetes de saldo, clientes, contactos, configuracion y templates.
 - Vista interna de pedidos disponible en modo lista y cuadricula, con filtros de Servicio y Estado mediante hojas inferiores tipo modal. El filtro Servicio usa los mismos iconos visuales de las ofertas: tarjeta, billete, movil y tarjeta de divisa.
 - Vista de reportes disponible con filtros modales por periodo, estado, servicio, moneda y operador, y exportacion CSV.
-- Vista detalle de pedido disponible con toma/liberacion de operacion, renovacion de bloqueo, cambio de estado, datos operativos, mensaje para WhatsApp y subida/listado de comprobantes.
+- Vista detalle de pedido disponible con toma/liberacion de operacion, renovacion de bloqueo, cambio de estado, datos operativos copiables, mensaje para WhatsApp, subida/listado de comprobantes e historial de estados.
 - Integracion WhatsApp real o semiautomatica.
 - Auditoria por usuario en acciones sensibles.
 
@@ -1131,6 +1131,12 @@ Reglas de datos del dashboard Inicio:
 - El endpoint GET /tasas-operativas/ es de lectura operativa para dashboard y separa ofertas, ofertas_divisa y paquetes_saldo.
 - El boton Actualizar del dashboard ejecuta POST /sync/ofertas y luego recarga GET /tasas-operativas/ cuando el operador tiene permiso empresa:control_total; para otros roles solo recarga las tasas ya guardadas.
 
+Reglas de publicacion web:
+
+- GitHub Pages solo publica el frontend estatico; el backend FastAPI debe vivir en un hosting separado.
+- El frontend publicado debe compilar con VITE_API_URL apuntando a la URL publica del backend.
+- No se deben subir .env, .env.local, credentials.json, storage ni bases locales al repositorio.
+
 Reglas visuales:
 
 - Mantener coherencia visual con el dashboard: cards con sombras suaves, bordes por estado, separadores claros y botones grandes.
@@ -1157,7 +1163,7 @@ Implementado en frontend interno:
 
 Pendiente siguiente:
 - Hacer funcionales las opciones internas del perfil: editar datos, cambiar contraseña y ayuda.
-- Ajustar visual, tecnica y operacionalmente la vista detalle de pedido.
+- Vista detalle de pedido reajustada visual, tecnica y operacionalmente: resumen superior, estado por botones, bloqueo visible, evidencias e historial.
 
 
 
