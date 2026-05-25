@@ -14,7 +14,7 @@ type ClienteLookupProps = {
 export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }: ClienteLookupProps) {
   const [open, setOpen] = useState(false);
   const resumen = clienteId
-    ? `Cliente existente #${clienteId}`
+    ? `Historial vinculado #${clienteId}`
     : nombre || telefono
       ? `${nombre || 'Cliente sin nombre'}${telefono ? ` · ${telefono}` : ''}`
       : 'Opcional para operarios';
@@ -22,7 +22,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
   async function buscar() {
     onError?.(null);
     if (!telefono.trim()) {
-      onError?.('Escribe el telefono del cliente para buscarlo');
+      onError?.('Escribe el telefono o WhatsApp del cliente para buscarlo');
       setOpen(true);
       return;
     }
@@ -36,7 +36,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
       });
     } catch {
       onChange({ clienteId: '', nombre });
-      onError?.('Cliente no encontrado; se creara al generar el pedido');
+      onError?.('Cliente nuevo: se registrara al crear el pedido sin interrumpir la orden');
     }
   }
 
@@ -49,7 +49,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
     <section className="client-section wide">
       <button type="button" className="client-section-toggle" onClick={() => setOpen((current) => !current)}>
         <span>
-          <strong>Cliente</strong>
+          <strong>Buscar o registrar cliente</strong>
           <small>{resumen}</small>
         </span>
         <ChevronDown className={open ? 'rotated' : ''} size={18} />
@@ -58,7 +58,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
       {open && (
         <div className="client-lookup">
           <label>
-            Telefono cliente
+            Telefono / WhatsApp del cliente
             <div className="lookup-row">
               <input value={telefono} onChange={(event) => onChange({ telefono: event.target.value, clienteId: '' })} />
               <button type="button" className="icon-button" onClick={buscar} title="Buscar cliente">
@@ -73,7 +73,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
             Nombre cliente
             <input value={nombre} onChange={(event) => onChange({ nombre: event.target.value })} />
           </label>
-          {clienteId && <div className="lookup-hit">Cliente existente #{clienteId}</div>}
+          {clienteId && <div className="lookup-hit">Cliente encontrado. El historial y contactos quedan disponibles.</div>}
         </div>
       )}
     </section>

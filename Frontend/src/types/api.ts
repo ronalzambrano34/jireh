@@ -18,6 +18,15 @@ export type AuthMeResponse = {
   operador: Operador;
 };
 
+export type PerfilUpdatePayload = {
+  nombre: string;
+};
+
+export type PasswordChangePayload = {
+  password_actual: string;
+  password_nueva: string;
+};
+
 export type PedidoResumen = {
   id?: number;
   pedido_id?: number;

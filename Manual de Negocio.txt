@@ -1155,16 +1155,29 @@ Las observaciones operativas del pedido se reciben, guardan y devuelven en los f
 Sistema de roles para operarios implementado: los operarios tienen rol admin, supervisor u operador. El panel administrativo puede crear, listar, modificar y desactivar operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.
 
 Implementado en frontend interno:
-- Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones de cuenta, seguridad, soporte y salida.
+- Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones funcionales de cuenta, seguridad, soporte y salida.
+- Perfil interno funcional: Mis datos muestra ficha del operador; Modificar perfil actualiza el nombre propio desde /auth/me; Cambiar contrasena valida la contrasena actual y actualiza la nueva desde /auth/me/password; Mis permisos y rol muestra permisos reales; Ayuda abre contactos de soporte por WhatsApp.
 - Criterio de producto: el sistema debe priorizar uso en telefonos y usuarios con poca experiencia informatica; las acciones frecuentes deben ser grandes, claras y con pocos pasos.
 - En entrega de efectivo, el telefono del destinatario tiene acceso directo a WhatsApp al lado del campo.
 - En detalle de pedido, tarjeta, telefono destinatario y montos principales tienen boton de copiar.
+- Vista detalle de pedido reajustada visual, tecnica y operacionalmente: resumen superior, estado por botones, bloqueo visible, evidencias e historial.
 - Las ofertas y paquetes del inicio pueden abrir la creacion de pedido con datos precargados de la oferta seleccionada.
+- La vista Inicio tiene selector de moneda con bandera en el encabezado de tasas; al cambiar BRL, UYU u otra moneda, solo se muestran las ofertas y paquetes activos de esa moneda de pago.
+- La oferta de saldo en Inicio se muestra como paquetes de recarga: saldo recibido destacado y precio en moneda de pago como badge accionable.
+- Crear pedido queda organizado por flujo operativo: primero datos del cliente, despues destino/tarjeta/telefono y por ultimo pago de la operacion; la moneda se muestra como campo destacado con bandera del pais.
 
 Pendiente siguiente:
-- Hacer funcionales las opciones internas del perfil: editar datos, cambiar contraseña y ayuda.
-- Vista detalle de pedido reajustada visual, tecnica y operacionalmente: resumen superior, estado por botones, bloqueo visible, evidencias e historial.
 
+//todo icono del logo en la pesaña web del navegador.
 
+//todo centrar botones dentro de Soporte/Ayuda para Operar.
 
+//todo los reportes estan demorando demasiado en cargar y parece como si nu hubiera datos.
 
+//todo en los pedidos, el boton actualizar bajalo a donde esta el de las vista de cuadriculas, y el de las vistas ponlo en la misma fila pero a la izquierda. y que los agrupamientos por estado se puedan minimizar o algo parecido.
+
+//todo pedido/pago de operacion el monto y el metodo de pago en columna de a 2. Y la moneda deberia salir al lado del header Pago de operaciones con otro estilo de boton
+
+//añade el estilo oscuro y que sea el predeterminado, en perfil añade un capo para cambiar 
+
+//todo para cambiar la apariencia va a ser simplemente un switsh, nada de acordion, y el tema predeterminado es claro, pq el tema oscuro aun esta feo. creo que vas a tener q crear varias opciones de tema oscuro y que se pueda elegir en la config de las apariencias,creo q se puede añadir un oscuro mas oscuro, parecido al tema del menu lateral, el cual nunca haz cambiado de estilo.

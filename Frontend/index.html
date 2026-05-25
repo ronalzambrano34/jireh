@@ -4,8 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Jireh Operaciones</title>
+    <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('jireh.theme') === 'light' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'dark';
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

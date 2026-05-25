@@ -13,7 +13,9 @@ import type {
   Operador,
   PedidoDetalle,
   PaqueteSaldo,
+  PasswordChangePayload,
   PedidoResumen,
+  PerfilUpdatePayload,
   PuntoRecogida,
   ReporteGeneral,
   TemplateConfig,
@@ -96,6 +98,20 @@ export function login(telefono: string, password: string) {
 
 export function getMe() {
   return request<AuthMeResponse>('/auth/me').then((data) => data.operador);
+}
+
+export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
+  return request<AuthMeResponse>('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }).then((data) => data.operador);
+}
+
+export function cambiarMiPassword(payload: PasswordChangePayload) {
+  return request<{ message: string }>('/auth/me/password', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
 export function obtenerTasasOperativas() {
@@ -369,5 +385,11 @@ export function crearContacto(payload: { cliente_id?: number | null; nombre: str
   return request<Contacto>('/contactos/', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+export function eliminarContacto(id: number) {
+  return request<Contacto>(`/contactos/${id}`, {
+    method: 'DELETE',
   });
 }

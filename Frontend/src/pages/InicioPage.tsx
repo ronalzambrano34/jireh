@@ -87,6 +87,15 @@ function etiquetaMoneda(moneda: string) {
   return etiquetas[moneda] || `Pago en ${moneda}`;
 }
 
+function banderaMoneda(moneda: string) {
+  const banderas: Record<string, string> = {
+    BRL: '🇧🇷',
+    UYU: '🇺🇾',
+    USD: '🇺🇸',
+  };
+  return banderas[moneda] || '💱';
+}
+
 function ordenMoneda(moneda: string) {
   const orden: Record<string, number> = {
     BRL: 1,
@@ -151,6 +160,7 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [monedaSeleccionada, setMonedaSeleccionada] = useState('BRL');
 
   async function cargarTasas() {
     setLoading(true);
@@ -229,6 +239,15 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
       });
   }, [data]);
 
+  useEffect(() => {
+    if (gruposMoneda.length === 0) return;
+    if (!gruposMoneda.some((grupo) => grupo.moneda === monedaSeleccionada)) {
+      setMonedaSeleccionada(gruposMoneda[0].moneda);
+    }
+  }, [gruposMoneda, monedaSeleccionada]);
+
+  const grupoActivo = gruposMoneda.find((grupo) => grupo.moneda === monedaSeleccionada) ?? gruposMoneda[0];
+
   return (
     <section className="home-page">
       <div className="rates-hero">
@@ -250,29 +269,36 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
         <div className="notice warning">No hay tasas activas configuradas</div>
       )}
 
-      <div className="rates-currency-sections">
-        {gruposMoneda.map((grupo) => (
-          <section className="rates-currency-section" key={grupo.moneda}>
+      {grupoActivo && (
+        <div className="rates-currency-sections">
+          <section className="rates-currency-section" key={grupoActivo.moneda}>
             <header className="rates-currency-header">
               <div>
-                <h3>{etiquetaMoneda(grupo.moneda)}</h3>
-                <p>Servicios activos separados por moneda de pago</p>
+                <h3>{etiquetaMoneda(grupoActivo.moneda)}</h3>
+                <p>Servicios activos para la moneda seleccionada</p>
               </div>
-              <strong>{grupo.moneda}</strong>
+              <label className="currency-picker">
+                <span className="currency-picker-flag" aria-hidden="true">{banderaMoneda(monedaSeleccionada)}</span>
+                <select value={monedaSeleccionada} onChange={(event) => setMonedaSeleccionada(event.target.value)}>
+                  {gruposMoneda.map((grupo) => (
+                    <option key={grupo.moneda} value={grupo.moneda}>{grupo.moneda}</option>
+                  ))}
+                </select>
+              </label>
             </header>
 
             <div className="rates-grid">
               {serviceCards.map((card) => {
                 const esSaldo = card.servicio === 'saldo';
                 const esDivisa = card.servicio === 'divisa';
-                const ofertas = esDivisa || esSaldo ? [] : ofertasServicio(grupo.ofertas, card.servicio);
-                const ofertasDivisa = grupo.ofertasDivisa;
-                const paquetesSaldo = grupo.paquetesSaldo;
+                const ofertas = esDivisa || esSaldo ? [] : ofertasServicio(grupoActivo.ofertas, card.servicio);
+                const ofertasDivisa = grupoActivo.ofertasDivisa;
+                const paquetesSaldo = grupoActivo.paquetesSaldo;
                 const tieneDatos = esSaldo ? paquetesSaldo.length > 0 : esDivisa ? ofertasDivisa.length > 0 : ofertas.length > 0;
                 if (!tieneDatos) return null;
 
                 return (
-                  <article className={`rate-card ${card.tone}`} key={`${grupo.moneda}-${card.servicio}`}>
+                  <article className={`rate-card ${card.tone}`} key={`${grupoActivo.moneda}-${card.servicio}`}>
                     <header className="rate-card-header">
                       <span className="rate-icon">{card.icon}</span>
                       <span>
@@ -289,10 +315,14 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                             type="button"
                             className="rate-package-option"
                             key={paquete.id}
-                            onClick={() => onCreate('saldo', { moneda_pago: monedaPago(paquete.moneda_pago ?? grupo.moneda), paquete_saldo_id: String(paquete.id) })}
+                            onClick={() => onCreate('saldo', { moneda_pago: monedaPago(paquete.moneda_pago ?? grupoActivo.moneda), paquete_saldo_id: String(paquete.id) })}
                           >
-                            <span>{formatNumber(paquete.saldo_cup)} saldo</span>
-                            <strong>{formatNumber(paquete.monto_pago)} {monedaPago(paquete.moneda_pago ?? grupo.moneda)}</strong>
+                            <span className="package-balance">
+                              <small>Recibe</small>
+                              <strong>{formatNumber(paquete.saldo_cup)}</strong>
+                              <em>saldo</em>
+                            </span>
+                            <span className="package-price">{formatNumber(paquete.monto_pago)} {monedaPago(paquete.moneda_pago ?? grupoActivo.moneda)}</span>
                           </button>
                         ))}
                       </div>
@@ -305,7 +335,7 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                             key={oferta.id}
                             onClick={() => onCreate('divisa', {
                               monto_pago: String(oferta.minimo_pago ?? ''),
-                              moneda_pago: monedaPago(oferta.moneda_pago ?? grupo.moneda),
+                              moneda_pago: monedaPago(oferta.moneda_pago ?? grupoActivo.moneda),
                               monto_divisa: String(oferta.tasa ?? ''),
                               tipo_tarjeta: tipoTarjetaDesdeOferta(oferta),
                             })}
@@ -323,9 +353,9 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                             type="button"
                             className={`rate-line ${index === 0 ? 'primary' : ''}`}
                             key={oferta.id}
-                            onClick={() => onCreate(card.servicio, { monto_pago: String(oferta.minimo_pago ?? ''), moneda_pago: monedaPago(oferta.moneda_pago ?? grupo.moneda) })}
+                            onClick={() => onCreate(card.servicio, { monto_pago: String(oferta.minimo_pago ?? ''), moneda_pago: monedaPago(oferta.moneda_pago ?? grupoActivo.moneda) })}
                           >
-                            <span>{`${formatNumber(oferta.minimo_pago ?? 0)}+ ${monedaPago(oferta.moneda_pago ?? grupo.moneda)}`}</span>
+                            <span>{`${formatNumber(oferta.minimo_pago ?? 0)}+ ${monedaPago(oferta.moneda_pago ?? grupoActivo.moneda)}`}</span>
                             <ArrowRight size={index === 0 ? 18 : 17} />
                             <strong>{formatNumber(oferta.tasa)} CUP</strong>
                           </button>
@@ -333,7 +363,7 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                       </div>
                     )}
 
-                    <button className="primary-button rate-action" onClick={() => onCreate(card.servicio)} disabled={!tieneDatos}>
+                    <button className="primary-button rate-action" onClick={() => onCreate(card.servicio, { moneda_pago: grupoActivo.moneda })} disabled={!tieneDatos}>
                       Crear {card.servicio}
                     </button>
                   </article>
@@ -341,8 +371,8 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
               })}
             </div>
           </section>
-        ))}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

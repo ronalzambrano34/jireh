@@ -181,6 +181,24 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     }
   }
 
+  async function finalizarYNotificar() {
+    if (!pedido || bloqueadoPorOtro) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const actualizado = await actualizarEstado(pedido.codigo_operacion, 'completado');
+      setPedido(actualizado);
+      setEstado(actualizado.estado);
+      onChanged();
+      const url = actualizado.whatsapp_url ?? pedido.whatsapp_url;
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo finalizar la operacion');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
     setUploading(true);
@@ -311,9 +329,9 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
                   <Copy size={16} /> Copiar mensaje
                 </button>
                 {pedido.whatsapp_url && (
-                  <a className="primary-button" href={pedido.whatsapp_url} target="_blank" rel="noreferrer">
-                    <ExternalLink size={16} /> WhatsApp
-                  </a>
+                  <button className="primary-button whatsapp-finish-button" type="button" onClick={() => void finalizarYNotificar()} disabled={bloqueadoPorOtro || saving}>
+                    <ExternalLink size={16} /> {saving ? 'Finalizando...' : 'Finalizar y notificar por WhatsApp'}
+                  </button>
                 )}
               </div>
               <pre>{pedido.mensaje_operacion}</pre>

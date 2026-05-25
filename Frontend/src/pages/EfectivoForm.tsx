@@ -1,8 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { ClienteLookup } from '../components/ClienteLookup';
+import { ContactosRecientes } from '../components/ContactosRecientes';
 import { crearEfectivo, listarMetodosPago, listarPuntosRecogida } from '../api/client';
-import type { MetodoPago, PuntoRecogida } from '../types/api';
+import type { Contacto, MetodoPago, PuntoRecogida } from '../types/api';
+import { banderaMoneda } from '../utils/monedas';
 
 type EfectivoInitialData = { monto_pago?: string; moneda_pago?: string };
 
@@ -77,6 +79,14 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function aplicarContacto(contacto: Contacto) {
+    setForm((current) => ({
+      ...current,
+      telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
+      documento_identidad_url: contacto.documento_identidad_url ?? current.documento_identidad_url,
+    }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -104,87 +114,121 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   }
 
   return (
-    <form className="form-panel" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <label>
-          Monto pago
-          <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
-        </label>
-        <label>
-          Moneda
-          <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)}>
-            <option value="BRL">BRL</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="UYU">UYU</option>
-          </select>
-        </label>
-        <label>
-          Metodo de pago
-          <select
-            value={form.tipo_pago_id}
-            onChange={(event) => update('tipo_pago_id', event.target.value)}
-            required
-            disabled={cargandoCatalogos || metodosFiltrados.length === 0}
-          >
-            {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
-            {metodosFiltrados.map((metodo) => (
-              <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Punto de recogida
-          <select
-            value={form.punto_recogida_id}
-            onChange={(event) => update('punto_recogida_id', event.target.value)}
-            disabled={cargandoCatalogos || puntos.length === 0}
-          >
-            {puntos.length === 0 && <option value="">Sin puntos activos</option>}
-            {puntos.map((punto) => (
-              <option key={punto.id} value={punto.id}>{punto.nombre}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Telefono destinatario Cuba
-          <span className="input-action-row">
-            <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
-            <a
-              className={form.telefono_destinatario ? 'icon-button field-action-button' : 'icon-button field-action-button disabled-link'}
-              href={whatsappHref(form.telefono_destinatario) || undefined}
-              target="_blank"
-              rel="noreferrer"
-              title="Llamar por WhatsApp"
-              aria-label="Llamar por WhatsApp"
-            >
-              <MessageCircle size={18} />
-            </a>
-          </span>
-        </label>
-        <label>
-          Documento identidad URL
-          <input value={form.documento_identidad_url} onChange={(event) => update('documento_identidad_url', event.target.value)} />
-        </label>
-        <ClienteLookup
-          telefono={form.numero_telefono_cliente}
-          nombre={form.nombre_cliente}
-          clienteId={form.cliente_id}
-          onChange={(data) => setForm((current) => ({
-            ...current,
-            numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
-            nombre_cliente: data.nombre ?? current.nombre_cliente,
-            cliente_id: data.clienteId ?? current.cliente_id,
-          }))}
-          onError={setError}
-        />
-        <label className="wide">
-          Observaciones
-          <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
-        </label>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+      <div className="form-flow">
+        <section className="form-section-card client-step">
+          <header className="form-section-header">
+            <span className="form-step-number">1</span>
+            <div>
+              <h3>Datos del cliente</h3>
+              <p>Quien paga o solicita la operacion.</p>
+            </div>
+          </header>
+          <ClienteLookup
+            telefono={form.numero_telefono_cliente}
+            nombre={form.nombre_cliente}
+            clienteId={form.cliente_id}
+            onChange={(data) => setForm((current) => ({
+              ...current,
+              numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
+              nombre_cliente: data.nombre ?? current.nombre_cliente,
+              cliente_id: data.clienteId ?? current.cliente_id,
+            }))}
+            onError={setError}
+          />
+        </section>
+
+        <section className="form-section-card">
+          <header className="form-section-header">
+            <span className="form-step-number">2</span>
+            <div>
+              <h3>Entrega en Cuba</h3>
+              <p>Destinatario, documento y punto de recogida.</p>
+            </div>
+          </header>
+          <div className="form-grid">
+            <label>
+              Telefono destinatario Cuba
+              <span className="input-action-row">
+                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+                <a
+                  className={form.telefono_destinatario ? 'icon-button field-action-button' : 'icon-button field-action-button disabled-link'}
+                  href={whatsappHref(form.telefono_destinatario) || undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Llamar por WhatsApp"
+                  aria-label="Llamar por WhatsApp"
+                >
+                  <MessageCircle size={18} />
+                </a>
+              </span>
+            </label>
+            <label>
+              Documento identidad URL
+              <input value={form.documento_identidad_url} onChange={(event) => update('documento_identidad_url', event.target.value)} />
+            </label>
+            <label className="wide">
+              Punto de recogida
+              <select
+                value={form.punto_recogida_id}
+                onChange={(event) => update('punto_recogida_id', event.target.value)}
+                disabled={cargandoCatalogos || puntos.length === 0}
+              >
+                {puntos.length === 0 && <option value="">Sin puntos activos</option>}
+                {puntos.map((punto) => (
+                  <option key={punto.id} value={punto.id}>{punto.nombre}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
+        </section>
+
+        <section className="form-section-card payment-section-card">
+          <header className="form-section-header payment-section-header">
+            <span className="form-step-number">3</span>
+            <div>
+              <h3>Pago de la operacion</h3>
+              <p>Cantidad y metodo usado para pagar.</p>
+            </div>
+            <label className="payment-currency-picker" title="Moneda de pago">
+              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
+              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
+                    <option value="BRL">BRL</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="UYU">UYU</option>
+              </select>
+            </label>
+          </header>
+          <div className="form-grid payment-grid">
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
+            </label>
+            <label>
+              Metodo de pago
+              <select
+                value={form.tipo_pago_id}
+                onChange={(event) => update('tipo_pago_id', event.target.value)}
+                required
+                disabled={cargandoCatalogos || metodosFiltrados.length === 0}
+              >
+                {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
+                {metodosFiltrados.map((metodo) => (
+                  <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
+                ))}
+              </select>
+            </label>
+            <label className="wide">
+              Observaciones
+              <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
+            </label>
+          </div>
+        </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      <button className="primary-button" disabled={loading || !form.tipo_pago_id}>
+      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id}>
         {loading ? 'Creando...' : 'Crear efectivo'}
       </button>
     </form>

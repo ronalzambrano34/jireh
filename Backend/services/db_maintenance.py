@@ -48,6 +48,46 @@ def _add_column_if_missing(
     db.commit()
 
 
+def _add_index_if_missing(
+    db: Session,
+    table_name: str,
+    index_name: str,
+    columns: tuple[str, ...]
+):
+    inspector = inspect(
+        db.get_bind()
+    )
+
+    if table_name not in inspector.get_table_names():
+        return
+
+    table_columns = _get_columns(
+        db,
+        table_name
+    )
+
+    if not set(columns).issubset(table_columns):
+        return
+
+    existing = {
+        index["name"]
+        for index in inspector.get_indexes(
+            table_name
+        )
+    }
+
+    if index_name in existing:
+        return
+
+    db.execute(
+        text(
+            f"CREATE INDEX {index_name} "
+            f"ON {table_name} ({', '.join(columns)})"
+        )
+    )
+    db.commit()
+
+
 def _rename_column_if_needed(
     db: Session,
     table_name: str,
@@ -235,6 +275,9 @@ def ensure_runtime_columns(
         "documento_identidad_url VARCHAR"
     )
 
+    ensure_runtime_indexes(
+        db
+    )
 
 
 def ensure_runtime_tables(
@@ -244,3 +287,24 @@ def ensure_runtime_tables(
         bind=db.get_bind(),
         checkfirst=True
     )
+
+
+def ensure_runtime_indexes(
+    db: Session
+):
+    for index_name, columns in [
+        ("ix_pedidos_report_created_at", ("created_at",)),
+        ("ix_pedidos_report_estado", ("estado",)),
+        ("ix_pedidos_report_servicio", ("servicio",)),
+        ("ix_pedidos_report_moneda_pago", ("moneda_pago",)),
+        ("ix_pedidos_report_operador_id", ("operador_id",)),
+        ("ix_pedidos_report_tipo_pago_id", ("tipo_pago_id",)),
+        ("ix_pedidos_report_fecha_estado", ("created_at", "estado")),
+        ("ix_pedidos_report_fecha_servicio", ("created_at", "servicio")),
+    ]:
+        _add_index_if_missing(
+            db,
+            "pedidos",
+            index_name,
+            columns
+        )

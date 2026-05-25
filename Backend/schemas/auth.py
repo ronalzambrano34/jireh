@@ -36,3 +36,15 @@ class AuthOperadorResponse(BaseModel):
     )
 
     operador: OperadorResponse
+
+
+class PerfilUpdateRequest(BaseModel):
+
+    nombre: str
+
+
+class PasswordChangeRequest(BaseModel):
+
+    password_actual: str
+
+    password_nueva: str

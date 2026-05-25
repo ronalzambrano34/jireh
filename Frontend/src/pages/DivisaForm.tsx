@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { crearDivisa, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
-import type { MetodoPago } from '../types/api';
+import { ContactosRecientes } from '../components/ContactosRecientes';
+import type { Contacto, MetodoPago } from '../types/api';
+import { banderaMoneda } from '../utils/monedas';
 
 type DivisaInitialData = { monto_pago?: string; monto_divisa?: string; moneda_pago?: string; tipo_tarjeta?: string };
 
@@ -59,6 +61,15 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function aplicarContacto(contacto: Contacto) {
+    setForm((current) => ({
+      ...current,
+      tipo_tarjeta: contacto.tipo_tarjeta ?? current.tipo_tarjeta,
+      numero_tarjeta: contacto.numero_tarjeta ?? current.numero_tarjeta,
+      telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
+    }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -87,75 +98,109 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   }
 
   return (
-    <form className="form-panel" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <label>
-          Monto pago
-          <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
-        </label>
-        <label>
-          Moneda
-          <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)}>
-            <option value="BRL">BRL</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="UYU">UYU</option>
-          </select>
-        </label>
-        <label>
-          Metodo de pago
-          <select
-            value={form.tipo_pago_id}
-            onChange={(event) => update('tipo_pago_id', event.target.value)}
-            required
-            disabled={cargandoMetodos || metodosFiltrados.length === 0}
-          >
-            {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
-            {metodosFiltrados.map((metodo) => (
-              <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Monto divisa
-          <input value={form.monto_divisa} onChange={(event) => update('monto_divisa', event.target.value)} inputMode="decimal" required />
-        </label>
-        <label>
-          Tipo tarjeta
-          <select value={form.tipo_tarjeta} onChange={(event) => update('tipo_tarjeta', event.target.value)}>
-            <option value="MLC">MLC</option>
-            <option value="CUP">CUP</option>
-            <option value="USD">USD</option>
-            <option value="OTRA">Otra</option>
-          </select>
-        </label>
-        <label>
-          Tarjeta destinatario
-          <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
-        </label>
-        <label>
-          Telefono destinatario Cuba
-          <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
-        </label>
-        <ClienteLookup
-          telefono={form.numero_telefono_cliente}
-          nombre={form.nombre_cliente}
-          clienteId={form.cliente_id}
-          onChange={(data) => setForm((current) => ({
-            ...current,
-            numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
-            nombre_cliente: data.nombre ?? current.nombre_cliente,
-            cliente_id: data.clienteId ?? current.cliente_id,
-          }))}
-          onError={setError}
-        />
-        <label className="wide">
-          Observaciones
-          <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
-        </label>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+      <div className="form-flow">
+        <section className="form-section-card client-step">
+          <header className="form-section-header">
+            <span className="form-step-number">1</span>
+            <div>
+              <h3>Datos del cliente</h3>
+              <p>Quien paga o solicita la operacion.</p>
+            </div>
+          </header>
+          <ClienteLookup
+            telefono={form.numero_telefono_cliente}
+            nombre={form.nombre_cliente}
+            clienteId={form.cliente_id}
+            onChange={(data) => setForm((current) => ({
+              ...current,
+              numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
+              nombre_cliente: data.nombre ?? current.nombre_cliente,
+              cliente_id: data.clienteId ?? current.cliente_id,
+            }))}
+            onError={setError}
+          />
+        </section>
+
+        <section className="form-section-card">
+          <header className="form-section-header">
+            <span className="form-step-number">2</span>
+            <div>
+              <h3>Tarjeta destino</h3>
+              <p>Tipo, tarjeta y telefono del destinatario.</p>
+            </div>
+          </header>
+          <div className="form-grid">
+            <label>
+              Tipo tarjeta
+              <select value={form.tipo_tarjeta} onChange={(event) => update('tipo_tarjeta', event.target.value)}>
+                <option value="MLC">MLC</option>
+                <option value="CUP">CUP</option>
+                <option value="USD">USD</option>
+                <option value="OTRA">Otra</option>
+              </select>
+            </label>
+            <label>
+              Tarjeta destinatario
+              <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
+            </label>
+            <label>
+              Telefono destinatario Cuba
+              <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
+            </label>
+          </div>
+          <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
+        </section>
+
+        <section className="form-section-card payment-section-card">
+          <header className="form-section-header payment-section-header">
+            <span className="form-step-number">3</span>
+            <div>
+              <h3>Pago de la operacion</h3>
+              <p>Cantidad, metodo y monto en divisa.</p>
+            </div>
+            <label className="payment-currency-picker" title="Moneda de pago">
+              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
+              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
+                    <option value="BRL">BRL</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="UYU">UYU</option>
+              </select>
+            </label>
+          </header>
+          <div className="form-grid payment-grid">
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
+            </label>
+            <label>
+              Metodo de pago
+              <select
+                value={form.tipo_pago_id}
+                onChange={(event) => update('tipo_pago_id', event.target.value)}
+                required
+                disabled={cargandoMetodos || metodosFiltrados.length === 0}
+              >
+                {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
+                {metodosFiltrados.map((metodo) => (
+                  <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Monto divisa
+              <input value={form.monto_divisa} onChange={(event) => update('monto_divisa', event.target.value)} inputMode="decimal" required />
+            </label>
+            <label className="wide">
+              Observaciones
+              <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
+            </label>
+          </div>
+        </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      <button className="primary-button" disabled={loading || !form.tipo_pago_id}>
+      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id}>
         {loading ? 'Creando...' : 'Crear divisa'}
       </button>
     </form>

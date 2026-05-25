@@ -92,6 +92,26 @@ function money(value: number) {
   return new Intl.NumberFormat('es-UY', { maximumFractionDigits: 2 }).format(value);
 }
 
+function ReportSkeleton() {
+  return (
+    <>
+      <div className="report-summary report-summary-loading" aria-hidden="true">
+        {[0, 1, 2, 3].map((item) => <div key={item}><span /><strong /></div>)}
+      </div>
+      <div className="report-grid report-grid-loading" aria-hidden="true">
+        {[0, 1, 2, 3].map((item) => (
+          <section className="report-table report-table-skeleton" key={item}>
+            <h2 />
+            <div className="data-table">
+              {[0, 1, 2, 3].map((row) => <div className="data-row" key={row}><span /><span /><span /><span /></div>)}
+            </div>
+          </section>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function ReportTable({ title, rows }: { title: string; rows: ReporteGrupo[] }) {
   return (
     <section className="report-table">
@@ -118,15 +138,14 @@ function ReportTable({ title, rows }: { title: string; rows: ReporteGrupo[] }) {
 }
 
 export function ReportesPage() {
-  const [periodo, setPeriodo] = useState<PeriodoReporte>('todo');
-  const [filters, setFilters] = useState({
-    fecha_desde: '',
-    fecha_hasta: '',
+  const [periodo, setPeriodo] = useState<PeriodoReporte>('mes');
+  const [filters, setFilters] = useState(() => ({
+    ...rangoPeriodo('mes'),
     estado: '',
     servicio: '',
     moneda_pago: '',
     operador_id: '',
-  });
+  }));
   const [reporte, setReporte] = useState<ReporteGeneral | null>(null);
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [operadoresLoading, setOperadoresLoading] = useState(false);
@@ -271,9 +290,19 @@ export function ReportesPage() {
       </div>
 
       {error && <div className="notice error">{error}</div>}
+      {loading && (
+        <div className="notice report-loading-notice">
+          {reporte ? 'Actualizando reporte...' : 'Buscando datos del reporte...'}
+        </div>
+      )}
+      {!loading && !error && !reporte && (
+        <div className="notice warning">No se pudo mostrar el reporte todavia. Prueba otro periodo o actualiza la pantalla.</div>
+      )}
+
+      {loading && !reporte && <ReportSkeleton />}
 
       {reporte && (
-        <>
+        <div className={loading ? 'report-loaded is-refreshing' : 'report-loaded'}>
           <div className="report-summary">
             <div><span>Pedidos</span><strong>{reporte.resumen.total_pedidos}</strong></div>
             <div><span>Monto pago</span><strong>{money(reporte.resumen.monto_pago_total)}</strong></div>
@@ -289,7 +318,7 @@ export function ReportesPage() {
             <ReportTable title="Por metodo de pago" rows={reporte.por_metodo_pago} />
             <ReportTable title="Por operador" rows={reporte.por_operador} />
           </div>
-        </>
+        </div>
       )}
 
       {periodoSheetOpen && (

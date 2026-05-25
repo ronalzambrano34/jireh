@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
-import type { MetodoPago, PaqueteSaldo } from '../types/api';
+import { ContactosRecientes } from '../components/ContactosRecientes';
+import type { Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
+import { banderaMoneda } from '../utils/monedas';
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
@@ -81,6 +83,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function aplicarContacto(contacto: Contacto) {
+    setForm((current) => ({
+      ...current,
+      telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
+    }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -106,70 +115,104 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   }
 
   return (
-    <form className="form-panel" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <label>
-          Moneda
-          <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)}>
-            <option value="BRL">BRL</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="UYU">UYU</option>
-          </select>
-        </label>
-        <label>
-          Metodo de pago
-          <select
-            value={form.tipo_pago_id}
-            onChange={(event) => update('tipo_pago_id', event.target.value)}
-            required
-            disabled={cargandoCatalogos || metodosFiltrados.length === 0}
-          >
-            {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
-            {metodosFiltrados.map((metodo) => (
-              <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
-            ))}
-          </select>
-        </label>
-        <label className="wide">
-          Paquete de saldo
-          <select
-            value={form.paquete_saldo_id}
-            onChange={(event) => update('paquete_saldo_id', event.target.value)}
-            required
-            disabled={cargandoCatalogos || paquetesFiltrados.length === 0}
-          >
-            {paquetesFiltrados.length === 0 && <option value="">Sin paquetes para {form.moneda_pago}</option>}
-            {paquetesFiltrados.map((paquete) => (
-              <option key={paquete.id} value={paquete.id}>
-                {paquete.nombre} · {paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Telefono destinatario Cuba
-          <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
-        </label>
-        <ClienteLookup
-          telefono={form.numero_telefono_cliente}
-          nombre={form.nombre_cliente}
-          clienteId={form.cliente_id}
-          onChange={(data) => setForm((current) => ({
-            ...current,
-            numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
-            nombre_cliente: data.nombre ?? current.nombre_cliente,
-            cliente_id: data.clienteId ?? current.cliente_id,
-          }))}
-          onError={setError}
-        />
-        <label className="wide">
-          Observaciones
-          <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
-        </label>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+      <div className="form-flow">
+        <section className="form-section-card client-step">
+          <header className="form-section-header">
+            <span className="form-step-number">1</span>
+            <div>
+              <h3>Datos del cliente</h3>
+              <p>Quien paga o solicita la recarga.</p>
+            </div>
+          </header>
+          <ClienteLookup
+            telefono={form.numero_telefono_cliente}
+            nombre={form.nombre_cliente}
+            clienteId={form.cliente_id}
+            onChange={(data) => setForm((current) => ({
+              ...current,
+              numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
+              nombre_cliente: data.nombre ?? current.nombre_cliente,
+              cliente_id: data.clienteId ?? current.cliente_id,
+            }))}
+            onError={setError}
+          />
+        </section>
+
+        <section className="form-section-card">
+          <header className="form-section-header">
+            <span className="form-step-number">2</span>
+            <div>
+              <h3>Telefono a recargar</h3>
+              <p>Linea cubana que recibira el saldo.</p>
+            </div>
+          </header>
+          <div className="form-grid">
+            <label>
+              Telefono destinatario Cuba
+              <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+            </label>
+          </div>
+          <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
+        </section>
+
+        <section className="form-section-card payment-section-card">
+          <header className="form-section-header payment-section-header">
+            <span className="form-step-number">3</span>
+            <div>
+              <h3>Pago y paquete</h3>
+              <p>Metodo y paquete activo para la recarga.</p>
+            </div>
+            <label className="payment-currency-picker" title="Moneda de pago">
+              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
+              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
+                    <option value="BRL">BRL</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="UYU">UYU</option>
+              </select>
+            </label>
+          </header>
+          <div className="form-grid payment-grid">
+            <label>
+              Metodo de pago
+              <select
+                value={form.tipo_pago_id}
+                onChange={(event) => update('tipo_pago_id', event.target.value)}
+                required
+                disabled={cargandoCatalogos || metodosFiltrados.length === 0}
+              >
+                {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
+                {metodosFiltrados.map((metodo) => (
+                  <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Paquete de saldo
+              <select
+                value={form.paquete_saldo_id}
+                onChange={(event) => update('paquete_saldo_id', event.target.value)}
+                required
+                disabled={cargandoCatalogos || paquetesFiltrados.length === 0}
+              >
+                {paquetesFiltrados.length === 0 && <option value="">Sin paquetes para {form.moneda_pago}</option>}
+                {paquetesFiltrados.map((paquete) => (
+                  <option key={paquete.id} value={paquete.id}>
+                    {paquete.nombre} · {paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="wide">
+              Observaciones
+              <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
+            </label>
+          </div>
+        </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      <button className="primary-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id}>
+      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id}>
         {loading ? 'Creando...' : 'Crear saldo'}
       </button>
     </form>

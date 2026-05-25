@@ -10,17 +10,26 @@ cd /home/usuario/Documentos/jireh
 # Levantar el servidor con uvicorn
 uvicorn Backend.main:app --reload --host 0.0.0.0
 
+####consola
+#🔧 Backend (consola)
+cd /home/usuario/Documentos/jireh
+source venv/bin/activate
+uvicorn Backend.main:app --reload --host 0.0.0.0
+
 
 #🎨 Frontend
 
 # Ir al directorio del frontend
 cd /home/usuario/Documentos/jireh/Frontend
 
-# Ejecutar npm con flatpak-spawn
+# Ejecutar npm con flatpak-spawn (VScode)
 flatpak-spawn --host npm run dev -- --host 0.0.0.0
+
+#🎨 Frontend (consola)
+cd /home/usuario/Documentos/jireh/Frontend
+npm run dev -- --host 0.0.0.0
 
 
 
 ollama run codellama
-
 ollama run llama2:7b
