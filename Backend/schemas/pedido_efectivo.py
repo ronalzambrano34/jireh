@@ -32,4 +32,6 @@ class PedidoEfectivoCreate(
 
     punto_recogida_id: int | None = None
 
+    bonificacion_manual: float | None = 0
+
     observaciones: str | None = None

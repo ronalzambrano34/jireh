@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { ArrowRight, Banknote, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
 import { obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
-
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import tasasBanner from '../assets/brand/banner-jireh.jpeg';
 
@@ -249,8 +248,6 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
   }, [gruposMoneda, monedaSeleccionada]);
 
   const grupoActivo = gruposMoneda.find((grupo) => grupo.moneda === monedaSeleccionada) ?? gruposMoneda[0];
-
-
 
   return (
     <section className="home-page">

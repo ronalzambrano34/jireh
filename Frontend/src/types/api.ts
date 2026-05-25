@@ -8,6 +8,22 @@ export type Operador = {
   activo: boolean;
 };
 
+
+export type OperadorCreatePayload = {
+  nombre: string;
+  telefono: string;
+  password?: string;
+  rol: string;
+};
+
+export type OperadorUpdatePayload = {
+  nombre?: string;
+  telefono?: string;
+  password?: string;
+  rol?: string;
+  activo?: boolean;
+};
+
 export type AuthResponse = {
   access_token: string;
   token_type: string;
@@ -16,6 +32,27 @@ export type AuthResponse = {
 
 export type AuthMeResponse = {
   operador: Operador;
+};
+
+export type PerfilUpdatePayload = {
+  nombre: string;
+};
+
+export type PasswordChangePayload = {
+  password_actual: string;
+  password_nueva: string;
+};
+
+
+export type CalculoOperacionResponse = {
+  oferta_id?: number;
+  paquete_id?: number;
+  tasa?: number;
+  bonificacion?: number;
+  tasa_final?: number;
+  monto_resultado: number;
+  ganancia?: number;
+  saldo_cup?: number;
 };
 
 export type PedidoResumen = {
@@ -86,6 +123,7 @@ export type CrearTransferenciaPayload = {
   cliente_id?: number | null;
   nombre_cliente?: string;
   numero_telefono_cliente?: string;
+  bonificacion_manual?: number;
 };
 
 
@@ -94,6 +132,7 @@ export type MetodoPago = {
   nombre: string;
   moneda: string;
   activo: boolean;
+  imagen_url?: string | null;
 };
 
 
@@ -117,6 +156,7 @@ export type CrearEfectivoPayload = {
   documento_identidad_url?: string;
   contacto_id?: number | null;
   punto_recogida_id?: number | null;
+  bonificacion_manual?: number;
   observaciones?: string;
 };
 

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from Backend.routes.webhook import router as webhook_router
 
@@ -53,6 +54,8 @@ from Backend.services.seed_metodos_pago import (seed_metodos_pago)
 from Backend.routes.template import (router as template_router)
 
 app = FastAPI()
+
+app.mount("/storage", StaticFiles(directory="storage", check_dir=False), name="storage")
 
 app.add_middleware(
     CORSMiddleware,

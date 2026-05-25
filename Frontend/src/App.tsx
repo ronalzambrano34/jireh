@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, MessageCircle, LayoutGrid, LayoutList, LogOut, Menu, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { clearToken, getMe, getToken, listarPedidos } from './api/client';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
@@ -38,6 +38,16 @@ type CrearPedidoDraft = {
   tipo_tarjeta?: string;
 };
 
+type ProfileSection = 'datos' | 'editar' | 'permisos' | 'password' | 'sesion' | 'ayuda' | null;
+type AppTheme = 'light' | 'dark' | 'dark-deep' | 'dark-sidebar';
+
+const THEME_KEY = 'jireh.theme';
+const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
+  { value: 'dark-sidebar', label: 'Oscuro menu' },
+  { value: 'dark-deep', label: 'Oscuro profundo' },
+  { value: 'dark', label: 'Oscuro tecnico' },
+];
+
 const estadosBandeja = estados.filter((item) => item.value);
 
 function estadoLabel(value: string) {
@@ -50,6 +60,16 @@ function servicioIcon(value: string, size = 18) {
   if (value === 'saldo') return <Smartphone size={size} />;
   if (value === 'divisa') return <WalletCards size={size} />;
   return <BriefcaseBusiness size={size} />;
+}
+
+function WhatsAppIcon() {
+  return (
+    <span className="whatsapp-icon" aria-hidden="true">
+      <svg viewBox="0 0 32 32" focusable="false">
+        <path d="M16.1 4.2C9.7 4.2 4.5 9.4 4.5 15.8c0 2.1.6 4.2 1.7 6L4.4 28l6.4-1.7c1.6.9 3.4 1.3 5.3 1.3 6.4 0 11.6-5.2 11.6-11.6S22.5 4.2 16.1 4.2Zm0 21.4c-1.7 0-3.3-.4-4.7-1.2l-.3-.2-3.8 1 1-3.7-.2-.4c-1-1.5-1.5-3.3-1.5-5.2 0-5.3 4.3-9.6 9.6-9.6s9.6 4.3 9.6 9.6-4.4 9.7-9.7 9.7Zm5.3-7.2c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.8-1.4-1.7-1.6-2-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.6-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.1.2 2.1 3.3 5.2 4.6.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.2-.2-.4-.3-.7-.4Z" />
+      </svg>
+    </span>
+  );
 }
 
 function detalleValor(pedido: PedidoResumen, key: string) {
@@ -120,6 +140,12 @@ function tiempoRelativo(value?: string) {
 }
 
 export function App() {
+  const [theme, setTheme] = useState<AppTheme>(() => {
+    if (typeof localStorage === 'undefined') return 'light';
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'dark' || saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    return 'light';
+  });
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
   const [estado, setEstado] = useState('');
@@ -136,7 +162,17 @@ export function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
   const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
-  const [supportOpen, setSupportOpen] = useState(false);
+  const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set());
+  const [profileSection, setProfileSection] = useState<ProfileSection>(null);
+  const [profileNombre, setProfileNombre] = useState('');
+  const [profilePassword, setProfilePassword] = useState({
+    actual: '',
+    nueva: '',
+    confirmar: '',
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -193,7 +229,24 @@ export function App() {
     setMobileMenuOpen(false);
     setServicioSheetOpen(false);
     setEstadoSheetOpen(false);
-    setSupportOpen(false);
+    setProfileSection(null);
+    setProfileMessage(null);
+    setProfileError(null);
+  }
+
+  function abrirPerfilSeccion(section: Exclude<ProfileSection, null>) {
+    setProfileSection((current) => current === section ? null : section);
+    setProfileMessage(null);
+    setProfileError(null);
+  }
+
+  function toggleEstadoPedido(value: string) {
+    setPedidosEstadosColapsados((current) => {
+      const next = new Set(current);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
   }
 
   function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa', draft: CrearPedidoDraft = {}) {
@@ -217,6 +270,12 @@ export function App() {
     }
   }
 
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
   useEffect(() => {
     if (!getToken()) return;
     getMe()
@@ -231,6 +290,12 @@ export function App() {
     if (operador) void cargarPedidos();
   }, [operador]);
 
+
+  useEffect(() => {
+    if (!operador) return;
+    setProfileNombre(operador.nombre);
+  }, [operador]);
+
   useEffect(() => {
     function syncOnline() {
       setOnline(navigator.onLine);
@@ -243,6 +308,52 @@ export function App() {
       window.removeEventListener('offline', syncOnline);
     };
   }, []);
+
+  async function guardarPerfil(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nombre = profileNombre.trim();
+    if (!nombre) {
+      setProfileError('El nombre no puede estar vacio');
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileError(null);
+    setProfileMessage(null);
+    try {
+      const actualizado = await actualizarMiPerfil({ nombre });
+      setOperador(actualizado);
+      setProfileMessage('Datos actualizados correctamente');
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'No se pudo actualizar el perfil');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function guardarPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (profilePassword.nueva !== profilePassword.confirmar) {
+      setProfileError('La confirmacion no coincide con la nueva contrasena');
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileError(null);
+    setProfileMessage(null);
+    try {
+      await cambiarMiPassword({
+        password_actual: profilePassword.actual,
+        password_nueva: profilePassword.nueva,
+      });
+      setProfilePassword({ actual: '', nueva: '', confirmar: '' });
+      setProfileMessage('Contrasena actualizada correctamente');
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'No se pudo cambiar la contrasena');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
 
   if (!operador) {
     return <LoginPage onLogin={setOperador} />;
@@ -293,11 +404,13 @@ export function App() {
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
-            {vista === 'bandeja' && (
-              <button className="icon-button" onClick={cargarPedidos} title="Actualizar pedidos">
-                <RefreshCw size={18} />
-              </button>
-            )}
+            <button className="operator-chip" type="button" onClick={() => navegar('perfil')} title="Ver perfil">
+              <span className="operator-chip-avatar">{operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>
+              <span className="operator-chip-text">
+                <strong>{operador.nombre}</strong>
+                <small>{operador.rol}</small>
+              </span>
+            </button>
             <button className="icon-button mobile-menu-button" onClick={() => setMobileMenuOpen(true)} title="Abrir menu">
               <Menu size={20} />
             </button>
@@ -327,47 +440,162 @@ export function App() {
               </div>
             </div>
 
+            {(profileMessage || profileError) && (
+              <div className={profileError ? 'profile-feedback error' : 'profile-feedback success'}>
+                {profileError || profileMessage}
+              </div>
+            )}
+
             <div className="profile-section">
               <h3>Mi cuenta</h3>
-              <button className="profile-option" type="button"><UserCircle size={22} /><span>Mis datos</span><ChevronDown size={18} /></button>
-              <button className="profile-option" type="button"><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown size={18} /></button>
-              <button className="profile-option" type="button"><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown size={18} /></button>
+              <button className={profileSection === 'datos' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('datos')} aria-expanded={profileSection === 'datos'}><UserCircle size={22} /><span>Mis datos</span><ChevronDown className={profileSection === 'datos' ? 'chevron-open' : ''} size={18} /></button>
+              {profileSection === 'datos' && (
+                <div className="profile-inline-panel profile-data-grid">
+                  <div><small>Nombre</small><strong>{operador.nombre}</strong></div>
+                  <div><small>Telefono</small><strong>{operador.telefono}</strong></div>
+                  <div><small>Codigo</small><strong>{operador.codigo_operador}</strong></div>
+                  <div><small>Estado</small><strong>{operador.activo ? 'Activo' : 'Inactivo'}</strong></div>
+                </div>
+              )}
+
+              <button className={profileSection === 'editar' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('editar')} aria-expanded={profileSection === 'editar'}><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown className={profileSection === 'editar' ? 'chevron-open' : ''} size={18} /></button>
+              {profileSection === 'editar' && (
+                <form className="profile-inline-panel profile-form" onSubmit={guardarPerfil}>
+                  <label>
+                    <span>Nombre visible</span>
+                    <input value={profileNombre} onChange={(event) => setProfileNombre(event.target.value)} autoComplete="name" />
+                  </label>
+                  <label>
+                    <span>Telefono de acceso</span>
+                    <input value={operador.telefono ?? ''} disabled />
+                  </label>
+                  <small>El telefono se mantiene fijo para evitar cambios accidentales en el acceso.</small>
+                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Guardando...' : 'Guardar datos'}</button>
+                </form>
+              )}
+
+              <button className={profileSection === 'permisos' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('permisos')} aria-expanded={profileSection === 'permisos'}><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown className={profileSection === 'permisos' ? 'chevron-open' : ''} size={18} /></button>
+              {profileSection === 'permisos' && (
+                <div className="profile-inline-panel">
+                  <div className="profile-role-pill"><ShieldCheck size={18} /> {operador.rol}</div>
+                  <div className="profile-permission-list">
+                    {operador.permisos.length ? operador.permisos.map((permiso) => <span key={permiso}>{permiso}</span>) : <span>Sin permisos especiales</span>}
+                  </div>
+                </div>
+              )}
+
+
+              <div className="profile-appearance-row">
+                <span className="profile-appearance-icon" aria-hidden="true"><Palette size={22} /></span>
+                <div className="profile-appearance-copy">
+                  <div className="profile-appearance-title">
+                    <strong>Apariencia</strong>
+                    <label className="theme-switch">
+                      <input
+                        type="checkbox"
+                        checked={theme !== 'light'}
+                        onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}
+                        aria-label="Activar tema oscuro"
+                      />
+                      <span>Oscuro</span>
+                    </label>
+                  </div>
+                  <small>{theme === 'light' ? 'Tema claro predeterminado' : DARK_THEME_OPTIONS.find((item) => item.value === theme)?.label}</small>
+                </div>
+              </div>
+              {theme !== 'light' && (
+                <div className="theme-variant-row" aria-label="Variante de tema oscuro">
+                  {DARK_THEME_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={theme === option.value ? 'active' : ''}
+                      onClick={() => setTheme(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="profile-section">
               <h3>Seguridad</h3>
-              <button className="profile-option" type="button"><KeyRound size={22} /><span>Cambiar contraseña</span><ChevronDown size={18} /></button>
-              <button className="profile-option" type="button"><ShieldCheck size={22} /><span>Sesion y acceso</span><ChevronDown size={18} /></button>
+              <button className={profileSection === 'password' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('password')} aria-expanded={profileSection === 'password'}><KeyRound size={22} /><span>Cambiar contrasena</span><ChevronDown className={profileSection === 'password' ? 'chevron-open' : ''} size={18} /></button>
+              {profileSection === 'password' && (
+                <form className="profile-inline-panel profile-form" onSubmit={guardarPassword}>
+                  <label>
+                    <span>Contrasena actual</span>
+                    <input type="password" value={profilePassword.actual} onChange={(event) => setProfilePassword((current) => ({ ...current, actual: event.target.value }))} autoComplete="current-password" />
+                  </label>
+                  <label>
+                    <span>Nueva contrasena</span>
+                    <input type="password" value={profilePassword.nueva} onChange={(event) => setProfilePassword((current) => ({ ...current, nueva: event.target.value }))} autoComplete="new-password" />
+                  </label>
+                  <label>
+                    <span>Confirmar nueva</span>
+                    <input type="password" value={profilePassword.confirmar} onChange={(event) => setProfilePassword((current) => ({ ...current, confirmar: event.target.value }))} autoComplete="new-password" />
+                  </label>
+                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Actualizando...' : 'Cambiar contrasena'}</button>
+                </form>
+              )}
+
+              <button className={profileSection === 'sesion' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('sesion')} aria-expanded={profileSection === 'sesion'}><ShieldCheck size={22} /><span>Sesion y acceso</span><ChevronDown className={profileSection === 'sesion' ? 'chevron-open' : ''} size={18} /></button>
+              {profileSection === 'sesion' && (
+                <div className="profile-inline-panel profile-session-panel">
+                  <div><small>Sesion</small><strong>Activa</strong></div>
+                  <div><small>Identificador</small><strong>{operador.codigo_operador}</strong></div>
+                  <button className="secondary-action" type="button" onClick={() => { clearToken(); setOperador(null); }}>Cerrar sesion</button>
+                </div>
+              )}
             </div>
 
             <div className="profile-section">
               <h3>Soporte</h3>
               <button
-                className={supportOpen ? 'profile-option active' : 'profile-option'}
+                className={profileSection === 'ayuda' ? 'profile-option active' : 'profile-option'}
                 type="button"
-                onClick={() => setSupportOpen((current) => !current)}
-                aria-expanded={supportOpen}
+                onClick={() => abrirPerfilSeccion('ayuda')}
+                aria-expanded={profileSection === 'ayuda'}
               >
                 <HelpCircle size={22} />
                 <span>Ayuda para operar</span>
-                <ChevronDown className={supportOpen ? 'chevron-open' : ''} size={18} />
+                <ChevronDown className={profileSection === 'ayuda' ? 'chevron-open' : ''} size={18} />
               </button>
-              {supportOpen && (
-                <div className="profile-support-panel">
-                  <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
-                    <MessageCircle size={20} />
-                    <span>
-                      <strong>WhatsApp Brasil</strong>
-                      <small>+55 48 91233191</small>
-                    </span>
-                  </a>
-                  <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
-                    <MessageCircle size={20} />
-                    <span>
-                      <strong>WhatsApp Uruguay</strong>
-                      <small>+598 94 207 862</small>
-                    </span>
-                  </a>
+              {profileSection === 'ayuda' && (
+                <div className="profile-support-options">
+                  <div className="profile-support-panel">
+                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                      <WhatsAppIcon />
+                      <span>
+                        <strong>Brasil</strong>
+                        <small>+55 48 9123-3191</small>
+                      </span>
+                    </a>
+                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
+                      <WhatsAppIcon />
+                      <span>
+                        <strong>Uruguay</strong>
+                        <small>+598 94 207 862</small>
+                      </span>
+                    </a>
+                  </div>
+                  <div className="profile-support-panel profile-support-panel-list">
+                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                      <WhatsAppIcon />
+                      <span>
+                        <strong>Soporte Brasil</strong>
+                        <small>+55 48 9123-3191</small>
+                      </span>
+                    </a>
+                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
+                      <WhatsAppIcon />
+                      <span>
+                        <strong>Soporte Uruguay</strong>
+                        <small>+598 94 207 862</small>
+                      </span>
+                    </a>
+                  </div>
                 </div>
               )}
               <button className="profile-option danger" type="button" onClick={() => { clearToken(); setOperador(null); }}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
@@ -469,6 +697,9 @@ export function App() {
                   >
                     {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
                   </button>
+                  <button className="icon-button orders-refresh-button" onClick={cargarPedidos} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={loading}>
+                    <RefreshCw size={18} />
+                  </button>
                 </div>
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
@@ -494,6 +725,7 @@ export function App() {
                         </span>
                         <span className="chat-card-side">
                           <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
+                          {pedido.lock_activo && <small className="order-taken-chip">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                           <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
                           <small>Recibe {pedido.monto_resultado}</small>
                         </span>
@@ -502,13 +734,18 @@ export function App() {
                   </div>
                 ) : (
                   <div className="pedido-board">
-                    {pedidosPorEstado.map((grupo) => (
-                      <section className="pedido-column" key={grupo.value} style={{ order: grupo.orden }}>
+                    {pedidosPorEstado.map((grupo) => {
+                      const colapsado = pedidosEstadosColapsados.has(grupo.value);
+                      return (
+                      <section className={colapsado ? 'pedido-column collapsed' : 'pedido-column'} key={grupo.value} style={{ order: grupo.orden }}>
                         <header className="pedido-column-header">
-                          <span className={`status ${grupo.value}`}>{grupo.label}</span>
+                          <button className="pedido-column-toggle" type="button" onClick={() => toggleEstadoPedido(grupo.value)} aria-expanded={!colapsado}>
+                            <ChevronDown className={colapsado ? 'collapsed' : ''} size={18} />
+                            <span className={`status ${grupo.value}`}>{grupo.label}</span>
+                          </button>
                           <strong>{grupo.pedidos.length}</strong>
                         </header>
-                        <div className="pedido-list">
+                        {!colapsado && <div className="pedido-list">
                           {grupo.pedidos.map((pedido) => (
                             <button
                               key={pedido.codigo_operacion}
@@ -519,6 +756,7 @@ export function App() {
                                 <span className="pedido-card-head">
                                   <strong>{pedido.servicio}</strong>
                                   <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
+                                  {pedido.lock_activo && <small className="order-taken-chip inline">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                                 </span>
                                 <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
                               </span>
@@ -536,9 +774,10 @@ export function App() {
                               </span>
                             </button>
                           ))}
-                        </div>
+                        </div>}
                       </section>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -599,7 +838,7 @@ export function App() {
           </section>
         </div>
       )}
-      {puedeCrear && vista !== 'crear' && (
+      {puedeCrear && (vista === 'inicio' || vista === 'bandeja') && (
         <button className="floating-create" onClick={() => abrirCrear('transferencia')} title="Nuevo pedido">
           <Plus size={24} />
         </button>

@@ -1,9 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { crearTransferencia, listarMetodosPago } from '../api/client';
+import { calcularOperacion, crearTransferencia, listarMetodosPago } from '../api/client';
+import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
-import type { MetodoPago } from '../types/api';
+import { ContactosRecientes } from '../components/ContactosRecientes';
+import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
+import { PasteButton } from '../components/PasteButton';
+import type { CalculoOperacionResponse, Contacto, MetodoPago } from '../types/api';
+import { banderaMoneda } from '../utils/monedas';
 
 type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
+
 
 export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
@@ -15,11 +21,15 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
+    bonificacion_manual: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
+  const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
+  const [calculando, setCalculando] = useState(false);
+  const [calculoError, setCalculoError] = useState<string | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -44,6 +54,35 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   }, []);
 
   useEffect(() => {
+    const monto = Number(form.monto_pago);
+    if (!monto || monto <= 0) {
+      setCalculo(null);
+      setCalculoError(null);
+      return;
+    }
+
+    let activo = true;
+    setCalculando(true);
+    setCalculoError(null);
+    calcularOperacion({
+      servicio: 'transferencia',
+      moneda_pago: form.moneda_pago,
+      monto_pago: monto,
+      bonificacion_manual: Number(form.bonificacion_manual) || 0,
+    })
+      .then((data) => { if (activo) setCalculo(data); })
+      .catch((err) => {
+        if (activo) {
+          setCalculo(null);
+          setCalculoError(err instanceof Error ? err.message : 'No se pudo calcular');
+        }
+      })
+      .finally(() => { if (activo) setCalculando(false); });
+
+    return () => { activo = false; };
+  }, [form.monto_pago, form.moneda_pago, form.bonificacion_manual]);
+
+  useEffect(() => {
     if (!metodosFiltrados.length) {
       setForm((current) => ({ ...current, tipo_pago_id: '' }));
       return;
@@ -63,6 +102,14 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function aplicarContacto(contacto: Contacto) {
+    setForm((current) => ({
+      ...current,
+      numero_tarjeta: contacto.numero_tarjeta ?? current.numero_tarjeta,
+      telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
+    }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -78,6 +125,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente || undefined,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+        bonificacion_manual: Number(form.bonificacion_manual) || undefined,
       });
       onCreated(response.codigo_operacion);
     } catch (err) {
@@ -88,60 +136,99 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   }
 
   return (
-    <form className="form-panel" onSubmit={handleSubmit}>
-      <div className="form-grid">
-        <label>
-          Monto pago
-          <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
-        </label>
-        <label>
-          Moneda
-          <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)}>
-            <option value="BRL">BRL</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="UYU">UYU</option>
-          </select>
-        </label>
-        <label>
-          Metodo de pago
-          <select
-            value={form.tipo_pago_id}
-            onChange={(event) => update('tipo_pago_id', event.target.value)}
-            required
-            disabled={cargandoMetodos || metodosFiltrados.length === 0}
-          >
-            {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
-            {metodosFiltrados.map((metodo) => (
-              <option key={metodo.id} value={metodo.id}>
-                {metodo.nombre} · {metodo.moneda}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Tarjeta destinatario
-          <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
-        </label>
-        <label>
-          Telefono destinatario Cuba
-          <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
-        </label>
-        <ClienteLookup
-          telefono={form.numero_telefono_cliente}
-          nombre={form.nombre_cliente}
-          clienteId={form.cliente_id}
-          onChange={(data) => setForm((current) => ({
-            ...current,
-            numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
-            nombre_cliente: data.nombre ?? current.nombre_cliente,
-            cliente_id: data.clienteId ?? current.cliente_id,
-          }))}
-          onError={setError}
-        />
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+      <div className="form-flow">
+        <section className="form-section-card client-step">
+          <header className="form-section-header">
+            <span className="form-step-number">1</span>
+            <div>
+              <h3>Datos del cliente</h3>
+              <p>Quien paga o solicita la operacion.</p>
+            </div>
+          </header>
+          <ClienteLookup
+            telefono={form.numero_telefono_cliente}
+            nombre={form.nombre_cliente}
+            clienteId={form.cliente_id}
+            onChange={(data) => setForm((current) => ({
+              ...current,
+              numero_telefono_cliente: data.telefono ?? current.numero_telefono_cliente,
+              nombre_cliente: data.nombre ?? current.nombre_cliente,
+              cliente_id: data.clienteId ?? current.cliente_id,
+            }))}
+            onError={setError}
+          />
+        </section>
+
+        <section className="form-section-card">
+          <header className="form-section-header">
+            <span className="form-step-number">2</span>
+            <div>
+              <h3>Destino en Cuba</h3>
+              <p>Tarjeta y telefono del destinatario.</p>
+            </div>
+          </header>
+          <div className="form-grid">
+            <label>
+              Tarjeta destinatario
+              <span className="input-action-row">
+                <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
+                <PasteButton onPaste={(value) => update('numero_tarjeta', value)} title="Pegar tarjeta destinatario" />
+              </span>
+            </label>
+            <label>
+              Telefono destinatario Cuba
+              <span className="input-action-row">
+                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
+                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
+              </span>
+            </label>
+          </div>
+          <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
+        </section>
+
+        <section className="form-section-card payment-section-card">
+          <header className="form-section-header payment-section-header">
+            <span className="form-step-number">3</span>
+            <div>
+              <h3>Pago de la operacion</h3>
+              <p>Cantidad y metodo usado para pagar.</p>
+            </div>
+            <label className="payment-currency-picker" title="Moneda de pago">
+              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
+              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
+                    <option value="BRL">BRL</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="UYU">UYU</option>
+              </select>
+            </label>
+          </header>
+          <div className="form-grid payment-grid">
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
+            </label>
+            <label>
+              Metodo de pago
+              <MetodoPagoSelect
+                value={form.tipo_pago_id}
+                metodos={metodosFiltrados}
+                onChange={(value) => update('tipo_pago_id', value)}
+                disabled={cargandoMetodos || metodosFiltrados.length === 0}
+                emptyLabel={`Sin metodos para ${form.moneda_pago}`}
+              />
+            </label>
+            <label>
+              Cupon o bono
+              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
+            </label>
+            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} />
+          </div>
+        </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      <button className="primary-button" disabled={loading || !form.tipo_pago_id}>
+      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id}>
         {loading ? 'Creando...' : 'Crear transferencia'}
       </button>
     </form>

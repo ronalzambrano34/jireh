@@ -54,56 +54,56 @@ def _query_pedidos(
 def resumen_pedidos(
     query
 ):
-    total = query.with_entities(
+    fila = query.with_entities(
         func.count(
             Pedido.id
-        )
-    ).scalar() or 0
-
-    monto_pago = query.with_entities(
+        ).label(
+            "total"
+        ),
         func.coalesce(
             func.sum(
                 Pedido.monto_pago
             ),
             0
-        )
-    ).scalar() or 0
-
-    monto_resultado = query.with_entities(
+        ).label(
+            "monto_pago"
+        ),
         func.coalesce(
             func.sum(
                 Pedido.monto_resultado
             ),
             0
-        )
-    ).scalar() or 0
-
-    ganancia = query.with_entities(
+        ).label(
+            "monto_resultado"
+        ),
         func.coalesce(
             func.sum(
                 Pedido.ganancia
             ),
             0
+        ).label(
+            "ganancia"
         )
-    ).scalar() or 0
+    ).one()
 
     return {
-        "total_pedidos": total,
+        "total_pedidos": fila.total or 0,
         "monto_pago_total": float(
-            monto_pago
+            fila.monto_pago or 0
         ),
         "monto_resultado_total": float(
-            monto_resultado
+            fila.monto_resultado or 0
         ),
         "ganancia_total": float(
-            ganancia
+            fila.ganancia or 0
         ),
     }
 
 
 def _agrupar(
     query,
-    campo
+    campo,
+    limit: int = 60
 ):
     filas = (
         query.with_entities(
@@ -140,6 +140,9 @@ def _agrupar(
                 Pedido.id
             ).desc()
         )
+        .limit(
+            limit
+        )
         .all()
     )
 
@@ -158,7 +161,7 @@ def _agrupar(
     ]
 
 
-def _agrupar_por_dia(query):
+def _agrupar_por_dia(query, limit: int = 120):
     campo = func.date(
         Pedido.created_at
     )
@@ -196,6 +199,9 @@ def _agrupar_por_dia(query):
         .order_by(
             campo.desc()
         )
+        .limit(
+            limit
+        )
         .all()
     )
 
@@ -216,7 +222,7 @@ def _agrupar_por_dia(query):
     ]
 
 
-def _agrupar_por_metodo_pago(query):
+def _agrupar_por_metodo_pago(query, limit: int = 60):
     filas = (
         query.outerjoin(
             MetodoPago,
@@ -258,6 +264,9 @@ def _agrupar_por_metodo_pago(query):
             func.count(
                 Pedido.id
             ).desc()
+        )
+        .limit(
+            limit
         )
         .all()
     )

@@ -30,4 +30,6 @@ class PedidoTransferenciaCreate(
 
     numero_telefono_cliente: str | None = None
 
+    bonificacion_manual: float | None = 0
+
     observaciones: str | None = None

@@ -1,6 +1,7 @@
 import type {
   AuthMeResponse,
   AuthResponse,
+  CalculoOperacionResponse,
   Cliente,
   Configuracion,
   Contacto,
@@ -11,9 +12,13 @@ import type {
   MetodoPago,
   Oferta,
   Operador,
+  OperadorCreatePayload,
+  OperadorUpdatePayload,
   PedidoDetalle,
   PaqueteSaldo,
+  PasswordChangePayload,
   PedidoResumen,
+  PerfilUpdatePayload,
   PuntoRecogida,
   ReporteGeneral,
   TemplateConfig,
@@ -23,6 +28,12 @@ import type {
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 const TOKEN_KEY = 'jireh.auth.token';
+
+export function apiAssetUrl(path: string | null | undefined) {
+  if (!path) return '';
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  return `${API_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -98,8 +109,29 @@ export function getMe() {
   return request<AuthMeResponse>('/auth/me').then((data) => data.operador);
 }
 
+export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
+  return request<AuthMeResponse>('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }).then((data) => data.operador);
+}
+
+export function cambiarMiPassword(payload: PasswordChangePayload) {
+  return request<{ message: string }>('/auth/me/password', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function obtenerTasasOperativas() {
   return request<TasaOperativaResponse>('/tasas-operativas/');
+}
+
+export function calcularOperacion(payload: { servicio: string; moneda_pago: string; monto_pago: number; bonificacion_manual?: number }) {
+  return request<CalculoOperacionResponse>('/calculadora/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export function listarOperadores(incluirInactivos = false) {
@@ -107,6 +139,26 @@ export function listarOperadores(incluirInactivos = false) {
   query.set('limit', '100');
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
   return request<Operador[]>(`/operador/?${query.toString()}`);
+}
+
+export function crearOperador(payload: OperadorCreatePayload) {
+  return request<Operador>('/operador/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function actualizarOperador(id: number, payload: OperadorUpdatePayload) {
+  return request<Operador>(`/operador/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function eliminarOperador(id: number) {
+  return request<Operador>(`/operador/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 
@@ -234,14 +286,14 @@ export function descargarReporteCsv(params: { fecha_desde?: string; fecha_hasta?
   return requestBlob(`/reportes/resumen.csv?${query.toString()}`);
 }
 
-export function crearMetodoPago(payload: { nombre: string; moneda: string }) {
+export function crearMetodoPago(payload: { nombre: string; moneda: string; imagen_url?: string }) {
   return request<MetodoPago>('/metodos-pago/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function actualizarMetodoPago(id: number, payload: { nombre?: string; moneda?: string; activo?: boolean }) {
+export function actualizarMetodoPago(id: number, payload: { nombre?: string; moneda?: string; activo?: boolean; imagen_url?: string | null }) {
   return request<MetodoPago>(`/metodos-pago/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -251,6 +303,16 @@ export function actualizarMetodoPago(id: number, payload: { nombre?: string; mon
 export function eliminarMetodoPago(id: number) {
   return request<MetodoPago>(`/metodos-pago/${id}`, {
     method: 'DELETE',
+  });
+}
+
+export function subirImagenMetodoPago(id: number, file: File) {
+  const formData = new FormData();
+  formData.append('archivo', file);
+
+  return request<MetodoPago>(`/metodos-pago/${id}/imagen`, {
+    method: 'POST',
+    body: formData,
   });
 }
 
@@ -369,5 +431,11 @@ export function crearContacto(payload: { cliente_id?: number | null; nombre: str
   return request<Contacto>('/contactos/', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+export function eliminarContacto(id: number) {
+  return request<Contacto>(`/contactos/${id}`, {
+    method: 'DELETE',
   });
 }

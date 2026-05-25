@@ -849,6 +849,7 @@ GET /metodos-pago/
 GET /metodos-pago/{metodo_id}
 POST /metodos-pago/
 PUT /metodos-pago/{metodo_id}
+
 DELETE /metodos-pago/{metodo_id}
 
 Calculadora:
@@ -1155,16 +1156,41 @@ Las observaciones operativas del pedido se reciben, guardan y devuelven en los f
 Sistema de roles para operarios implementado: los operarios tienen rol admin, supervisor u operador. El panel administrativo puede crear, listar, modificar y desactivar operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.
 
 Implementado en frontend interno:
-- Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones de cuenta, seguridad, soporte y salida.
+- Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones funcionales de cuenta, seguridad, soporte y salida.
+- Perfil interno funcional: Mis datos muestra ficha del operador; Modificar perfil actualiza el nombre propio desde /auth/me; Cambiar contrasena valida la contrasena actual y actualiza la nueva desde /auth/me/password; Mis permisos y rol muestra permisos reales; Ayuda abre contactos de soporte por WhatsApp.
 - Criterio de producto: el sistema debe priorizar uso en telefonos y usuarios con poca experiencia informatica; las acciones frecuentes deben ser grandes, claras y con pocos pasos.
 - En entrega de efectivo, el telefono del destinatario tiene acceso directo a WhatsApp al lado del campo.
 - En detalle de pedido, tarjeta, telefono destinatario y montos principales tienen boton de copiar.
-- Las ofertas y paquetes del inicio pueden abrir la creacion de pedido con datos precargados de la oferta seleccionada.
-
-Pendiente siguiente:
-- Hacer funcionales las opciones internas del perfil: editar datos, cambiar contraseña y ayuda.
 - Vista detalle de pedido reajustada visual, tecnica y operacionalmente: resumen superior, estado por botones, bloqueo visible, evidencias e historial.
+- Las ofertas y paquetes del inicio pueden abrir la creacion de pedido con datos precargados de la oferta seleccionada.
+- La vista Inicio tiene selector de moneda con bandera en el encabezado de tasas; al cambiar BRL, UYU u otra moneda, solo se muestran las ofertas y paquetes activos de esa moneda de pago.
+- La oferta de saldo en Inicio se muestra como paquetes de recarga: saldo recibido destacado y precio en moneda de pago como badge accionable.
+- Crear pedido queda organizado por flujo operativo: primero datos del cliente, despues destino/tarjeta/telefono y por ultimo pago de la operacion; la moneda se muestra como campo destacado con bandera del pais.
+
+Actualizacion de interfaz aplicada:
+
+- La pestana del navegador usa el icono del logo de El Jireh como favicon.
+- En Perfil > Soporte/Ayuda para operar, los accesos de soporte quedan centrados para lectura movil.
+- Reportes carga con periodo mensual por defecto, skeleton de carga e indices runtime para evitar la sensacion de pantalla vacia.
+- En Pedidos, el boton de vista queda a la izquierda y Actualizar a la derecha en la misma fila; las columnas agrupadas por estado se pueden minimizar/desplegar.
+- En Crear pedido > Pago de la operacion, monto y metodo de pago quedan en dos columnas cuando hay espacio; la moneda pasa al header como selector compacto con bandera.
+- En Nuevo pedido, el bloque de cliente queda directo y compacto; telefono del cliente, tarjeta destinatario y telefono destinatario tienen boton Pegar desde portapapeles.
+- En Nuevo pedido > Pago de la operacion, al capturar monto se muestra cuanto recibe el destinatario y la tasa aplicada; transferencia y efectivo aceptan bono manual de tasa.
+- Los metodos de pago muestran imagen automaticamente segun el nombre del banco o metodo cuando existe asset local; no requiere campo nuevo en configuracion por ahora.
+- En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contrasena/estado y desactivar o reactivar accesos.
+- En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
+- El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
 
 
+//todo el buscar cliente que sea dinamico, mientras escribes ya esta buscando semejanzas. ocultar la lupa
+//todo los botones pegar no estan pegando del portapapeles y seria bueno si estan visualmente unidos al campo al que van a pegar la info.
+//todo telefono del destinatario cuba que tenga predeterminado el +53.
+//todo todos los numeros de telefono que tengan un campo codigo de pais.
+//todo en el header cuando se presiones el icono del usuario que aparezca un acordion con los botones basicos estandar de ese boton, modificar usuario, configuracion, salit, etc.
+//todo en el perfil que se pueda añadir foto. 
 
+// todo nueva funcionalidad, para los nuevos pedido, el campo cliente es obligatorio, pq cuando se cree el pedido, automaticamente se enviaræ un mensaje por whatsapp a ese cliente enviandole el cuanta a la que debe hacer la transferencia.
 
+//todo Reportes la tabla Por dias, no tiene espaceado con la parte superios
+
+//todo las tarjetas de los pedidos no estan bien alineados, hay q centrarlos, y en la vista lista, el monto pagado (centro a la derecha) y el monto recibe (abajo a la derecha), se van de lugar cuando cambias de tamaño a pequeño.
