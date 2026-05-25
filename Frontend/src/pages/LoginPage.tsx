@@ -3,6 +3,7 @@ import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import { login, setToken } from '../api/client';
 import type { Operador } from '../types/api';
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
+import { PhoneInput } from '../components/PhoneInput';
 
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
   const [telefono, setTelefono] = useState(import.meta.env.VITE_TEST_LOGIN_TELEFONO ?? '');
@@ -40,7 +41,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
         </div>
         <label>
           Telefono
-          <input value={telefono} onChange={(event) => setTelefono(event.target.value)} autoComplete="username" />
+          <PhoneInput value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" pasteTitle="Pegar telefono" />
         </label>
         <label>
           Contraseña
@@ -65,6 +66,11 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
         {error && <div className="notice error">{error}</div>}
         <button className="primary-button" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
       </form>
+      {loading && (
+        <div className="logo-bounce-loader" aria-label="Iniciando sesion">
+          <img src={logoJireh} alt="" />
+        </div>
+      )}
     </main>
   );
 }

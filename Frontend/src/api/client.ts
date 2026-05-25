@@ -116,6 +116,16 @@ export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
   }).then((data) => data.operador);
 }
 
+export function subirMiFotoPerfil(file: File) {
+  const formData = new FormData();
+  formData.append('archivo', file);
+
+  return request<AuthMeResponse>('/auth/me/foto', {
+    method: 'POST',
+    body: formData,
+  }).then((data) => data.operador);
+}
+
 export function cambiarMiPassword(payload: PasswordChangePayload) {
   return request<{ message: string }>('/auth/me/password', {
     method: 'PATCH',

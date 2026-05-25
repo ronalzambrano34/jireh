@@ -5,20 +5,35 @@ import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PasteButton } from '../components/PasteButton';
+import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
+import { telefonoClienteCompleto } from '../utils/telefonos';
+import { abrirWhatsAppUrls } from '../utils/whatsapp';
+
+const TELEFONO_CUBA_DEFAULT = '+53';
+
+function telefonoCubaCompleto(value: string) {
+  return value.replace(/\D/g, '').length > 2;
+}
+
+function telefonoCubaPayload(value: string) {
+  const limpio = value.trim();
+  return telefonoCubaCompleto(limpio) ? limpio : undefined;
+}
+
 
 type DivisaInitialData = { monto_pago?: string; monto_divisa?: string; moneda_pago?: string; tipo_tarjeta?: string };
 
 export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: DivisaInitialData }) {
   const [form, setForm] = useState({
-    monto_pago: initialData?.monto_pago ?? '230',
+    monto_pago: initialData?.monto_pago ?? '',
     monto_divisa: initialData?.monto_divisa ?? '100',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
     tipo_tarjeta: initialData?.tipo_tarjeta ?? 'MLC',
     numero_tarjeta: '',
-    telefono_destinatario: '',
+    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -91,6 +106,10 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!telefonoClienteCompleto(form.numero_telefono_cliente)) {
+      setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -102,12 +121,16 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         operador_id: operadorId,
         tipo_tarjeta: form.tipo_tarjeta || undefined,
         numero_tarjeta: form.numero_tarjeta || undefined,
-        telefono_destinatario: form.telefono_destinatario || undefined,
+        telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente || undefined,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         observaciones: observacionesConBono(),
       });
+      abrirWhatsAppUrls(
+        response.whatsapp_pago_url,
+        response.whatsapp_grupo_pedidos_url,
+      );
       onCreated(response.codigo_operacion);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
@@ -168,10 +191,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             </label>
             <label>
               Telefono destinatario Cuba
-              <span className="input-action-row">
-                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
-                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
-              </span>
+              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" pasteTitle="Pegar telefono destinatario" />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -197,7 +217,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           <div className="form-grid payment-grid">
             <label>
               Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
             <label>
               Metodo de pago
@@ -215,7 +235,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             </label>
             <label>
               Monto divisa
-              <input value={form.monto_divisa} onChange={(event) => update('monto_divisa', event.target.value)} inputMode="decimal" required />
+              <input value={form.monto_divisa} onChange={(event) => update('monto_divisa', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" required />
             </label>
             <CalculoPreview calculo={calculo} monedaResultado={form.tipo_tarjeta || 'DIV'} />
             <label className="wide">
@@ -226,7 +246,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id}>
+      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear divisa'}
       </button>
     </form>

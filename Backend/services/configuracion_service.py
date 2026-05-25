@@ -2,6 +2,33 @@ from sqlalchemy.orm import Session
 
 from Backend.models.configuracion import Configuracion
 
+CONFIGURACIONES_DEFAULT = {
+    "whatsapp_grupo_pedidos_url": "",
+    "whatsapp_grupo_finalizados_url": "",
+}
+
+CONFIGURACIONES_DESCRIPCION = {
+    "whatsapp_grupo_pedidos_url": "Link de WhatsApp del grupo donde se trabajan los pedidos nuevos.",
+    "whatsapp_grupo_finalizados_url": "Link de WhatsApp del grupo historico de operaciones finalizadas.",
+}
+
+
+def asegurar_configuraciones_default(db: Session):
+    for clave, valor in CONFIGURACIONES_DEFAULT.items():
+        existe = db.query(Configuracion).filter(Configuracion.clave == clave).first()
+        if existe:
+            if not existe.descripcion:
+                existe.descripcion = CONFIGURACIONES_DESCRIPCION.get(clave)
+            continue
+
+        db.add(Configuracion(
+            clave=clave,
+            valor=valor,
+            descripcion=CONFIGURACIONES_DESCRIPCION.get(clave),
+        ))
+
+    db.flush()
+
 
 def obtener_configuracion(
     db: Session,
@@ -22,6 +49,8 @@ def obtener_configuracion(
 def listar_configuraciones(
     db: Session
 ):
+    asegurar_configuraciones_default(db)
+    db.commit()
     return (
         db.query(
             Configuracion

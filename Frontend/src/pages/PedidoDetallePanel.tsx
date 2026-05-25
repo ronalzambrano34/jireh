@@ -3,6 +3,7 @@ import { CheckCircle2, Clock3, Copy, ExternalLink, FileText, History, Lock, Mess
 import { Modal } from '../components/Modal';
 import { actualizarEstado, liberarOperacion, obtenerPedido, renovarOperacion, subirArchivo, tomarOperacion } from '../api/client';
 import type { PedidoDetalle } from '../types/api';
+import { abrirWhatsAppUrls } from '../utils/whatsapp';
 
 const estados = [
   { value: 'pendiente_pago', label: 'Pendiente pago' },
@@ -174,6 +175,10 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       setPedido(actualizado);
       setEstado(actualizado.estado);
       onChanged();
+      abrirWhatsAppUrls(
+        actualizado.whatsapp_estado_url,
+        actualizado.whatsapp_grupo_finalizado_url,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el estado');
     } finally {
@@ -190,8 +195,10 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       setPedido(actualizado);
       setEstado(actualizado.estado);
       onChanged();
-      const url = actualizado.whatsapp_url ?? pedido.whatsapp_url;
-      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      abrirWhatsAppUrls(
+        actualizado.whatsapp_estado_url,
+        actualizado.whatsapp_grupo_finalizado_url,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo finalizar la operacion');
     } finally {

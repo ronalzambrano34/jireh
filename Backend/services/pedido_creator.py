@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from sqlalchemy.orm import Session
 
 from Backend.models.pedido import Pedido
@@ -48,6 +50,12 @@ from Backend.services.cliente_service import (
 from Backend.services.telefonos import (
     normalizar_telefono
 )
+from Backend.services.payment_service import (
+    obtener_datos_pago
+)
+from Backend.services.whatsapp_service import (
+    generar_notificacion_grupo_pedido
+)
 
 
 def normalizar_telefono_destinatario(
@@ -75,6 +83,70 @@ def normalizar_telefono_destinatario(
     return telefono
 
 
+
+
+def _metodo_pago_key(nombre: str | None):
+    value = (nombre or "").strip().lower()
+    if "itau" in value or "itaú" in value:
+        return "itau"
+    if "brou" in value or "brow" in value:
+        return "brou"
+    if "prex" in value:
+        return "prex"
+    if "midinero" in value or "mi dinero" in value or "md" == value:
+        return "midinero"
+    if "pix" in value:
+        return "pix"
+    return value
+
+
+def _cliente_whatsapp_url(cliente: Cliente | None, mensaje: str):
+    if not cliente or not cliente.telefono:
+        return None
+
+    digits = "".join(ch for ch in cliente.telefono if ch.isdigit())
+    if not digits:
+        return None
+
+    return "https://wa.me/" + digits + "?text=" + quote(mensaje)
+
+
+def _generar_mensaje_pago_cliente(
+    db: Session,
+    pedido: Pedido,
+    cliente: Cliente,
+    metodo_pago: MetodoPago
+):
+    try:
+        datos_pago = obtener_datos_pago(
+            db,
+            pedido.moneda_pago,
+            _metodo_pago_key(metodo_pago.nombre)
+        )
+    except Exception:
+        datos_pago = {
+            "metodo_pago": metodo_pago.nombre,
+            "cuenta_pago": "Por confirmar",
+            "titular_pago": "El Jireh"
+        }
+
+    mensaje = (
+        "*El Jireh - Instrucciones de pago*\n"
+        f"Hola {cliente.nombre}, tu pedido {pedido.codigo_operacion} fue recibido.\n"
+        f"*Monto a pagar:* {pedido.monto_pago} {pedido.moneda_pago}\n"
+        f"*Metodo:* {datos_pago.get('metodo_pago') or metodo_pago.nombre}\n"
+        f"*Cuenta:* {datos_pago.get('cuenta_pago') or 'Por confirmar'}\n"
+        f"*Titular:* {datos_pago.get('titular_pago') or 'El Jireh'}\n"
+        "Cuando realices el pago, envia el comprobante por este chat para confirmar la orden."
+    )
+
+    return {
+        "mensaje": mensaje,
+        "whatsapp_url": _cliente_whatsapp_url(
+            cliente,
+            mensaje
+        )
+    }
 
 
 def _valor_vacio(
@@ -394,22 +466,20 @@ def crear_pedido(
             .first()
         )
 
-    # Fallback: usar cliente generico por defecto
     else:
-        cliente = (
-            db.query(
-                Cliente
-            )
-            .filter(
-                Cliente.id == 1
-            )
-            .first()
+        raise Exception(
+            "El cliente es obligatorio. Selecciona un cliente o escribe su telefono/WhatsApp"
         )
 
     if not cliente:
 
         raise Exception(
             "Cliente no encontrado o no pudo ser creado"
+        )
+
+    if not cliente.telefono:
+        raise Exception(
+            "El cliente debe tener telefono/WhatsApp para enviar instrucciones de pago"
         )
 
     if (
@@ -750,6 +820,24 @@ def crear_pedido(
         )
     )
 
+    mensaje_pago_cliente = (
+        _generar_mensaje_pago_cliente(
+            db=db,
+            pedido=pedido,
+            cliente=cliente,
+            metodo_pago=metodo_pago
+        )
+    )
+
+    mensaje_grupo_pedido = (
+        generar_notificacion_grupo_pedido(
+            db=db,
+            mensaje_operacion=mensaje_data[
+                "mensaje"
+            ]
+        )
+    )
+
     return {
 
         "pedido_id":
@@ -777,6 +865,26 @@ def crear_pedido(
 
         "whatsapp_url":
         mensaje_data[
+            "whatsapp_url"
+        ],
+
+        "mensaje_pago_cliente":
+        mensaje_pago_cliente[
+            "mensaje"
+        ],
+
+        "whatsapp_pago_url":
+        mensaje_pago_cliente[
+            "whatsapp_url"
+        ],
+
+        "mensaje_grupo_pedidos":
+        mensaje_grupo_pedido[
+            "mensaje"
+        ],
+
+        "whatsapp_grupo_pedidos_url":
+        mensaje_grupo_pedido[
             "whatsapp_url"
         ]
     }

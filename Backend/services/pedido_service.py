@@ -13,6 +13,10 @@ from Backend.models.operador import Operador
 
 from Backend.models.pedido_historial import (PedidoHistorial)
 from Backend.services.pedido_estado import (PedidoEstado)
+from Backend.services.whatsapp_service import (
+    generar_notificacion_estado_cliente,
+    generar_notificacion_grupo_finalizado
+)
 
 ESTADOS_ALIASES = {
     "pendiente": PedidoEstado.PENDIENTE_PAGO,
@@ -745,8 +749,26 @@ def actualizar_estado_pedido(
         pedido
     )
 
-    return pedido_dict(
+    data = pedido_dict(
         db,
         pedido,
         incluir_detalle=True
     )
+
+    mensaje_cliente = generar_notificacion_estado_cliente(
+        db,
+        pedido
+    )
+    mensaje_finalizado = generar_notificacion_grupo_finalizado(
+        db,
+        pedido
+    )
+
+    data.update({
+        "mensaje_cliente_estado": mensaje_cliente["mensaje"],
+        "whatsapp_estado_url": mensaje_cliente["whatsapp_url"],
+        "mensaje_grupo_finalizado": mensaje_finalizado["mensaje"],
+        "whatsapp_grupo_finalizado_url": mensaje_finalizado["whatsapp_url"],
+    })
+
+    return data

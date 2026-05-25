@@ -84,9 +84,31 @@ from Backend.models.configuracion import (
 )
 
 
+DEFAULT_NOTIFICATION_TEMPLATES = {
+    "template_cliente_estado_pendiente_pago": "Hola {cliente_nombre}, tu pedido {codigo_operacion} esta pendiente de pago. Monto a pagar: {monto_pago} {moneda_pago}.",
+    "template_cliente_estado_pago_confirmado": "Hola {cliente_nombre}, confirmamos el pago de tu pedido {codigo_operacion}. Tu pedido esta siendo procesado.",
+    "template_cliente_estado_en_operacion": "Hola {cliente_nombre}, tu pedido {codigo_operacion} ya esta en operacion. Te avisaremos cuando quede finalizado.",
+    "template_cliente_estado_completado": "Hola {cliente_nombre}, tu pedido {codigo_operacion} fue finalizado.\nMonto recibido: {monto_resultado}.\nComprobante: {comprobante_pago}",
+    "template_cliente_estado_cancelado": "Hola {cliente_nombre}, tu pedido {codigo_operacion} fue cancelado. Observaciones: {observaciones}",
+    "template_cliente_estado_error": "Hola {cliente_nombre}, tu pedido {codigo_operacion} requiere revision. El equipo de El Jireh te contactara por este chat.",
+    "template_grupo_finalizado": "*Operacion finalizada*\nCodigo: {codigo_operacion}\nServicio: {servicio}\nCliente: {cliente_nombre} ({cliente_telefono})\nPago: {monto_pago} {moneda_pago} por {metodo_pago}\nRecibe: {monto_resultado}\nTasa: {tasa_final}\nGanancia: {ganancia}\nComprobante: {comprobante_pago}",
+}
+
+
+def asegurar_templates_default(db: Session):
+    for clave, valor in DEFAULT_NOTIFICATION_TEMPLATES.items():
+        existe = db.query(Configuracion).filter(Configuracion.clave == clave).first()
+        if not existe:
+            db.add(Configuracion(clave=clave, valor=valor))
+    db.flush()
+
+
 def listar_templates(
     db: Session
 ):
+
+    asegurar_templates_default(db)
+    db.commit()
 
     templates = (
         db.query(

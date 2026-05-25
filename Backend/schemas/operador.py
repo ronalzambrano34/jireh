@@ -54,6 +54,8 @@ class OperadorResponse(
 
     telefono: str | None = None
 
+    foto_url: str | None = None
+
     rol: str
 
     activo: bool

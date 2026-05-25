@@ -38,6 +38,18 @@ type ServiceCard = {
   icon: ReactNode;
 };
 
+type CarruselOferta = {
+  id: string;
+  servicio: ServicioCrear;
+  servicioLabel: string;
+  moneda: string;
+  min: string;
+  tasa: string;
+  unidad: string;
+  tone: string;
+  draft: OfertaCreateDraft;
+};
+
 const serviceCards: ServiceCard[] = [
   {
     servicio: 'transferencia',
@@ -157,6 +169,55 @@ function fechaActualizacion(value?: string) {
   return `Actualizado ${date.toLocaleDateString('es-UY')} ${date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
+function CarruselTasas({ ofertas, onCreate }: { ofertas: CarruselOferta[]; onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void }) {
+  if (ofertas.length === 0) return null;
+
+  return (
+    <section className="rates-carousel-block" aria-label="Tasas del dia">
+      <div className="rates-carousel-head">
+        <h3>Tasas del Dia</h3>
+        <span>Desliza -&gt;</span>
+      </div>
+      <div className="rates-carousel-track">
+        {ofertas.map((oferta) => (
+          <button
+            type="button"
+            className={`rates-carousel-card ${oferta.tone}`}
+            key={oferta.id}
+            onClick={() => onCreate(oferta.servicio, oferta.draft)}
+          >
+            <span className="rates-carousel-meta">
+              <strong>{oferta.servicioLabel}</strong>
+              <em>{oferta.moneda}</em>
+            </span>
+            <span className="rates-carousel-values">
+              <strong>{oferta.min} {oferta.moneda}</strong>
+              <ArrowRight size={16} />
+              <b>{oferta.tasa} {oferta.unidad}</b>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RatesHomeSkeleton() {
+  return (
+    <div className="rates-loading-shell" aria-hidden="true">
+      <div className="rates-carousel-block rates-carousel-loading">
+        <div className="rates-carousel-head"><h3 /><span /></div>
+        <div className="rates-carousel-track">
+          {[0, 1, 2].map((item) => <div className="rates-carousel-card skeleton-card" key={item} />)}
+        </div>
+      </div>
+      <div className="rates-grid rates-grid-loading">
+        {[0, 1, 2, 3].map((item) => <div className="rate-card rate-card-skeleton" key={item} />)}
+      </div>
+    </div>
+  );
+}
+
 export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) {
   const [data, setData] = useState<TasaOperativaResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -250,7 +311,55 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
 
   const grupoActivo = gruposMoneda.find((grupo) => grupo.moneda === monedaSeleccionada) ?? gruposMoneda[0];
 
+  const ofertasCarrusel = useMemo<CarruselOferta[]>(() => {
+    if (!grupoActivo) return [];
 
+    const items: CarruselOferta[] = [];
+    for (const card of serviceCards) {
+      if (card.servicio === 'saldo') {
+        for (const paquete of grupoActivo.paquetesSaldo.slice(0, 4)) {
+          items.push({
+            id: `saldo-${paquete.id}`,
+            servicio: 'saldo',
+            servicioLabel: 'Recarga movil',
+            moneda: monedaPago(paquete.moneda_pago ?? grupoActivo.moneda),
+            min: formatNumber(paquete.monto_pago),
+            tasa: formatNumber(paquete.saldo_cup),
+            unidad: 'Saldo',
+            tone: card.tone,
+            draft: { moneda_pago: monedaPago(paquete.moneda_pago ?? grupoActivo.moneda), paquete_saldo_id: String(paquete.id) },
+          });
+        }
+        continue;
+      }
+
+      const ofertas = card.servicio === 'divisa' ? grupoActivo.ofertasDivisa : ofertasServicio(grupoActivo.ofertas, card.servicio);
+      for (const oferta of ofertas.slice(0, 4)) {
+        const moneda = monedaPago(oferta.moneda_pago ?? grupoActivo.moneda);
+        items.push({
+          id: `${card.servicio}-${oferta.id}`,
+          servicio: card.servicio,
+          servicioLabel: card.servicio === 'divisa' ? etiquetaDivisa(oferta) : card.title,
+          moneda,
+          min: `${formatNumber(oferta.minimo_pago ?? 0)}+`,
+          tasa: formatNumber(oferta.tasa),
+          unidad: card.servicio === 'divisa' ? unidadDivisa(oferta) : 'CUP',
+          tone: card.tone,
+          draft: card.servicio === 'divisa' ? {
+            monto_pago: String(oferta.minimo_pago ?? ''),
+            moneda_pago: moneda,
+            monto_divisa: String(oferta.tasa ?? ''),
+            tipo_tarjeta: tipoTarjetaDesdeOferta(oferta),
+          } : {
+            monto_pago: String(oferta.minimo_pago ?? ''),
+            moneda_pago: moneda,
+          },
+        });
+      }
+    }
+
+    return items.slice(0, 12);
+  }, [grupoActivo]);
 
   return (
     <section className="home-page">
@@ -273,6 +382,8 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
         <div className="notice warning">No hay tasas activas configuradas</div>
       )}
 
+      {loading && !data && <RatesHomeSkeleton />}
+
       {grupoActivo && (
         <div className="rates-currency-sections">
           <section className="rates-currency-section" key={grupoActivo.moneda}>
@@ -290,6 +401,8 @@ export function InicioPage({ canSyncTasas = false, onCreate }: InicioPageProps) 
                 </select>
               </label>
             </header>
+
+            <CarruselTasas ofertas={ofertasCarrusel} onCreate={onCreate} />
 
             <div className="rates-grid">
               {serviceCards.map((card) => {

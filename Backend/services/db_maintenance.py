@@ -267,6 +267,12 @@ def ensure_runtime_columns(
         "password_hash",
         "password_hash VARCHAR"
     )
+    _add_column_if_missing(
+        db,
+        "operadores",
+        "foto_url",
+        "foto_url VARCHAR"
+    )
 
     _add_column_if_missing(
         db,

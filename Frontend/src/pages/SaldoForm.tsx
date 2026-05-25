@@ -4,9 +4,23 @@ import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PasteButton } from '../components/PasteButton';
+import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
+import { telefonoClienteCompleto } from '../utils/telefonos';
+import { abrirWhatsAppUrls } from '../utils/whatsapp';
+
+const TELEFONO_CUBA_DEFAULT = '+53';
+
+function telefonoCubaCompleto(value: string) {
+  return value.replace(/\D/g, '').length > 2;
+}
+
+function telefonoCubaPayload(value: string) {
+  const limpio = value.trim();
+  return telefonoCubaCompleto(limpio) ? limpio : undefined;
+}
+
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
@@ -15,7 +29,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
     paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
-    telefono_destinatario: '',
+    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -121,11 +135,20 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!telefonoClienteCompleto(form.numero_telefono_cliente)) {
+      setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
+      return;
+    }
+    if (!telefonoCubaCompleto(form.telefono_destinatario)) {
+      setError('Completa el telefono de Cuba despues de +53');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const response = await crearSaldo({
-        telefono_destinatario: form.telefono_destinatario || undefined,
+        telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
@@ -135,6 +158,10 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         moneda_pago: form.moneda_pago,
         observaciones: observacionesConBono(),
       });
+      abrirWhatsAppUrls(
+        response.whatsapp_pago_url,
+        response.whatsapp_grupo_pedidos_url,
+      );
       onCreated(response.codigo_operacion);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
@@ -179,10 +206,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           <div className="form-grid">
             <label>
               Telefono destinatario Cuba
-              <span className="input-action-row">
-                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
-                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
-              </span>
+              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" pasteTitle="Pegar telefono destinatario" required />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -245,7 +269,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id}>
+      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear saldo'}
       </button>
     </form>

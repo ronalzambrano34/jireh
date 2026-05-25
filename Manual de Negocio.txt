@@ -530,16 +530,20 @@ El negocio se apoya en WhatsApp para:
 
 Estado actual del sistema:
 
-- Genera mensaje_operacion.
+- Genera mensaje_operacion para el flujo operativo.
 - Genera whatsapp_url con texto prellenado.
+- En Administracion > Configuracion existen los campos whatsapp_grupo_pedidos_url y whatsapp_grupo_finalizados_url.
+- Al crear un pedido, se abre WhatsApp al cliente con instrucciones de pago y tambien se genera/apertura la orden para el grupo de pedidos en trabajo.
+- Al cambiar estado, se genera mensaje WhatsApp al cliente segun template_cliente_estado_{estado}.
+- Al finalizar un pedido, se genera mensaje para el cliente y tambien para el grupo de operaciones finalizadas, con datos utiles para historico/Excel y calculo de ganancias.
+- Los templates de estado y grupo finalizado se gestionan desde Administracion > Templates.
 - Tiene endpoint /test para webhook basico.
 
 Pendiente:
 
-- Integracion real con WhatsApp API.
-- Envio automatico a grupos o destinatarios.
+- Integracion real con WhatsApp API para enviar sin depender de ventanas/enlaces manuales.
 - Recepcion y procesamiento de mensajes entrantes.
-- Adjuntar automaticamente comprobantes al envio final de WhatsApp.
+- Adjuntar automaticamente archivos binarios de comprobante al envio final de WhatsApp; por ahora se envia referencia/link si existe en comprobante_pago.
 
 9. CONTABILIDAD Y GANANCIA
 
@@ -1180,17 +1184,13 @@ Actualizacion de interfaz aplicada:
 - En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contrasena/estado y desactivar o reactivar accesos.
 - En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
 - El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
+- Todos los campos editables de telefono usan selector de codigo de pais y guardan el numero completo con prefijo internacional.
+- El header tiene menu desplegable de usuario con accesos a modificar usuario, perfil, sesion, apariencia, configuracion, soporte y salir.
+- En Perfil, el operador puede subir o cambiar su foto; se guarda en storage/operadores y se muestra en el header, menu de usuario y tarjeta de perfil.
+- En Nuevo pedido, el telefono/WhatsApp del cliente es obligatorio. Al crear la orden, el sistema genera y abre WhatsApp con instrucciones de pago al cliente usando el metodo/cuenta configurada, y abre/genera la orden para el grupo operativo configurado.
+- En Pedidos, cada cambio de estado genera mensaje WhatsApp para el cliente mediante templates editables. Al completar, tambien se genera mensaje para el grupo historico de operaciones finalizadas.
 
 
 //todo el buscar cliente que sea dinamico, mientras escribes ya esta buscando semejanzas. ocultar la lupa
 //todo los botones pegar no estan pegando del portapapeles y seria bueno si estan visualmente unidos al campo al que van a pegar la info.
 //todo telefono del destinatario cuba que tenga predeterminado el +53.
-//todo todos los numeros de telefono que tengan un campo codigo de pais.
-//todo en el header cuando se presiones el icono del usuario que aparezca un acordion con los botones basicos estandar de ese boton, modificar usuario, configuracion, salit, etc.
-//todo en el perfil que se pueda añadir foto. 
-
-// todo nueva funcionalidad, para los nuevos pedido, el campo cliente es obligatorio, pq cuando se cree el pedido, automaticamente se enviaræ un mensaje por whatsapp a ese cliente enviandole el cuanta a la que debe hacer la transferencia.
-
-//todo Reportes la tabla Por dias, no tiene espaceado con la parte superios
-
-//todo las tarjetas de los pedidos no estan bien alineados, hay q centrarlos, y en la vista lista, el monto pagado (centro a la derecha) y el monto recibe (abajo a la derecha), se van de lugar cuando cambias de tamaño a pequeño.

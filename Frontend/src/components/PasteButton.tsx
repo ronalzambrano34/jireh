@@ -7,12 +7,19 @@ type PasteButtonProps = {
 
 export function PasteButton({ onPaste, title = 'Pegar' }: PasteButtonProps) {
   async function handlePaste() {
+    let value = '';
+
     try {
-      const value = await navigator.clipboard.readText();
-      if (value) onPaste(value.trim());
+      if (!navigator.clipboard?.readText) {
+        throw new Error('Clipboard API no disponible');
+      }
+      value = await navigator.clipboard.readText();
     } catch {
-      // Clipboard permission can be denied by the browser; manual input remains available.
+      value = window.prompt('Pega el dato aqui') ?? '';
     }
+
+    const cleanValue = value.trim();
+    if (cleanValue) onPaste(cleanValue);
   }
 
   return (

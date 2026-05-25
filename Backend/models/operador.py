@@ -51,6 +51,11 @@ class Operador(Base):
         default=True
     )
 
+    foto_url = Column(
+        String,
+        nullable=True
+    )
+
     created_at = Column(
         DateTime,
         server_default=func.now()

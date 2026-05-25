@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos } from './api/client';
+import { actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
@@ -70,6 +70,19 @@ function WhatsAppIcon() {
       </svg>
     </span>
   );
+}
+
+
+function inicialesOperador(operador: Operador) {
+  return operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+}
+
+function OperadorAvatar({ operador, className }: { operador: Operador; className: string }) {
+  if (operador.foto_url) {
+    return <img className={`${className} avatar-photo`} src={apiAssetUrl(operador.foto_url)} alt="" />;
+  }
+
+  return <span className={className}>{inicialesOperador(operador)}</span>;
 }
 
 function detalleValor(pedido: PedidoResumen, key: string) {
@@ -162,6 +175,7 @@ export function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
   const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set());
   const [profileSection, setProfileSection] = useState<ProfileSection>(null);
   const [profileNombre, setProfileNombre] = useState('');
@@ -171,6 +185,7 @@ export function App() {
     confirmar: '',
   });
   const [profileSaving, setProfileSaving] = useState(false);
+  const [profilePhotoSaving, setProfilePhotoSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -229,6 +244,7 @@ export function App() {
     setMobileMenuOpen(false);
     setServicioSheetOpen(false);
     setEstadoSheetOpen(false);
+    setUserMenuOpen(false);
     setProfileSection(null);
     setProfileMessage(null);
     setProfileError(null);
@@ -256,6 +272,23 @@ export function App() {
     setMobileMenuOpen(false);
     setServicioSheetOpen(false);
     setEstadoSheetOpen(false);
+    setUserMenuOpen(false);
+  }
+
+  function abrirPerfilDesdeMenu(section: Exclude<ProfileSection, null>) {
+    setVista('perfil');
+    setProfileSection(section);
+    setProfileMessage(null);
+    setProfileError(null);
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+  }
+
+  function cerrarSesion() {
+    clearToken();
+    setOperador(null);
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
   }
 
   async function cargarPedidos() {
@@ -308,6 +341,22 @@ export function App() {
       window.removeEventListener('offline', syncOnline);
     };
   }, []);
+
+
+  async function subirFotoPerfil(file: File) {
+    setProfilePhotoSaving(true);
+    setProfileError(null);
+    setProfileMessage(null);
+    try {
+      const actualizado = await subirMiFotoPerfil(file);
+      setOperador(actualizado);
+      setProfileMessage('Foto de perfil actualizada');
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'No se pudo subir la foto');
+    } finally {
+      setProfilePhotoSaving(false);
+    }
+  }
 
   async function guardarPerfil(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -381,7 +430,7 @@ export function App() {
           <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
           <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
-        <button className="ghost-button" onClick={() => { clearToken(); setOperador(null); setMobileMenuOpen(false); }}>
+        <button className="ghost-button" onClick={cerrarSesion}>
           <LogOut size={18} /> Salir
         </button>
       </aside>
@@ -404,13 +453,54 @@ export function App() {
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
-            <button className="operator-chip" type="button" onClick={() => navegar('perfil')} title="Ver perfil">
-              <span className="operator-chip-avatar">{operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>
-              <span className="operator-chip-text">
-                <strong>{operador.nombre}</strong>
-                <small>{operador.rol}</small>
-              </span>
-            </button>
+            <div className="user-menu-wrap">
+              <button
+                className={userMenuOpen ? 'operator-chip active' : 'operator-chip'}
+                type="button"
+                onClick={() => setUserMenuOpen((current) => !current)}
+                title="Opciones de usuario"
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+              >
+                <OperadorAvatar operador={operador} className="operator-chip-avatar" />
+                <span className="operator-chip-text">
+                  <strong>{operador.nombre}</strong>
+                  <small>{operador.rol}</small>
+                </span>
+                <ChevronDown className={userMenuOpen ? 'user-menu-chevron open' : 'user-menu-chevron'} size={16} />
+              </button>
+              {userMenuOpen && (
+                <div className="user-menu-card" role="menu">
+                  <div className="user-menu-summary">
+                    <OperadorAvatar operador={operador} className="operator-chip-avatar" />
+                    <span><strong>{operador.nombre}</strong><small>{operador.codigo_operador}</small></span>
+                  </div>
+                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('editar')}>
+                    <Edit3 size={18} /> Modificar usuario
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('datos')}>
+                    <UserCircle size={18} /> Mi perfil
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('sesion')}>
+                    <ShieldCheck size={18} /> Sesion y acceso
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => { setVista('perfil'); setProfileSection(null); setUserMenuOpen(false); }}>
+                    <Palette size={18} /> Apariencia
+                  </button>
+                  {puedeAdmin && (
+                    <button type="button" role="menuitem" onClick={() => navegar('admin')}>
+                      <Settings size={18} /> Configuracion
+                    </button>
+                  )}
+                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('ayuda')}>
+                    <HelpCircle size={18} /> Soporte
+                  </button>
+                  <button className="danger" type="button" role="menuitem" onClick={cerrarSesion}>
+                    <LogOut size={18} /> Salir
+                  </button>
+                </div>
+              )}
+            </div>
             <button className="icon-button mobile-menu-button" onClick={() => setMobileMenuOpen(true)} title="Abrir menu">
               <Menu size={20} />
             </button>
@@ -427,7 +517,13 @@ export function App() {
           <section className="profile-page">
             <div className="profile-hero-card">
               <div className="profile-hero-main">
-                <div className="profile-avatar initials">{operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</div>
+                <div className="profile-avatar-wrap">
+                  <OperadorAvatar operador={operador} className="profile-avatar initials" />
+                  <label className="profile-photo-upload" title="Cambiar foto">
+                    {profilePhotoSaving ? 'Subiendo...' : 'Cambiar foto'}
+                    <input type="file" accept="image/*" disabled={profilePhotoSaving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void subirFotoPerfil(file); event.currentTarget.value = ''; }} />
+                  </label>
+                </div>
                 <div>
                   <h2>{operador.nombre}</h2>
                   <p>{operador.telefono}</p>
@@ -545,7 +641,7 @@ export function App() {
                 <div className="profile-inline-panel profile-session-panel">
                   <div><small>Sesion</small><strong>Activa</strong></div>
                   <div><small>Identificador</small><strong>{operador.codigo_operador}</strong></div>
-                  <button className="secondary-action" type="button" onClick={() => { clearToken(); setOperador(null); }}>Cerrar sesion</button>
+                  <button className="secondary-action" type="button" onClick={cerrarSesion}>Cerrar sesion</button>
                 </div>
               )}
             </div>
@@ -598,7 +694,7 @@ export function App() {
                   </div>
                 </div>
               )}
-              <button className="profile-option danger" type="button" onClick={() => { clearToken(); setOperador(null); }}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
+              <button className="profile-option danger" type="button" onClick={cerrarSesion}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
             </div>
           </section>
         ) : vista === 'crear' ? (
@@ -685,7 +781,7 @@ export function App() {
                   </div>
                 </div>
                 {error && <div className="notice error">{error}</div>}
-                {loading && <div className="notice">Cargando pedidos...</div>}
+                {loading && <div className="page-loading-card" aria-label="Cargando pedidos" />}
                 {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
                 <div className="orders-view-mode-row">
                   <button

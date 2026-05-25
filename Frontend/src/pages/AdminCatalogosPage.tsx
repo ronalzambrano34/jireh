@@ -1,6 +1,7 @@
 import { type DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Banknote, ChevronDown, FileText, ImagePlus, MapPin, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { ArrowLeft, Banknote, ChevronDown, FileText, ImagePlus, MapPin, MessageCircle, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import { PhoneInput } from '../components/PhoneInput';
 import {
   actualizarMetodoPago,
   actualizarOferta,
@@ -104,6 +105,21 @@ export function AdminCatalogosPage() {
   const clientesVisibles = useMemo(() => clientes.filter((cliente) => cliente.activo === mostrarActivos), [clientes, mostrarActivos]);
   const contactosVisibles = useMemo(() => contactos.filter((contacto) => contacto.activo === mostrarActivos), [contactos, mostrarActivos]);
   const operadoresVisibles = useMemo(() => operadores.filter((item) => item.activo === mostrarActivos), [operadores, mostrarActivos]);
+  const whatsappConfiguraciones = useMemo(() => [
+    {
+      clave: 'whatsapp_grupo_pedidos_url',
+      titulo: 'Grupo de pedidos en trabajo',
+      descripcion: 'Recibe la orden completa cuando se crea un pedido.',
+    },
+    {
+      clave: 'whatsapp_grupo_finalizados_url',
+      titulo: 'Grupo de operaciones finalizadas',
+      descripcion: 'Recibe el cierre, comprobante y datos para historico/Excel.',
+    },
+  ].map((item) => ({
+    ...item,
+    valor: configuraciones.find((config) => config.clave === item.clave)?.valor ?? '',
+  })), [configuraciones]);
 
   async function cargar() {
     setLoading(true);
@@ -543,6 +559,7 @@ export function AdminCatalogosPage() {
 
       {error && <div className="notice error">{error}</div>}
       {notice && <div className="notice">{notice}</div>}
+      {loading && !temaActivo && metodos.length === 0 && <div className="page-loading-card" aria-label="Cargando administracion" />}
 
       {!temaActivo && (
         <>
@@ -841,6 +858,15 @@ export function AdminCatalogosPage() {
               Nueva
             </button>
           </header>
+          <div className="config-list whatsapp-config-list">
+            {whatsappConfiguraciones.map((item) => (
+              <button type="button" className="config-row whatsapp-config-row" key={item.clave} onClick={() => abrirConfig({ id: 0, clave: item.clave, valor: item.valor, editable: true })}>
+                <span className="admin-section-icon"><MessageCircle size={18} /></span>
+                <span><strong>{item.titulo}</strong><small>{item.descripcion}</small></span>
+                <span>{item.valor || 'Sin link configurado'}</span>
+              </button>
+            ))}
+          </div>
           <div className="config-list">
             {configuraciones.map((item) => (
               <button type="button" className="config-row" key={item.clave} onClick={() => abrirConfig(item)}>
@@ -934,7 +960,7 @@ export function AdminCatalogosPage() {
           <form className="stack-form modal-form" onSubmit={guardarPunto}>
             <input value={puntoForm.nombre} onChange={(event) => setPuntoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <input value={puntoForm.direccion} onChange={(event) => setPuntoForm((current) => ({ ...current, direccion: event.target.value }))} placeholder="Direccion" required />
-            <input value={puntoForm.telefono} onChange={(event) => setPuntoForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono opcional" />
+            <PhoneInput value={puntoForm.telefono} onChange={(value) => setPuntoForm((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono" />
             <button className="primary-button"><Save size={18} /> Crear punto</button>
           </form>
         </Modal>
@@ -976,7 +1002,7 @@ export function AdminCatalogosPage() {
         <Modal title="Crear cliente" subtitle="Administracion / Clientes" onClose={() => setCrearModalTema(null)} wide>
           <form className="stack-form modal-form" onSubmit={guardarCliente}>
             <input value={clienteForm.nombre} onChange={(event) => setClienteForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre cliente" required />
-            <input value={clienteForm.telefono} onChange={(event) => setClienteForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono" />
+            <PhoneInput value={clienteForm.telefono} onChange={(value) => setClienteForm((current) => ({ ...current, telefono: value }))} defaultCode="+55" pasteTitle="Pegar telefono cliente" />
             <input value={clienteForm.email} onChange={(event) => setClienteForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
             <div className="inline-form three">
               <input value={clienteForm.pais} onChange={(event) => setClienteForm((current) => ({ ...current, pais: event.target.value }))} placeholder="pais" />
@@ -996,7 +1022,7 @@ export function AdminCatalogosPage() {
               {clientes.map((cliente) => <option key={cliente.id} value={cliente.id}>{cliente.nombre} #{cliente.id}</option>)}
             </select>
             <input value={contactoForm.nombre} onChange={(event) => setContactoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre contacto" required />
-            <input value={contactoForm.telefono} onChange={(event) => setContactoForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono Cuba" />
+            <PhoneInput value={contactoForm.telefono} onChange={(value) => setContactoForm((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono Cuba" />
             <div className="inline-form three">
               <input value={contactoForm.numero_tarjeta} onChange={(event) => setContactoForm((current) => ({ ...current, numero_tarjeta: event.target.value }))} placeholder="Tarjeta" />
               <input value={contactoForm.tipo_tarjeta} onChange={(event) => setContactoForm((current) => ({ ...current, tipo_tarjeta: event.target.value }))} placeholder="Tipo tarjeta" />
@@ -1013,7 +1039,7 @@ export function AdminCatalogosPage() {
         <Modal title="Crear operador" subtitle="Administracion / Operadores" onClose={() => setCrearModalTema(null)} wide>
           <form className="stack-form modal-form" onSubmit={guardarOperador}>
             <input value={operadorForm.nombre} onChange={(event) => setOperadorForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
-            <input value={operadorForm.telefono} onChange={(event) => setOperadorForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono de acceso" required />
+            <PhoneInput value={operadorForm.telefono} onChange={(value) => setOperadorForm((current) => ({ ...current, telefono: value }))} defaultCode="+55" required pasteTitle="Pegar telefono de acceso" />
             <input type="password" value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Contrasena inicial" autoComplete="new-password" />
             <select value={operadorForm.rol} onChange={(event) => setOperadorForm((current) => ({ ...current, rol: event.target.value }))}>
               {rolesOperador.map((rol) => <option key={rol} value={rol}>{rol}</option>)}
@@ -1027,7 +1053,7 @@ export function AdminCatalogosPage() {
         <Modal title="Editar operador" subtitle={`${operadorEditando.nombre} · ${operadorEditando.codigo_operador}`} onClose={() => setOperadorEditando(null)} wide>
           <form className="stack-form modal-form" onSubmit={guardarOperadorEditado}>
             <input value={operadorForm.nombre} onChange={(event) => setOperadorForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
-            <input value={operadorForm.telefono} onChange={(event) => setOperadorForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono de acceso" required />
+            <PhoneInput value={operadorForm.telefono} onChange={(value) => setOperadorForm((current) => ({ ...current, telefono: value }))} defaultCode="+55" required pasteTitle="Pegar telefono de acceso" />
             <input type="password" value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Nueva contrasena opcional" autoComplete="new-password" />
             <div className="inline-form three operator-edit-inline">
               <select value={operadorForm.rol} onChange={(event) => setOperadorForm((current) => ({ ...current, rol: event.target.value }))}>

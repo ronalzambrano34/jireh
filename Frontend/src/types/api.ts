@@ -2,6 +2,7 @@ export type Operador = {
   id: number;
   nombre: string;
   telefono: string;
+  foto_url?: string | null;
   codigo_operador: string;
   rol: string;
   permisos: string[];
@@ -89,6 +90,14 @@ export type PedidoDetalle = PedidoResumen & {
   historial?: PedidoHistorial[];
   mensaje_operacion?: string;
   whatsapp_url?: string;
+  mensaje_pago_cliente?: string;
+  whatsapp_pago_url?: string | null;
+  mensaje_grupo_pedidos?: string;
+  whatsapp_grupo_pedidos_url?: string | null;
+  mensaje_cliente_estado?: string | null;
+  whatsapp_estado_url?: string | null;
+  mensaje_grupo_finalizado?: string | null;
+  whatsapp_grupo_finalizado_url?: string | null;
   comprobante_pago?: string | null;
 };
 

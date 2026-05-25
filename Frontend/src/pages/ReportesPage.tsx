@@ -311,7 +311,7 @@ export function ReportesPage() {
           </div>
 
           <div className="report-grid">
-            <ReportTable title="Por dia" rows={reporte.por_dia} />
+            <ReportTable title="Por dias" rows={reporte.por_dia} />
             <ReportTable title="Por estado" rows={reporte.por_estado} />
             <ReportTable title="Por servicio" rows={reporte.por_servicio} />
             <ReportTable title="Por moneda" rows={reporte.por_moneda} />
