@@ -10,10 +10,11 @@
     <script>
       (function () {
         try {
-          var theme = localStorage.getItem('jireh.theme') === 'light' ? 'light' : 'dark';
+          var savedTheme = localStorage.getItem('jireh.theme');
+          var theme = savedTheme === 'dark' || savedTheme === 'dark-deep' || savedTheme === 'dark-sidebar' ? savedTheme : 'light';
           document.documentElement.dataset.theme = theme;
         } catch (error) {
-          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.dataset.theme = 'light';
         }
       })();
     </script>

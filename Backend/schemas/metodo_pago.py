@@ -10,6 +10,8 @@ class MetodoPagoBase(
 
     moneda: str
 
+    imagen_url: str | None = None
+
 
 class MetodoPagoCreate(
     MetodoPagoBase
@@ -27,6 +29,8 @@ class MetodoPagoUpdate(
     moneda: str | None = None
 
     activo: bool | None = None
+
+    imagen_url: str | None = None
 
 
 class MetodoPagoResponse(

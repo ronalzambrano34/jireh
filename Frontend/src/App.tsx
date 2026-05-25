@@ -38,10 +38,15 @@ type CrearPedidoDraft = {
   tipo_tarjeta?: string;
 };
 
-type ProfileSection = 'datos' | 'editar' | 'permisos' | 'apariencia' | 'password' | 'sesion' | 'ayuda' | null;
-type AppTheme = 'dark' | 'light';
+type ProfileSection = 'datos' | 'editar' | 'permisos' | 'password' | 'sesion' | 'ayuda' | null;
+type AppTheme = 'light' | 'dark' | 'dark-deep' | 'dark-sidebar';
 
 const THEME_KEY = 'jireh.theme';
+const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
+  { value: 'dark-sidebar', label: 'Oscuro menu' },
+  { value: 'dark-deep', label: 'Oscuro profundo' },
+  { value: 'dark', label: 'Oscuro tecnico' },
+];
 
 const estadosBandeja = estados.filter((item) => item.value);
 
@@ -136,9 +141,10 @@ function tiempoRelativo(value?: string) {
 
 export function App() {
   const [theme, setTheme] = useState<AppTheme>(() => {
-    if (typeof localStorage === 'undefined') return 'dark';
+    if (typeof localStorage === 'undefined') return 'light';
     const saved = localStorage.getItem(THEME_KEY);
-    return saved === 'light' ? 'light' : 'dark';
+    if (saved === 'dark' || saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    return 'light';
   });
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
@@ -479,17 +485,36 @@ export function App() {
               )}
 
 
-              <button className={profileSection === 'apariencia' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('apariencia')} aria-expanded={profileSection === 'apariencia'}><Palette size={22} /><span>Apariencia</span><ChevronDown className={profileSection === 'apariencia' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'apariencia' && (
-                <div className="profile-inline-panel profile-form">
-                  <label>
-                    <span>Tema de la plataforma</span>
-                    <select value={theme} onChange={(event) => setTheme(event.target.value === 'light' ? 'light' : 'dark')}>
-                      <option value="dark">Oscuro</option>
-                      <option value="light">Claro</option>
-                    </select>
-                  </label>
-                  <small>Se guarda en este dispositivo y se aplica automaticamente al volver a entrar.</small>
+              <div className="profile-appearance-row">
+                <span className="profile-appearance-icon" aria-hidden="true"><Palette size={22} /></span>
+                <div className="profile-appearance-copy">
+                  <div className="profile-appearance-title">
+                    <strong>Apariencia</strong>
+                    <label className="theme-switch">
+                      <input
+                        type="checkbox"
+                        checked={theme !== 'light'}
+                        onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}
+                        aria-label="Activar tema oscuro"
+                      />
+                      <span>Oscuro</span>
+                    </label>
+                  </div>
+                  <small>{theme === 'light' ? 'Tema claro predeterminado' : DARK_THEME_OPTIONS.find((item) => item.value === theme)?.label}</small>
+                </div>
+              </div>
+              {theme !== 'light' && (
+                <div className="theme-variant-row" aria-label="Variante de tema oscuro">
+                  {DARK_THEME_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={theme === option.value ? 'active' : ''}
+                      onClick={() => setTheme(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -813,7 +838,7 @@ export function App() {
           </section>
         </div>
       )}
-      {puedeCrear && vista !== 'crear' && (
+      {puedeCrear && (vista === 'inicio' || vista === 'bandeja') && (
         <button className="floating-create" onClick={() => abrirCrear('transferencia')} title="Nuevo pedido">
           <Plus size={24} />
         </button>

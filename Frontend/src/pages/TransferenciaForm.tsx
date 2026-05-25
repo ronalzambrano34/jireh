@@ -1,11 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { crearTransferencia, listarMetodosPago } from '../api/client';
+import { calcularOperacion, crearTransferencia, listarMetodosPago } from '../api/client';
+import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
-import type { Contacto, MetodoPago } from '../types/api';
+import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
+import { PasteButton } from '../components/PasteButton';
+import type { CalculoOperacionResponse, Contacto, MetodoPago } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 
 type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
+
 
 export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
@@ -17,11 +21,15 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
+    bonificacion_manual: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
+  const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
+  const [calculando, setCalculando] = useState(false);
+  const [calculoError, setCalculoError] = useState<string | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -44,6 +52,35 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
       .finally(() => setCargandoMetodos(false));
   }, []);
+
+  useEffect(() => {
+    const monto = Number(form.monto_pago);
+    if (!monto || monto <= 0) {
+      setCalculo(null);
+      setCalculoError(null);
+      return;
+    }
+
+    let activo = true;
+    setCalculando(true);
+    setCalculoError(null);
+    calcularOperacion({
+      servicio: 'transferencia',
+      moneda_pago: form.moneda_pago,
+      monto_pago: monto,
+      bonificacion_manual: Number(form.bonificacion_manual) || 0,
+    })
+      .then((data) => { if (activo) setCalculo(data); })
+      .catch((err) => {
+        if (activo) {
+          setCalculo(null);
+          setCalculoError(err instanceof Error ? err.message : 'No se pudo calcular');
+        }
+      })
+      .finally(() => { if (activo) setCalculando(false); });
+
+    return () => { activo = false; };
+  }, [form.monto_pago, form.moneda_pago, form.bonificacion_manual]);
 
   useEffect(() => {
     if (!metodosFiltrados.length) {
@@ -88,6 +125,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente || undefined,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+        bonificacion_manual: Number(form.bonificacion_manual) || undefined,
       });
       onCreated(response.codigo_operacion);
     } catch (err) {
@@ -133,11 +171,17 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           <div className="form-grid">
             <label>
               Tarjeta destinatario
-              <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
+              <span className="input-action-row">
+                <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
+                <PasteButton onPaste={(value) => update('numero_tarjeta', value)} title="Pegar tarjeta destinatario" />
+              </span>
             </label>
             <label>
               Telefono destinatario Cuba
-              <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
+              <span className="input-action-row">
+                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
+                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
+              </span>
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -167,20 +211,19 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
             </label>
             <label>
               Metodo de pago
-              <select
+              <MetodoPagoSelect
                 value={form.tipo_pago_id}
-                onChange={(event) => update('tipo_pago_id', event.target.value)}
-                required
+                metodos={metodosFiltrados}
+                onChange={(value) => update('tipo_pago_id', value)}
                 disabled={cargandoMetodos || metodosFiltrados.length === 0}
-              >
-                {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
-                {metodosFiltrados.map((metodo) => (
-                  <option key={metodo.id} value={metodo.id}>
-                    {metodo.nombre} · {metodo.moneda}
-                  </option>
-                ))}
-              </select>
+                emptyLabel={`Sin metodos para ${form.moneda_pago}`}
+              />
             </label>
+            <label>
+              Cupon o bono
+              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
+            </label>
+            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} />
           </div>
         </section>
       </div>

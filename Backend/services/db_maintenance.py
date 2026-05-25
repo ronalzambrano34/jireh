@@ -270,6 +270,13 @@ def ensure_runtime_columns(
 
     _add_column_if_missing(
         db,
+        "metodos_pago",
+        "imagen_url",
+        "imagen_url VARCHAR"
+    )
+
+    _add_column_if_missing(
+        db,
         "pedido_efectivo",
         "documento_identidad_url",
         "documento_identidad_url VARCHAR"

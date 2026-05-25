@@ -1,8 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/client';
+import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
-import type { Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
+import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
+import { PasteButton } from '../components/PasteButton';
+import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
@@ -17,6 +20,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     nombre_cliente: '',
     numero_telefono_cliente: '',
     observaciones: '',
+    bonificacion_manual: '',
   });
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [paquetes, setPaquetes] = useState<PaqueteSaldo[]>([]);
@@ -79,6 +83,24 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     }
   }, [form.moneda_pago, form.tipo_pago_id, form.paquete_saldo_id, metodosFiltrados, paquetesFiltrados]);
 
+  const paqueteSeleccionado = useMemo(
+    () => paquetesFiltrados.find((paquete) => String(paquete.id) === form.paquete_saldo_id),
+    [form.paquete_saldo_id, paquetesFiltrados],
+  );
+
+  const calculo = useMemo<CalculoOperacionResponse | null>(() => {
+    if (!paqueteSeleccionado) return null;
+    const montoPago = Number(paqueteSeleccionado.monto_pago) || 0;
+    const saldoCup = Number(paqueteSeleccionado.saldo_cup) || 0;
+    return {
+      paquete_id: paqueteSeleccionado.id,
+      monto_resultado: saldoCup,
+      tasa: montoPago > 0 ? saldoCup / montoPago : undefined,
+      tasa_final: montoPago > 0 ? saldoCup / montoPago : undefined,
+      saldo_cup: saldoCup,
+    };
+  }, [paqueteSeleccionado]);
+
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -88,6 +110,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       ...current,
       telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
     }));
+  }
+
+  function observacionesConBono() {
+    const bono = form.bonificacion_manual.trim();
+    const observaciones = form.observaciones.trim();
+    if (!bono) return observaciones || undefined;
+    return [observaciones, `Cupon/bono: ${bono}`].filter(Boolean).join(' | ');
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -104,7 +133,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         paquete_saldo_id: form.paquete_saldo_id ? Number(form.paquete_saldo_id) : null,
         moneda_pago: form.moneda_pago,
-        observaciones: form.observaciones || undefined,
+        observaciones: observacionesConBono(),
       });
       onCreated(response.codigo_operacion);
     } catch (err) {
@@ -150,7 +179,10 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           <div className="form-grid">
             <label>
               Telefono destinatario Cuba
-              <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+              <span className="input-action-row">
+                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
+                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
+              </span>
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -176,17 +208,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           <div className="form-grid payment-grid">
             <label>
               Metodo de pago
-              <select
+              <MetodoPagoSelect
                 value={form.tipo_pago_id}
-                onChange={(event) => update('tipo_pago_id', event.target.value)}
-                required
+                metodos={metodosFiltrados}
+                onChange={(value) => update('tipo_pago_id', value)}
                 disabled={cargandoCatalogos || metodosFiltrados.length === 0}
-              >
-                {metodosFiltrados.length === 0 && <option value="">Sin metodos para {form.moneda_pago}</option>}
-                {metodosFiltrados.map((metodo) => (
-                  <option key={metodo.id} value={metodo.id}>{metodo.nombre} · {metodo.moneda}</option>
-                ))}
-              </select>
+                emptyLabel={`Sin metodos para ${form.moneda_pago}`}
+              />
             </label>
             <label>
               Paquete de saldo
@@ -204,6 +232,11 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 ))}
               </select>
             </label>
+            <label>
+              Cupon o bono
+              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Referencia opcional" />
+            </label>
+            <CalculoPreview calculo={calculo} />
             <label className="wide">
               Observaciones
               <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />

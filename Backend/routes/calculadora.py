@@ -51,7 +51,10 @@ def calcular(
             data["moneda_pago"],
 
             monto_pago=
-            data["monto_pago"]
+            data["monto_pago"],
+
+            bonificacion_manual=
+            data.get("bonificacion_manual", 0)
         )
     except Exception as exc:
         raise HTTPException(

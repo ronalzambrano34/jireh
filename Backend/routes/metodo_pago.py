@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import File
+from fastapi import UploadFile
 
 from sqlalchemy.orm import Session
 
@@ -20,7 +22,8 @@ from Backend.services.metodo_pago_service import (
     crear_metodo_pago,
     eliminar_metodo_pago,
     listar_metodos_pago,
-    obtener_metodo_pago
+    obtener_metodo_pago,
+    guardar_imagen_metodo_pago
 )
 
 router = APIRouter(
@@ -147,6 +150,39 @@ def actualizar_metodo_pago_route(
             db,
             metodo_id,
             data
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+
+
+
+
+@router.post(
+    "/{metodo_id}/imagen",
+    response_model=MetodoPagoResponse
+)
+def subir_imagen_metodo_pago_route(
+    metodo_id: int,
+    archivo: UploadFile = File(
+        ...
+    ),
+    db: Session = Depends(
+        get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "empresa:control_total"
+        )
+    )
+):
+    try:
+        return guardar_imagen_metodo_pago(
+            db,
+            metodo_id,
+            archivo
         )
     except Exception as exc:
         raise HTTPException(

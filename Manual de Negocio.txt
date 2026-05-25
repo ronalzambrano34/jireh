@@ -849,6 +849,7 @@ GET /metodos-pago/
 GET /metodos-pago/{metodo_id}
 POST /metodos-pago/
 PUT /metodos-pago/{metodo_id}
+
 DELETE /metodos-pago/{metodo_id}
 
 Calculadora:
@@ -1166,18 +1167,30 @@ Implementado en frontend interno:
 - La oferta de saldo en Inicio se muestra como paquetes de recarga: saldo recibido destacado y precio en moneda de pago como badge accionable.
 - Crear pedido queda organizado por flujo operativo: primero datos del cliente, despues destino/tarjeta/telefono y por ultimo pago de la operacion; la moneda se muestra como campo destacado con bandera del pais.
 
-Pendiente siguiente:
+Actualizacion de interfaz aplicada:
 
-//todo icono del logo en la pesaña web del navegador.
+- La pestana del navegador usa el icono del logo de El Jireh como favicon.
+- En Perfil > Soporte/Ayuda para operar, los accesos de soporte quedan centrados para lectura movil.
+- Reportes carga con periodo mensual por defecto, skeleton de carga e indices runtime para evitar la sensacion de pantalla vacia.
+- En Pedidos, el boton de vista queda a la izquierda y Actualizar a la derecha en la misma fila; las columnas agrupadas por estado se pueden minimizar/desplegar.
+- En Crear pedido > Pago de la operacion, monto y metodo de pago quedan en dos columnas cuando hay espacio; la moneda pasa al header como selector compacto con bandera.
+- En Nuevo pedido, el bloque de cliente queda directo y compacto; telefono del cliente, tarjeta destinatario y telefono destinatario tienen boton Pegar desde portapapeles.
+- En Nuevo pedido > Pago de la operacion, al capturar monto se muestra cuanto recibe el destinatario y la tasa aplicada; transferencia y efectivo aceptan bono manual de tasa.
+- Los metodos de pago muestran imagen automaticamente segun el nombre del banco o metodo cuando existe asset local; no requiere campo nuevo en configuracion por ahora.
+- En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contrasena/estado y desactivar o reactivar accesos.
+- En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
+- El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
 
-//todo centrar botones dentro de Soporte/Ayuda para Operar.
 
-//todo los reportes estan demorando demasiado en cargar y parece como si nu hubiera datos.
+//todo el buscar cliente que sea dinamico, mientras escribes ya esta buscando semejanzas. ocultar la lupa
+//todo los botones pegar no estan pegando del portapapeles y seria bueno si estan visualmente unidos al campo al que van a pegar la info.
+//todo telefono del destinatario cuba que tenga predeterminado el +53.
+//todo todos los numeros de telefono que tengan un campo codigo de pais.
+//todo en el header cuando se presiones el icono del usuario que aparezca un acordion con los botones basicos estandar de ese boton, modificar usuario, configuracion, salit, etc.
+//todo en el perfil que se pueda añadir foto. 
 
-//todo en los pedidos, el boton actualizar bajalo a donde esta el de las vista de cuadriculas, y el de las vistas ponlo en la misma fila pero a la izquierda. y que los agrupamientos por estado se puedan minimizar o algo parecido.
+// todo nueva funcionalidad, para los nuevos pedido, el campo cliente es obligatorio, pq cuando se cree el pedido, automaticamente se enviaræ un mensaje por whatsapp a ese cliente enviandole el cuanta a la que debe hacer la transferencia.
 
-//todo pedido/pago de operacion el monto y el metodo de pago en columna de a 2. Y la moneda deberia salir al lado del header Pago de operaciones con otro estilo de boton
+//todo Reportes la tabla Por dias, no tiene espaceado con la parte superios
 
-//añade el estilo oscuro y que sea el predeterminado, en perfil añade un capo para cambiar 
-
-//todo para cambiar la apariencia va a ser simplemente un switsh, nada de acordion, y el tema predeterminado es claro, pq el tema oscuro aun esta feo. creo que vas a tener q crear varias opciones de tema oscuro y que se pueda elegir en la config de las apariencias,creo q se puede añadir un oscuro mas oscuro, parecido al tema del menu lateral, el cual nunca haz cambiado de estilo.
+//todo las tarjetas de los pedidos no estan bien alineados, hay q centrarlos, y en la vista lista, el monto pagado (centro a la derecha) y el monto recibe (abajo a la derecha), se van de lugar cuando cambias de tamaño a pequeño.

@@ -1,3 +1,9 @@
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import UploadFile
+from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
+from Backend.config import UPLOAD_MAX_BYTES
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -141,7 +147,8 @@ def crear_metodo_pago(
 
     metodo = MetodoPago(
         nombre=data.nombre,
-        moneda=moneda
+        moneda=moneda,
+        imagen_url=data.imagen_url
     )
 
     db.add(
@@ -232,6 +239,84 @@ def eliminar_metodo_pago(
 
     metodo.activo = False
 
+    db.commit()
+    db.refresh(
+        metodo
+    )
+
+    return metodo
+
+
+def guardar_imagen_metodo_pago(
+    db: Session,
+    metodo_id: int,
+    archivo: UploadFile
+):
+    metodo = obtener_metodo_pago(
+        db,
+        metodo_id
+    )
+
+    if not archivo.filename:
+        raise Exception(
+            "archivo es requerido"
+        )
+
+    content_type = archivo.content_type or "application/octet-stream"
+    if content_type not in UPLOAD_ALLOWED_MIME_TYPES or not content_type.startswith("image/"):
+        raise Exception(
+            "Tipo de imagen no permitido"
+        )
+
+    extension = Path(
+        archivo.filename
+    ).suffix.lower() or ".img"
+    nombre_seguro = (
+        str(
+            uuid4()
+        )
+        + extension
+    )
+    carpeta = Path(
+        "storage"
+    ) / "metodos-pago"
+    carpeta.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+    destino = carpeta / nombre_seguro
+
+    total_bytes = 0
+    try:
+        with destino.open(
+            "wb"
+        ) as fh:
+            while True:
+                chunk = archivo.file.read(
+                    1024 * 1024
+                )
+                if not chunk:
+                    break
+
+                total_bytes += len(
+                    chunk
+                )
+                if total_bytes > UPLOAD_MAX_BYTES:
+                    raise Exception(
+                        "Archivo excede el tamano maximo permitido"
+                    )
+
+                fh.write(
+                    chunk
+                )
+    except Exception:
+        if destino.exists():
+            destino.unlink()
+        raise
+
+    metodo.imagen_url = "/" + str(
+        destino
+    ).replace("\\", "/")
     db.commit()
     db.refresh(
         metodo

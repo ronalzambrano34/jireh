@@ -1,14 +1,17 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Banknote, ChevronDown, FileText, MapPin, Package, Plus, Power, RefreshCw, Save, Settings2, Tags, UserRound, UsersRound } from 'lucide-react';
+import { type DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Banknote, ChevronDown, FileText, ImagePlus, MapPin, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import {
   actualizarMetodoPago,
   actualizarOferta,
+  actualizarOperador,
   actualizarPaqueteSaldo,
   actualizarPuntoRecogida,
   crearCliente,
   crearContacto,
   crearMetodoPago,
+  crearOperador,
+  eliminarOperador,
   guardarConfiguracion,
   guardarTemplate,
   crearOferta,
@@ -19,17 +22,21 @@ import {
   listarContactos,
   listarMetodosPago,
   listarOfertas,
+  listarOperadores,
   listarPaquetesSaldo,
   listarPuntosRecogida,
   listarTemplates,
+  subirImagenMetodoPago,
 } from '../api/client';
-import type { Cliente, Configuracion, Contacto, MetodoPago, Oferta, PaqueteSaldo, PuntoRecogida, TemplateConfig } from '../types/api';
+import type { Cliente, Configuracion, Contacto, MetodoPago, Oferta, Operador, PaqueteSaldo, PuntoRecogida, TemplateConfig } from '../types/api';
+import { metodoPagoVisual } from '../utils/metodosPago';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 const servicios = ['transferencia', 'efectivo', 'saldo', 'mlc', 'usd', 'clasica', 'divisa'];
+const rolesOperador = ['operador', 'supervisor', 'admin'];
 
 type AdminEstadoVista = 'activos' | 'inactivos';
-type AdminTema = 'metodos' | 'puntos' | 'ofertas' | 'paquetes' | 'clientes' | 'contactos' | 'configuracion' | 'templates';
+type AdminTema = 'metodos' | 'puntos' | 'ofertas' | 'paquetes' | 'clientes' | 'contactos' | 'operadores' | 'configuracion' | 'templates';
 
 function tituloTema(tema: AdminTema | null) {
   if (tema === 'metodos') return 'Metodos de pago';
@@ -38,6 +45,7 @@ function tituloTema(tema: AdminTema | null) {
   if (tema === 'paquetes') return 'Paquetes de saldo';
   if (tema === 'clientes') return 'Clientes';
   if (tema === 'contactos') return 'Contactos';
+  if (tema === 'operadores') return 'Operadores';
   if (tema === 'configuracion') return 'Configuracion';
   if (tema === 'templates') return 'Templates';
   return 'Catalogos';
@@ -57,7 +65,8 @@ export function AdminCatalogosPage() {
   const [templates, setTemplates] = useState<TemplateConfig[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [contactos, setContactos] = useState<Contacto[]>([]);
-  const [metodoForm, setMetodoForm] = useState({ nombre: '', moneda: 'BRL' });
+  const [operadores, setOperadores] = useState<Operador[]>([]);
+  const [metodoForm, setMetodoForm] = useState({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
   const [puntoForm, setPuntoForm] = useState({ nombre: '', direccion: '', telefono: '' });
   const [ofertaForm, setOfertaForm] = useState({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
   const [paqueteForm, setPaqueteForm] = useState({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
@@ -67,6 +76,10 @@ export function AdminCatalogosPage() {
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [clienteForm, setClienteForm] = useState({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: 'BRL' });
   const [contactoForm, setContactoForm] = useState({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
+  const [operadorForm, setOperadorForm] = useState({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true });
+  const [operadorEditando, setOperadorEditando] = useState<Operador | null>(null);
+  const [metodoEditando, setMetodoEditando] = useState<MetodoPago | null>(null);
+  const [metodoUploading, setMetodoUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -90,12 +103,13 @@ export function AdminCatalogosPage() {
   const paquetesVisibles = useMemo(() => paquetes.filter((paquete) => paquete.activo === mostrarActivos), [paquetes, mostrarActivos]);
   const clientesVisibles = useMemo(() => clientes.filter((cliente) => cliente.activo === mostrarActivos), [clientes, mostrarActivos]);
   const contactosVisibles = useMemo(() => contactos.filter((contacto) => contacto.activo === mostrarActivos), [contactos, mostrarActivos]);
+  const operadoresVisibles = useMemo(() => operadores.filter((item) => item.activo === mostrarActivos), [operadores, mostrarActivos]);
 
   async function cargar() {
     setLoading(true);
     setError(null);
     try {
-      const [metodosData, puntosData, ofertasData, paquetesData, configuracionesData, templatesData, clientesData, contactosData] = await Promise.all([
+      const [metodosData, puntosData, ofertasData, paquetesData, configuracionesData, templatesData, clientesData, contactosData, operadoresData] = await Promise.all([
         listarMetodosPago(undefined, true),
         listarPuntosRecogida(true),
         listarOfertas(true),
@@ -104,6 +118,7 @@ export function AdminCatalogosPage() {
         listarTemplates(),
         listarClientes(undefined, true),
         listarContactos(undefined, true),
+        listarOperadores(true),
       ]);
       setMetodos(metodosData);
       setPuntos(puntosData);
@@ -113,6 +128,7 @@ export function AdminCatalogosPage() {
       setTemplates(templatesData);
       setClientes(clientesData);
       setContactos(contactosData);
+      setOperadores(operadoresData);
       if (templatesData.length) {
         setTemplateForm((current) => {
           const selected = templatesData.find((item) => item.clave === current.clave) ?? templatesData[0];
@@ -143,12 +159,13 @@ export function AdminCatalogosPage() {
   }
 
   function abrirCrearModal(tema: AdminTema) {
-    if (tema === 'metodos') setMetodoForm({ nombre: '', moneda: 'BRL' });
+    if (tema === 'metodos') setMetodoForm({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
     if (tema === 'puntos') setPuntoForm({ nombre: '', direccion: '', telefono: '' });
     if (tema === 'ofertas') setOfertaForm({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
     if (tema === 'paquetes') setPaqueteForm({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
     if (tema === 'clientes') setClienteForm({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: 'BRL' });
     if (tema === 'contactos') setContactoForm({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
+    if (tema === 'operadores') setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true });
     setError(null);
     setNotice(null);
     setCrearModalTema(tema);
@@ -159,8 +176,12 @@ export function AdminCatalogosPage() {
     setError(null);
     setNotice(null);
     try {
-      await crearMetodoPago(metodoForm);
-      setMetodoForm({ nombre: '', moneda: metodoForm.moneda });
+      await crearMetodoPago({
+        nombre: metodoForm.nombre,
+        moneda: metodoForm.moneda,
+        imagen_url: metodoForm.imagen_url || undefined,
+      });
+      setMetodoForm({ nombre: '', moneda: metodoForm.moneda, imagen_url: '', activo: true });
       setNotice('Metodo de pago creado');
       setCrearModalTema(null);
       setEstadoVista('activos');
@@ -299,6 +320,76 @@ export function AdminCatalogosPage() {
     }
   }
 
+  async function guardarOperador(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    try {
+      await crearOperador({
+        nombre: operadorForm.nombre,
+        telefono: operadorForm.telefono,
+        password: operadorForm.password || undefined,
+        rol: operadorForm.rol,
+      });
+      setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true });
+      setNotice('Operador creado');
+      setCrearModalTema(null);
+      setEstadoVista('activos');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear el operador');
+    }
+  }
+
+  function abrirEditarOperador(item: Operador) {
+    setOperadorEditando(item);
+    setOperadorForm({
+      nombre: item.nombre,
+      telefono: item.telefono ?? '',
+      password: '',
+      rol: item.rol,
+      activo: item.activo,
+    });
+    setError(null);
+    setNotice(null);
+  }
+
+  async function guardarOperadorEditado(event: FormEvent) {
+    event.preventDefault();
+    if (!operadorEditando) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await actualizarOperador(operadorEditando.id, {
+        nombre: operadorForm.nombre,
+        telefono: operadorForm.telefono,
+        password: operadorForm.password || undefined,
+        rol: operadorForm.rol,
+        activo: operadorForm.activo,
+      });
+      setNotice('Operador actualizado');
+      setOperadorEditando(null);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el operador');
+    }
+  }
+
+  async function toggleOperador(item: Operador) {
+    setError(null);
+    setNotice(null);
+    try {
+      if (item.activo) {
+        await eliminarOperador(item.id);
+      } else {
+        await actualizarOperador(item.id, { activo: true });
+      }
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado del operador');
+    }
+  }
+
   async function guardarTemplateActual(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -326,6 +417,62 @@ export function AdminCatalogosPage() {
   function abrirTemplate(clave: string) {
     seleccionarTemplate(clave);
     setTemplateModalOpen(true);
+  }
+
+  function abrirEditarMetodo(metodo: MetodoPago) {
+    setMetodoEditando(metodo);
+    setMetodoForm({
+      nombre: metodo.nombre,
+      moneda: metodo.moneda,
+      imagen_url: metodo.imagen_url ?? '',
+      activo: metodo.activo,
+    });
+    setError(null);
+    setNotice(null);
+  }
+
+  async function guardarMetodoEditado(event: FormEvent) {
+    event.preventDefault();
+    if (!metodoEditando) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await actualizarMetodoPago(metodoEditando.id, {
+        nombre: metodoForm.nombre,
+        moneda: metodoForm.moneda,
+        imagen_url: metodoForm.imagen_url || null,
+        activo: metodoForm.activo,
+      });
+      setNotice('Metodo de pago actualizado');
+      setMetodoEditando(null);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
+    }
+  }
+
+  async function subirImagenMetodo(file: File) {
+    if (!metodoEditando) return;
+    setError(null);
+    setNotice(null);
+    setMetodoUploading(true);
+    try {
+      const actualizado = await subirImagenMetodoPago(metodoEditando.id, file);
+      setMetodoEditando(actualizado);
+      setMetodoForm((current) => ({ ...current, imagen_url: actualizado.imagen_url ?? '' }));
+      setNotice('Imagen del metodo actualizada');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+    } finally {
+      setMetodoUploading(false);
+    }
+  }
+
+  function manejarDropImagenMetodo(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file) void subirImagenMetodo(file);
   }
 
   async function toggleMetodo(metodo: MetodoPago) {
@@ -435,6 +582,11 @@ export function AdminCatalogosPage() {
               <span><strong>Contactos</strong><small>{contactos.filter((item) => item.activo).length} activos · {contactos.filter((item) => !item.activo).length} inactivos</small></span>
               <ChevronDown size={18} />
             </button>
+            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('operadores')}>
+              <UsersRound size={22} />
+              <span><strong>Operadores</strong><small>{operadores.filter((item) => item.activo).length} activos · {operadores.filter((item) => !item.activo).length} inactivos</small></span>
+              <ChevronDown size={18} />
+            </button>
           </div>
 
           <div className="profile-section admin-menu-section">
@@ -462,7 +614,7 @@ export function AdminCatalogosPage() {
               <small>{metodosVisibles.length} de {metodos.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('metodos')}>
-              <Plus size={18} /> Crear
+              Crear
             </button>
           </header>
           <div className="admin-state-switch" role="group" aria-label="Vista de registros">
@@ -471,13 +623,19 @@ export function AdminCatalogosPage() {
           </div>
           <div className="admin-card-list">
             {metodosVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
-            {metodosVisibles.map((metodo) => (
-              <div className="catalog-row" key={metodo.id}>
-                <span><strong>{metodo.nombre}</strong><small>{metodo.moneda}</small></span>
+            {metodosVisibles.map((metodo) => {
+              const visual = metodoPagoVisual(metodo);
+              return (
+              <div className="catalog-row payment-method-admin-row" key={metodo.id}>
+                <button type="button" className="payment-method-admin-main" onClick={() => abrirEditarMetodo(metodo)}>
+                  <span className="payment-method-logo" aria-hidden="true">{visual.src ? <img src={visual.src} alt="" /> : <span>{visual.initials}</span>}</span>
+                  <span><strong>{metodo.nombre}</strong><small>{metodo.moneda}{metodo.imagen_url ? ' · imagen propia' : ' · logo automatico'}</small></span>
+                </button>
                 <span className={metodo.activo ? 'status completado' : 'status cancelado'}>{metodo.activo ? 'activo' : 'inactivo'}</span>
                 <button className="ghost-button catalog-toggle-action" onClick={() => toggleMetodo(metodo)}><Power size={18} /> {metodo.activo ? 'Desactivar' : 'Activar'}</button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
@@ -491,7 +649,7 @@ export function AdminCatalogosPage() {
               <small>{puntosVisibles.length} de {puntos.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('puntos')}>
-              <Plus size={18} /> Crear
+              Crear
             </button>
           </header>
           <div className="admin-state-switch" role="group" aria-label="Vista de registros">
@@ -520,7 +678,7 @@ export function AdminCatalogosPage() {
               <small>{ofertasVisibles.length} de {ofertas.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('ofertas')}>
-              <Plus size={18} /> Crear
+              Crear
             </button>
           </header>
           <div className="admin-state-switch" role="group" aria-label="Vista de registros">
@@ -561,7 +719,7 @@ export function AdminCatalogosPage() {
               <small>{paquetesVisibles.length} de {paquetes.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('paquetes')}>
-              <Plus size={18} /> Crear
+              Crear
             </button>
           </header>
           <div className="admin-state-switch" role="group" aria-label="Vista de registros">
@@ -590,7 +748,7 @@ export function AdminCatalogosPage() {
               <small>{clientesVisibles.length} de {clientes.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('clientes')}>
-              <Plus size={18} /> Crear
+              Crear
             </button>
           </header>
           <div className="admin-state-switch" role="group" aria-label="Vista de registros">
@@ -619,7 +777,7 @@ export function AdminCatalogosPage() {
               <small>{contactosVisibles.length} de {contactos.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('contactos')}>
-              <Plus size={18} /> Crear
+              Crear
             </button>
           </header>
           <div className="admin-state-switch" role="group" aria-label="Vista de registros">
@@ -639,6 +797,38 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
+      {temaActivo === 'operadores' && (
+        <section className="admin-section admin-detail-section">
+          <header className="admin-section-header">
+            <span className="admin-section-icon"><UsersRound size={22} /></span>
+            <div>
+              <h3>Operadores</h3>
+              <small>{operadoresVisibles.length} de {operadores.length}</small>
+            </div>
+            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('operadores')}>
+              Crear
+            </button>
+          </header>
+          <div className="admin-state-switch" role="group" aria-label="Vista de operadores">
+            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
+            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
+          </div>
+          <div className="admin-card-list">
+            {operadoresVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {operadoresVisibles.map((item) => (
+              <div className="catalog-row operator-admin-row" key={item.id}>
+                <button type="button" className="operator-admin-main" onClick={() => abrirEditarOperador(item)}>
+                  <span><strong>{item.nombre}</strong><small>{item.telefono ?? 'sin telefono'} · {item.codigo_operador}</small></span>
+                  <span className="profile-role-pill operator-role-pill">{item.rol}</span>
+                </button>
+                <span className={item.activo ? 'status completado' : 'status cancelado'}>{item.activo ? 'activo' : 'inactivo'}</span>
+                <button className="ghost-button catalog-toggle-action" onClick={() => toggleOperador(item)}><Power size={18} /> {item.activo ? 'Desactivar' : 'Activar'}</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {temaActivo === 'configuracion' && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
@@ -648,7 +838,7 @@ export function AdminCatalogosPage() {
               <small>{configuraciones.length}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); setConfigModalOpen(true); }}>
-              <Plus size={18} /> Nueva
+              Nueva
             </button>
           </header>
           <div className="config-list">
@@ -693,10 +883,52 @@ export function AdminCatalogosPage() {
             <select value={metodoForm.moneda} onChange={(event) => setMetodoForm((current) => ({ ...current, moneda: event.target.value }))}>
               {monedas.map((moneda) => <option key={moneda} value={moneda}>{moneda}</option>)}
             </select>
+            <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />
+            <div className="method-image-note"><ImagePlus size={16} /> Si lo dejas vacio, usa el logo automatico desde assets.</div>
             <button className="primary-button"><Save size={18} /> Crear</button>
           </form>
         </Modal>
       )}
+      {metodoEditando && (
+        <Modal title="Editar metodo de pago" subtitle={`${metodoEditando.nombre} · ${metodoEditando.moneda}`} onClose={() => setMetodoEditando(null)} wide>
+          <form className="stack-form modal-form" onSubmit={guardarMetodoEditado}>
+            <div
+              className="method-image-dropzone"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={manejarDropImagenMetodo}
+            >
+              <span className="payment-method-logo method-image-preview" aria-hidden="true">
+                {metodoPagoVisual({ ...metodoEditando, imagen_url: metodoForm.imagen_url || metodoEditando.imagen_url }).src ? (
+                  <img src={metodoPagoVisual({ ...metodoEditando, imagen_url: metodoForm.imagen_url || metodoEditando.imagen_url }).src} alt="" />
+                ) : (
+                  <span>{metodoPagoVisual(metodoEditando).initials}</span>
+                )}
+              </span>
+              <div>
+                <strong>Imagen del metodo</strong>
+                <small>Arrastra una imagen aqui o sube un archivo. Si no hay imagen, se usa el logo automatico de assets.</small>
+              </div>
+              <label className="ghost-button method-image-picker">
+                <UploadCloud size={18} /> {metodoUploading ? 'Subiendo...' : 'Subir'}
+                <input type="file" accept="image/*" disabled={metodoUploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void subirImagenMetodo(file); event.currentTarget.value = ''; }} />
+              </label>
+            </div>
+            <input value={metodoForm.nombre} onChange={(event) => setMetodoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
+            <div className="inline-form three">
+              <select value={metodoForm.moneda} onChange={(event) => setMetodoForm((current) => ({ ...current, moneda: event.target.value }))}>
+                {monedas.map((moneda) => <option key={moneda} value={moneda}>{moneda}</option>)}
+              </select>
+              <select value={metodoForm.activo ? 'activo' : 'inactivo'} onChange={(event) => setMetodoForm((current) => ({ ...current, activo: event.target.value === 'activo' }))}>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+              <button className="primary-button"><Save size={18} /> Guardar</button>
+            </div>
+            <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL o /storage/metodos-pago/archivo.webp" />
+          </form>
+        </Modal>
+      )}
+
       {crearModalTema === 'puntos' && (
         <Modal title="Crear punto de recogida" subtitle="Administracion / Puntos de recogida" onClose={() => setCrearModalTema(null)}>
           <form className="stack-form modal-form" onSubmit={guardarPunto}>
@@ -773,6 +1005,40 @@ export function AdminCatalogosPage() {
             <input value={contactoForm.documento_identidad_url} onChange={(event) => setContactoForm((current) => ({ ...current, documento_identidad_url: event.target.value }))} placeholder="Documento URL" />
             <input value={contactoForm.notas} onChange={(event) => setContactoForm((current) => ({ ...current, notas: event.target.value }))} placeholder="Notas" />
             <button className="primary-button"><Save size={18} /> Crear contacto</button>
+          </form>
+        </Modal>
+      )}
+
+      {crearModalTema === 'operadores' && (
+        <Modal title="Crear operador" subtitle="Administracion / Operadores" onClose={() => setCrearModalTema(null)} wide>
+          <form className="stack-form modal-form" onSubmit={guardarOperador}>
+            <input value={operadorForm.nombre} onChange={(event) => setOperadorForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
+            <input value={operadorForm.telefono} onChange={(event) => setOperadorForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono de acceso" required />
+            <input type="password" value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Contrasena inicial" autoComplete="new-password" />
+            <select value={operadorForm.rol} onChange={(event) => setOperadorForm((current) => ({ ...current, rol: event.target.value }))}>
+              {rolesOperador.map((rol) => <option key={rol} value={rol}>{rol}</option>)}
+            </select>
+            <button className="primary-button"><Save size={18} /> Crear operador</button>
+          </form>
+        </Modal>
+      )}
+
+      {operadorEditando && (
+        <Modal title="Editar operador" subtitle={`${operadorEditando.nombre} · ${operadorEditando.codigo_operador}`} onClose={() => setOperadorEditando(null)} wide>
+          <form className="stack-form modal-form" onSubmit={guardarOperadorEditado}>
+            <input value={operadorForm.nombre} onChange={(event) => setOperadorForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
+            <input value={operadorForm.telefono} onChange={(event) => setOperadorForm((current) => ({ ...current, telefono: event.target.value }))} placeholder="Telefono de acceso" required />
+            <input type="password" value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Nueva contrasena opcional" autoComplete="new-password" />
+            <div className="inline-form three operator-edit-inline">
+              <select value={operadorForm.rol} onChange={(event) => setOperadorForm((current) => ({ ...current, rol: event.target.value }))}>
+                {rolesOperador.map((rol) => <option key={rol} value={rol}>{rol}</option>)}
+              </select>
+              <select value={operadorForm.activo ? 'activo' : 'inactivo'} onChange={(event) => setOperadorForm((current) => ({ ...current, activo: event.target.value === 'activo' }))}>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+              <button className="primary-button"><Save size={18} /> Guardar</button>
+            </div>
           </form>
         </Modal>
       )}

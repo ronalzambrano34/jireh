@@ -46,3 +46,8 @@ class MetodoPago(
         Boolean,
         default=True
     )
+
+    imagen_url = Column(
+        String,
+        nullable=True
+    )
