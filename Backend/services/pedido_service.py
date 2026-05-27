@@ -85,6 +85,26 @@ def _operador_asignado_nombre(
     return operador.nombre if operador else None
 
 
+def _redireccion_dict(
+    db: Session,
+    pedido: Pedido
+):
+    return {
+        "redirigido_a_operador_id": pedido.redirigido_a_operador_id,
+        "redirigido_a_operador_nombre": _operador_asignado_nombre(
+            db,
+            pedido.redirigido_a_operador_id
+        ),
+        "redirigido_por_operador_id": pedido.redirigido_por_operador_id,
+        "redirigido_por_operador_nombre": _operador_asignado_nombre(
+            db,
+            pedido.redirigido_por_operador_id
+        ),
+        "redirigido_en": pedido.redirigido_en,
+        "redireccion_mensaje": pedido.redireccion_mensaje,
+    }
+
+
 def _lock_dict(
     db: Session,
     pedido: Pedido
@@ -166,6 +186,13 @@ def pedido_base_dict(
         "operador_id": pedido.operador_id,
         "tipo_pago_id": pedido.tipo_pago_id,
         "oferta_id": pedido.oferta_id,
+        "fecha_pago_confirmado": pedido.fecha_pago_confirmado,
+        "fecha_en_operacion": pedido.fecha_en_operacion,
+        "fecha_completado": pedido.fecha_completado,
+        "redirigido_a_operador_id": pedido.redirigido_a_operador_id,
+        "redirigido_por_operador_id": pedido.redirigido_por_operador_id,
+        "redirigido_en": pedido.redirigido_en,
+        "redireccion_mensaje": pedido.redireccion_mensaje,
         "created_at": pedido.created_at,
         "updated_at": pedido.updated_at,
     }
@@ -385,6 +412,12 @@ def pedido_dict(
             pedido
         )
     )
+    data.update(
+        _redireccion_dict(
+            db,
+            pedido
+        )
+    )
 
     return data
 
@@ -455,6 +488,68 @@ def listar_pedidos(
         )
         for pedido in pedidos
     ]
+
+
+def redirigir_pedido_operador(
+    db: Session,
+    codigo_operacion: str,
+    operador_destino_id: int | None,
+    mensaje: str | None,
+    operador: Operador
+):
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+
+    if operador_destino_id is None:
+        pedido.redirigido_a_operador_id = None
+        pedido.redirigido_por_operador_id = None
+        pedido.redirigido_en = None
+        pedido.redireccion_mensaje = None
+    else:
+        destino = (
+            db.query(
+                Operador
+            )
+            .filter(
+                Operador.id == operador_destino_id
+            )
+            .first()
+        )
+        if not destino or not destino.activo:
+            raise Exception(
+                "Operador destino no disponible."
+            )
+
+        pedido.redirigido_a_operador_id = destino.id
+        pedido.redirigido_por_operador_id = operador.id
+        pedido.redirigido_en = _utcnow()
+        pedido.redireccion_mensaje = (mensaje or "").strip() or None
+
+    historial = PedidoHistorial(
+        pedido_id=pedido.id,
+        estado_anterior=pedido.estado,
+        estado_nuevo=pedido.estado,
+        usuario=operador.nombre,
+        comentario=(
+            f"Pedido redirigido a {_operador_asignado_nombre(db, operador_destino_id)}"
+            if operador_destino_id else
+            "Redireccion de operador eliminada"
+        )
+    )
+    db.add(
+        historial
+    )
+    db.commit()
+    db.refresh(
+        pedido
+    )
+    return pedido_dict(
+        db,
+        pedido,
+        incluir_detalle=True
+    )
 
 
 def obtener_pedido_por_codigo(

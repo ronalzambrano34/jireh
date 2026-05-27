@@ -19,6 +19,7 @@ import type {
   PasswordChangePayload,
   PedidoResumen,
   PerfilUpdatePayload,
+  Promocion,
   PuntoRecogida,
   ReporteGeneral,
   TemplateConfig,
@@ -26,7 +27,11 @@ import type {
   SyncOfertasResponse,
 } from '../types/api';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const DEFAULT_API_URL = typeof window !== 'undefined' ? window.location.protocol + '//' + window.location.hostname + ':8000' : 'http://127.0.0.1:8000';
+const CONFIGURED_API_URL = import.meta.env.VITE_API_URL || '';
+const USING_REMOTE_HOST = typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname);
+const CONFIGURED_API_IS_LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(CONFIGURED_API_URL);
+const API_URL = (USING_REMOTE_HOST && CONFIGURED_API_IS_LOOPBACK ? DEFAULT_API_URL : CONFIGURED_API_URL || DEFAULT_API_URL).replace(/\/$/, '');
 const TOKEN_KEY = 'jireh.auth.token';
 
 export function apiAssetUrl(path: string | null | undefined) {
@@ -151,6 +156,10 @@ export function listarOperadores(incluirInactivos = false) {
   return request<Operador[]>(`/operador/?${query.toString()}`);
 }
 
+export function listarOperadoresActivos() {
+  return request<Operador[]>('/operador/activos');
+}
+
 export function crearOperador(payload: OperadorCreatePayload) {
   return request<Operador>('/operador/', {
     method: 'POST',
@@ -233,6 +242,13 @@ export function renovarOperacion(codigo: string) {
 export function liberarOperacion(codigo: string) {
   return request<PedidoDetalle>(`/pedido/${codigo}/liberar`, {
     method: 'POST',
+  });
+}
+
+export function redirigirOperacion(codigo: string, payload: { operador_destino_id: number | null; mensaje?: string }) {
+  return request<PedidoDetalle>(`/pedido/${codigo}/redirigir`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
 }
 
@@ -390,6 +406,44 @@ export function actualizarPaqueteSaldo(id: number, payload: { activo?: boolean }
 export function eliminarPaqueteSaldo(id: number) {
   return request<PaqueteSaldo>(`/paquetes-saldo/${id}`, {
     method: 'DELETE',
+  });
+}
+
+
+export function listarPromociones(incluirInactivas = false) {
+  const query = new URLSearchParams();
+  query.set('limit', '100');
+  if (incluirInactivas) query.set('incluir_inactivas', 'true');
+  return request<Promocion[]>(`/promociones/?${query.toString()}`);
+}
+
+export function crearPromocion(payload: { descripcion: string; fecha_desde: string; fecha_hasta: string; imagen_url?: string; activa?: boolean }) {
+  return request<Promocion>('/promociones/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function actualizarPromocion(id: number, payload: { descripcion?: string; fecha_desde?: string; fecha_hasta?: string; imagen_url?: string | null; activa?: boolean }) {
+  return request<Promocion>(`/promociones/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function eliminarPromocion(id: number) {
+  return request<Promocion>(`/promociones/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function subirImagenPromocion(id: number, file: File) {
+  const formData = new FormData();
+  formData.append('archivo', file);
+
+  return request<Promocion>(`/promociones/${id}/imagen`, {
+    method: 'POST',
+    body: formData,
   });
 }
 

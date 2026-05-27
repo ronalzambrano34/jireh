@@ -1161,7 +1161,7 @@ Sistema de roles para operarios implementado: los operarios tienen rol admin, su
 
 Implementado en frontend interno:
 - Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones funcionales de cuenta, seguridad, soporte y salida.
-- Perfil interno funcional: Mis datos muestra ficha del operador; Modificar perfil actualiza el nombre propio desde /auth/me; Cambiar contrasena valida la contrasena actual y actualiza la nueva desde /auth/me/password; Mis permisos y rol muestra permisos reales; Ayuda abre contactos de soporte por WhatsApp.
+- Perfil interno funcional: Mis datos muestra ficha del operador; Modificar perfil actualiza el nombre propio desde /auth/me; Cambiar contraseña valida la contraseña actual y actualiza la nueva desde /auth/me/password; Mis permisos y rol muestra permisos reales; Ayuda abre contactos de soporte por WhatsApp.
 - Criterio de producto: el sistema debe priorizar uso en telefonos y usuarios con poca experiencia informatica; las acciones frecuentes deben ser grandes, claras y con pocos pasos.
 - En entrega de efectivo, el telefono del destinatario tiene acceso directo a WhatsApp al lado del campo.
 - En detalle de pedido, tarjeta, telefono destinatario y montos principales tienen boton de copiar.
@@ -1181,7 +1181,7 @@ Actualizacion de interfaz aplicada:
 - En Nuevo pedido, el bloque de cliente queda directo y compacto; telefono del cliente, tarjeta destinatario y telefono destinatario tienen boton Pegar desde portapapeles.
 - En Nuevo pedido > Pago de la operacion, al capturar monto se muestra cuanto recibe el destinatario y la tasa aplicada; transferencia y efectivo aceptan bono manual de tasa.
 - Los metodos de pago muestran imagen automaticamente segun el nombre del banco o metodo cuando existe asset local; no requiere campo nuevo en configuracion por ahora.
-- En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contrasena/estado y desactivar o reactivar accesos.
+- En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contraseña/estado y desactivar o reactivar accesos.
 - En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
 - El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
 - Todos los campos editables de telefono usan selector de codigo de pais y guardan el numero completo con prefijo internacional.

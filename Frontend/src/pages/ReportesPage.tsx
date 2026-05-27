@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Banknote, BriefcaseBusiness, CalendarRange, ChevronDown, CircleDot, Coins, Download, Smartphone, UserRound, WalletCards, X } from 'lucide-react';
+import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Smartphone, UserRound, WalletCards } from 'lucide-react';
 import { descargarReporteCsv, listarOperadores, obtenerReporte } from '../api/client';
 import type { Operador, ReporteGeneral, ReporteGrupo } from '../types/api';
+import { PageLoader } from '../components/PageLoader';
+import { FloatingSelect } from '../components/FloatingSelect';
 
 const estados = [
   { value: '', label: 'Estado' },
@@ -92,26 +94,6 @@ function money(value: number) {
   return new Intl.NumberFormat('es-UY', { maximumFractionDigits: 2 }).format(value);
 }
 
-function ReportSkeleton() {
-  return (
-    <>
-      <div className="report-summary report-summary-loading" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => <div key={item}><span /><strong /></div>)}
-      </div>
-      <div className="report-grid report-grid-loading" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => (
-          <section className="report-table report-table-skeleton" key={item}>
-            <h2 />
-            <div className="data-table">
-              {[0, 1, 2, 3].map((row) => <div className="data-row" key={row}><span /><span /><span /><span /></div>)}
-            </div>
-          </section>
-        ))}
-      </div>
-    </>
-  );
-}
-
 function ReportTable({ title, rows }: { title: string; rows: ReporteGrupo[] }) {
   return (
     <section className="report-table">
@@ -149,11 +131,6 @@ export function ReportesPage() {
   const [reporte, setReporte] = useState<ReporteGeneral | null>(null);
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [operadoresLoading, setOperadoresLoading] = useState(false);
-  const [periodoSheetOpen, setPeriodoSheetOpen] = useState(false);
-  const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
-  const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
-  const [monedaSheetOpen, setMonedaSheetOpen] = useState(false);
-  const [operadorSheetOpen, setOperadorSheetOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -209,14 +186,6 @@ export function ReportesPage() {
     }
   }
 
-  function cerrarFiltros() {
-    setPeriodoSheetOpen(false);
-    setEstadoSheetOpen(false);
-    setServicioSheetOpen(false);
-    setMonedaSheetOpen(false);
-    setOperadorSheetOpen(false);
-  }
-
   async function exportarCsv() {
     setError(null);
     try {
@@ -235,12 +204,15 @@ export function ReportesPage() {
   return (
     <section className="reports-page">
       <div className="filters report-filters">
-        <div className="report-filter-field">
-          <CalendarRange className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setPeriodoSheetOpen(true)} aria-haspopup="dialog" aria-expanded={periodoSheetOpen}>
-            <span>{periodo === 'todo' ? 'Periodo' : optionLabel(periodos, periodo, 'Periodo')}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={periodo}
+            onChange={(value) => updatePeriodo(value as PeriodoReporte)}
+            options={periodos.map((item) => ({ value: item.value, label: item.value === 'todo' ? 'Todos los periodos' : item.label, icon: <CalendarRange size={17} /> }))}
+            ariaLabel="Filtrar por periodo"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
         {periodo === 'personalizado' && (
           <>
@@ -254,33 +226,47 @@ export function ReportesPage() {
             </label>
           </>
         )}
-        <div className="report-filter-field">
-          <CircleDot className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setEstadoSheetOpen(true)} aria-haspopup="dialog" aria-expanded={estadoSheetOpen}>
-            <span>{filters.estado ? optionLabel(estados, filters.estado, 'Estado') : 'Estado'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.estado}
+            onChange={(value) => update('estado', value)}
+            options={estados.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los estados', icon: <CircleDot size={17} /> }))}
+            ariaLabel="Filtrar por estado"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
-        <div className="report-filter-field">
-          <span className="report-filter-icon">{servicioIcon(filters.servicio, 17)}</span>
-          <button type="button" className="filter-modal-button" onClick={() => setServicioSheetOpen(true)} aria-haspopup="dialog" aria-expanded={servicioSheetOpen}>
-            <span>{filters.servicio ? optionLabel(servicios, filters.servicio, 'Servicio') : 'Servicio'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.servicio}
+            onChange={(value) => update('servicio', value)}
+            options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios', icon: servicioIcon(item.value, 17) }))}
+            ariaLabel="Filtrar por servicio"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
-        <div className="report-filter-field">
-          <Coins className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setMonedaSheetOpen(true)} aria-haspopup="dialog" aria-expanded={monedaSheetOpen}>
-            <span>{filters.moneda_pago || 'Moneda'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.moneda_pago}
+            onChange={(value) => update('moneda_pago', value)}
+            options={monedas.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todas las monedas', icon: <Coins size={17} /> }))}
+            ariaLabel="Filtrar por moneda"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
-        <div className="report-filter-field report-filter-field-wide">
-          <UserRound className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setOperadorSheetOpen(true)} aria-haspopup="dialog" aria-expanded={operadorSheetOpen} disabled={operadoresLoading}>
-            <span>{filters.operador_id ? operadores.find((item) => String(item.id) === filters.operador_id)?.nombre ?? 'Operador' : 'Operador'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-field-wide report-filter-floating">
+          <FloatingSelect
+            value={filters.operador_id}
+            onChange={(value) => update('operador_id', value)}
+            options={[{ value: '', label: 'Todos los operadores', icon: <UserRound size={17} /> }, ...operadores.map((item) => ({ value: String(item.id), label: item.nombre, description: item.codigo_operador, icon: <UserRound size={17} /> }))]}
+            disabled={operadoresLoading}
+            placeholder={operadoresLoading ? 'Cargando operadores' : 'Operador'}
+            ariaLabel="Filtrar por operador"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
         <div className="report-filter-actions">
           <button type="button" className="ghost-button" onClick={exportarCsv} disabled={loading}>
@@ -290,16 +276,11 @@ export function ReportesPage() {
       </div>
 
       {error && <div className="notice error">{error}</div>}
-      {loading && (
-        <div className="notice report-loading-notice">
-          {reporte ? 'Actualizando reporte...' : 'Buscando datos del reporte...'}
-        </div>
-      )}
+      {loading && !reporte && <PageLoader label="Buscando datos del reporte" inline />}
+      {loading && reporte && <PageLoader label="Actualizando reporte" inline />}
       {!loading && !error && !reporte && (
         <div className="notice warning">No se pudo mostrar el reporte todavia. Prueba otro periodo o actualiza la pantalla.</div>
       )}
-
-      {loading && !reporte && <ReportSkeleton />}
 
       {reporte && (
         <div className={loading ? 'report-loaded is-refreshing' : 'report-loaded'}>
@@ -321,82 +302,6 @@ export function ReportesPage() {
         </div>
       )}
 
-      {periodoSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de periodo" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por periodo">
-            <header className="bottom-sheet-header"><strong>Periodo</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {periodos.map((item) => (
-                <button key={item.value} type="button" className={periodo === item.value ? 'active' : ''} onClick={() => { updatePeriodo(item.value); cerrarFiltros(); }}>
-                  <CalendarRange size={18} /><span>{item.value === 'todo' ? 'Todos' : item.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {estadoSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de estado" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por estado">
-            <header className="bottom-sheet-header"><strong>Estado</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {estados.map((item) => (
-                <button key={item.value || 'todos-estados'} type="button" className={filters.estado === item.value ? 'active' : ''} onClick={() => { update('estado', item.value); cerrarFiltros(); }}>
-                  <CircleDot size={18} /><span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {servicioSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de servicio" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por servicio">
-            <header className="bottom-sheet-header"><strong>Servicio</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {servicios.map((item) => (
-                <button key={item.value || 'todos-servicios'} type="button" className={filters.servicio === item.value ? 'active' : ''} onClick={() => { update('servicio', item.value); cerrarFiltros(); }}>
-                  {servicioIcon(item.value, 18)}<span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {monedaSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de moneda" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por moneda">
-            <header className="bottom-sheet-header"><strong>Moneda</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {monedas.map((item) => (
-                <button key={item.value || 'todas-monedas'} type="button" className={filters.moneda_pago === item.value ? 'active' : ''} onClick={() => { update('moneda_pago', item.value); cerrarFiltros(); }}>
-                  <Coins size={18} /><span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {operadorSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de operador" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por operador">
-            <header className="bottom-sheet-header"><strong>Operador</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              <button type="button" className={filters.operador_id === '' ? 'active' : ''} onClick={() => { update('operador_id', ''); cerrarFiltros(); }}><UserRound size={18} /><span>Todos</span></button>
-              {operadores.map((item) => (
-                <button key={item.id} type="button" className={filters.operador_id === String(item.id) ? 'active' : ''} onClick={() => { update('operador_id', String(item.id)); cerrarFiltros(); }}>
-                  <UserRound size={18} /><span>{item.nombre} ({item.codigo_operador})</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
     </section>
   );
 }

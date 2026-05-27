@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoResumen } from './types/api';
@@ -11,6 +11,9 @@ import { TransferenciaForm } from './pages/TransferenciaForm';
 import { ReportesPage } from './pages/ReportesPage';
 import { AdminCatalogosPage } from './pages/AdminCatalogosPage';
 import { InicioPage } from './pages/InicioPage';
+import { PageLoader } from './components/PageLoader';
+import { PasswordField } from './components/PasswordField';
+import { FloatingSelect } from './components/FloatingSelect';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const estados = [
@@ -38,14 +41,13 @@ type CrearPedidoDraft = {
   tipo_tarjeta?: string;
 };
 
-type ProfileSection = 'datos' | 'editar' | 'permisos' | 'password' | 'sesion' | 'ayuda' | null;
-type AppTheme = 'light' | 'dark' | 'dark-deep' | 'dark-sidebar';
+type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
+type AppTheme = 'light' | 'dark-deep' | 'dark-sidebar';
 
 const THEME_KEY = 'jireh.theme';
 const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
   { value: 'dark-sidebar', label: 'Oscuro menu' },
   { value: 'dark-deep', label: 'Oscuro profundo' },
-  { value: 'dark', label: 'Oscuro tecnico' },
 ];
 
 const estadosBandeja = estados.filter((item) => item.value);
@@ -135,12 +137,12 @@ function resumenPedido(pedido: PedidoResumen) {
     .slice(0, 2);
 }
 
-function tiempoRelativo(value?: string) {
+function tiempoRelativo(value?: string, nowMs = Date.now()) {
   if (!value) return null;
   const fecha = new Date(value);
   if (Number.isNaN(fecha.getTime())) return null;
 
-  const diffMs = Date.now() - fecha.getTime();
+  const diffMs = nowMs - fecha.getTime();
   const diffMin = Math.max(0, Math.floor(diffMs / 60000));
   if (diffMin < 1) return 'hace instantes';
   if (diffMin < 60) return `hace ${diffMin} min`;
@@ -152,11 +154,33 @@ function tiempoRelativo(value?: string) {
   return `hace ${diffDias} d`;
 }
 
+function minutosDesde(value?: string | null, nowMs = Date.now()) {
+  if (!value) return null;
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return null;
+  return Math.max(0, Math.floor((nowMs - fecha.getTime()) / 60000));
+}
+
+function pedidoEnOperacionRetrasado(pedido: PedidoResumen, nowMs: number) {
+  if (pedido.estado !== 'en_operacion') return false;
+  const minutos = minutosDesde(pedido.fecha_en_operacion ?? pedido.asignado_en ?? pedido.updated_at ?? pedido.created_at, nowMs);
+  return minutos !== null && minutos >= 10;
+}
+
+function tiempoEnOperacionLabel(pedido: PedidoResumen, nowMs: number) {
+  if (pedido.estado !== 'en_operacion') return null;
+  const base = pedido.fecha_en_operacion ?? pedido.asignado_en ?? pedido.updated_at ?? pedido.created_at;
+  const minutos = minutosDesde(base, nowMs);
+  if (minutos === null) return null;
+  return `${minutos} min en operacion`;
+}
+
 export function App() {
   const [theme, setTheme] = useState<AppTheme>(() => {
     if (typeof localStorage === 'undefined') return 'light';
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === 'dark' || saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    if (saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    if (saved === 'dark' || saved === 'dark-vscode' || saved === 'dark-pro') return 'dark-sidebar';
     return 'light';
   });
   const [operador, setOperador] = useState<Operador | null>(null);
@@ -166,16 +190,17 @@ export function App() {
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
-  const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('lista');
+  const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
   const [servicioCrear, setServicioCrear] = useState<'transferencia' | 'efectivo' | 'saldo' | 'divisa'>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [pedidosClock, setPedidosClock] = useState(() => Date.now());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
-  const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set());
   const [profileSection, setProfileSection] = useState<ProfileSection>(null);
   const [profileNombre, setProfileNombre] = useState('');
@@ -204,6 +229,11 @@ export function App() {
     [operador],
   );
 
+  const puedeSincronizarTasas = useMemo(
+    () => operador?.rol !== 'cliente' && (puedeCrear || puedeReportes || puedeAdmin),
+    [operador, puedeAdmin, puedeCrear, puedeReportes],
+  );
+
   const pedidosFiltrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
 
@@ -222,6 +252,33 @@ export function App() {
       ].join(' ').toLowerCase().includes(term);
     });
   }, [busqueda, estado, pedidos, servicio]);
+
+  const pedidosConteoPorEstado = useMemo(() => {
+    const term = busqueda.trim().toLowerCase();
+    const counts = new Map<string, number>(estadosBandeja.map((item) => [item.value, 0] as const));
+
+    for (const pedido of pedidos) {
+      if (servicio && pedido.servicio !== servicio) continue;
+      if (term) {
+        const detalle = pedido.detalle ? Object.values(pedido.detalle).join(' ') : '';
+        const searchable = [
+          pedido.codigo_operacion,
+          pedido.servicio,
+          pedido.estado,
+          pedido.moneda_pago,
+          detalle,
+        ].join(' ').toLowerCase();
+        if (!searchable.includes(term)) continue;
+      }
+      counts.set(pedido.estado, (counts.get(pedido.estado) ?? 0) + 1);
+    }
+
+    return counts;
+  }, [busqueda, pedidos, servicio]);
+
+  const totalPedidosConteo = useMemo(() => {
+    return Array.from(pedidosConteoPorEstado.values()).reduce((total, count) => total + count, 0);
+  }, [pedidosConteoPorEstado]);
 
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
@@ -242,9 +299,8 @@ export function App() {
     if (nextVista !== 'crear') setCrearDraft({});
     setVista(nextVista);
     setMobileMenuOpen(false);
-    setServicioSheetOpen(false);
-    setEstadoSheetOpen(false);
     setUserMenuOpen(false);
+    setQuickCreateOpen(false);
     setProfileSection(null);
     setProfileMessage(null);
     setProfileError(null);
@@ -270,9 +326,25 @@ export function App() {
     setCrearDraft(draft);
     setVista('crear');
     setMobileMenuOpen(false);
-    setServicioSheetOpen(false);
-    setEstadoSheetOpen(false);
     setUserMenuOpen(false);
+    setQuickCreateOpen(false);
+  }
+
+  function rastrearPedido(codigo: string) {
+    const codigoNormalizado = codigo.trim().toUpperCase();
+    if (!codigoNormalizado) return;
+    setCrearDraft({});
+    setBusqueda(codigoNormalizado);
+    setEstado('');
+    setServicio('');
+    setSeleccionado(codigoNormalizado);
+    setVista('bandeja');
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+    setQuickCreateOpen(false);
+    setProfileSection(null);
+    setError(null);
+    void cargarPedidos();
   }
 
   function abrirPerfilDesdeMenu(section: Exclude<ProfileSection, null>) {
@@ -284,11 +356,17 @@ export function App() {
     setMobileMenuOpen(false);
   }
 
+  function navegarDesdeMenuUsuario(nextVista: typeof vista) {
+    setUserMenuOpen(false);
+    navegar(nextVista);
+  }
+
   function cerrarSesion() {
     clearToken();
     setOperador(null);
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
+    setQuickCreateOpen(false);
   }
 
   async function cargarPedidos() {
@@ -323,11 +401,30 @@ export function App() {
     if (operador) void cargarPedidos();
   }, [operador]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setPedidosClock(Date.now()), 60000);
+    return () => window.clearInterval(interval);
+  }, []);
+
 
   useEffect(() => {
     if (!operador) return;
     setProfileNombre(operador.nombre);
   }, [operador]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function closeUserMenuOutside(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (userMenuRef.current?.contains(target)) return;
+      setUserMenuOpen(false);
+    }
+
+    document.addEventListener('pointerdown', closeUserMenuOutside, true);
+    return () => document.removeEventListener('pointerdown', closeUserMenuOutside, true);
+  }, [userMenuOpen]);
 
   useEffect(() => {
     function syncOnline() {
@@ -383,7 +480,7 @@ export function App() {
   async function guardarPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (profilePassword.nueva !== profilePassword.confirmar) {
-      setProfileError('La confirmacion no coincide con la nueva contrasena');
+      setProfileError('La confirmacion no coincide con la nueva contraseña');
       return;
     }
 
@@ -396,9 +493,9 @@ export function App() {
         password_nueva: profilePassword.nueva,
       });
       setProfilePassword({ actual: '', nueva: '', confirmar: '' });
-      setProfileMessage('Contrasena actualizada correctamente');
+      setProfileMessage('contraseña actualizada correctamente');
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : 'No se pudo cambiar la contrasena');
+      setProfileError(err instanceof Error ? err.message : 'No se pudo cambiar la contraseña');
     } finally {
       setProfileSaving(false);
     }
@@ -444,6 +541,9 @@ export function App() {
           </div>
         )}
         <header className="toolbar">
+          <button className="icon-button mobile-header-menu" onClick={() => setMobileMenuOpen(true)} title="Abrir menu" aria-label="Abrir menu">
+            <Menu size={20} />
+          </button>
           <button className="header-brand" onClick={() => navegar('inicio')} title="Ir al dashboard">
             <img src={logoJireh} alt="El Jireh"/>
             <span>EL JIREH</span>
@@ -453,24 +553,10 @@ export function App() {
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
-            <div className="user-menu-wrap">
-              <button
-                className={userMenuOpen ? 'operator-chip active' : 'operator-chip'}
-                type="button"
-                onClick={() => setUserMenuOpen((current) => !current)}
-                title="Opciones de usuario"
-                aria-expanded={userMenuOpen}
-                aria-haspopup="menu"
-              >
-                <OperadorAvatar operador={operador} className="operator-chip-avatar" />
-                <span className="operator-chip-text">
-                  <strong>{operador.nombre}</strong>
-                  <small>{operador.rol}</small>
-                </span>
-                <ChevronDown className={userMenuOpen ? 'user-menu-chevron open' : 'user-menu-chevron'} size={16} />
-              </button>
+            {userMenuOpen && <button className="floating-create-backdrop user-floating-backdrop" type="button" aria-label="Cerrar opciones de usuario" onClick={() => setUserMenuOpen(false)} />}
+            <div ref={userMenuRef} className={userMenuOpen ? 'user-floating-wrap open' : 'user-floating-wrap'}>
               {userMenuOpen && (
-                <div className="user-menu-card" role="menu">
+                <div className="floating-create-menu user-floating-menu" role="menu" aria-label="Opciones de usuario" onClick={(event) => event.stopPropagation()}>
                   <div className="user-menu-summary">
                     <OperadorAvatar operador={operador} className="operator-chip-avatar" />
                     <span><strong>{operador.nombre}</strong><small>{operador.codigo_operador}</small></span>
@@ -478,17 +564,23 @@ export function App() {
                   <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('editar')}>
                     <Edit3 size={18} /> Modificar usuario
                   </button>
-                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('datos')}>
-                    <UserCircle size={18} /> Mi perfil
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('sesion')}>
-                    <ShieldCheck size={18} /> Sesion y acceso
-                  </button>
-                  <button type="button" role="menuitem" onClick={() => { setVista('perfil'); setProfileSection(null); setUserMenuOpen(false); }}>
-                    <Palette size={18} /> Apariencia
-                  </button>
+                  <div className="user-menu-theme-row" role="menuitem">
+                    <button className="user-menu-theme-link" type="button" onClick={() => navegarDesdeMenuUsuario('perfil')}>
+                      <Palette size={18} />
+                      <span><strong>Apariencia</strong><small>{theme === 'light' ? 'Tema claro' : DARK_THEME_OPTIONS.find((item) => item.value === theme)?.label}</small></span>
+                    </button>
+                    <label className="theme-switch user-menu-theme-switch" onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={theme !== 'light'}
+                        onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}
+                        aria-label="Activar tema oscuro"
+                      />
+                      <span>Oscuro</span>
+                    </label>
+                  </div>
                   {puedeAdmin && (
-                    <button type="button" role="menuitem" onClick={() => navegar('admin')}>
+                    <button type="button" role="menuitem" onClick={() => navegarDesdeMenuUsuario('admin')}>
                       <Settings size={18} /> Configuracion
                     </button>
                   )}
@@ -500,6 +592,22 @@ export function App() {
                   </button>
                 </div>
               )}
+              <button
+                className={userMenuOpen ? 'operator-chip user-floating-trigger active' : 'operator-chip user-floating-trigger'}
+                type="button"
+                onClick={() => setUserMenuOpen((current) => !current)}
+                title={userMenuOpen ? 'Cerrar opciones' : 'Opciones de usuario'}
+                aria-label={userMenuOpen ? 'Cerrar opciones de usuario' : 'Opciones de usuario'}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+              >
+                <OperadorAvatar operador={operador} className="operator-chip-avatar" />
+                <span className="operator-chip-text">
+                  <strong>{operador.nombre}</strong>
+                  <small>{operador.rol}</small>
+                </span>
+                {userMenuOpen ? <X className="user-menu-chevron open" size={16} /> : <ChevronDown className="user-menu-chevron" size={16} />}
+              </button>
             </div>
             <button className="icon-button mobile-menu-button" onClick={() => setMobileMenuOpen(true)} title="Abrir menu">
               <Menu size={20} />
@@ -508,7 +616,7 @@ export function App() {
         </header>
 
         {vista === 'inicio' ? (
-          <InicioPage canSyncTasas={puedeAdmin} onCreate={abrirCrear} />
+          <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
         ) : vista === 'reportes' ? (
@@ -544,16 +652,6 @@ export function App() {
 
             <div className="profile-section">
               <h3>Mi cuenta</h3>
-              <button className={profileSection === 'datos' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('datos')} aria-expanded={profileSection === 'datos'}><UserCircle size={22} /><span>Mis datos</span><ChevronDown className={profileSection === 'datos' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'datos' && (
-                <div className="profile-inline-panel profile-data-grid">
-                  <div><small>Nombre</small><strong>{operador.nombre}</strong></div>
-                  <div><small>Telefono</small><strong>{operador.telefono}</strong></div>
-                  <div><small>Codigo</small><strong>{operador.codigo_operador}</strong></div>
-                  <div><small>Estado</small><strong>{operador.activo ? 'Activo' : 'Inactivo'}</strong></div>
-                </div>
-              )}
-
               <button className={profileSection === 'editar' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('editar')} aria-expanded={profileSection === 'editar'}><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown className={profileSection === 'editar' ? 'chevron-open' : ''} size={18} /></button>
               {profileSection === 'editar' && (
                 <form className="profile-inline-panel profile-form" onSubmit={guardarPerfil}>
@@ -617,33 +715,25 @@ export function App() {
 
             <div className="profile-section">
               <h3>Seguridad</h3>
-              <button className={profileSection === 'password' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('password')} aria-expanded={profileSection === 'password'}><KeyRound size={22} /><span>Cambiar contrasena</span><ChevronDown className={profileSection === 'password' ? 'chevron-open' : ''} size={18} /></button>
+              <button className={profileSection === 'password' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('password')} aria-expanded={profileSection === 'password'}><KeyRound size={22} /><span>Cambiar contraseña</span><ChevronDown className={profileSection === 'password' ? 'chevron-open' : ''} size={18} /></button>
               {profileSection === 'password' && (
                 <form className="profile-inline-panel profile-form" onSubmit={guardarPassword}>
                   <label>
-                    <span>Contrasena actual</span>
-                    <input type="password" value={profilePassword.actual} onChange={(event) => setProfilePassword((current) => ({ ...current, actual: event.target.value }))} autoComplete="current-password" />
+                    <span>contraseña actual</span>
+                    <PasswordField value={profilePassword.actual} onChange={(event) => setProfilePassword((current) => ({ ...current, actual: event.target.value }))} autoComplete="current-password" />
                   </label>
                   <label>
-                    <span>Nueva contrasena</span>
-                    <input type="password" value={profilePassword.nueva} onChange={(event) => setProfilePassword((current) => ({ ...current, nueva: event.target.value }))} autoComplete="new-password" />
+                    <span>Nueva contraseña</span>
+                    <PasswordField value={profilePassword.nueva} onChange={(event) => setProfilePassword((current) => ({ ...current, nueva: event.target.value }))} autoComplete="new-password" />
                   </label>
                   <label>
                     <span>Confirmar nueva</span>
-                    <input type="password" value={profilePassword.confirmar} onChange={(event) => setProfilePassword((current) => ({ ...current, confirmar: event.target.value }))} autoComplete="new-password" />
+                    <PasswordField value={profilePassword.confirmar} onChange={(event) => setProfilePassword((current) => ({ ...current, confirmar: event.target.value }))} autoComplete="new-password" />
                   </label>
-                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Actualizando...' : 'Cambiar contrasena'}</button>
+                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Actualizando...' : 'Cambiar contraseña'}</button>
                 </form>
               )}
 
-              <button className={profileSection === 'sesion' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('sesion')} aria-expanded={profileSection === 'sesion'}><ShieldCheck size={22} /><span>Sesion y acceso</span><ChevronDown className={profileSection === 'sesion' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'sesion' && (
-                <div className="profile-inline-panel profile-session-panel">
-                  <div><small>Sesion</small><strong>Activa</strong></div>
-                  <div><small>Identificador</small><strong>{operador.codigo_operador}</strong></div>
-                  <button className="secondary-action" type="button" onClick={cerrarSesion}>Cerrar sesion</button>
-                </div>
-              )}
             </div>
 
             <div className="profile-section">
@@ -694,7 +784,7 @@ export function App() {
                   </div>
                 </div>
               )}
-              <button className="profile-option danger" type="button" onClick={cerrarSesion}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
+              <button className="profile-option danger profile-logout-option" type="button" onClick={cerrarSesion}><LogOut size={22} /><span>Salir</span></button>
             </div>
           </section>
         ) : vista === 'crear' ? (
@@ -753,35 +843,54 @@ export function App() {
                   </label>
                 </div>
                 <div className="orders-filter-grid" aria-label="Filtros de pedidos">
-                  <div className="order-filter-field">
-                    <span className="order-filter-icon">{servicioIcon(servicio, 17)}</span>
-                    <button
-                      type="button"
-                      className="order-filter-button"
-                      onClick={() => setServicioSheetOpen(true)}
-                      aria-haspopup="dialog"
-                      aria-expanded={servicioSheetOpen}
-                    >
-                      <span>{servicio ? servicios.find((item) => item.value === servicio)?.label : 'Servicio'}</span>
-                      <ChevronDown className="order-filter-caret" size={17} />
-                    </button>
+                  <div className="order-filter-field order-filter-floating">
+                    <FloatingSelect
+                      value={servicio}
+                      onChange={setServicio}
+                      options={servicios.map((item) => ({
+                        value: item.value,
+                        label: item.value ? item.label : 'Todos los servicios',
+                        icon: servicioIcon(item.value, 17),
+                      }))}
+                      ariaLabel="Filtrar por servicio"
+                      align="left"
+                      buttonClassName="order-filter-button"
+                    />
                   </div>
-                  <div className="order-filter-field">
-                    <CircleDot className="order-filter-icon" size={17} />
-                    <button
-                      type="button"
-                      className="order-filter-button"
-                      onClick={() => setEstadoSheetOpen(true)}
-                      aria-haspopup="dialog"
-                      aria-expanded={estadoSheetOpen}
-                    >
-                      <span>{estado ? estadoLabel(estado) : 'Estado'}</span>
-                      <ChevronDown className="order-filter-caret" size={17} />
-                    </button>
+                  <div className="order-filter-field order-filter-floating">
+                    <FloatingSelect
+                      value={estado}
+                      onChange={setEstado}
+                      options={estados.map((item) => ({
+                        value: item.value,
+                        label: item.value ? item.label : 'Todos los estados',
+                        icon: <CircleDot size={17} />,
+                      }))}
+                      ariaLabel="Filtrar por estado"
+                      align="left"
+                      buttonClassName="order-filter-button"
+                    />
                   </div>
                 </div>
+                <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
+                  <button type="button" className={!estado ? 'active' : ''} onClick={() => setEstado('')}>
+                    <span>Todos</span>
+                    <strong>{totalPedidosConteo}</strong>
+                  </button>
+                  {estadosBandeja.map((item) => (
+                    <button
+                      type="button"
+                      key={item.value}
+                      className={estado === item.value ? `active ${item.value}` : item.value}
+                      onClick={() => setEstado(item.value)}
+                    >
+                      <span>{item.label}</span>
+                      <strong>{pedidosConteoPorEstado.get(item.value) ?? 0}</strong>
+                    </button>
+                  ))}
+                </div>
                 {error && <div className="notice error">{error}</div>}
-                {loading && <div className="page-loading-card" aria-label="Cargando pedidos" />}
+                {loading && <PageLoader label="Cargando pedidos" inline />}
                 {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
                 <div className="orders-view-mode-row">
                   <button
@@ -799,16 +908,19 @@ export function App() {
                 </div>
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
-                    {pedidosListaOrdenada.map((pedido) => (
+                    {pedidosListaOrdenada.map((pedido) => {
+                      const retrasado = pedidoEnOperacionRetrasado(pedido, pedidosClock);
+                      const tiempoOperacion = tiempoEnOperacionLabel(pedido, pedidosClock);
+                      return (
                       <button
                         key={pedido.codigo_operacion}
-                        className={seleccionado === pedido.codigo_operacion ? 'chat-order-card selected' : 'chat-order-card'}
+                        className={[seleccionado === pedido.codigo_operacion ? 'chat-order-card selected' : 'chat-order-card', retrasado ? 'order-delayed' : ''].filter(Boolean).join(' ')}
                         onClick={() => setSeleccionado(pedido.codigo_operacion)}
                       >
                         <span className="chat-card-main">
                           <span className="pedido-card-head">
                             <strong>{pedido.servicio}</strong>
-                            <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
+                            <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
                           </span>
                           <span className="pedido-card-fields compact">
                             {resumenPedido(pedido).map((field) => (
@@ -821,12 +933,15 @@ export function App() {
                         </span>
                         <span className="chat-card-side">
                           <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
+                          {tiempoOperacion && <small className={retrasado ? 'order-delay-chip delayed' : 'order-delay-chip'}>{retrasado ? 'Retrasado' : tiempoOperacion}</small>}
+                          {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own' : 'order-redirect-chip'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
                           {pedido.lock_activo && <small className="order-taken-chip">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                           <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
                           <small>Recibe {pedido.monto_resultado}</small>
                         </span>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="pedido-board">
@@ -842,16 +957,21 @@ export function App() {
                           <strong>{grupo.pedidos.length}</strong>
                         </header>
                         {!colapsado && <div className="pedido-list">
-                          {grupo.pedidos.map((pedido) => (
+                          {grupo.pedidos.map((pedido) => {
+                            const retrasado = pedidoEnOperacionRetrasado(pedido, pedidosClock);
+                            const tiempoOperacion = tiempoEnOperacionLabel(pedido, pedidosClock);
+                            return (
                             <button
                               key={pedido.codigo_operacion}
-                              className={seleccionado === pedido.codigo_operacion ? 'pedido-row selected' : 'pedido-row'}
+                              className={[seleccionado === pedido.codigo_operacion ? 'pedido-row selected' : 'pedido-row', retrasado ? 'order-delayed' : ''].filter(Boolean).join(' ')}
                               onClick={() => setSeleccionado(pedido.codigo_operacion)}
                             >
                               <span className="kanban-card-top">
                                 <span className="pedido-card-head">
                                   <strong>{pedido.servicio}</strong>
-                                  <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
+                                  <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
+                                  {tiempoOperacion && <small className={retrasado ? 'order-delay-chip delayed inline' : 'order-delay-chip inline'}>{retrasado ? `Retrasado · ${tiempoOperacion}` : tiempoOperacion}</small>}
+                                  {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
                                   {pedido.lock_activo && <small className="order-taken-chip inline">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                                 </span>
                                 <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
@@ -869,7 +989,8 @@ export function App() {
                                 <small>Tasa {pedido.tasa_final}</small>
                               </span>
                             </button>
-                          ))}
+                            );
+                          })}
                         </div>}
                       </section>
                       );
@@ -882,62 +1003,28 @@ export function App() {
           </>
         )}
       </main>
-      {estadoSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de estado" onClick={() => setEstadoSheetOpen(false)} />
-          <section className="bottom-sheet-panel state-filter-sheet" role="dialog" aria-modal="true" aria-label="Filtrar pedidos por estado">
-            <header className="bottom-sheet-header">
-              <strong>Estado</strong>
-              <button className="icon-button" type="button" onClick={() => setEstadoSheetOpen(false)} title="Cerrar" aria-label="Cerrar">
-                <X size={18} />
-              </button>
-            </header>
-            <div className="bottom-sheet-options">
-              {estados.map((item) => (
-                <button
-                  key={item.value || 'todos-estados'}
-                  type="button"
-                  className={estado === item.value ? 'active' : ''}
-                  onClick={() => { setEstado(item.value); setEstadoSheetOpen(false); }}
-                >
-                  <CircleDot size={18} />
-                  <span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {servicioSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de servicio" onClick={() => setServicioSheetOpen(false)} />
-          <section className="bottom-sheet-panel service-filter-sheet" role="dialog" aria-modal="true" aria-label="Filtrar pedidos por servicio">
-            <header className="bottom-sheet-header">
-              <strong>Servicio</strong>
-              <button className="icon-button" type="button" onClick={() => setServicioSheetOpen(false)} title="Cerrar" aria-label="Cerrar">
-                <X size={18} />
-              </button>
-            </header>
-            <div className="bottom-sheet-options">
-              {servicios.map((item) => (
-                <button
-                  key={item.value || 'todos-servicios'}
-                  type="button"
-                  className={servicio === item.value ? 'active' : ''}
-                  onClick={() => { setServicio(item.value); setServicioSheetOpen(false); }}
-                >
-                  {servicioIcon(item.value, 18)}
-                  <span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
       {puedeCrear && (vista === 'inicio' || vista === 'bandeja') && (
-        <button className="floating-create" onClick={() => abrirCrear('transferencia')} title="Nuevo pedido">
-          <Plus size={24} />
-        </button>
+        <div className={quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap'}>
+          {quickCreateOpen && <button className="floating-create-backdrop" aria-label="Cerrar menu de creacion" onClick={() => setQuickCreateOpen(false)} />}
+          {quickCreateOpen && (
+            <div className="floating-create-menu" role="menu" aria-label="Crear pedido">
+              <button type="button" role="menuitem" onClick={() => abrirCrear('transferencia')}><WalletCards size={18} /> Transferenciaaa</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('efectivo')}><Banknote size={18} /> Efectivo</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('saldo')}><Smartphone size={18} /> Saldo</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('divisa')}><WalletCards size={18} /> Divisa</button>
+            </div>
+          )}
+          <button
+            className="floating-create"
+            type="button"
+            onClick={() => setQuickCreateOpen((current) => !current)}
+            title={quickCreateOpen ? 'Cerrar opciones' : 'Nuevo pedido'}
+            aria-label={quickCreateOpen ? 'Cerrar opciones de nuevo pedido' : 'Nuevo pedido'}
+            aria-expanded={quickCreateOpen}
+          >
+            {quickCreateOpen ? <X size={24} /> : <Plus size={24} />}
+          </button>
+        </div>
       )}
       <nav className="bottom-nav" aria-label="Navegacion principal">
         <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={20} /> Inicio</button>

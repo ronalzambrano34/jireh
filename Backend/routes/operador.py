@@ -65,6 +65,33 @@ def listar_operadores_route(
 
 
 @router.get(
+    "/activos",
+    response_model=list[OperadorResponse]
+)
+def listar_operadores_activos_route(
+    db: Session = Depends(
+        get_db
+    ),
+    _operador = Depends(
+        require_permission(
+            "pedidos:gestionar"
+        )
+    )
+):
+    try:
+        return listar_operadores(
+            db,
+            incluir_inactivos=False,
+            limit=100
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+
+
+@router.get(
     "/{operador_id}",
     response_model=OperadorResponse
 )

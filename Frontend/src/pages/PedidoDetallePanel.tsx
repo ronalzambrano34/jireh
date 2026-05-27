@@ -1,9 +1,11 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, Copy, ExternalLink, FileText, History, Lock, MessageCircle, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { CheckCircle2, Clock3, Copy, ExternalLink, FileText, History, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Upload } from 'lucide-react';
 import { Modal } from '../components/Modal';
-import { actualizarEstado, liberarOperacion, obtenerPedido, renovarOperacion, subirArchivo, tomarOperacion } from '../api/client';
-import type { PedidoDetalle } from '../types/api';
+import { PageLoader } from '../components/PageLoader';
+import { actualizarEstado, liberarOperacion, listarOperadoresActivos, obtenerPedido, redirigirOperacion, renovarOperacion, subirArchivo, tomarOperacion } from '../api/client';
+import type { Operador, PedidoDetalle } from '../types/api';
 import { abrirWhatsAppUrls } from '../utils/whatsapp';
+import { FloatingSelect } from '../components/FloatingSelect';
 
 const estados = [
   { value: 'pendiente_pago', label: 'Pendiente pago' },
@@ -95,6 +97,10 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [operadores, setOperadores] = useState<Operador[]>([]);
+  const [redirigiendo, setRedirigiendo] = useState(false);
+  const [operadorDestino, setOperadorDestino] = useState('');
+  const [mensajeRedireccion, setMensajeRedireccion] = useState('');
 
   const bloqueoPropio = Boolean(pedido?.lock_activo && pedido.operador_asignado_id === operadorId);
   const bloqueadoPorOtro = Boolean(pedido?.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operadorId);
@@ -136,6 +142,17 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       active = false;
     };
   }, [codigo]);
+
+  useEffect(() => {
+    listarOperadoresActivos()
+      .then((items) => setOperadores(items.filter((item) => item.id !== operadorId && item.activo)))
+      .catch(() => setOperadores([]));
+  }, [operadorId]);
+
+  useEffect(() => {
+    setOperadorDestino(pedido?.redirigido_a_operador_id ? String(pedido.redirigido_a_operador_id) : '');
+    setMensajeRedireccion(pedido?.redireccion_mensaje ?? '');
+  }, [pedido?.redirigido_a_operador_id, pedido?.redireccion_mensaje]);
 
   useEffect(() => {
     if (!codigo || !bloqueoPropio) return;
@@ -206,6 +223,24 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     }
   }
 
+  async function guardarRedireccion() {
+    if (!pedido) return;
+    setRedirigiendo(true);
+    setError(null);
+    try {
+      const actualizado = await redirigirOperacion(pedido.codigo_operacion, {
+        operador_destino_id: operadorDestino ? Number(operadorDestino) : null,
+        mensaje: mensajeRedireccion,
+      });
+      setPedido(actualizado);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo redirigir el pedido');
+    } finally {
+      setRedirigiendo(false);
+    }
+  }
+
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
     setUploading(true);
@@ -229,7 +264,7 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
 
   return (
     <Modal title={pedido?.codigo_operacion ?? codigo} subtitle={pedido ? `${servicioLabel(pedido.servicio)} · ${pedido.moneda_pago}` : undefined} onClose={cerrarDetalle} wide>
-      {loading && <div className="detail-panel empty">Cargando detalle...</div>}
+      {loading && <PageLoader label="Cargando detalle" inline />}
       {!loading && !pedido && <div className="detail-panel empty">Sin detalle disponible</div>}
       {!loading && pedido && (
         <div className="detail-panel modal-detail-panel order-detail-surface">
@@ -251,6 +286,11 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
           {error && <div className="notice error">{error}</div>}
           {bloqueoPropio && <div className="notice success"><CheckCircle2 size={17} /> Operacion reservada mientras mantengas abierto este detalle.</div>}
           {bloqueadoPorOtro && <div className="notice warning"><ShieldAlert size={17} /> En uso por {pedido.operador_asignado_nombre ?? 'otro operador'}. Puedes revisar, pero no editar.</div>}
+          {pedido.redirigido_a_operador_id && (
+            <div className={pedido.redirigido_a_operador_id === operadorId ? 'notice redirected own' : 'notice redirected'}>
+              <Send size={17} /> Marcado para {pedido.redirigido_a_operador_nombre ?? 'otro operador'}{pedido.redireccion_mensaje ? `: ${pedido.redireccion_mensaje}` : ''}
+            </div>
+          )}
 
           <dl className="order-detail-metrics">
             <div>
@@ -266,6 +306,35 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
               <dd>{pedido.monto_resultado}<button className="inline-copy-button" type="button" onClick={() => copiarTexto(pedido.monto_resultado)} title="Copiar recibe" aria-label="Copiar recibe"><Copy size={14} /></button></dd>
             </div>
           </dl>
+
+          <section className="order-detail-section order-redirect-section">
+            <div className="order-section-heading">
+              <Send size={18} />
+              <div>
+                <h3>Redirigir a operador</h3>
+                <small>Marca este pedido para que otro operador lo vea destacado</small>
+              </div>
+            </div>
+            <div className="order-redirect-grid">
+              <FloatingSelect
+                value={operadorDestino}
+                onChange={setOperadorDestino}
+                options={[{ value: '', label: 'Sin redireccion' }, ...operadores.map((item) => ({ value: String(item.id), label: item.nombre, description: item.rol }))]}
+                ariaLabel="Operador destino"
+                align="left"
+              />
+              <input
+                value={mensajeRedireccion}
+                onChange={(event) => setMensajeRedireccion(event.target.value)}
+                placeholder="Nota breve para el operador"
+                disabled={redirigiendo}
+              />
+              <button className="ghost-button" type="button" onClick={guardarRedireccion} disabled={redirigiendo || (!operadorDestino && !pedido.redirigido_a_operador_id)}>
+                {redirigiendo ? <RefreshCw size={16} /> : <Send size={16} />}
+                {operadorDestino ? 'Marcar' : 'Limpiar'}
+              </button>
+            </div>
+          </section>
 
           <section className="order-detail-section order-state-section">
             <div className="order-section-heading">

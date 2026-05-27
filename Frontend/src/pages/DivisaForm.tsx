@@ -3,9 +3,11 @@ import { crearDivisa, listarMetodosPago } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PasteButton } from '../components/PasteButton';
 import { PhoneInput } from '../components/PhoneInput';
+import { PageLoader } from '../components/PageLoader';
 import type { CalculoOperacionResponse, Contacto, MetodoPago } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -175,12 +177,13 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           <div className="form-grid">
             <label>
               Tipo tarjeta
-              <select value={form.tipo_tarjeta} onChange={(event) => update('tipo_tarjeta', event.target.value)}>
-                <option value="MLC">MLC</option>
-                <option value="CUP">CUP</option>
-                <option value="USD">USD</option>
-                <option value="OTRA">Otra</option>
-              </select>
+              <FloatingSelect
+                value={form.tipo_tarjeta}
+                onChange={(value) => update('tipo_tarjeta', value)}
+                ariaLabel="Tipo tarjeta"
+                options={[{ value: 'MLC', label: 'MLC' }, { value: 'CUP', label: 'CUP' }, { value: 'USD', label: 'USD' }, { value: 'OTRA', label: 'Otra' }]}
+                align="left"
+              />
             </label>
             <label>
               Tarjeta destinatario
@@ -191,7 +194,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             </label>
             <label>
               Telefono destinatario Cuba
-              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" pasteTitle="Pegar telefono destinatario" />
+              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" codeLocked pasteTitle="Pegar telefono destinatario" />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -206,12 +209,13 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
               <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
-              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
-                    <option value="BRL">BRL</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="UYU">UYU</option>
-              </select>
+              <FloatingSelect
+                className="payment-currency-select"
+                value={form.moneda_pago}
+                onChange={(value) => update('moneda_pago', value)}
+                ariaLabel="Moneda de pago"
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda }))}
+              />
             </label>
           </header>
           <div className="form-grid payment-grid">
@@ -246,6 +250,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         </section>
       </div>
       {error && <div className="notice error">{error}</div>}
+      {loading && <PageLoader label="Creando divisa" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear divisa'}
       </button>

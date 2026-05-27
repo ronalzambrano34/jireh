@@ -15,6 +15,7 @@ export type OperadorCreatePayload = {
   telefono: string;
   password?: string;
   rol: string;
+  permisos?: string[];
 };
 
 export type OperadorUpdatePayload = {
@@ -23,6 +24,7 @@ export type OperadorUpdatePayload = {
   password?: string;
   rol?: string;
   activo?: boolean;
+  permisos?: string[];
 };
 
 export type AuthResponse = {
@@ -67,11 +69,21 @@ export type PedidoResumen = {
   monto_resultado: number;
   tasa_final: number;
   created_at?: string;
+  updated_at?: string;
+  fecha_pago_confirmado?: string | null;
+  fecha_en_operacion?: string | null;
+  fecha_completado?: string | null;
   operador_asignado_id?: number | null;
   operador_asignado_nombre?: string | null;
   asignado_en?: string | null;
   lock_expires_at?: string | null;
   lock_activo?: boolean;
+  redirigido_a_operador_id?: number | null;
+  redirigido_a_operador_nombre?: string | null;
+  redirigido_por_operador_id?: number | null;
+  redirigido_por_operador_nombre?: string | null;
+  redirigido_en?: string | null;
+  redireccion_mensaje?: string | null;
   detalle?: Record<string, unknown> | null;
 };
 
@@ -261,6 +273,18 @@ export type Oferta = {
   activa: boolean;
 };
 
+export type Promocion = {
+  id: number;
+  imagen_url: string;
+  descripcion: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  activa: boolean;
+  vigente: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 
 
 export type SyncOfertaItem = {
@@ -287,6 +311,17 @@ export type SyncOfertasResponse = {
   meta?: Record<string, unknown>;
 };
 
+
+export type TasaOperativaSyncStatus = {
+  interval_hours: number;
+  last_success_at?: string | null;
+  last_attempt_at?: string | null;
+  next_sync_at?: string | null;
+  stale: boolean;
+  running: boolean;
+  last_error?: string | null;
+};
+
 export type OfertaOperativa = Oferta;
 
 export type PaqueteSaldoOperativo = PaqueteSaldo;
@@ -296,6 +331,8 @@ export type TasaOperativaResponse = {
   ofertas: OfertaOperativa[];
   ofertas_divisa: OfertaOperativa[];
   paquetes_saldo: PaqueteSaldoOperativo[];
+  promociones: Promocion[];
+  sync?: TasaOperativaSyncStatus;
 };
 
 export type Configuracion = {

@@ -3,8 +3,10 @@ import { MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
+import { PageLoader } from '../components/PageLoader';
 import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida } from '../api/client';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PuntoRecogida } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
@@ -217,6 +219,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                 value={form.telefono_destinatario}
                 onChange={(value) => update('telefono_destinatario', value)}
                 defaultCode="+53"
+                codeLocked
                 required
                 pasteTitle="Pegar telefono destinatario"
                 actions={(
@@ -239,16 +242,15 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
             </label>
             <label className="wide">
               Punto de recogida
-              <select
+              <FloatingSelect
                 value={form.punto_recogida_id}
-                onChange={(event) => update('punto_recogida_id', event.target.value)}
+                onChange={(value) => update('punto_recogida_id', value)}
                 disabled={cargandoCatalogos || puntos.length === 0}
-              >
-                {puntos.length === 0 && <option value="">Sin puntos activos</option>}
-                {puntos.map((punto) => (
-                  <option key={punto.id} value={punto.id}>{punto.nombre}</option>
-                ))}
-              </select>
+                placeholder="Sin puntos activos"
+                ariaLabel="Punto de recogida"
+                options={puntos.length === 0 ? [{ value: '', label: 'Sin puntos activos', disabled: true }] : puntos.map((punto) => ({ value: String(punto.id), label: punto.nombre }))}
+                align="left"
+              />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -263,12 +265,13 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
               <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
-              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
-                    <option value="BRL">BRL</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="UYU">UYU</option>
-              </select>
+              <FloatingSelect
+                className="payment-currency-select"
+                value={form.moneda_pago}
+                onChange={(value) => update('moneda_pago', value)}
+                ariaLabel="Moneda de pago"
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda }))}
+              />
             </label>
           </header>
           <div className="form-grid payment-grid">
@@ -299,6 +302,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
         </section>
       </div>
       {error && <div className="notice error">{error}</div>}
+      {loading && <PageLoader label="Creando efectivo" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear efectivo'}
       </button>

@@ -3,8 +3,10 @@ import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/clien
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
+import { PageLoader } from '../components/PageLoader';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -206,7 +208,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           <div className="form-grid">
             <label>
               Telefono destinatario Cuba
-              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" pasteTitle="Pegar telefono destinatario" required />
+              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" codeLocked pasteTitle="Pegar telefono destinatario" required />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -221,12 +223,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
               <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
-              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
-                    <option value="BRL">BRL</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="UYU">UYU</option>
-              </select>
+              <FloatingSelect
+                className="payment-currency-select"
+                value={form.moneda_pago}
+                onChange={(value) => update('moneda_pago', value)}
+                ariaLabel="Moneda de pago"
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda }))}
+              />
             </label>
           </header>
           <div className="form-grid payment-grid">
@@ -242,19 +245,15 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
             </label>
             <label>
               Paquete de saldo
-              <select
+              <FloatingSelect
                 value={form.paquete_saldo_id}
-                onChange={(event) => update('paquete_saldo_id', event.target.value)}
-                required
+                onChange={(value) => update('paquete_saldo_id', value)}
                 disabled={cargandoCatalogos || paquetesFiltrados.length === 0}
-              >
-                {paquetesFiltrados.length === 0 && <option value="">Sin paquetes para {form.moneda_pago}</option>}
-                {paquetesFiltrados.map((paquete) => (
-                  <option key={paquete.id} value={paquete.id}>
-                    {paquete.nombre} · {paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP
-                  </option>
-                ))}
-              </select>
+                placeholder={`Sin paquetes para ${form.moneda_pago}`}
+                ariaLabel="Paquete de saldo"
+                options={paquetesFiltrados.length === 0 ? [{ value: '', label: `Sin paquetes para ${form.moneda_pago}`, disabled: true }] : paquetesFiltrados.map((paquete) => ({ value: String(paquete.id), label: paquete.nombre, description: `${paquete.monto_pago} ${paquete.moneda_pago} · ${paquete.saldo_cup} CUP` }))}
+                align="left"
+              />
             </label>
             <label>
               Cupon o bono
@@ -269,6 +268,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         </section>
       </div>
       {error && <div className="notice error">{error}</div>}
+      {loading && <PageLoader label="Creando saldo" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear saldo'}
       </button>

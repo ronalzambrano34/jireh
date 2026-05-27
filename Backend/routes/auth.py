@@ -224,7 +224,7 @@ def cambiar_password_me_route(
     ):
         raise HTTPException(
             status_code=400,
-            detail="La contrasena actual no coincide"
+            detail="La contraseña actual no coincide"
         )
 
     try:
@@ -241,5 +241,5 @@ def cambiar_password_me_route(
 
     db.commit()
     return {
-        "message": "Contrasena actualizada"
+        "message": "contraseña actualizada"
     }

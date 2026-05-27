@@ -1,16 +1,17 @@
 import { FormEvent, useState } from 'react';
-import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
+import { LockKeyhole } from 'lucide-react';
 import { login, setToken } from '../api/client';
 import type { Operador } from '../types/api';
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import { PhoneInput } from '../components/PhoneInput';
+import { PageLoader } from '../components/PageLoader';
+import { PasswordField } from '../components/PasswordField';
 
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
   const [telefono, setTelefono] = useState(import.meta.env.VITE_TEST_LOGIN_TELEFONO ?? '');
   const [password, setPassword] = useState(import.meta.env.VITE_TEST_LOGIN_PASSWORD ?? '');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mostrarPassword, setMostrarPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -41,36 +42,16 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
         </div>
         <label>
           Telefono
-          <PhoneInput value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" pasteTitle="Pegar telefono" />
+          <PhoneInput value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
         </label>
         <label>
           Contraseña
-          <div className="password-field">
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type={mostrarPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() => setMostrarPassword((value) => !value)}
-              title={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            >
-              {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <PasswordField value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
         </label>
         {error && <div className="notice error">{error}</div>}
         <button className="primary-button" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
       </form>
-      {loading && (
-        <div className="logo-bounce-loader" aria-label="Iniciando sesion">
-          <img src={logoJireh} alt="" />
-        </div>
-      )}
+      {loading && <PageLoader label="Iniciando sesion" />}
     </main>
   );
 }

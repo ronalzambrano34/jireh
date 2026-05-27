@@ -190,6 +190,30 @@ def ensure_runtime_columns(
         "lock_expires_at",
         "lock_expires_at TIMESTAMP"
     )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redirigido_a_operador_id",
+        "redirigido_a_operador_id INTEGER"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redirigido_por_operador_id",
+        "redirigido_por_operador_id INTEGER"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redirigido_en",
+        "redirigido_en TIMESTAMP"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redireccion_mensaje",
+        "redireccion_mensaje VARCHAR"
+    )
     _rename_column_if_needed(
         db,
         "pedido_transferencia",
@@ -272,6 +296,13 @@ def ensure_runtime_columns(
         "operadores",
         "foto_url",
         "foto_url VARCHAR"
+    )
+
+    _add_column_if_missing(
+        db,
+        "operadores",
+        "permisos_config",
+        "permisos_config VARCHAR"
     )
 
     _add_column_if_missing(

@@ -89,3 +89,27 @@ UPLOAD_ALLOWED_MIME_TYPES = {
     ).split(",")
     if mime.strip()
 }
+
+OFERTAS_AUTO_SYNC_ENABLED = os.getenv(
+    "OFERTAS_AUTO_SYNC_ENABLED",
+    "true"
+).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "si"
+}
+
+OFERTAS_SYNC_INTERVAL_HOURS = float(
+    os.getenv(
+        "OFERTAS_SYNC_INTERVAL_HOURS",
+        "12"
+    )
+)
+
+OFERTAS_SYNC_START_DELAY_SECONDS = int(
+    os.getenv(
+        "OFERTAS_SYNC_START_DELAY_SECONDS",
+        "15"
+    )
+)

@@ -10,7 +10,8 @@ from Backend.services.auth_service import (
 )
 
 from Backend.schemas.pedido import (
-    PedidoEstadoUpdate
+    PedidoEstadoUpdate,
+    PedidoRedireccionUpdate
 )
 from Backend.schemas.pedido_transferencia import (
     PedidoTransferenciaCreate
@@ -21,6 +22,7 @@ from Backend.services.pedido_service import (
     liberar_bloqueo_pedido,
     listar_pedidos,
     obtener_pedido_por_codigo,
+    redirigir_pedido_operador,
     renovar_bloqueo_pedido,
     tomar_operacion_pedido
 )
@@ -153,6 +155,38 @@ def actualizar_estado(
             data.observaciones,
             usuario=operador.nombre,
             operador=operador
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+
+
+@router.patch(
+    "/{codigo_operacion}/redirigir"
+)
+def redirigir_operacion(
+    codigo_operacion: str,
+    data: PedidoRedireccionUpdate,
+    db: Session = Depends(
+        get_db
+    ),
+    operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
+    )
+):
+    try:
+        return redirigir_pedido_operador(
+            db,
+            codigo_operacion,
+            data.operador_destino_id,
+            data.mensaje,
+            operador
         )
     except Exception as exc:
         raise HTTPException(

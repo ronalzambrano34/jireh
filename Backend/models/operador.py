@@ -4,8 +4,39 @@ from sqlalchemy import String
 from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
+import json
 
 from Backend.database import Base
+
+
+PERMISOS_POR_ROL = {
+    "admin": [
+        "operadores:ver",
+        "operadores:crear",
+        "operadores:editar",
+        "operadores:desactivar",
+        "empresa:control_total",
+        "pedidos:gestionar",
+        "clientes:gestionar",
+        "configuracion:gestionar"
+    ],
+    "supervisor": [
+        "pedidos:gestionar",
+        "clientes:gestionar",
+        "operadores:ver"
+    ],
+    "operador": [
+        "pedidos:crear",
+        "clientes:crear",
+        "contactos:gestionar"
+    ]
+}
+
+PERMISOS_DISPONIBLES = tuple(dict.fromkeys(
+    permiso
+    for permisos in PERMISOS_POR_ROL.values()
+    for permiso in permisos
+))
 
 
 class Operador(Base):
@@ -56,6 +87,11 @@ class Operador(Base):
         nullable=True
     )
 
+    permisos_config = Column(
+        String,
+        nullable=True
+    )
+
     created_at = Column(
         DateTime,
         server_default=func.now()
@@ -63,31 +99,26 @@ class Operador(Base):
 
     @property
     def permisos(self):
-        permisos_por_rol = {
-            "admin": [
-                "operadores:ver",
-                "operadores:crear",
-                "operadores:editar",
-                "operadores:desactivar",
-                "empresa:control_total",
-                "pedidos:gestionar",
-                "clientes:gestionar",
-                "configuracion:gestionar"
-            ],
-            "supervisor": [
-                "pedidos:gestionar",
-                "clientes:gestionar",
-                "operadores:ver"
-            ],
-            "operador": [
-                "pedidos:crear",
-                "clientes:crear",
-                "contactos:gestionar"
-            ]
-        }
+        if self.permisos_config:
+            try:
+                permisos = json.loads(
+                    self.permisos_config
+                )
+            except (TypeError, ValueError):
+                permisos = None
 
-        return permisos_por_rol.get(
+            if isinstance(
+                permisos,
+                list
+            ):
+                return [
+                    permiso
+                    for permiso in permisos
+                    if permiso in PERMISOS_DISPONIBLES
+                ]
+
+        return PERMISOS_POR_ROL.get(
             self.rol,
-            permisos_por_rol["operador"]
+            PERMISOS_POR_ROL["operador"]
         )
 
