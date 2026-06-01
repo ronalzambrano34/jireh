@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from Backend.models.punto_recogida import (
     PuntoRecogida
 )
+from Backend.models.provincia_servicio import ProvinciaServicio
 
 from Backend.services.pedido_creator import (
     crear_pedido
@@ -41,6 +42,10 @@ def crear_pedido_efectivo(
             db.query(
                 PuntoRecogida
             )
+            .outerjoin(
+                ProvinciaServicio,
+                PuntoRecogida.provincia_id == ProvinciaServicio.id
+            )
             .filter(
                 PuntoRecogida.id
                 == punto_recogida_id
@@ -51,6 +56,11 @@ def crear_pedido_efectivo(
         if not punto:
             raise Exception(
                 "Punto de recogida no encontrado"
+            )
+
+        if not punto.activo or not punto.provincia or not punto.provincia.activo:
+            raise Exception(
+                "Punto de recogida no disponible para servicio"
             )
 
     payload = {

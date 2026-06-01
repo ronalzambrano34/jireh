@@ -1,17 +1,19 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirMiFotoPerfil } from './api/client';
-import type { Operador, PedidoResumen } from './types/api';
+import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
 import { DivisaForm } from './pages/DivisaForm';
 import { EfectivoForm } from './pages/EfectivoForm';
 import { SaldoForm } from './pages/SaldoForm';
+import { OtrosForm } from './pages/OtrosForm';
 import { TransferenciaForm } from './pages/TransferenciaForm';
 import { ReportesPage } from './pages/ReportesPage';
 import { AdminCatalogosPage } from './pages/AdminCatalogosPage';
 import { InicioPage } from './pages/InicioPage';
 import { PageLoader } from './components/PageLoader';
+import { Modal } from './components/Modal';
 import { PasswordField } from './components/PasswordField';
 import { FloatingSelect } from './components/FloatingSelect';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
@@ -31,6 +33,7 @@ const servicios = [
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'saldo', label: 'Saldo' },
   { value: 'divisa', label: 'Divisa' },
+  { value: 'otros', label: 'Otros' },
 ];
 
 type CrearPedidoDraft = {
@@ -43,6 +46,8 @@ type CrearPedidoDraft = {
 
 type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
 type AppTheme = 'light' | 'dark-deep' | 'dark-sidebar';
+type AlcancePedidos = 'mis' | 'todas';
+type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 
 const THEME_KEY = 'jireh.theme';
 const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
@@ -61,6 +66,7 @@ function servicioIcon(value: string, size = 18) {
   if (value === 'efectivo') return <Banknote size={size} />;
   if (value === 'saldo') return <Smartphone size={size} />;
   if (value === 'divisa') return <WalletCards size={size} />;
+  if (value === 'otros') return <BriefcaseBusiness size={size} />;
   return <BriefcaseBusiness size={size} />;
 }
 
@@ -93,6 +99,12 @@ function detalleValor(pedido: PedidoResumen, key: string) {
   return String(value);
 }
 
+function monedaEntregaPedido(pedido: PedidoResumen) {
+  if (pedido.servicio === 'divisa') return detalleValor(pedido, 'tipo_tarjeta') ?? 'DIVISA';
+  if (pedido.servicio === 'otros') return pedido.moneda_pago;
+  return 'CUP';
+}
+
 function camposTarjetaPedido(pedido: PedidoResumen) {
   if (pedido.servicio === 'transferencia') {
     return [
@@ -105,7 +117,7 @@ function camposTarjetaPedido(pedido: PedidoResumen) {
   if (pedido.servicio === 'efectivo') {
     return [
       { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Documento', value: detalleValor(pedido, 'documento_identidad_url') },
+      { label: 'Foto documento', value: detalleValor(pedido, 'documento_identidad_url') },
       { label: 'Monto CUP', value: detalleValor(pedido, 'monto_cup') ?? String(pedido.monto_resultado) },
     ];
   }
@@ -122,7 +134,14 @@ function camposTarjetaPedido(pedido: PedidoResumen) {
       { label: 'Tipo', value: detalleValor(pedido, 'tipo_tarjeta') },
       { label: 'Tarjeta', value: detalleValor(pedido, 'numero_tarjeta') },
       { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Monto divisa', value: detalleValor(pedido, 'monto_divisa') ?? String(pedido.monto_resultado) },
+      { label: 'Monto divisa', value: `${detalleValor(pedido, 'monto_divisa') ?? pedido.monto_resultado} ${monedaEntregaPedido(pedido)}` },
+    ];
+  }
+
+  if (pedido.servicio === 'otros') {
+    return [
+      { label: 'Info', value: pedido.observaciones },
+      { label: 'Pago', value: `${pedido.monto_pago} ${pedido.moneda_pago}` },
     ];
   }
 
@@ -185,13 +204,16 @@ export function App() {
   });
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
+  const [pedidoPagoModal, setPedidoPagoModal] = useState<PedidoDetalle | null>(null);
+  const [alcanceConteos, setAlcanceConteos] = useState({ mis: 0, todas: 0 });
   const [estado, setEstado] = useState('');
   const [servicio, setServicio] = useState('');
+  const [alcancePedidos, setAlcancePedidos] = useState<AlcancePedidos>('mis');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
-  const [servicioCrear, setServicioCrear] = useState<'transferencia' | 'efectivo' | 'saldo' | 'divisa'>('transferencia');
+  const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +222,9 @@ export function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollYRef = useRef(0);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCreateHidden, setQuickCreateHidden] = useState(false);
   const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set());
   const [profileSection, setProfileSection] = useState<ProfileSection>(null);
   const [profileNombre, setProfileNombre] = useState('');
@@ -221,6 +245,11 @@ export function App() {
 
   const puedeReportes = useMemo(
     () => operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    [operador],
+  );
+
+  const puedeVerTodasLasOrdenes = useMemo(
+    () => operador?.rol === 'admin' || operador?.rol === 'supervisor' || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
     [operador],
   );
 
@@ -280,6 +309,38 @@ export function App() {
     return Array.from(pedidosConteoPorEstado.values()).reduce((total, count) => total + count, 0);
   }, [pedidosConteoPorEstado]);
 
+  function pedidoPerteneceAMi(pedido: PedidoResumen) {
+    return Boolean(
+      operador
+      && (
+        pedido.operador_id === operador.id
+        || pedido.operador_asignado_id === operador.id
+        || pedido.redirigido_a_operador_id === operador.id
+      )
+    );
+  }
+
+  const misPedidosConteo = alcanceConteos.mis;
+  const todasPedidosConteo = alcanceConteos.todas;
+
+  function pedidoTomadoPorMi(pedido: PedidoResumen) {
+    return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id === operador.id);
+  }
+
+  function pedidoBloqueadoPorOtro(pedido: PedidoResumen) {
+    return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operador.id);
+  }
+
+  function disponibilidadPedidoClass(pedido: PedidoResumen, base: string, selected: boolean, delayed: boolean) {
+    return [
+      selected ? `${base} selected` : base,
+      delayed ? 'order-delayed' : '',
+      pedidoTomadoPorMi(pedido) ? 'order-owned-by-me' : '',
+      pedidoBloqueadoPorOtro(pedido) ? 'order-blocked-by-other' : '',
+      !pedido.lock_activo ? 'order-available' : '',
+    ].filter(Boolean).join(' ');
+  }
+
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
       .filter((item) => !estado || item.value === estado)
@@ -301,6 +362,7 @@ export function App() {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
     setQuickCreateOpen(false);
+    setQuickCreateHidden(false);
     setProfileSection(null);
     setProfileMessage(null);
     setProfileError(null);
@@ -321,7 +383,7 @@ export function App() {
     });
   }
 
-  function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa', draft: CrearPedidoDraft = {}) {
+  function abrirCrear(servicio: ServicioCrear, draft: CrearPedidoDraft = {}) {
     setServicioCrear(servicio);
     setCrearDraft(draft);
     setVista('crear');
@@ -369,17 +431,63 @@ export function App() {
     setQuickCreateOpen(false);
   }
 
-  async function cargarPedidos() {
+  function finalizarCreacionPedido(pedido: PedidoDetalle) {
+    setPedidoPagoModal(pedido);
+    setSeleccionado(null);
+    setAlcancePedidos('mis');
+    setVista('bandeja');
+    void cargarPedidos();
+  }
+
+  async function copiarPago(value?: string | null) {
+    if (!value || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(value);
+  }
+
+  function abrirUrlPago(url?: string | null) {
+    if (!url || typeof window === 'undefined') return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[]) => {
+    const misPedidos = data.filter((pedido) => pedidoPerteneceAMi(pedido));
+    setAlcanceConteos({ mis: misPedidos.length, todas: data.length });
+    setPedidos(alcancePedidos === 'mis' ? misPedidos : data);
+  }, [alcancePedidos, operador]);
+
+  const cargarPedidos = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setPedidos(await listarPedidos({ limit: 200 }));
+      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+      const data = await listarPedidos({ limit: 200, alcance: alcanceCarga });
+      if (puedeVerTodasLasOrdenes) {
+        aplicarPedidosPorAlcance(data);
+      } else {
+        setAlcanceConteos({ mis: data.length, todas: data.length });
+        setPedidos(data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar los pedidos');
     } finally {
       setLoading(false);
     }
-  }
+  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes]);
+
+  const refrescarPedidosSilencioso = useCallback(async () => {
+    try {
+      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+      const data = await listarPedidos({ limit: 200, alcance: alcanceCarga });
+      if (puedeVerTodasLasOrdenes) {
+        aplicarPedidosPorAlcance(data);
+      } else {
+        setAlcanceConteos({ mis: data.length, todas: data.length });
+        setPedidos(data);
+      }
+    } catch {
+      // El refresco silencioso no debe interrumpir al operador si falla una vuelta.
+    }
+  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes]);
 
 
   useEffect(() => {
@@ -399,12 +507,56 @@ export function App() {
 
   useEffect(() => {
     if (operador) void cargarPedidos();
-  }, [operador]);
+  }, [cargarPedidos, operador]);
+
+  useEffect(() => {
+    if (!operador || vista !== 'bandeja' || !online) return undefined;
+    const interval = window.setInterval(() => {
+      void refrescarPedidosSilencioso();
+    }, 12000);
+    return () => window.clearInterval(interval);
+  }, [online, operador, refrescarPedidosSilencioso, vista]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setPedidosClock(Date.now()), 60000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (vista !== 'inicio' && vista !== 'bandeja') {
+      setQuickCreateHidden(false);
+      return undefined;
+    }
+
+    lastScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+
+    function handleQuickCreateScroll() {
+      if (window.innerWidth > 920) {
+        setQuickCreateHidden(false);
+        lastScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+        return;
+      }
+
+      const currentY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+      const delta = currentY - lastScrollYRef.current;
+      if (Math.abs(delta) < 10) return;
+
+      if (quickCreateOpen) {
+        lastScrollYRef.current = currentY;
+        return;
+      }
+
+      setQuickCreateHidden(currentY > 120 && delta > 0);
+      lastScrollYRef.current = currentY;
+    }
+
+    window.addEventListener('scroll', handleQuickCreateScroll, { passive: true });
+    window.addEventListener('resize', handleQuickCreateScroll);
+    return () => {
+      window.removeEventListener('scroll', handleQuickCreateScroll);
+      window.removeEventListener('resize', handleQuickCreateScroll);
+    };
+  }, [quickCreateOpen, vista]);
 
 
   useEffect(() => {
@@ -506,7 +658,7 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={vista === 'bandeja' ? 'app-shell orders-view-shell' : 'app-shell'}>
       <aside className={mobileMenuOpen ? 'sidebar mobile-open' : 'sidebar'}>
         <div>
           <div className="mobile-sidebar-head">
@@ -581,7 +733,7 @@ export function App() {
                   </div>
                   {puedeAdmin && (
                     <button type="button" role="menuitem" onClick={() => navegarDesdeMenuUsuario('admin')}>
-                      <Settings size={18} /> Configuracion
+                      <Settings size={18} /> Configuracion Admin
                     </button>
                   )}
                   <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('ayuda')}>
@@ -818,18 +970,28 @@ export function App() {
               >
                 Divisa
               </button>
+              <button
+                type="button"
+                className={servicioCrear === 'otros' ? 'active' : ''}
+                onClick={() => { setServicioCrear('otros'); setCrearDraft({}); }}
+              >
+                Otros
+              </button>
             </div>
             {servicioCrear === 'transferencia' && (
-              <TransferenciaForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <TransferenciaForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
             )}
             {servicioCrear === 'efectivo' && (
-              <EfectivoForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <EfectivoForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
             )}
             {servicioCrear === 'saldo' && (
-              <SaldoForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <SaldoForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
             )}
             {servicioCrear === 'divisa' && (
-              <DivisaForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <DivisaForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
+            )}
+            {servicioCrear === 'otros' && (
+              <OtrosForm operadorId={operador.id} onCreated={finalizarCreacionPedido} />
             )}
           </section>
         ) : (
@@ -841,6 +1003,20 @@ export function App() {
                     <Search size={18} />
                     <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
                   </label>
+                </div>
+                <div className="status-filters orders-scope-chips" aria-label="Alcance de ordenes">
+                  <button type="button" className={alcancePedidos === 'mis' ? 'active scope-my-orders' : 'scope-my-orders'} onClick={() => setAlcancePedidos('mis')}>
+                    <UserCircle size={16} />
+                    <span>Mis pedidos</span>
+                    <strong>{misPedidosConteo}</strong>
+                  </button>
+                  {puedeVerTodasLasOrdenes && (
+                    <button type="button" className={alcancePedidos === 'todas' ? 'active' : ''} onClick={() => setAlcancePedidos('todas')}>
+                      <ClipboardList size={16} />
+                      <span>Todas</span>
+                      <strong>{todasPedidosConteo}</strong>
+                    </button>
+                  )}
                 </div>
                 <div className="orders-filter-grid" aria-label="Filtros de pedidos">
                   <div className="order-filter-field order-filter-floating">
@@ -911,11 +1087,13 @@ export function App() {
                     {pedidosListaOrdenada.map((pedido) => {
                       const retrasado = pedidoEnOperacionRetrasado(pedido, pedidosClock);
                       const tiempoOperacion = tiempoEnOperacionLabel(pedido, pedidosClock);
+                      const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
                       return (
                       <button
                         key={pedido.codigo_operacion}
-                        className={[seleccionado === pedido.codigo_operacion ? 'chat-order-card selected' : 'chat-order-card', retrasado ? 'order-delayed' : ''].filter(Boolean).join(' ')}
-                        onClick={() => setSeleccionado(pedido.codigo_operacion)}
+                        className={disponibilidadPedidoClass(pedido, 'chat-order-card', seleccionado === pedido.codigo_operacion, retrasado)}
+                        onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
+                        disabled={bloqueadoPorOtro}
                       >
                         <span className="chat-card-main">
                           <span className="pedido-card-head">
@@ -935,9 +1113,10 @@ export function App() {
                           <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
                           {tiempoOperacion && <small className={retrasado ? 'order-delay-chip delayed' : 'order-delay-chip'}>{retrasado ? 'Retrasado' : tiempoOperacion}</small>}
                           {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own' : 'order-redirect-chip'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
-                          {pedido.lock_activo && <small className="order-taken-chip">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
+                          {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned">Lo tienes tu</small>}
+                          {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                           <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
-                          <small>Recibe {pedido.monto_resultado}</small>
+                          <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
                         </span>
                       </button>
                       );
@@ -960,11 +1139,13 @@ export function App() {
                           {grupo.pedidos.map((pedido) => {
                             const retrasado = pedidoEnOperacionRetrasado(pedido, pedidosClock);
                             const tiempoOperacion = tiempoEnOperacionLabel(pedido, pedidosClock);
+                            const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
                             return (
                             <button
                               key={pedido.codigo_operacion}
-                              className={[seleccionado === pedido.codigo_operacion ? 'pedido-row selected' : 'pedido-row', retrasado ? 'order-delayed' : ''].filter(Boolean).join(' ')}
-                              onClick={() => setSeleccionado(pedido.codigo_operacion)}
+                              className={disponibilidadPedidoClass(pedido, 'pedido-row', seleccionado === pedido.codigo_operacion, retrasado)}
+                              onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
+                              disabled={bloqueadoPorOtro}
                             >
                               <span className="kanban-card-top">
                                 <span className="pedido-card-head">
@@ -972,7 +1153,8 @@ export function App() {
                                   <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
                                   {tiempoOperacion && <small className={retrasado ? 'order-delay-chip delayed inline' : 'order-delay-chip inline'}>{retrasado ? `Retrasado · ${tiempoOperacion}` : tiempoOperacion}</small>}
                                   {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
-                                  {pedido.lock_activo && <small className="order-taken-chip inline">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
+                                  {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned inline">Lo tienes tu</small>}
+                                  {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked inline">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                                 </span>
                                 <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
                               </span>
@@ -985,7 +1167,7 @@ export function App() {
                                 ))}
                               </span>
                               <span className="pedido-card-pay compact-pay">
-                                <small>Recibe {pedido.monto_resultado}</small>
+                                <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
                                 <small>Tasa {pedido.tasa_final}</small>
                               </span>
                             </button>
@@ -1004,14 +1186,15 @@ export function App() {
         )}
       </main>
       {puedeCrear && (vista === 'inicio' || vista === 'bandeja') && (
-        <div className={quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap'}>
+        <div className={[quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap', quickCreateHidden && !quickCreateOpen ? 'hide-on-scroll' : ''].filter(Boolean).join(' ')}>
           {quickCreateOpen && <button className="floating-create-backdrop" aria-label="Cerrar menu de creacion" onClick={() => setQuickCreateOpen(false)} />}
           {quickCreateOpen && (
             <div className="floating-create-menu" role="menu" aria-label="Crear pedido">
-              <button type="button" role="menuitem" onClick={() => abrirCrear('transferencia')}><WalletCards size={18} /> Transferenciaaa</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('transferencia')}><WalletCards size={18} /> Transferencia</button>
               <button type="button" role="menuitem" onClick={() => abrirCrear('efectivo')}><Banknote size={18} /> Efectivo</button>
               <button type="button" role="menuitem" onClick={() => abrirCrear('saldo')}><Smartphone size={18} /> Saldo</button>
               <button type="button" role="menuitem" onClick={() => abrirCrear('divisa')}><WalletCards size={18} /> Divisa</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('otros')}><BriefcaseBusiness size={18} /> Otros</button>
             </div>
           )}
           <button
@@ -1025,6 +1208,52 @@ export function App() {
             {quickCreateOpen ? <X size={24} /> : <Plus size={24} />}
           </button>
         </div>
+      )}
+
+      {pedidoPagoModal && (
+        <Modal title="Pedido creado" subtitle={`${pedidoPagoModal.codigo_operacion} · pendiente de pago`} onClose={() => setPedidoPagoModal(null)}>
+          <div className="payment-instructions-modal">
+            <section className="payment-instructions-summary">
+              <span className="status pendiente_pago">Pendiente pago</span>
+              <strong>{pedidoPagoModal.monto_pago} {pedidoPagoModal.moneda_pago}</strong>
+              <small>El pedido ya fue creado. Se confirmara el pago cuando se suba el comprobante.</small>
+            </section>
+            {pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') && (
+              <section className="payment-qr-placeholder" aria-label="QR Pix pendiente">
+                <strong>QR Pix</strong>
+                <small>Aun sin definir</small>
+              </section>
+            )}
+            <div className="payment-data-grid">
+              <div>
+                <span>Metodo</span>
+                <strong>{pedidoPagoModal.datos_pago?.metodo_pago ?? 'Por confirmar'}</strong>
+              </div>
+              <div>
+                <span>{pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') ? 'Llave Pix' : 'Cuenta'}</span>
+                <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.cuenta_pago)}>
+                  <strong>{pedidoPagoModal.datos_pago?.cuenta_pago ?? 'Por confirmar'}</strong>
+                  <Copy size={16} />
+                </button>
+              </div>
+              <div>
+                <span>Titular</span>
+                <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.titular_pago)}>
+                  <strong>{pedidoPagoModal.datos_pago?.titular_pago ?? 'El Jireh'}</strong>
+                  <Copy size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="message-actions payment-modal-actions">
+              <button className="ghost-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.mensaje_pago_cliente)}>
+                <Copy size={16} /> Copiar mensaje
+              </button>
+              <button className="primary-button" type="button" onClick={() => abrirUrlPago(pedidoPagoModal.whatsapp_pago_url)} disabled={!pedidoPagoModal.whatsapp_pago_url}>
+                Enviar por WhatsApp
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
       <nav className="bottom-nav" aria-label="Navegacion principal">
         <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={20} /> Inicio</button>

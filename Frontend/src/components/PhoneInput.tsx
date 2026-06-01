@@ -12,6 +12,7 @@ const COUNTRY_CODES = [
 
 type PhoneInputProps = {
   value: string;
+  inputId?: string;
   onChange: (value: string) => void;
   defaultCode?: string;
   required?: boolean;
@@ -35,7 +36,7 @@ function joinPhone(code: string, local: string) {
   return cleanLocal ? `${code}${cleanLocal}` : code;
 }
 
-export function PhoneInput({ value, onChange, defaultCode = '+53', required = false, pasteTitle = 'Pegar telefono', autoComplete = 'tel', actions, codeLocked = false, showPaste = true }: PhoneInputProps) {
+export function PhoneInput({ value, inputId, onChange, defaultCode = '+53', required = false, pasteTitle = 'Pegar telefono', autoComplete = 'tel', actions, codeLocked = false, showPaste = true }: PhoneInputProps) {
   const { selected, local } = useMemo(() => splitPhone(value, defaultCode, codeLocked), [codeLocked, defaultCode, value]);
   const className = [
     'phone-input-row',
@@ -54,7 +55,7 @@ export function PhoneInput({ value, onChange, defaultCode = '+53', required = fa
         options={COUNTRY_CODES.map((item) => ({ value: item.code, label: item.code, description: item.label, icon: item.flag }))}
         align="left"
       />
-      <input value={local} onChange={(event) => onChange(joinPhone(selected, event.target.value))} required={required} inputMode="tel" autoComplete={autoComplete} />
+      <input id={inputId} value={local} onChange={(event) => onChange(joinPhone(selected, event.target.value))} required={required} inputMode="tel" autoComplete={autoComplete} />
       {showPaste && <PasteButton onPaste={(pasted) => onChange(codeLocked ? joinPhone(selected, splitPhone(pasted, selected, true).local) : pasted.startsWith('+') ? pasted : joinPhone(selected, pasted))} title={pasteTitle} />}
       {actions}
     </span>

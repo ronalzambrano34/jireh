@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Smartphone } from 'lucide-react';
 import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -7,10 +8,9 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
-import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
+import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
-import { abrirWhatsAppUrls } from '../utils/whatsapp';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 
@@ -26,7 +26,7 @@ function telefonoCubaPayload(value: string) {
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
-export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: SaldoInitialData }) {
+export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: SaldoInitialData }) {
   const [form, setForm] = useState({
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
@@ -160,11 +160,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         moneda_pago: form.moneda_pago,
         observaciones: observacionesConBono(),
       });
-      abrirWhatsAppUrls(
-        response.whatsapp_pago_url,
-        response.whatsapp_grupo_pedidos_url,
-      );
-      onCreated(response.codigo_operacion);
+      onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -228,7 +224,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda }))}
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
               />
             </label>
           </header>
@@ -251,7 +247,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 disabled={cargandoCatalogos || paquetesFiltrados.length === 0}
                 placeholder={`Sin paquetes para ${form.moneda_pago}`}
                 ariaLabel="Paquete de saldo"
-                options={paquetesFiltrados.length === 0 ? [{ value: '', label: `Sin paquetes para ${form.moneda_pago}`, disabled: true }] : paquetesFiltrados.map((paquete) => ({ value: String(paquete.id), label: paquete.nombre, description: `${paquete.monto_pago} ${paquete.moneda_pago} · ${paquete.saldo_cup} CUP` }))}
+                options={paquetesFiltrados.length === 0 ? [{ value: '', label: `Sin paquetes para ${form.moneda_pago}`, disabled: true, icon: <Smartphone size={17} /> }] : paquetesFiltrados.map((paquete) => ({ value: String(paquete.id), label: paquete.nombre, description: `${paquete.monto_pago} ${paquete.moneda_pago} · ${paquete.saldo_cup} CUP`, icon: <Smartphone size={17} /> }))}
                 align="left"
               />
             </label>

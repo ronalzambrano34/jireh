@@ -15,6 +15,7 @@ from Backend.models.configuracion import Configuracion
 from Backend.models.operador import Operador
 from Backend.models.metodo_pago import MetodoPago
 from Backend.models.punto_recogida import PuntoRecogida
+from Backend.models.provincia_servicio import ProvinciaServicio
 from Backend.models.oferta import Oferta
 from Backend.models.pedido import Pedido
 from Backend.models.contacto import Contacto
@@ -45,6 +46,7 @@ from Backend.routes.promocion import (router as promocion_router)
 
 from Backend.routes.metodo_pago import (router as metodo_pago_router)
 from Backend.routes.punto_recogida import (router as punto_recogida_router)
+from Backend.routes.provincia_servicio import (router as provincia_servicio_router)
 from Backend.routes.sync import (router as sync_router)
 from Backend.routes.tasa_operativa import (router as tasa_operativa_router)
 
@@ -53,6 +55,7 @@ from Backend.services.seed_admin import seed_admin_operador
 from Backend.services.seed_admin import seed_cliente_generico
 from Backend.services.seed_admin import seed_test_admin_operador
 from Backend.services.seed_metodos_pago import (seed_metodos_pago)
+from Backend.services.provincia_servicio_service import seed_provincias_servicio
 from Backend.services.oferta_sync_control import detener_scheduler_sync_ofertas
 from Backend.services.oferta_sync_control import iniciar_scheduler_sync_ofertas
 from Backend.routes.template import (router as template_router)
@@ -91,6 +94,9 @@ try:
     seed_metodos_pago(
         _db
     )
+    seed_provincias_servicio(
+        _db
+    )
 finally:
     _db.close()
 
@@ -114,6 +120,7 @@ app.include_router(template_router)
 
 app.include_router(metodo_pago_router)
 app.include_router(punto_recogida_router)
+app.include_router(provincia_servicio_router)
 app.include_router(sync_router)
 app.include_router(tasa_operativa_router)
 

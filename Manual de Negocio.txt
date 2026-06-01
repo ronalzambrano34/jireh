@@ -333,10 +333,20 @@ Campos actuales:
 - nombre
 - direccion
 - telefono
+- provincia_id
+- activo
+
+5.7.1 ProvinciaServicio
+
+Representa una provincia de Cuba donde se ofrece entrega de efectivo. Permite habilitar o deshabilitar zonas completas sin borrar puntos de recogida.
+
+Campos actuales:
+
+- nombre
 - activo
 
 Estado actual:
-Implementado.
+Implementado en Configuracion Admin > Provincias de servicio. Santiago de Cuba queda habilitada por defecto; La Habana y Las Tunas quedan creadas pero deshabilitadas hasta que se active el servicio. El formulario de efectivo solo muestra puntos activos cuya provincia tambien este habilitada.
 
 Pendiente recomendado:
 Agregar ciudad, horario e instrucciones para que el mensaje de efectivo se genere completo desde datos estructurados.
@@ -658,10 +668,14 @@ Implementado para registro de metadatos, upload binario local y control de permi
 Estado actual:
 
 - El detalle se abre como modal desde la bandeja de pedidos.
-- Al abrir, el sistema intenta tomar/bloquear la operacion para el operador actual.
-- Si el bloqueo es propio, se renueva periodicamente mientras el panel siga abierto.
-- Si otro operador tiene el bloqueo activo, el panel permite revisar pero bloquea edicion de estado y subida de comprobantes.
-- Al cerrar, se intenta liberar el bloqueo propio.
+- Al abrir, el sistema intenta tomar/fijar la operacion para el operador actual.
+- Un operador puede tener varios pedidos fijados al mismo tiempo.
+- El pedido fijado queda asignado hasta que el operador lo libere explicitamente o cambie su estado.
+- Mis Ordenes es el alcance por defecto de la bandeja: muestra pedidos creados por el operador, fijados por el operador o redirigidos al operador.
+- Los operadores con permisos de gestion pueden alternar entre Mis Ordenes y Todas.
+- Al crear un pedido, queda en pendiente_pago y la interfaz vuelve a Mis Ordenes sin abrir el detalle automaticamente, para que el operador pueda seguir creando o atendiendo.
+- Si otro operador tiene la asignacion activa, el panel permite revisar pero bloquea edicion de estado y subida de comprobantes.
+- Al cerrar el detalle no se libera la asignacion.
 - Muestra codigo, servicio, moneda, estado, enviado, tasa y recibe.
 - Muestra datos especificos de operacion segun tipo de pedido.
 - Permite cambiar estado del pedido.
@@ -1171,8 +1185,8 @@ Implementado en frontend interno:
 - La oferta de saldo en Inicio se muestra como paquetes de recarga: saldo recibido destacado y precio en moneda de pago como badge accionable.
 - Crear pedido queda organizado por flujo operativo: primero datos del cliente, despues destino/tarjeta/telefono y por ultimo pago de la operacion; la moneda se muestra como campo destacado con bandera del pais.
 
-Actualizacion de interfaz aplicada:
 
+Actualizacion de interfaz aplicada:
 - La pestana del navegador usa el icono del logo de El Jireh como favicon.
 - En Perfil > Soporte/Ayuda para operar, los accesos de soporte quedan centrados para lectura movil.
 - Reportes carga con periodo mensual por defecto, skeleton de carga e indices runtime para evitar la sensacion de pantalla vacia.
@@ -1189,8 +1203,3 @@ Actualizacion de interfaz aplicada:
 - En Perfil, el operador puede subir o cambiar su foto; se guarda en storage/operadores y se muestra en el header, menu de usuario y tarjeta de perfil.
 - En Nuevo pedido, el telefono/WhatsApp del cliente es obligatorio. Al crear la orden, el sistema genera y abre WhatsApp con instrucciones de pago al cliente usando el metodo/cuenta configurada, y abre/genera la orden para el grupo operativo configurado.
 - En Pedidos, cada cambio de estado genera mensaje WhatsApp para el cliente mediante templates editables. Al completar, tambien se genera mensaje para el grupo historico de operaciones finalizadas.
-
-
-//todo el buscar cliente que sea dinamico, mientras escribes ya esta buscando semejanzas. ocultar la lupa
-//todo los botones pegar no estan pegando del portapapeles y seria bueno si estan visualmente unidos al campo al que van a pegar la info.
-//todo telefono del destinatario cuba que tenga predeterminado el +53.

@@ -1,51 +1,27 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { calcularOperacion, crearTransferencia, listarMetodosPago } from '../api/client';
-import { CalculoPreview } from '../components/CalculoPreview';
+import { crearOtros, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
-import { ContactosRecientes } from '../components/ContactosRecientes';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PasteButton } from '../components/PasteButton';
-import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
-import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
+import type { MetodoPago, PedidoDetalle } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
-const TELEFONO_CUBA_DEFAULT = '+53';
-
-function telefonoCubaCompleto(value: string) {
-  return value.replace(/\D/g, '').length > 2;
-}
-
-function telefonoCubaPayload(value: string) {
-  const limpio = value.trim();
-  return telefonoCubaCompleto(limpio) ? limpio : undefined;
-}
-
-
-type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
-
-
-export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: TransferenciaInitialData }) {
+export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void }) {
   const [form, setForm] = useState({
-    monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? 'BRL',
-    numero_tarjeta: '',
-    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
+    monto_pago: '',
+    moneda_pago: 'BRL',
     tipo_pago_id: '1',
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
-    bonificacion_manual: '',
+    observaciones: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
-  const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
-  const [calculando, setCalculando] = useState(false);
-  const [calculoError, setCalculoError] = useState<string | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -57,7 +33,6 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     listarMetodosPago()
       .then((data) => {
         setMetodosPago(data);
-        // Buscar Pix para BRL, sino el primero disponible
         const metodoSeleccionado = form.moneda_pago === 'BRL'
           ? data.find((metodo) => metodo.moneda === 'BRL' && metodo.nombre.toLowerCase() === 'pix')
           : data.find((metodo) => metodo.moneda === form.moneda_pago);
@@ -70,35 +45,6 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   }, []);
 
   useEffect(() => {
-    const monto = Number(form.monto_pago);
-    if (!monto || monto <= 0) {
-      setCalculo(null);
-      setCalculoError(null);
-      return;
-    }
-
-    let activo = true;
-    setCalculando(true);
-    setCalculoError(null);
-    calcularOperacion({
-      servicio: 'transferencia',
-      moneda_pago: form.moneda_pago,
-      monto_pago: monto,
-      bonificacion_manual: Number(form.bonificacion_manual) || 0,
-    })
-      .then((data) => { if (activo) setCalculo(data); })
-      .catch((err) => {
-        if (activo) {
-          setCalculo(null);
-          setCalculoError(err instanceof Error ? err.message : 'No se pudo calcular');
-        }
-      })
-      .finally(() => { if (activo) setCalculando(false); });
-
-    return () => { activo = false; };
-  }, [form.monto_pago, form.moneda_pago, form.bonificacion_manual]);
-
-  useEffect(() => {
     if (!metodosFiltrados.length) {
       setForm((current) => ({ ...current, tipo_pago_id: '' }));
       return;
@@ -106,9 +52,8 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
 
     const existe = metodosFiltrados.some((metodo) => String(metodo.id) === form.tipo_pago_id);
     if (!existe) {
-      // Buscar Pix para BRL, sino el primero disponible
       const metodo = form.moneda_pago === 'BRL'
-        ? metodosFiltrados.find((m) => m.nombre.toLowerCase() === 'pix')
+        ? metodosFiltrados.find((item) => item.nombre.toLowerCase() === 'pix')
         : metodosFiltrados[0];
       setForm((current) => ({ ...current, tipo_pago_id: String(metodo?.id || metodosFiltrados[0].id) }));
     }
@@ -118,34 +63,30 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function aplicarContacto(contacto: Contacto) {
-    setForm((current) => ({
-      ...current,
-      numero_tarjeta: contacto.numero_tarjeta ?? current.numero_tarjeta,
-      telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
-    }));
-  }
-
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!telefonoClienteCompleto(form.numero_telefono_cliente)) {
       setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
       return;
     }
+    if (!form.observaciones.trim()) {
+      setError('Escribe la informacion de la operacion');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const response = await crearTransferencia({
+      const response = await crearOtros({
+        servicio: 'otros',
         monto_pago: Number(form.monto_pago),
         moneda_pago: form.moneda_pago,
-        numero_tarjeta: form.numero_tarjeta,
-        telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente || undefined,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
-        bonificacion_manual: Number(form.bonificacion_manual) || undefined,
+        observaciones: form.observaciones.trim(),
       });
       onCreated(response);
     } catch (err) {
@@ -154,6 +95,8 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
       setLoading(false);
     }
   }
+
+  const puedeCrear = Boolean(form.tipo_pago_id && telefonoClienteCompleto(form.numero_telefono_cliente) && form.observaciones.trim() && Number(form.monto_pago) > 0);
 
   return (
     <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
@@ -184,24 +127,14 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           <header className="form-section-header">
             <span className="form-step-number">2</span>
             <div>
-              <h3>Destino en Cuba</h3>
-              <p>Tarjeta y telefono del destinatario.</p>
+              <h3>Informacion de la operacion</h3>
+              <p>Texto libre para pedidos especiales o casos no clasificados.</p>
             </div>
           </header>
-          <div className="form-grid">
-            <label>
-              Tarjeta destinatario
-              <span className="input-action-row">
-                <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
-                <PasteButton onPaste={(value) => update('numero_tarjeta', value)} title="Pegar tarjeta destinatario" />
-              </span>
-            </label>
-            <label>
-              Telefono destinatario Cuba
-              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" codeLocked pasteTitle="Pegar telefono destinatario" />
-            </label>
-          </div>
-          <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
+          <label>
+            Detalle
+            <textarea value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} rows={7} placeholder="Ej: pago manual, gestion puntual, nota para el operador o cualquier dato necesario" required />
+          </label>
         </section>
 
         <section className="form-section-card payment-section-card">
@@ -237,18 +170,13 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
             </label>
-            <label>
-              Cupon o bono
-              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
-            </label>
-            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} />
           </div>
         </section>
       </div>
       {error && <div className="notice error">{error}</div>}
-      {loading && <PageLoader label="Creando transferencia" inline />}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
-        {loading ? 'Creando...' : 'Crear transferencia'}
+      {loading && <PageLoader label="Creando pedido" inline />}
+      <button className="primary-button create-submit-button" disabled={loading || !puedeCrear}>
+        {loading ? 'Creando...' : 'Crear otros'}
       </button>
     </form>
   );

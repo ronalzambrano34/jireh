@@ -51,7 +51,7 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
   if (!clienteId) {
     return (
       <div className="recent-contacts-empty">
-        Busca el cliente por WhatsApp para ver sus destinatarios recientes.
+        Busca el cliente, para ver sus destinatarios recientes.
       </div>
     );
   }

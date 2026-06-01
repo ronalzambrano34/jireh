@@ -145,7 +145,13 @@ def _generar_mensaje_pago_cliente(
         "whatsapp_url": _cliente_whatsapp_url(
             cliente,
             mensaje
-        )
+        ),
+        "datos_pago": {
+            "metodo_pago": datos_pago.get("metodo_pago") or metodo_pago.nombre,
+            "cuenta_pago": datos_pago.get("cuenta_pago") or "Por confirmar",
+            "titular_pago": datos_pago.get("titular_pago") or "El Jireh",
+            "qr_pago_url": datos_pago.get("qr_pago_url")
+        }
     }
 
 
@@ -212,7 +218,7 @@ def _validar_datos_servicio(
             )
         ):
             raise Exception(
-                "documento_identidad_url es requerido"
+                "La foto o referencia del documento de identidad es requerida"
             )
 
         normalizar_telefono_destinatario(
@@ -262,6 +268,42 @@ def crear_pedido(
 ):
 
     if (
+        data["servicio"]
+        ==
+        "otros"
+    ):
+
+        monto_pago = float(
+            data["monto_pago"]
+        )
+
+        if monto_pago <= 0:
+            raise Exception(
+                "El monto_pago debe ser mayor que cero"
+            )
+
+        calculo = {
+
+            "oferta_id":
+            None,
+
+            "tasa":
+            1,
+
+            "bonificacion":
+            0,
+
+            "tasa_final":
+            1,
+
+            "monto_resultado":
+            monto_pago,
+
+            "ganancia":
+            0
+        }
+
+    elif (
         data["servicio"]
         ==
         "saldo"
@@ -681,7 +723,7 @@ def crear_pedido(
             "documento_identidad_url"
         ):
             raise Exception(
-                "documento_identidad_url es requerido"
+                "La foto o referencia del documento de identidad es requerida"
             )
 
         detalle = (
@@ -849,6 +891,15 @@ def crear_pedido(
         "estado":
         pedido.estado,
 
+        "servicio":
+        pedido.servicio,
+
+        "monto_pago":
+        pedido.monto_pago,
+
+        "moneda_pago":
+        pedido.moneda_pago,
+
         "monto_resultado":
         pedido.monto_resultado,
 
@@ -876,6 +927,11 @@ def crear_pedido(
         "whatsapp_pago_url":
         mensaje_pago_cliente[
             "whatsapp_url"
+        ],
+
+        "datos_pago":
+        mensaje_pago_cliente[
+            "datos_pago"
         ],
 
         "mensaje_grupo_pedidos":

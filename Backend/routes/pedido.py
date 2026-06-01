@@ -81,23 +81,41 @@ def listar(
     servicio: str | None = None,
     limit: int = 50,
     offset: int = 0,
+    alcance: str = "mis",
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador = Depends(
         require_any_permission(
             [
+                "pedidos:crear",
                 "pedidos:gestionar"
             ]
         )
     )
 ):
+    alcance_normalizado = (alcance or "mis").strip().lower()
+    if alcance_normalizado not in ("mis", "todas"):
+        alcance_normalizado = "mis"
+    puede_ver_todas = (
+        operador.rol in ("admin", "supervisor")
+        or "pedidos:gestionar" in operador.permisos
+        or "empresa:control_total" in operador.permisos
+    )
+    if alcance_normalizado == "todas" and not puede_ver_todas:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permiso para ver todas las ordenes"
+        )
+
     return listar_pedidos(
         db,
         estado=estado,
         servicio=servicio,
         limit=limit,
-        offset=offset
+        offset=offset,
+        alcance=alcance_normalizado,
+        operador=operador
     )
 
 
@@ -109,9 +127,10 @@ def obtener_por_codigo(
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador = Depends(
         require_any_permission(
             [
+                "pedidos:crear",
                 "pedidos:gestionar"
             ]
         )
@@ -120,8 +139,14 @@ def obtener_por_codigo(
     try:
         return obtener_pedido_por_codigo(
             db,
-            codigo_operacion
+            codigo_operacion,
+            operador=operador
         )
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc)
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=404,
@@ -298,8 +323,14 @@ def crear(
     )
 ):
 
-    return crear_pedido(
-        db,
-        data
-    )
+    try:
+        return crear_pedido(
+            db,
+            data
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
 

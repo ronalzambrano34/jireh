@@ -7,6 +7,9 @@ from fastapi import (
 from google.auth.exceptions import (
     RefreshError
 )
+from gspread.exceptions import (
+    SpreadsheetNotFound
+)
 
 from sqlalchemy.orm import (
     Session
@@ -21,6 +24,10 @@ from Backend.services.auth_service import (
 
 from Backend.services.oferta_sync_control import (
     sincronizar_ofertas_cacheadas
+)
+from Backend.services.google_sheet_sync import (
+    credentials_client_email,
+    sheet_id_configurado
 )
 
 router = APIRouter(
@@ -58,6 +65,32 @@ def sincronizar(
         )
     except HTTPException:
         raise
+    except SpreadsheetNotFound as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "No se pudieron sincronizar las ofertas desde Google Sheets. "
+                "Google no encontro la hoja configurada. Revisa que GOOGLE_SHEET_ID "
+                "sea el ID o link completo correcto, y que la hoja este compartida con "
+                f"{credentials_client_email() or 'el client_email de Backend/credentials.json'}. "
+                f"Sheet usado: {sheet_id_configurado()}. "
+                f"Detalle tecnico: SpreadsheetNotFound: {exc}"
+            )
+        ) from exc
+    except PermissionError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "No se pudieron sincronizar las ofertas desde Google Sheets. "
+                "Google rechazo el acceso a la hoja configurada. Comparte el archivo "
+                f"con {credentials_client_email() or 'el client_email de Backend/credentials.json'} "
+                "como lector o editor, y confirma que GOOGLE_SHEET_ID apunte a esa misma hoja. "
+                f"Sheet usado: {sheet_id_configurado()}. "
+                f"Detalle tecnico: PermissionError: {exc}"
+            )
+        ) from exc
     except RefreshError as exc:
         db.rollback()
         mensaje = str(exc)

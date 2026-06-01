@@ -11,6 +11,7 @@ import {
   actualizarOferta,
   actualizarOperador,
   actualizarPaqueteSaldo,
+  actualizarProvinciaServicio,
   actualizarPuntoRecogida,
   actualizarPromocion,
   crearCliente,
@@ -22,6 +23,7 @@ import {
   guardarTemplate,
   crearOferta,
   crearPaqueteSaldo,
+  crearProvinciaServicio,
   crearPuntoRecogida,
   crearPromocion,
   eliminarPromocion,
@@ -32,13 +34,14 @@ import {
   listarOfertas,
   listarOperadores,
   listarPaquetesSaldo,
+  listarProvinciasServicio,
   listarPuntosRecogida,
   listarPromociones,
   listarTemplates,
   subirImagenMetodoPago,
   subirImagenPromocion,
 } from '../api/client';
-import type { Cliente, Configuracion, Contacto, MetodoPago, Oferta, Operador, PaqueteSaldo, Promocion, PuntoRecogida, TemplateConfig } from '../types/api';
+import type { Cliente, Configuracion, Contacto, MetodoPago, Oferta, Operador, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
 import { metodoPagoVisual } from '../utils/metodosPago';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
@@ -114,10 +117,11 @@ function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChan
 }
 
 type AdminEstadoVista = 'activos' | 'inactivos';
-type AdminTema = 'metodos' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'configuracion' | 'templates';
+type AdminTema = 'metodos' | 'provincias' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'configuracion' | 'templates';
 
 function tituloTema(tema: AdminTema | null) {
   if (tema === 'metodos') return 'Metodos de pago';
+  if (tema === 'provincias') return 'Provincias de servicio';
   if (tema === 'puntos') return 'Puntos de recogida';
   if (tema === 'ofertas') return 'Ofertas';
   if (tema === 'paquetes') return 'Paquetes de saldo';
@@ -170,6 +174,7 @@ function estadoPromocion(item: Promocion) {
 export function AdminCatalogosPage() {
   const [metodos, setMetodos] = useState<MetodoPago[]>([]);
   const [puntos, setPuntos] = useState<PuntoRecogida[]>([]);
+  const [provincias, setProvincias] = useState<ProvinciaServicio[]>([]);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
   const [paquetes, setPaquetes] = useState<PaqueteSaldo[]>([]);
   const [promociones, setPromociones] = useState<Promocion[]>([]);
@@ -179,7 +184,8 @@ export function AdminCatalogosPage() {
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [metodoForm, setMetodoForm] = useState({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
-  const [puntoForm, setPuntoForm] = useState({ nombre: '', direccion: '', telefono: '' });
+  const [puntoForm, setPuntoForm] = useState({ nombre: '', direccion: '', telefono: '', provincia_id: '' });
+  const [provinciaForm, setProvinciaForm] = useState({ nombre: '', activo: false });
   const [ofertaForm, setOfertaForm] = useState({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
   const [paqueteForm, setPaqueteForm] = useState({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
   const [promoForm, setPromoForm] = useState({ descripcion: '', imagen_url: '', fecha_desde: datetimeLocalValue(), fecha_hasta: datetimeLocalPlusDays(7), activa: true });
@@ -207,6 +213,7 @@ export function AdminCatalogosPage() {
   const mostrarActivos = estadoVista === 'activos';
   const metodosVisibles = useMemo(() => metodos.filter((metodo) => metodo.activo === mostrarActivos), [metodos, mostrarActivos]);
   const puntosVisibles = useMemo(() => puntos.filter((punto) => punto.activo === mostrarActivos), [puntos, mostrarActivos]);
+  const provinciasVisibles = useMemo(() => provincias.filter((provincia) => provincia.activo === mostrarActivos), [provincias, mostrarActivos]);
   const ofertasVisibles = useMemo(() => ofertas.filter((oferta) => oferta.activa === mostrarActivos), [ofertas, mostrarActivos]);
   const ofertasPorServicio = useMemo(() => {
     const grupos = new Map<string, Oferta[]>();
@@ -242,9 +249,10 @@ export function AdminCatalogosPage() {
     setLoading(true);
     setError(null);
     try {
-      const [metodosData, puntosData, ofertasData, paquetesData, promocionesData, configuracionesData, templatesData, clientesData, contactosData, operadoresData] = await Promise.all([
+      const [metodosData, puntosData, provinciasData, ofertasData, paquetesData, promocionesData, configuracionesData, templatesData, clientesData, contactosData, operadoresData] = await Promise.all([
         listarMetodosPago(undefined, true),
         listarPuntosRecogida(true),
+        listarProvinciasServicio(true),
         listarOfertas(true),
         listarPaquetesSaldo(undefined, true),
         listarPromociones(true),
@@ -256,6 +264,7 @@ export function AdminCatalogosPage() {
       ]);
       setMetodos(metodosData);
       setPuntos(puntosData);
+      setProvincias(provinciasData);
       setOfertas(ofertasData);
       setPaquetes(paquetesData);
       setPromociones(promocionesData);
@@ -295,7 +304,8 @@ export function AdminCatalogosPage() {
 
   function abrirCrearModal(tema: AdminTema) {
     if (tema === 'metodos') setMetodoForm({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
-    if (tema === 'puntos') setPuntoForm({ nombre: '', direccion: '', telefono: '' });
+    if (tema === 'puntos') setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: provincias.find((provincia) => provincia.activo)?.id ? String(provincias.find((provincia) => provincia.activo)?.id) : '' });
+    if (tema === 'provincias') setProvinciaForm({ nombre: '', activo: false });
     if (tema === 'ofertas') setOfertaForm({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
     if (tema === 'paquetes') setPaqueteForm({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
     if (tema === 'promociones') { setPromoForm({ descripcion: '', imagen_url: '', fecha_desde: datetimeLocalValue(), fecha_hasta: datetimeLocalPlusDays(7), activa: true }); setPromoFile(null); setPromoFilePreview(''); }
@@ -336,14 +346,35 @@ export function AdminCatalogosPage() {
         nombre: puntoForm.nombre,
         direccion: puntoForm.direccion,
         telefono: puntoForm.telefono || undefined,
+        provincia_id: puntoForm.provincia_id ? Number(puntoForm.provincia_id) : null,
       });
-      setPuntoForm({ nombre: '', direccion: '', telefono: '' });
+      setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: '' });
       setNotice('Punto de recogida creado');
       setCrearModalTema(null);
       setEstadoVista('activos');
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el punto');
+    }
+  }
+
+
+  async function guardarProvincia(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    try {
+      await crearProvinciaServicio({
+        nombre: provinciaForm.nombre,
+        activo: provinciaForm.activo,
+      });
+      setProvinciaForm({ nombre: '', activo: false });
+      setNotice('Provincia de servicio creada');
+      setCrearModalTema(null);
+      setEstadoVista(provinciaForm.activo ? 'activos' : 'inactivos');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear la provincia');
     }
   }
 
@@ -764,6 +795,17 @@ export function AdminCatalogosPage() {
     }
   }
 
+  async function toggleProvincia(provincia: ProvinciaServicio) {
+    setError(null);
+    setNotice(null);
+    try {
+      await actualizarProvinciaServicio(provincia.id, { activo: !provincia.activo });
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la provincia');
+    }
+  }
+
 
   async function toggleOferta(oferta: Oferta) {
     setError(null);
@@ -819,6 +861,11 @@ export function AdminCatalogosPage() {
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('metodos')}>
               <Banknote size={22} />
               <span><strong>Metodos de pago</strong><small>{metodos.filter((item) => item.activo).length} activos · {metodos.filter((item) => !item.activo).length} inactivos</small></span>
+              <ChevronDown size={18} />
+            </button>
+            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('provincias')}>
+              <MapPin size={22} />
+              <span><strong>Provincias de servicio</strong><small>{provincias.filter((item) => item.activo).length} activas · {provincias.filter((item) => !item.activo).length} inactivas</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('puntos')}>
@@ -913,6 +960,35 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
+      {temaActivo === 'provincias' && (
+        <section className="admin-section admin-detail-section">
+          <header className="admin-section-header">
+            <span className="admin-section-icon"><MapPin size={22} /></span>
+            <div>
+              <h3>Provincias de servicio</h3>
+              <small>{provinciasVisibles.length} de {provincias.length}</small>
+            </div>
+            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('provincias')}>
+              Crear
+            </button>
+          </header>
+          <div className="admin-state-switch" role="group" aria-label="Vista de provincias">
+            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activas</button>
+            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivas</button>
+          </div>
+          <div className="admin-card-list">
+            {provinciasVisibles.length === 0 && <div className="admin-empty-row">Sin provincias {estadoVista}</div>}
+            {provinciasVisibles.map((provincia) => (
+              <div className="catalog-row" key={provincia.id}>
+                <span><strong>{provincia.nombre}</strong><small>{puntos.filter((punto) => punto.provincia_id === provincia.id).length} punto(s) asociado(s)</small></span>
+                <span className={provincia.activo ? 'status completado' : 'status cancelado'}>{provincia.activo ? 'habilitada' : 'deshabilitada'}</span>
+                <button className="ghost-button catalog-toggle-action" onClick={() => toggleProvincia(provincia)}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {temaActivo === 'puntos' && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
@@ -933,7 +1009,7 @@ export function AdminCatalogosPage() {
             {puntosVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
             {puntosVisibles.map((punto) => (
               <div className="catalog-row" key={punto.id}>
-                <span><strong>{punto.nombre}</strong><small>{punto.direccion}</small></span>
+                <span><strong>{punto.nombre}</strong><small>{[punto.provincia_nombre, punto.direccion].filter(Boolean).join(' · ')}</small></span>
                 <span className={punto.activo ? 'status completado' : 'status cancelado'}>{punto.activo ? 'activo' : 'inactivo'}</span>
                 <button className="ghost-button catalog-toggle-action" onClick={() => togglePunto(punto)}><Power size={18} /> {punto.activo ? 'Desactivar' : 'Activar'}</button>
               </div>
@@ -1245,11 +1321,25 @@ export function AdminCatalogosPage() {
         </Modal>
       )}
 
+      {crearModalTema === 'provincias' && (
+        <Modal title="Crear provincia de servicio" subtitle="Administracion / Provincias de servicio" onClose={() => setCrearModalTema(null)}>
+          <form className="stack-form modal-form" onSubmit={guardarProvincia}>
+            <input value={provinciaForm.nombre} onChange={(event) => setProvinciaForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Provincia" required />
+            <label className="permission-switch-row">
+              <span>Habilitada<small>Disponible para entrega de efectivo</small></span>
+              <input type="checkbox" checked={provinciaForm.activo} onChange={(event) => setProvinciaForm((current) => ({ ...current, activo: event.target.checked }))} />
+            </label>
+            <button className="primary-button"><Save size={18} /> Crear provincia</button>
+          </form>
+        </Modal>
+      )}
+
       {crearModalTema === 'puntos' && (
         <Modal title="Crear punto de recogida" subtitle="Administracion / Puntos de recogida" onClose={() => setCrearModalTema(null)}>
           <form className="stack-form modal-form" onSubmit={guardarPunto}>
             <input value={puntoForm.nombre} onChange={(event) => setPuntoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <input value={puntoForm.direccion} onChange={(event) => setPuntoForm((current) => ({ ...current, direccion: event.target.value }))} placeholder="Direccion" required />
+            <FloatingSelect value={puntoForm.provincia_id} onChange={(value) => setPuntoForm((current) => ({ ...current, provincia_id: value }))} options={provincias.map((provincia) => ({ value: String(provincia.id), label: provincia.nombre, description: provincia.activo ? 'Habilitada' : 'Deshabilitada' }))} ariaLabel="Provincia" align="left" />
             <PhoneInput value={puntoForm.telefono} onChange={(value) => setPuntoForm((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono" />
             <button className="primary-button"><Save size={18} /> Crear punto</button>
           </form>
@@ -1371,7 +1461,7 @@ export function AdminCatalogosPage() {
               <input value={contactoForm.tipo_tarjeta} onChange={(event) => setContactoForm((current) => ({ ...current, tipo_tarjeta: event.target.value }))} placeholder="Tipo tarjeta" />
               <input value={contactoForm.pais} onChange={(event) => setContactoForm((current) => ({ ...current, pais: event.target.value }))} placeholder="pais" />
             </div>
-            <input value={contactoForm.documento_identidad_url} onChange={(event) => setContactoForm((current) => ({ ...current, documento_identidad_url: event.target.value }))} placeholder="Documento URL" />
+            <input value={contactoForm.documento_identidad_url} onChange={(event) => setContactoForm((current) => ({ ...current, documento_identidad_url: event.target.value }))} placeholder="Foto documento / nota" />
             <input value={contactoForm.notas} onChange={(event) => setContactoForm((current) => ({ ...current, notas: event.target.value }))} placeholder="Notas" />
             <button className="primary-button"><Save size={18} /> Crear contacto</button>
           </form>

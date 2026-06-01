@@ -58,6 +58,13 @@ export type CalculoOperacionResponse = {
   saldo_cup?: number;
 };
 
+export type DatosPagoPedido = {
+  metodo_pago?: string | null;
+  cuenta_pago?: string | null;
+  titular_pago?: string | null;
+  qr_pago_url?: string | null;
+};
+
 export type PedidoResumen = {
   id?: number;
   pedido_id?: number;
@@ -104,6 +111,7 @@ export type PedidoDetalle = PedidoResumen & {
   whatsapp_url?: string;
   mensaje_pago_cliente?: string;
   whatsapp_pago_url?: string | null;
+  datos_pago?: DatosPagoPedido | null;
   mensaje_grupo_pedidos?: string;
   whatsapp_grupo_pedidos_url?: string | null;
   mensaje_cliente_estado?: string | null;
@@ -157,11 +165,19 @@ export type MetodoPago = {
 };
 
 
+export type ProvinciaServicio = {
+  id: number;
+  nombre: string;
+  activo: boolean;
+};
+
 export type PuntoRecogida = {
   id: number;
   nombre: string;
   direccion: string;
   telefono?: string | null;
+  provincia_id?: number | null;
+  provincia_nombre?: string | null;
   activo: boolean;
 };
 
@@ -205,6 +221,19 @@ export type CrearSaldoPayload = {
   saldo_cup?: number | null;
   moneda_pago: string;
   observaciones?: string;
+};
+
+
+export type CrearOtrosPayload = {
+  servicio: 'otros';
+  monto_pago: number;
+  moneda_pago: string;
+  tipo_pago_id: number;
+  operador_id: number;
+  cliente_id?: number | null;
+  nombre_cliente?: string;
+  numero_telefono_cliente?: string;
+  observaciones: string;
 };
 
 

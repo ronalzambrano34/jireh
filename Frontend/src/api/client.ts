@@ -8,6 +8,7 @@ import type {
   CrearDivisaPayload,
   CrearEfectivoPayload,
   CrearSaldoPayload,
+  CrearOtrosPayload,
   CrearTransferenciaPayload,
   MetodoPago,
   Oferta,
@@ -20,6 +21,7 @@ import type {
   PedidoResumen,
   PerfilUpdatePayload,
   Promocion,
+  ProvinciaServicio,
   PuntoRecogida,
   ReporteGeneral,
   TemplateConfig,
@@ -215,10 +217,11 @@ export function buscarClientePorTelefono(telefono: string, pais = 'br') {
   return request<Cliente>(`/clientes/buscar?${query.toString()}`);
 }
 
-export function listarPedidos(params: { estado?: string; servicio?: string; limit?: number } = {}) {
+export function listarPedidos(params: { estado?: string; servicio?: string; limit?: number; alcance?: 'mis' | 'todas' } = {}) {
   const query = new URLSearchParams();
   if (params.estado) query.set('estado', params.estado);
   if (params.servicio) query.set('servicio', params.servicio);
+  if (params.alcance) query.set('alcance', params.alcance);
   query.set('limit', String(params.limit ?? 200));
   return request<PedidoResumen[]>(`/pedido/?${query.toString()}`);
 }
@@ -275,6 +278,13 @@ export function crearSaldo(payload: CrearSaldoPayload) {
 
 export function crearDivisa(payload: CrearDivisaPayload) {
   return request<PedidoDetalle>('/pedido/divisa', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function crearOtros(payload: CrearOtrosPayload) {
+  return request<PedidoDetalle>('/pedido/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -342,14 +352,34 @@ export function subirImagenMetodoPago(id: number, file: File) {
   });
 }
 
-export function crearPuntoRecogida(payload: { nombre: string; direccion: string; telefono?: string }) {
+export function listarProvinciasServicio(incluirInactivas = true) {
+  const query = new URLSearchParams();
+  query.set('incluir_inactivas', incluirInactivas ? 'true' : 'false');
+  return request<ProvinciaServicio[]>(`/provincias-servicio/?${query.toString()}`);
+}
+
+export function crearProvinciaServicio(payload: { nombre: string; activo?: boolean }) {
+  return request<ProvinciaServicio>('/provincias-servicio/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function actualizarProvinciaServicio(id: number, payload: { nombre?: string; activo?: boolean }) {
+  return request<ProvinciaServicio>(`/provincias-servicio/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function crearPuntoRecogida(payload: { nombre: string; direccion: string; telefono?: string; provincia_id?: number | null }) {
   return request<PuntoRecogida>('/puntos-recogida/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function actualizarPuntoRecogida(id: number, payload: { nombre?: string; direccion?: string; telefono?: string; activo?: boolean }) {
+export function actualizarPuntoRecogida(id: number, payload: { nombre?: string; direccion?: string; telefono?: string; provincia_id?: number | null; activo?: boolean }) {
   return request<PuntoRecogida>(`/puntos-recogida/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),

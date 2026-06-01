@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { CreditCard } from 'lucide-react';
 import { crearDivisa, listarMetodosPago } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -8,10 +9,9 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PasteButton } from '../components/PasteButton';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
-import type { CalculoOperacionResponse, Contacto, MetodoPago } from '../types/api';
+import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
-import { abrirWhatsAppUrls } from '../utils/whatsapp';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 
@@ -27,7 +27,7 @@ function telefonoCubaPayload(value: string) {
 
 type DivisaInitialData = { monto_pago?: string; monto_divisa?: string; moneda_pago?: string; tipo_tarjeta?: string };
 
-export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: DivisaInitialData }) {
+export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: DivisaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     monto_divisa: initialData?.monto_divisa ?? '100',
@@ -129,11 +129,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         observaciones: observacionesConBono(),
       });
-      abrirWhatsAppUrls(
-        response.whatsapp_pago_url,
-        response.whatsapp_grupo_pedidos_url,
-      );
-      onCreated(response.codigo_operacion);
+      onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -181,7 +177,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
                 value={form.tipo_tarjeta}
                 onChange={(value) => update('tipo_tarjeta', value)}
                 ariaLabel="Tipo tarjeta"
-                options={[{ value: 'MLC', label: 'MLC' }, { value: 'CUP', label: 'CUP' }, { value: 'USD', label: 'USD' }, { value: 'OTRA', label: 'Otra' }]}
+                options={[{ value: 'MLC', label: 'MLC', icon: <CreditCard size={17} /> }, { value: 'CUP', label: 'CUP', icon: <CreditCard size={17} /> }, { value: 'USD', label: 'USD', icon: <CreditCard size={17} /> }, { value: 'OTRA', label: 'Otra', icon: <CreditCard size={17} /> }]}
                 align="left"
               />
             </label>
@@ -214,7 +210,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda }))}
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
               />
             </label>
           </header>

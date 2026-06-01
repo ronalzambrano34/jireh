@@ -2,6 +2,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from Backend.models.punto_recogida import PuntoRecogida
+from Backend.models.provincia_servicio import ProvinciaServicio
 
 
 def listar_puntos_recogida(
@@ -12,14 +13,25 @@ def listar_puntos_recogida(
     offset: int = 0
 ):
 
-    query = db.query(
-        PuntoRecogida
+    query = (
+        db.query(
+            PuntoRecogida
+        )
+        .outerjoin(
+            ProvinciaServicio,
+            PuntoRecogida.provincia_id == ProvinciaServicio.id
+        )
     )
 
     if not incluir_inactivos:
-        query = query.filter(
-            PuntoRecogida.activo
-            == True
+        query = (
+            query
+            .filter(
+                PuntoRecogida.activo
+                == True,
+                ProvinciaServicio.activo
+                == True
+            )
         )
 
     if busqueda:
@@ -33,6 +45,9 @@ def listar_puntos_recogida(
                     patron
                 ),
                 PuntoRecogida.telefono.ilike(
+                    patron
+                ),
+                ProvinciaServicio.nombre.ilike(
                     patron
                 )
             )
@@ -116,7 +131,8 @@ def crear_punto_recogida(
     punto = PuntoRecogida(
         nombre=data.nombre,
         direccion=data.direccion,
-        telefono=data.telefono
+        telefono=data.telefono,
+        provincia_id=data.provincia_id
     )
 
     db.add(

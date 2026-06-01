@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
+from Backend.models.provincia_servicio import ProvinciaServicio
 
 
 def _get_columns(
@@ -319,6 +320,13 @@ def ensure_runtime_columns(
         "documento_identidad_url VARCHAR"
     )
 
+    _add_column_if_missing(
+        db,
+        "puntos_recogida",
+        "provincia_id",
+        "provincia_id INTEGER"
+    )
+
     ensure_runtime_indexes(
         db
     )
@@ -327,6 +335,10 @@ def ensure_runtime_columns(
 def ensure_runtime_tables(
     db: Session
 ):
+    ProvinciaServicio.__table__.create(
+        bind=db.get_bind(),
+        checkfirst=True
+    )
     ArchivoPedido.__table__.create(
         bind=db.get_bind(),
         checkfirst=True

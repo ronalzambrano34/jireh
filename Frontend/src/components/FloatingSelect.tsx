@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 export type FloatingSelectOption = {
@@ -47,6 +47,47 @@ export function FloatingSelect({ value, options, onChange, disabled = false, pla
   const selected = options.find((option) => option.value === value);
   const enabledOptions = options.filter((option) => !option.disabled);
   const label = selected?.label ?? placeholder;
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function closeFromOutside(target: EventTarget | null) {
+      if (!(target instanceof Node)) return;
+      if (target instanceof HTMLElement && target.classList.contains('floating-select-backdrop')) {
+        setOpen(false);
+        return;
+      }
+      if (rootRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      closeFromOutside(event.target);
+    }
+
+    function handleMouseDown(event: MouseEvent) {
+      closeFromOutside(event.target);
+    }
+
+    function handleTouchStart(event: TouchEvent) {
+      closeFromOutside(event.target);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('mousedown', handleMouseDown, true);
+    document.addEventListener('touchstart', handleTouchStart, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('mousedown', handleMouseDown, true);
+      document.removeEventListener('touchstart', handleTouchStart, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [open]);
 
   useLayoutEffect(() => {
     if (!open || !rootRef.current || !menuRef.current) return;

@@ -27,7 +27,8 @@ def generar_codigo_operacion(
         "transferencia": "T1",
         "saldo": "S2",
         "efectivo": "E3",
-        "divisa": "D4"
+        "divisa": "D4",
+        "otros": "O5"
     }
 
     hoy = datetime.now()

@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from datetime import datetime
-from datetime import timedelta
-
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
 from Backend.models.pedido_efectivo import PedidoEfectivo
@@ -36,9 +35,6 @@ ESTADOS_PERMITIDOS = (
     )
 )
 
-LOCK_MINUTES = 15
-
-
 def _utcnow():
     return datetime.utcnow()
 
@@ -47,10 +43,9 @@ def _lock_activo(
     pedido: Pedido,
     now: datetime | None = None
 ):
-    if not pedido.operador_asignado_id or not pedido.lock_expires_at:
-        return False
-
-    return pedido.lock_expires_at > (now or _utcnow())
+    return bool(
+        pedido.operador_asignado_id
+    )
 
 
 def _operador_puede_tomar_bloqueo(
@@ -62,6 +57,43 @@ def _operador_puede_tomar_bloqueo(
     return (
         operador.rol in ("admin", "supervisor")
         or "empresa:control_total" in operador.permisos
+    )
+
+
+def _operador_puede_ver_todos_los_pedidos(
+    operador: Operador | None
+):
+    if not operador:
+        return False
+
+    return (
+        operador.rol in ("admin", "supervisor")
+        or "pedidos:gestionar" in operador.permisos
+        or "empresa:control_total" in operador.permisos
+    )
+
+
+def _pedido_pertenece_a_operador(
+    pedido: Pedido,
+    operador: Operador | None
+):
+    if not operador:
+        return False
+
+    return operador.id in (
+        pedido.operador_id,
+        pedido.operador_asignado_id,
+        pedido.redirigido_a_operador_id
+    )
+
+
+def _filtro_mis_pedidos(
+    operador: Operador
+):
+    return or_(
+        Pedido.operador_id == operador.id,
+        Pedido.operador_asignado_id == operador.id,
+        Pedido.redirigido_a_operador_id == operador.id
     )
 
 
@@ -160,9 +192,15 @@ def _asignar_bloqueo(
         pedido.operador_asignado_id = operador.id
         pedido.asignado_en = now
 
-    pedido.lock_expires_at = now + timedelta(
-        minutes=LOCK_MINUTES
-    )
+    pedido.lock_expires_at = None
+
+
+def _liberar_bloqueo(
+    pedido: Pedido
+):
+    pedido.operador_asignado_id = None
+    pedido.asignado_en = None
+    pedido.lock_expires_at = None
 
 
 def pedido_base_dict(
@@ -359,6 +397,28 @@ def listar_historial_dict(
     ]
 
 
+def detalle_otros(
+    db: Session,
+    pedido_id: int
+):
+    pedido = (
+        db.query(
+            Pedido
+        )
+        .filter(
+            Pedido.id == pedido_id
+        )
+        .first()
+    )
+
+    if not pedido:
+        return None
+
+    return {
+        "informacion_operacion": pedido.observaciones,
+    }
+
+
 def obtener_detalle(
     db: Session,
     pedido: Pedido
@@ -368,6 +428,7 @@ def obtener_detalle(
         "efectivo": detalle_efectivo,
         "saldo": detalle_saldo,
         "divisa": detalle_divisa,
+        "otros": detalle_otros,
     }
 
     resolver = detalles.get(
@@ -427,11 +488,27 @@ def listar_pedidos(
     estado: str | None = None,
     servicio: str | None = None,
     limit: int = 50,
-    offset: int = 0
+    offset: int = 0,
+    alcance: str = "mis",
+    operador: Operador | None = None
 ):
     query = db.query(
         Pedido
     )
+
+    alcance_normalizado = (
+        alcance
+        or "mis"
+    ).strip().lower()
+    if alcance_normalizado not in ("mis", "todas"):
+        alcance_normalizado = "mis"
+
+    if alcance_normalizado == "mis" and operador:
+        query = query.filter(
+            _filtro_mis_pedidos(
+                operador
+            )
+        )
 
     if estado:
         estado_normalizado = (
@@ -554,7 +631,8 @@ def redirigir_pedido_operador(
 
 def obtener_pedido_por_codigo(
     db: Session,
-    codigo_operacion: str
+    codigo_operacion: str,
+    operador: Operador | None = None
 ):
     pedido = (
         db.query(
@@ -569,6 +647,20 @@ def obtener_pedido_por_codigo(
     if not pedido:
         raise Exception(
             "Pedido no encontrado"
+        )
+
+    if (
+        operador
+        and not _operador_puede_ver_todos_los_pedidos(
+            operador
+        )
+        and not _pedido_pertenece_a_operador(
+            pedido,
+            operador
+        )
+    ):
+        raise PermissionError(
+            "No tienes acceso a este pedido"
         )
 
     return pedido_dict(
@@ -687,9 +779,9 @@ def liberar_bloqueo_pedido(
             operador
         )
 
-    pedido.operador_asignado_id = None
-    pedido.asignado_en = None
-    pedido.lock_expires_at = None
+    _liberar_bloqueo(
+        pedido
+    )
 
     db.commit()
     db.refresh(
@@ -766,6 +858,12 @@ def actualizar_estado_pedido(
         estado_normalizado
     )
 
+    estado_cambio = (
+        estado_anterior
+        !=
+        estado_normalizado
+    )
+
     # comprobante opcional
 
     if (
@@ -782,6 +880,16 @@ def actualizar_estado_pedido(
     ):
         pedido.observaciones = (
             observaciones
+        )
+
+    if (
+        estado_normalizado
+        ==
+        PedidoEstado.PAGO_CONFIRMADO
+        and not pedido.comprobante_pago
+    ):
+        raise Exception(
+            "Sube un comprobante de pago antes de confirmar el pago"
         )
 
     # timestamps automáticos
@@ -837,6 +945,11 @@ def actualizar_estado_pedido(
     db.add(
         historial
     )
+
+    if estado_cambio:
+        _liberar_bloqueo(
+            pedido
+        )
 
     db.commit()
 

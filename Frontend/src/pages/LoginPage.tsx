@@ -40,14 +40,14 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
           <h1>Jireh Operaciones</h1>
           <p>Panel interno de pedidos y tasas</p>
         </div>
-        <label>
-          Telefono
-          <PhoneInput value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
-        </label>
-        <label>
-          Contraseña
-          <PasswordField value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
-        </label>
+        <div className="login-field">
+          <label htmlFor="login-telefono">Telefono</label>
+          <PhoneInput inputId="login-telefono" value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
+        </div>
+        <div className="login-field">
+          <label htmlFor="login-password">Contraseña</label>
+          <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+        </div>
         {error && <div className="notice error">{error}</div>}
         <button className="primary-button" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
       </form>

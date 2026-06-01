@@ -308,7 +308,7 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
       </label>
       <div className="live-rate-results">
         <CotizadorResultado label="Transferencia Cuba" tone="blue" cotizacion={transferencia} moneda={moneda} />
-        <CotizadorResultado label="Efectivo (Santiago)" tone="green" cotizacion={efectivo} moneda={moneda} />
+        <CotizadorResultado label="Efectivo" tone="green" cotizacion={efectivo} moneda={moneda} />
       </div>
       {mayoristaActivo && (
         <div className="wholesale-live-badge">
@@ -806,11 +806,11 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
                         ))}
                       </div>
                     ) : esDivisa ? (
-                      <div className="rate-lines">
-                        {ofertasDivisa.slice(0, 4).map((oferta, index) => (
+                      <div className="rate-packages divisa-rate-packages">
+                        {ofertasDivisa.slice(0, 3).map((oferta) => (
                           <button
                             type="button"
-                            className={`rate-line divisa-rate-row ${index === 0 ? 'primary' : ''}`}
+                            className="rate-package-option divisa-package-option"
                             key={oferta.id}
                             onClick={() => onCreate('divisa', {
                               monto_pago: String(oferta.minimo_pago ?? ''),
@@ -819,9 +819,12 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
                               tipo_tarjeta: tipoTarjetaDesdeOferta(oferta),
                             })}
                           >
-                            <span>{etiquetaLineaDivisa(oferta)}</span>
-                            <ArrowRight size={17} />
-                            <strong>{formatNumber(oferta.tasa)} {unidadDivisa(oferta)}</strong>
+                            <span className="package-balance">
+                              <small>{etiquetaDivisa(oferta)}</small>
+                              <strong>{formatNumber(oferta.tasa)}</strong>
+                              <em>= {formatNumber(oferta.minimo_pago ?? 0)} {monedaPago(oferta.moneda_pago ?? grupoActivo.moneda)}</em>
+                            </span>
+                            <span className="package-price">Comprar</span>
                           </button>
                         ))}
                       </div>

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 from datetime import datetime
 from pathlib import Path
+import json
 import re
 from time import perf_counter
 import unicodedata
@@ -15,22 +16,65 @@ from sqlalchemy.orm import Session
 
 from Backend.models.oferta import Oferta
 from Backend.models.paquete_saldo import PaqueteSaldo
+from Backend.config import (
+    GOOGLE_SHEET_ID,
+    GOOGLE_SHEET_RANGE,
+    GOOGLE_SHEET_WORKSHEET
+)
 from Backend.services.monedas import normalizar_moneda
 
 
-SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
-WORKSHEET_TITLE = "Calcular Oferta"
-SHEET_RANGE = "A1:L160"
+DEFAULT_SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
+WORKSHEET_TITLE = GOOGLE_SHEET_WORKSHEET or "Calcular Oferta"
+SHEET_RANGE = GOOGLE_SHEET_RANGE or "A1:L160"
 ORIGEN_GOOGLE_SHEET = "google_sheet"
 CREDENTIALS_FILE = Path(__file__).resolve().parents[1] / "credentials.json"
 SERVICIOS_OFERTAS = {"transferencia", "efectivo", "mlc", "usd", "clasica"}
 NOMBRES_SERVICIO = {
-    "transferencia": "Transferencia",
-    "efectivo": "Efectivo",
-    "mlc": "MLC",
-    "usd": "USD",
-    "clasica": "Clasica",
+    "transferencia": "Transferencia Sync",
+    "efectivo": "Efectivo Sync",
+    "mlc": "MLC Sync",
+    "usd": "USD Sync",
+    "clasica": "Clasica Sync",
 }
+
+
+def normalizar_spreadsheet_id(value: str | None) -> str:
+    texto = (value or DEFAULT_SHEET_ID).strip()
+    if not texto:
+        return DEFAULT_SHEET_ID
+
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9_-]+)", texto)
+    if match:
+        return match.group(1)
+
+    match = re.search(r"[?&]id=([a-zA-Z0-9_-]+)", texto)
+    if match:
+        return match.group(1)
+
+    return texto
+
+
+def sheet_id_configurado() -> str:
+    return normalizar_spreadsheet_id(
+        GOOGLE_SHEET_ID
+    )
+
+
+def credentials_client_email() -> str:
+    try:
+        data = json.loads(
+            CREDENTIALS_FILE.read_text()
+        )
+    except Exception:
+        return ""
+
+    return str(
+        data.get(
+            "client_email",
+            ""
+        )
+    )
 
 
 @dataclass
@@ -326,7 +370,7 @@ def obtener_rows_sheet():
     gc = gspread.service_account(
         filename=str(CREDENTIALS_FILE)
     )
-    sheet = gc.open_by_key(SHEET_ID)
+    sheet = gc.open_by_key(sheet_id_configurado())
     try:
         worksheet = sheet.worksheet(WORKSHEET_TITLE)
     except WorksheetNotFound:
@@ -544,6 +588,7 @@ def sync_ofertas(db: Session):
 
     resultado["meta"].update({
         "filas_leidas": len(rows),
+        "spreadsheet_id": sheet_id_configurado(),
         "worksheet": WORKSHEET_TITLE,
         "rango_leido": SHEET_RANGE,
         "ofertas_db": stats_ofertas,

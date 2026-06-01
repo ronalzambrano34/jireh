@@ -21,6 +21,7 @@ const servicios = [
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'saldo', label: 'Saldo' },
   { value: 'divisa', label: 'Divisa' },
+  { value: 'otros', label: 'Otros' },
 ];
 
 const periodos = [

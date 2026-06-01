@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MapPin, MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
@@ -8,12 +8,12 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
 import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida } from '../api/client';
-import type { CalculoOperacionResponse, Contacto, MetodoPago, PuntoRecogida } from '../types/api';
+import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
-import { abrirWhatsAppUrls } from '../utils/whatsapp';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
+const DOCUMENTO_WHATSAPP_DEFAULT = 'Foto enviada por WhatsApp';
 
 function telefonoCubaCompleto(value: string) {
   return value.replace(/\D/g, '').length > 2;
@@ -34,14 +34,14 @@ function whatsappHref(phone: string) {
   return `https://wa.me/${normalized}`;
 }
 
-export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: EfectivoInitialData }) {
+export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: EfectivoInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
     punto_recogida_id: '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
-    documento_identidad_url: '',
+    documento_identidad_url: DOCUMENTO_WHATSAPP_DEFAULT,
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -167,11 +167,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
         observaciones: form.observaciones || undefined,
       });
-      abrirWhatsAppUrls(
-        response.whatsapp_pago_url,
-        response.whatsapp_grupo_pedidos_url,
-      );
-      onCreated(response.codigo_operacion);
+      onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -237,8 +233,8 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
               />
             </label>
             <label>
-              Documento identidad URL
-              <input value={form.documento_identidad_url} onChange={(event) => update('documento_identidad_url', event.target.value)} />
+              Foto del documento
+              <input value={form.documento_identidad_url} onChange={(event) => update('documento_identidad_url', event.target.value)} placeholder="Foto enviada por WhatsApp" required />
             </label>
             <label className="wide">
               Punto de recogida
@@ -248,7 +244,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                 disabled={cargandoCatalogos || puntos.length === 0}
                 placeholder="Sin puntos activos"
                 ariaLabel="Punto de recogida"
-                options={puntos.length === 0 ? [{ value: '', label: 'Sin puntos activos', disabled: true }] : puntos.map((punto) => ({ value: String(punto.id), label: punto.nombre }))}
+                options={puntos.length === 0 ? [{ value: '', label: 'Sin puntos activos', disabled: true, icon: <MapPin size={17} /> }] : puntos.map((punto) => ({ value: String(punto.id), label: punto.nombre, description: punto.provincia_nombre ?? undefined, icon: <MapPin size={17} /> }))}
                 align="left"
               />
             </label>
@@ -270,7 +266,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda }))}
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
               />
             </label>
           </header>

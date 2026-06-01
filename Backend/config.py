@@ -85,7 +85,7 @@ UPLOAD_ALLOWED_MIME_TYPES = {
     mime.strip()
     for mime in os.getenv(
         "UPLOAD_ALLOWED_MIME_TYPES",
-        "image/jpeg,image/png,image/webp,application/pdf,application/octet-stream"
+        "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/octet-stream"
     ).split(",")
     if mime.strip()
 }
@@ -112,4 +112,19 @@ OFERTAS_SYNC_START_DELAY_SECONDS = int(
         "OFERTAS_SYNC_START_DELAY_SECONDS",
         "15"
     )
+)
+
+
+GOOGLE_SHEET_ID = os.getenv(
+    "GOOGLE_SHEET_ID"
+)
+
+GOOGLE_SHEET_WORKSHEET = os.getenv(
+    "GOOGLE_SHEET_WORKSHEET",
+    "Calcular Oferta"
+)
+
+GOOGLE_SHEET_RANGE = os.getenv(
+    "GOOGLE_SHEET_RANGE",
+    "A1:L160"
 )
