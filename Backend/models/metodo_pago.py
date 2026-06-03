@@ -10,6 +10,7 @@ from sqlalchemy import (
 from sqlalchemy import (
     String
 )
+from sqlalchemy.orm import relationship
 
 from Backend.database import (
     Base
@@ -50,4 +51,10 @@ class MetodoPago(
     imagen_url = Column(
         String,
         nullable=True
+    )
+
+    cuentas = relationship(
+        "MetodoPagoCuenta",
+        back_populates="metodo_pago",
+        cascade="all, delete-orphan"
     )

@@ -14,6 +14,7 @@ from Backend.models.cliente import Cliente
 from Backend.models.configuracion import Configuracion
 from Backend.models.operador import Operador
 from Backend.models.metodo_pago import MetodoPago
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 from Backend.models.punto_recogida import PuntoRecogida
 from Backend.models.provincia_servicio import ProvinciaServicio
 from Backend.models.oferta import Oferta

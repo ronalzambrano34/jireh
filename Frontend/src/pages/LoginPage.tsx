@@ -7,9 +7,12 @@ import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
 
+const DEV_LOGIN_TELEFONO = import.meta.env.VITE_TEST_LOGIN_TELEFONO || (import.meta.env.DEV ? '+1234567890' : '');
+const DEV_LOGIN_PASSWORD = import.meta.env.VITE_TEST_LOGIN_PASSWORD || (import.meta.env.DEV ? 'admin' : '');
+
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
-  const [telefono, setTelefono] = useState(import.meta.env.VITE_TEST_LOGIN_TELEFONO ?? '');
-  const [password, setPassword] = useState(import.meta.env.VITE_TEST_LOGIN_PASSWORD ?? '');
+  const [telefono, setTelefono] = useState(DEV_LOGIN_TELEFONO);
+  const [password, setPassword] = useState(DEV_LOGIN_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

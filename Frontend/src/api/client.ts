@@ -11,6 +11,7 @@ import type {
   CrearOtrosPayload,
   CrearTransferenciaPayload,
   MetodoPago,
+  MetodoPagoCuenta,
   Oferta,
   Operador,
   OperadorCreatePayload,
@@ -333,6 +334,33 @@ export function actualizarMetodoPago(id: number, payload: { nombre?: string; mon
   return request<MetodoPago>(`/metodos-pago/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
+  });
+}
+
+
+export function listarCuentasMetodoPago(metodoId: number, incluirInactivas = true) {
+  const query = new URLSearchParams();
+  query.set('incluir_inactivas', incluirInactivas ? 'true' : 'false');
+  return request<MetodoPagoCuenta[]>(`/metodos-pago/${metodoId}/cuentas?${query.toString()}`);
+}
+
+export function crearCuentaMetodoPago(metodoId: number, payload: { alias: string; cuenta: string; titular: string; qr_url?: string | null; predeterminada?: boolean; activa?: boolean }) {
+  return request<MetodoPagoCuenta>(`/metodos-pago/${metodoId}/cuentas`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function actualizarCuentaMetodoPago(metodoId: number, cuentaId: number, payload: { alias?: string; cuenta?: string; titular?: string; qr_url?: string | null; predeterminada?: boolean; activa?: boolean }) {
+  return request<MetodoPagoCuenta>(`/metodos-pago/${metodoId}/cuentas/${cuentaId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function eliminarCuentaMetodoPago(metodoId: number, cuentaId: number) {
+  return request<MetodoPagoCuenta>(`/metodos-pago/${metodoId}/cuentas/${cuentaId}`, {
+    method: 'DELETE',
   });
 }
 

@@ -6411,7 +6411,6 @@ body {
 .payment-currency-picker {
   min-height: 40px;
   display: inline-grid;
-  grid-template-columns: auto auto;
   align-items: center;
   gap: 7px;
   justify-self: end;
@@ -7115,7 +7114,7 @@ body {
 .payment-method-select {
   min-height: 42px;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -7169,7 +7168,7 @@ body {
   }
 
   .payment-method-select {
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .payment-method-logo {
@@ -14616,4 +14615,134 @@ body {
 :root[data-theme="dark-vscode"] .liquidation-rate > span,
 :root[data-theme="dark-vscode"] .liquidation-cell small {
   color: var(--menu-muted, var(--jireh-muted));
+}
+
+/* Fixed mayorista row alignment on home rate cards */
+.operation-rate-card.transferencia .rate-tier-row.wholesale,
+.operation-rate-card.efectivo .rate-tier-row.wholesale {
+  grid-template-columns: 22px minmax(88px, 1fr) minmax(118px, auto);
+  align-items: center;
+  column-gap: 10px;
+}
+
+.operation-rate-card.transferencia .rate-tier-row.wholesale .rate-tier-copy,
+.operation-rate-card.efectivo .rate-tier-row.wholesale .rate-tier-copy {
+  min-width: 0;
+  justify-self: start;
+}
+
+.operation-rate-card.transferencia .rate-tier-row.wholesale .rate-tier-label,
+.operation-rate-card.efectivo .rate-tier-row.wholesale .rate-tier-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.operation-rate-card.transferencia .rate-tier-row.wholesale .rate-tier-price,
+.operation-rate-card.efectivo .rate-tier-row.wholesale .rate-tier-price {
+  justify-self: end;
+  min-width: 118px;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 430px) {
+  .operation-rate-card.transferencia .rate-tier-row.wholesale,
+  .operation-rate-card.efectivo .rate-tier-row.wholesale {
+    grid-template-columns: 18px minmax(72px, 1fr) minmax(104px, auto);
+    column-gap: 8px;
+  }
+
+  .operation-rate-card.transferencia .rate-tier-row.wholesale .rate-tier-price,
+  .operation-rate-card.efectivo .rate-tier-row.wholesale .rate-tier-price {
+    min-width: 104px;
+  }
+}
+
+/* Orders scope chips alignment */
+.orders-scope-chips {
+  align-items: center;
+  gap: 8px;
+}
+
+.orders-scope-chips button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 8px 7px 12px;
+  line-height: 1;
+}
+
+.orders-scope-chips button svg {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.orders-scope-chips button span {
+  display: block;
+  line-height: 1;
+}
+
+.orders-scope-chips button strong {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+@media (max-width: 430px) {
+  .orders-scope-chips button {
+    min-height: 40px;
+    padding: 8px 8px 8px 10px;
+    gap: 7px;
+  }
+}
+
+/* Payment method accounts admin */
+.payment-accounts-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #d8e2eb;
+}
+
+.payment-accounts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.payment-accounts-header strong,
+.payment-account-row strong {
+  color: #18212f;
+}
+
+.payment-accounts-header small,
+.payment-account-row small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.payment-account-list {
+  display: grid;
+  gap: 8px;
+}
+
+.payment-account-row {
+  align-items: center;
+}
+
+.payment-account-form {
+  padding: 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
 }

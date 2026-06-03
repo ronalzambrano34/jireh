@@ -204,7 +204,7 @@ function rangosOferta(ofertas: OfertaOperativa[]): RateTier[] {
 
   return [
     { kind: 'base', oferta: estandar, label: `Tasa estandar (<${formatNumber(minimoOferta(mayorista))})` },
-    { kind: 'wholesale', oferta: mayorista, label: `Mayoristas (${formatNumber(minimoOferta(mayorista))}+)` },
+    { kind: 'wholesale', oferta: mayorista, label: 'Mayorista (>1000)' },
   ];
 }
 
@@ -321,8 +321,8 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
 
 function tasaDestacada(grupo: GrupoMoneda | undefined, servicio: ServicioCrear) {
   if (!grupo) return null;
-  const rangos = rangosOferta(ofertasServicio(grupo.ofertas, servicio));
-  return rangos.find((rango) => rango.kind === 'wholesale') ?? rangos[0] ?? null;
+  const oferta = ofertasServicio(grupo.ofertas, servicio)[0];
+  return oferta ? { kind: 'base' as const, oferta, label: 'Tasa vigente' } : null;
 }
 
 function HeroCarousel({ grupo, generatedAt, loading, syncing, canSyncTasas, onRefresh, onCreate, promos = PROMO_BANNERS }: { grupo?: GrupoMoneda; generatedAt?: string; loading: boolean; syncing: boolean; canSyncTasas: boolean; onRefresh: () => void; onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void; promos?: PromoBanner[] }) {

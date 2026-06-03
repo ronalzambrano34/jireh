@@ -21,14 +21,8 @@ function metodoPagoIcon(metodo: MetodoPago) {
 }
 
 export function MetodoPagoSelect({ value, metodos, onChange, disabled, emptyLabel }: MetodoPagoSelectProps) {
-  const selected = metodos.find((metodo) => String(metodo.id) === value);
-  const visual = metodoPagoVisual(selected);
-
   return (
     <span className="payment-method-select">
-      <span className="payment-method-logo" aria-hidden="true">
-        {visual.src ? <img src={visual.src} alt="" /> : visual.Icon ? createElement(visual.Icon, { size: 22, strokeWidth: 2.4 }) : <span>{visual.initials}</span>}
-      </span>
       <FloatingSelect
         value={value}
         onChange={onChange}

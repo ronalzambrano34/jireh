@@ -204,7 +204,6 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
               <p>Cantidad, metodo y monto en divisa.</p>
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
-              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
               <FloatingSelect
                 className="payment-currency-select"
                 value={form.moneda_pago}

@@ -126,5 +126,5 @@ GOOGLE_SHEET_WORKSHEET = os.getenv(
 
 GOOGLE_SHEET_RANGE = os.getenv(
     "GOOGLE_SHEET_RANGE",
-    "A1:L160"
+    "A1:Z160"
 )

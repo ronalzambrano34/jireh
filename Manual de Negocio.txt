@@ -1,5 +1,5 @@
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-05-24
+Actualizado: 2026-06-02
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -498,7 +498,7 @@ Servicios sincronizados actualmente:
 - usd
 - clasica
 
-El sync lee la pestana operativa Calcular Oferta y el rango A1:L160, para no cargar hojas historicas completas ni cientos de filas que no se usan en la operacion diaria.
+El sync lee la pestana operativa Calcular Oferta y el rango A1:Z160. El rango debe incluir columnas auxiliares fuera de A:L, especialmente la columna exacta Oferta usada por saldo, MLC, USD y Clasica.
 El sync debe cargar credentials.json desde la carpeta Backend, sin depender del directorio desde donde se arranque Uvicorn.
 La verificacion de tablas y columnas ocurre al arrancar el backend; el sync no debe repetir mantenimiento de schema en cada ejecucion para no demorar el boton Actualizar.
 Antes de escribir, el sync deduplica filas por servicio, moneda y minimo de pago; los paquetes de saldo se deduplican por moneda, monto de pago y saldo CUP.
@@ -506,13 +506,16 @@ El sync aplica escritura diferencial: crea lo nuevo, actualiza lo que cambio, co
 
 Reglas actuales del parser:
 
-- Detecta secciones por nombre de servicio en la columna B; acepta variantes con errores comunes como Transferecia, Efectlvo y Saido.
+- Solo detecta secciones cuyo titulo contiene la palabra Sync. Ejemplos validos: Transferecia Sync, Efectivo Sync, Saldo Sync, MLC Sync, USD Sync y Clasica Sync.
+- Los textos con Sync son marcadores internos de Google Sheets; en la web no deben mostrarse con la palabra Sync.
+- El servicio se puede detectar en cualquier columna de la fila de titulo, para soportar la estructura actual de la hoja.
 - Usa la fecha mas reciente por servicio como corte vigente. Las secciones antiguas del mismo servicio se ignoran aunque tengan otra moneda, para evitar publicar tasas viejas.
 - Si hay mas de una seccion del mismo servicio y moneda dentro de la fecha vigente, gana la seccion que este mas abajo en la hoja.
-- Detecta la moneda de pago principalmente desde la columna D de la fila de encabezado, para evitar confundir USDT con USD.
-- Para transferencia y efectivo lee monto/minimo en columna D y tasa/oferta en columna K; si K esta vacia, calcula la tasa con OFERTA CUP de columna I dividido entre el monto de columna D.
-- Para mlc, usd y clasica lee monto/minimo en columna D y tasa/oferta en columna K.
-- Para saldo lee monto de pago en columna D y saldo CUP en columna L.
+- Detecta la moneda de pago desde la fila de encabezado o desde la fila del servicio, evitando confundir USDT con USD.
+- Lee columnas por encabezado, no por posicion fija, siempre que el encabezado exista.
+- Para transferencia y efectivo lee monto/minimo desde REAL y calcula la tasa usando OFERTA CUP dividido entre el monto de pago. Si no puede calcular, usa la columna de oferta disponible como respaldo.
+- Para saldo lee monto de pago desde REAL y saldo CUP desde la columna exacta Oferta. No debe usar OFERTA CUP para paquetes de saldo.
+- Para mlc, usd y clasica lee monto/minimo desde REAL y tasa/oferta desde la columna exacta Oferta. No debe usar OFERTA CUP para estas tarjetas.
 - Cada fila valida de oferta se sincroniza como una oferta independiente; solo se deduplican filas con la misma moneda y el mismo minimo exacto.
 - El endpoint devuelve meta.secciones_usadas, meta.worksheet, meta.rango_leido, meta.ofertas_db, meta.saldo_db y meta.tiempos_seg para auditar que filas fueron sincronizadas y donde se consume el tiempo.
 
@@ -524,9 +527,21 @@ Implementado.
 
 Riesgos actuales:
 
-- Si la hoja cambia las columnas D, I, K o L, debe actualizarse el parser.
+- Si la hoja cambia los encabezados REAL, OFERTA CUP u Oferta, debe actualizarse el parser y documentarse aqui antes de sincronizar en produccion.
+- Si una seccion no tiene la palabra Sync, el sistema la ignora aunque tenga datos validos.
 - Si una seccion vigente no tiene fecha y existe otra del mismo servicio con fecha valida, la seccion sin fecha puede quedar ignorada por seguridad.
 - Si el negocio decide mantener monedas vigentes con fechas diferentes para un mismo servicio, debe ajustarse la regla de seleccion vigente y documentarse aqui antes de usarlo en produccion.
+
+
+Regla de cuentas de metodos de pago:
+
+- Un metodo de pago puede tener varias cuentas o destinos de pago asociados.
+- Cada cuenta tiene alias, cuenta/clave, titular, QR opcional, estado activo y marca predeterminada.
+- Para PIX, la cuenta/clave corresponde a la Llave Pix y el titular corresponde al nombre del titular.
+- Solo una cuenta activa por metodo debe marcarse como predeterminada para uso operativo normal.
+- Al crear un pedido, las instrucciones de pago al cliente usan la cuenta predeterminada del metodo seleccionado.
+- Si no existe cuenta predeterminada, el sistema puede caer temporalmente en configuracion heredada o mostrar Por confirmar, pero eso no es aceptable para operacion real.
+- Administracion > Metodos de pago permite configurar estas cuentas y elegir la predeterminada.
 
 8. MENSAJES Y WHATSAPP
 
@@ -1163,6 +1178,53 @@ Reglas visuales:
 - Cancelados debe aparecer al final del orden visual de estados.
 
 
+21. MANUAL OPERATIVO DE PRUEBA DE FLUJO
+
+Esta seccion se usa como guia de prueba manual antes de operar con clientes reales. La prueba debe ejecutarse en modo desarrollo o entorno controlado, usando un pedido de prueba y datos no sensibles.
+
+Acceso en desarrollo:
+
+- Backend local: arrancar con uvicorn en 0.0.0.0 puerto 8000.
+- Frontend local: arrancar Vite en 0.0.0.0 puerto 5173.
+- Si se prueba desde telefono, abrir el frontend con la IP actual de la laptop y confirmar que la API abre en la misma IP puerto 8000.
+- El login de desarrollo precarga el operador de prueba cuando Vite corre en modo dev.
+- Si se usa hotspot o cambia la red, FRONTEND_ORIGINS debe incluir el origen real del navegador, por ejemplo http://10.97.251.180:5173 o http://192.168.1.24:5173.
+
+Preparacion de tasas:
+
+1. Abrir Inicio.
+2. Ejecutar Sincronizar si el operador tiene permiso.
+3. Confirmar que transferencia y efectivo muestren tasas por moneda.
+4. Confirmar que saldo muestre paquetes desde Saldo Sync usando la columna exacta Oferta.
+5. Confirmar que MLC, USD y Clasica usen la columna exacta Oferta.
+6. Confirmar que ningun texto visible al cliente muestre la palabra Sync.
+
+Prueba de flujo de negocio recomendada:
+
+1. Crear pedido de transferencia desde Inicio usando una oferta activa.
+2. Verificar que el formulario se abra con moneda, monto y tasa precargados.
+3. Completar telefono/WhatsApp del cliente, datos de tarjeta o destino, metodo de pago y monto.
+4. Crear pedido y confirmar que se genera mensaje WhatsApp con instrucciones de pago al cliente.
+5. Abrir Pedidos y verificar que el pedido aparezca en el estado inicial correcto.
+6. Tomar o abrir el pedido como operador.
+7. Subir o registrar evidencia/comprobante cuando corresponda.
+8. Cambiar estado siguiendo el flujo operativo: pendiente de pago, pago confirmado, en operacion, completado.
+9. En cada cambio de estado, confirmar que el mensaje WhatsApp al cliente se genere con el template correcto.
+10. Al completar, confirmar que se genere mensaje para el grupo historico/finalizados.
+11. Confirmar que el pedido finalizado mantiene tasa_final, monto_pago, monto_resultado, moneda y datos de destino congelados.
+12. Revisar Reportes para confirmar que la operacion aparece en el periodo actual.
+
+Criterios de aceptacion de la prueba:
+
+- La creacion no debe exigir datos que no correspondan al servicio.
+- Los montos calculados deben coincidir con la oferta activa usada.
+- El operador debe poder copiar datos clave desde el detalle.
+- El pedido no debe perder historial al cambiar de estado.
+- El sistema no debe mostrar Sync en textos visibles de ofertas.
+- Los botones principales en movil deben quedar alineados y ser faciles de tocar.
+- Si ocurre error, debe quedar claro si es problema de login, CORS, API apagada, permisos o validacion del formulario.
+
+
 ------------------Ideas del futuro------------------
 -------------para la fase en la que el operario crea el pedido.-----------------
 Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el operario le pregunta si desea cambiar un minuto de su tiempo en la creacion de su cuenta, para obtener un descuento (BONO) en la siguiente compra, logicamente en el sistema que maneja el opeario le debio aparecer un boton de crear cuenta y al finalizar el pedido un modal preguntando si el cliente quiso crear cuenta o no. Logicamente tambien debe estar implementado el sistema de recompensa de nuevos integrantes,para poder realizar dicha oferta de bonificacion.
@@ -1203,3 +1265,14 @@ Actualizacion de interfaz aplicada:
 - En Perfil, el operador puede subir o cambiar su foto; se guarda en storage/operadores y se muestra en el header, menu de usuario y tarjeta de perfil.
 - En Nuevo pedido, el telefono/WhatsApp del cliente es obligatorio. Al crear la orden, el sistema genera y abre WhatsApp con instrucciones de pago al cliente usando el metodo/cuenta configurada, y abre/genera la orden para el grupo operativo configurado.
 - En Pedidos, cada cambio de estado genera mensaje WhatsApp para el cliente mediante templates editables. Al completar, tambien se genera mensaje para el grupo historico de operaciones finalizadas.
+
+
+Pendiante:
+-cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login
+
+//todo hay que pensar en una forma de normalizar el numero de telefono, para que aunque el cliente escriba el numero de telefono con el numero de pais, no se imprima "+55 +55 48...." o si lo pega de otro lougar que ya contenga el codigo del pais, tambien manejar que el cliente pegue un numero con espacios. tambienhay algunas cosas a tener en cuenta, en el caso de brasil. el numero de telefono es (codigo de pais + dd + numero) ejemplo "+55 48 991233191" aunque cuando copias ese numero de whatsapp le falta un 9, (91233191). eso mismo ocurre con Uruguay, los numeros los escriben con +598 09..., pero ese 0 sobra. busca info sobre estos casos y dame una solucion. tambien pense que en vez de poner el codigo de pais en un campo aparte, estube pensando que cuando el cliente eligiera un codigo de pais, ese codigo se auto escribiera en el input y q el cliente terminara de escribir su numero de telefono. 
+
+Mi solucion pensada fue al pegar un numero, comenzarlos a colocar de atras para alante, asi en el caso de Cuba +53, solo se pegaria 53843778 y solo faltaria concatenarle el codigo de pais.
+
+//todo hay q pensar en normalizar los nuemros de tarjeta, cuando el cliente los pega o escribe, puede que lo escriba o pegue con los siguientes formatos (xxxx-xxxx-xxxx-xxxx),(xxxx xxxx xxxx xxxx), (xxxx.xxxx.xxxx.xxxx); quisiera que visualmente se mostrara (xxxx-xxxx-xxxx-xxxx) ó (xxxx xxxx xxxx xxxx) pero que se guarde sin esos caractéres, solo numeros.
+//todo en nuevo pedido, los botones Pegar, no estan funcionanado, probe pegar una tarjeta y un numero de telefono en un nueovo pedidod / transferencia

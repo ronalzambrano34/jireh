@@ -8,6 +8,9 @@ import { PasswordField } from '../components/PasswordField';
 import {
   apiAssetUrl,
   actualizarMetodoPago,
+  listarCuentasMetodoPago,
+  crearCuentaMetodoPago,
+  actualizarCuentaMetodoPago,
   actualizarOferta,
   actualizarOperador,
   actualizarPaqueteSaldo,
@@ -41,7 +44,7 @@ import {
   subirImagenMetodoPago,
   subirImagenPromocion,
 } from '../api/client';
-import type { Cliente, Configuracion, Contacto, MetodoPago, Oferta, Operador, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
+import type { Cliente, Configuracion, Contacto, MetodoPago, MetodoPagoCuenta, Oferta, Operador, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
 import { metodoPagoVisual } from '../utils/metodosPago';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
@@ -200,6 +203,8 @@ export function AdminCatalogosPage() {
   const [operadorForm, setOperadorForm] = useState<OperadorFormState>({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
   const [operadorEditando, setOperadorEditando] = useState<Operador | null>(null);
   const [metodoEditando, setMetodoEditando] = useState<MetodoPago | null>(null);
+  const [cuentasMetodo, setCuentasMetodo] = useState<MetodoPagoCuenta[]>([]);
+  const [cuentaMetodoForm, setCuentaMetodoForm] = useState({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
   const [promoEditando, setPromoEditando] = useState<Promocion | null>(null);
   const [metodoUploading, setMetodoUploading] = useState(false);
   const [promoUploading, setPromoUploading] = useState(false);
@@ -725,8 +730,12 @@ export function AdminCatalogosPage() {
       imagen_url: metodo.imagen_url ?? '',
       activo: metodo.activo,
     });
+    setCuentaMetodoForm({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
     setError(null);
     setNotice(null);
+    listarCuentasMetodoPago(metodo.id, true)
+      .then(setCuentasMetodo)
+      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar las cuentas del metodo'));
   }
 
   async function guardarMetodoEditado(event: FormEvent) {
@@ -746,6 +755,52 @@ export function AdminCatalogosPage() {
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
+    }
+  }
+
+  async function guardarCuentaMetodo(event: FormEvent) {
+    event.preventDefault();
+    if (!metodoEditando) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await crearCuentaMetodoPago(metodoEditando.id, {
+        alias: cuentaMetodoForm.alias,
+        cuenta: cuentaMetodoForm.cuenta,
+        titular: cuentaMetodoForm.titular,
+        qr_url: cuentaMetodoForm.qr_url || null,
+        predeterminada: cuentaMetodoForm.predeterminada,
+        activa: cuentaMetodoForm.activa,
+      });
+      setCuentaMetodoForm({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
+      setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
+      setNotice('Cuenta de pago guardada');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
+    }
+  }
+
+  async function marcarCuentaPredeterminada(cuenta: MetodoPagoCuenta) {
+    if (!metodoEditando) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await actualizarCuentaMetodoPago(metodoEditando.id, cuenta.id, { predeterminada: true, activa: true });
+      setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo marcar la cuenta predeterminada');
+    }
+  }
+
+  async function toggleCuentaMetodo(cuenta: MetodoPagoCuenta) {
+    if (!metodoEditando) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await actualizarCuentaMetodoPago(metodoEditando.id, cuenta.id, { activa: !cuenta.activa });
+      setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la cuenta');
     }
   }
 
@@ -1285,7 +1340,7 @@ export function AdminCatalogosPage() {
         </Modal>
       )}
       {metodoEditando && (
-        <Modal title="Editar metodo de pago" subtitle={`${metodoEditando.nombre} · ${metodoEditando.moneda}`} onClose={() => setMetodoEditando(null)} wide>
+        <Modal title="Editar metodo de pago" subtitle={`${metodoEditando.nombre} · ${metodoEditando.moneda}`} onClose={() => { setMetodoEditando(null); setCuentasMetodo([]); }} wide>
           <form className="stack-form modal-form" onSubmit={guardarMetodoEditado}>
             <div
               className="method-image-dropzone"
@@ -1318,6 +1373,42 @@ export function AdminCatalogosPage() {
             </div>
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL o /storage/metodos-pago/archivo.webp" />
           </form>
+
+          <section className="payment-accounts-panel">
+            <header className="payment-accounts-header">
+              <div>
+                <strong>Cuentas de pago</strong>
+                <small>La predeterminada aparece en la pantalla de pago del pedido.</small>
+              </div>
+            </header>
+            <div className="payment-account-list">
+              {cuentasMetodo.length === 0 && <div className="admin-empty-row">Sin cuentas configuradas</div>}
+              {cuentasMetodo.map((cuenta) => (
+                <div className="catalog-row payment-account-row" key={cuenta.id}>
+                  <span><strong>{cuenta.alias}</strong><small>{cuenta.cuenta} · {cuenta.titular}</small></span>
+                  <div className="catalog-offer-actions">
+                    {cuenta.predeterminada && <span className="status completado">predeterminada</span>}
+                    <span className={cuenta.activa ? 'status completado' : 'status cancelado'}>{cuenta.activa ? 'activa' : 'inactiva'}</span>
+                    {!cuenta.predeterminada && <button type="button" className="ghost-button catalog-toggle-action" onClick={() => marcarCuentaPredeterminada(cuenta)}>Predeterminar</button>}
+                    <button type="button" className="ghost-button catalog-toggle-action" onClick={() => toggleCuentaMetodo(cuenta)}><Power size={18} /> {cuenta.activa ? 'Desactivar' : 'Activar'}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form className="stack-form modal-form payment-account-form" onSubmit={guardarCuentaMetodo}>
+              <div className="inline-form three">
+                <input value={cuentaMetodoForm.alias} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, alias: event.target.value }))} placeholder="Alias, ej. Pix principal" required />
+                <input value={cuentaMetodoForm.cuenta} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, cuenta: event.target.value }))} placeholder={metodoEditando.nombre.toLowerCase().includes('pix') ? 'Llave Pix' : 'Cuenta o clave'} required />
+                <input value={cuentaMetodoForm.titular} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, titular: event.target.value }))} placeholder="Titular" required />
+              </div>
+              <input value={cuentaMetodoForm.qr_url} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, qr_url: event.target.value }))} placeholder="QR URL opcional" />
+              <label className="permission-switch-row">
+                <span>Predeterminada<small>Usar esta cuenta en pedidos nuevos con este metodo.</small></span>
+                <input type="checkbox" checked={cuentaMetodoForm.predeterminada} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, predeterminada: event.target.checked }))} />
+              </label>
+              <button className="primary-button"><Save size={18} /> Agregar cuenta</button>
+            </form>
+          </section>
         </Modal>
       )}
 

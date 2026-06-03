@@ -165,6 +165,18 @@ export type MetodoPago = {
 };
 
 
+
+export type MetodoPagoCuenta = {
+  id: number;
+  metodo_pago_id: number;
+  alias: string;
+  cuenta: string;
+  titular: string;
+  qr_url?: string | null;
+  predeterminada: boolean;
+  activa: boolean;
+};
+
 export type ProvinciaServicio = {
   id: number;
   nombre: string;

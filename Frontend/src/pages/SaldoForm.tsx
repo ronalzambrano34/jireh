@@ -218,7 +218,6 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
               <p>Metodo y paquete activo para la recarga.</p>
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
-              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
               <FloatingSelect
                 className="payment-currency-select"
                 value={form.moneda_pago}

@@ -260,7 +260,6 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
               <p>Cantidad y metodo usado para pagar.</p>
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
-              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
               <FloatingSelect
                 className="payment-currency-select"
                 value={form.moneda_pago}

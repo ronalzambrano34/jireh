@@ -121,7 +121,8 @@ def _generar_mensaje_pago_cliente(
         datos_pago = obtener_datos_pago(
             db,
             pedido.moneda_pago,
-            _metodo_pago_key(metodo_pago.nombre)
+            _metodo_pago_key(metodo_pago.nombre),
+            metodo_pago=metodo_pago
         )
     except Exception:
         datos_pago = {
