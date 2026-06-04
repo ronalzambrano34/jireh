@@ -1,11 +1,13 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, Copy, FileText, History, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Unlock, Upload, X } from 'lucide-react';
-import { Modal } from '../components/Modal';
+import { CheckCircle2, ChevronDown, Copy, ExternalLink, FileText, History, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Unlock, Upload, X } from 'lucide-react';
 import { PageLoader } from '../components/PageLoader';
-import { actualizarEstado, liberarOperacion, listarOperadoresActivos, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
-import type { Operador, PedidoDetalle } from '../types/api';
+import { DismissibleNotice } from '../components/DismissibleNotice';
+import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
+import type { ArchivoPedido, Operador, PedidoDetalle } from '../types/api';
 import { abrirWhatsAppUrls } from '../utils/whatsapp';
 import { FloatingSelect } from '../components/FloatingSelect';
+import { formatearNumeroTarjeta } from '../utils/tarjetas';
+import { copiarAlPortapapeles } from '../utils/clipboard';
 
 const estados = [
   { value: 'pendiente_pago', label: 'Pendiente pago' },
@@ -46,6 +48,8 @@ const camposCopiables = new Set([
   'monto_divisa',
   'documento_identidad_url',
 ]);
+const COPY_FEEDBACK_DURATION_MS = 2600;
+const ERROR_TOAST_DURATION_MS = 5200;
 
 function estadoLabel(value: string) {
   return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
@@ -102,6 +106,11 @@ function mostrarValor(value: unknown) {
   return String(value);
 }
 
+function mostrarDetalleValor(key: string, value: unknown) {
+  if (key === 'numero_tarjeta') return formatearNumeroTarjeta(mostrarValor(value));
+  return mostrarValor(value);
+}
+
 function formatoFecha(value?: string | null) {
   if (!value) return null;
   const fecha = new Date(value);
@@ -122,15 +131,12 @@ function vibrarFeedback(duration = 18) {
 
 async function copiarTexto(value: unknown) {
   const text = mostrarValor(value);
-  if (!text || typeof navigator === 'undefined' || !navigator.clipboard) return false;
-
-  try {
-    await navigator.clipboard.writeText(text);
+  if (!text) return false;
+  const copiado = await copiarAlPortapapeles(text);
+  if (copiado) {
     vibrarFeedback(18);
-    return true;
-  } catch {
-    return false;
   }
+  return copiado;
 }
 
 function servicioLabel(value: string) {
@@ -149,6 +155,26 @@ function monedaEntregaPedido(pedido: PedidoDetalle) {
   return 'CUP';
 }
 
+function archivoUrl(archivo: ArchivoPedido) {
+  return apiAssetUrl(archivo.ruta_archivo);
+}
+
+function archivoEsImagen(archivo: ArchivoPedido) {
+  return archivo.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(archivo.ruta_archivo);
+}
+
+function archivoEsPdf(archivo: ArchivoPedido) {
+  return archivo.mime_type === 'application/pdf' || /\.pdf$/i.test(archivo.ruta_archivo);
+}
+
+function archivoTipoLabel(tipo: string) {
+  if (tipo === 'documento_identidad') return 'Documento';
+  if (tipo === 'comprobante_cliente') return 'Comprobante';
+  if (tipo === 'comprobante_final') return 'Comprobante final';
+  if (tipo === 'captura_operador') return 'Captura';
+  return tipo.replaceAll('_', ' ');
+}
+
 export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: { codigo: string | null; operadorId: number; onChanged: () => void; onClose: () => void }) {
   const [pedido, setPedido] = useState<PedidoDetalle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -161,12 +187,26 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
   const [mensajeRedireccion, setMensajeRedireccion] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [redireccionAbierta, setRedireccionAbierta] = useState(false);
+  const [cancelacionAbierta, setCancelacionAbierta] = useState(false);
+  const [confirmarPagoAbierto, setConfirmarPagoAbierto] = useState(false);
+  const [mensajeAbierto, setMensajeAbierto] = useState(false);
+  const [evidenciasAbiertas, setEvidenciasAbiertas] = useState(false);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
+  const [ownLockNoticeHidden, setOwnLockNoticeHidden] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [cancelCountdown, setCancelCountdown] = useState(0);
+  const comprobantePagoInputRef = useRef<HTMLInputElement | null>(null);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
+  const errorTimeoutRef = useRef<number | null>(null);
 
   const bloqueoPropio = Boolean(pedido?.lock_activo && pedido.operador_asignado_id === operadorId);
   const bloqueadoPorOtro = Boolean(pedido?.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operadorId);
   const detalle = useMemo(() => (pedido ? detalleEntries(pedido) : []), [pedido]);
   const monedaEntrega = pedido ? monedaEntregaPedido(pedido) : 'CUP';
+  const tieneComprobantePago = Boolean(
+    pedido?.comprobante_pago
+    || pedido?.archivos?.some((archivo) => archivo.tipo === 'comprobante_cliente')
+  );
 
   const proximoEstadoPrincipal = useMemo(() => {
     if (!pedido) return 'pago_confirmado';
@@ -194,6 +234,11 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     let active = true;
     setLoading(true);
     setError(null);
+    setMensajeAbierto(false);
+    setEvidenciasAbiertas(false);
+    setHistorialAbierto(false);
+    setConfirmarPagoAbierto(false);
+    setOwnLockNoticeHidden(false);
     tomarOperacion(codigo)
       .then((data) => {
         if (!active) return;
@@ -220,25 +265,80 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
   }, [codigo]);
 
   useEffect(() => {
-    listarOperadoresActivos()
-      .then((items) => setOperadores(items.filter((item) => item.id !== operadorId && item.activo)))
-      .catch(() => setOperadores([]));
-  }, [operadorId]);
-
-  useEffect(() => {
     setOperadorDestino(pedido?.redirigido_a_operador_id ? String(pedido.redirigido_a_operador_id) : '');
     setMensajeRedireccion(pedido?.redireccion_mensaje ?? '');
     setRedireccionAbierta(Boolean(pedido?.redirigido_a_operador_id));
+    setOwnLockNoticeHidden(false);
   }, [pedido?.redirigido_a_operador_id, pedido?.redireccion_mensaje]);
+
+  useEffect(() => {
+    if (!redireccionAbierta || operadores.length > 0) return;
+
+    let active = true;
+    listarOperadoresActivos()
+      .then((items) => {
+        if (active) setOperadores(items.filter((item) => item.id !== operadorId && item.activo));
+      })
+      .catch(() => {
+        if (active) setOperadores([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [operadorId, operadores.length, redireccionAbierta]);
 
   useEffect(() => () => {
     if (copyFeedbackTimeoutRef.current) window.clearTimeout(copyFeedbackTimeoutRef.current);
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
   }, []);
+
+  useEffect(() => {
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+    if (!error) return undefined;
+
+    errorTimeoutRef.current = window.setTimeout(() => {
+      setError(null);
+      errorTimeoutRef.current = null;
+    }, ERROR_TOAST_DURATION_MS);
+
+    return () => {
+      if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    };
+  }, [error]);
+
+  useEffect(() => {
+    if (!cancelacionAbierta) return undefined;
+    setCancelCountdown(3);
+    const interval = window.setInterval(() => {
+      setCancelCountdown((current) => {
+        if (current <= 1) {
+          window.clearInterval(interval);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [cancelacionAbierta]);
 
   function mostrarCopia(label: string) {
     if (copyFeedbackTimeoutRef.current) window.clearTimeout(copyFeedbackTimeoutRef.current);
     setCopyFeedback('¡' + label + ' copiado!');
-    copyFeedbackTimeoutRef.current = window.setTimeout(() => setCopyFeedback(null), 1400);
+    copyFeedbackTimeoutRef.current = window.setTimeout(() => setCopyFeedback(null), COPY_FEEDBACK_DURATION_MS);
+  }
+
+  function cerrarCopyFeedback() {
+    if (copyFeedbackTimeoutRef.current) window.clearTimeout(copyFeedbackTimeoutRef.current);
+    copyFeedbackTimeoutRef.current = null;
+    setCopyFeedback(null);
+  }
+
+  function cerrarError() {
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+    errorTimeoutRef.current = null;
+    setError(null);
   }
 
   function copiarCampo(value: unknown, label = 'Dato') {
@@ -260,24 +360,53 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     onClose();
   }
 
-  async function cambiarEstadoRapido(nuevoEstado: string) {
+  async function cambiarEstadoRapido(nuevoEstado: string, observaciones?: string) {
     if (!pedido || bloqueadoPorOtro || saving || pedido.estado === nuevoEstado) return;
+    if (nuevoEstado === 'pago_confirmado' && !tieneComprobantePago) {
+      setError(null);
+      setConfirmarPagoAbierto(true);
+      setEvidenciasAbiertas(true);
+      window.setTimeout(() => comprobantePagoInputRef.current?.click(), 0);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      const actualizado = await actualizarEstado(pedido.codigo_operacion, nuevoEstado);
+      const actualizado = await actualizarEstado(pedido.codigo_operacion, nuevoEstado, observaciones);
       setPedido(actualizado);
+      if (nuevoEstado === 'cancelado') {
+        setCancelacionAbierta(false);
+        setMotivoCancelacion('');
+      }
       vibrarFeedback(24);
       onChanged();
       abrirWhatsAppUrls(
-        actualizado.whatsapp_estado_url,
+        actualizado.whatsapp_grupo_pedidos_url,
         actualizado.whatsapp_grupo_finalizado_url,
+        actualizado.whatsapp_estado_url,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado');
     } finally {
       setSaving(false);
     }
+  }
+
+  function abrirCancelacion() {
+    setError(null);
+    setCancelacionAbierta(true);
+  }
+
+  function cerrarCancelacion() {
+    if (saving) return;
+    setCancelacionAbierta(false);
+    setMotivoCancelacion('');
+    setCancelCountdown(0);
+  }
+
+  function confirmarCancelacion() {
+    const motivo = motivoCancelacion.trim();
+    void cambiarEstadoRapido('cancelado', motivo || 'Cancelado por operador sin motivo especifico');
   }
 
   async function liberarPedidoActual() {
@@ -335,14 +464,63 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     }
   }
 
+  async function handleComprobantePagoConfirmado(event: ChangeEvent<HTMLInputElement>) {
+    if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    setUploading(true);
+    setSaving(true);
+    setError(null);
+    const form = new FormData();
+    form.set('tipo', 'comprobante_cliente');
+    form.set('archivo', event.target.files[0]);
+    try {
+      await subirArchivo(pedido.codigo_operacion, form);
+      const actualizado = await actualizarEstado(pedido.codigo_operacion, 'pago_confirmado');
+      setPedido(actualizado);
+      setConfirmarPagoAbierto(false);
+      vibrarFeedback(24);
+      onChanged();
+      abrirWhatsAppUrls(
+        actualizado.whatsapp_grupo_pedidos_url,
+        actualizado.whatsapp_grupo_finalizado_url,
+        actualizado.whatsapp_estado_url,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante y confirmar el pago');
+    } finally {
+      event.target.value = '';
+      setUploading(false);
+      setSaving(false);
+    }
+  }
+
   if (!codigo) return null;
 
   return (
-    <Modal title={pedido?.codigo_operacion ?? codigo} subtitle={pedido ? `${servicioLabel(pedido.servicio)} · ${pedido.moneda_pago}` : undefined} onClose={cerrarDetalle} wide>
-      {loading && <PageLoader label="Cargando detalle" inline />}
-      {!loading && !pedido && <div className="detail-panel empty">Sin detalle disponible</div>}
-      {!loading && pedido && (
-        <div className="detail-panel modal-detail-panel order-detail-surface">
+    <section className="order-detail-page" aria-label="Detalle de pedido">
+      {error && (
+        <div className="app-toast-stack" aria-live="polite">
+          <div className="app-toast error" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={cerrarError} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+      <header className="order-detail-page-header">
+        <button type="button" className="ghost-button order-detail-back" onClick={cerrarDetalle}>
+          <X size={18} /> Volver
+        </button>
+        <div>
+          <h2>{pedido?.codigo_operacion ?? codigo}</h2>
+          {pedido && <p>{servicioLabel(pedido.servicio)} · {pedido.moneda_pago}</p>}
+        </div>
+      </header>
+      <div className="order-detail-page-body">
+        {loading && <PageLoader label="Cargando detalle" inline />}
+        {!loading && !pedido && <div className="detail-panel empty">Sin detalle disponible</div>}
+        {!loading && pedido && (
+          <div className="detail-panel order-detail-surface">
           <section className="order-control-head">
             <div className="order-control-meta">
               <span className={`order-state-dot ${pedido.estado}`} />
@@ -362,14 +540,32 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
             )}
           </section>
 
-          {copyFeedback && <div className="copy-toast" role="status">{copyFeedback}</div>}
-          {error && <div className="notice error compact-notice">{error}</div>}
-          {bloqueoPropio && <div className="notice success compact-notice"><Lock size={17} /> Has tomado este pedido. Seguirá bloqueado para los demás hasta que lo liberes o lo completes.</div>}
-          {bloqueadoPorOtro && <div className="notice warning compact-notice"><ShieldAlert size={17} /> En uso por {pedido.operador_asignado_nombre ?? 'otro operador'}. Puedes revisar, pero no editar.</div>}
-          {pedido.redirigido_a_operador_id && (
-            <div className={pedido.redirigido_a_operador_id === operadorId ? 'notice redirected own compact-notice' : 'notice redirected compact-notice'}>
-              <Send size={17} /> Marcado para {pedido.redirigido_a_operador_nombre ?? 'otro operador'}{pedido.redireccion_mensaje ? `: ${pedido.redireccion_mensaje}` : ''}
+          {copyFeedback && (
+            <div className="copy-toast" role="status">
+              <span>{copyFeedback}</span>
+              <button type="button" onClick={cerrarCopyFeedback} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+                <X size={16} />
+              </button>
             </div>
+          )}
+          {bloqueoPropio && !ownLockNoticeHidden && (
+            <div className="notice success compact-notice dismissible-notice">
+              <Lock size={17} />
+              <span>Has tomado este pedido. Seguirá bloqueado para los demás hasta que lo liberes o lo completes.</span>
+              <button type="button" onClick={() => setOwnLockNoticeHidden(true)} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+                <X size={15} />
+              </button>
+            </div>
+          )}
+          {bloqueadoPorOtro && (
+            <DismissibleNotice className="notice warning compact-notice" role="alert">
+              <><ShieldAlert size={17} /> En uso por {pedido.operador_asignado_nombre ?? 'otro operador'}. Puedes revisar, pero no editar.</>
+            </DismissibleNotice>
+          )}
+          {pedido.redirigido_a_operador_id && (
+            <DismissibleNotice className={pedido.redirigido_a_operador_id === operadorId ? 'notice redirected own compact-notice' : 'notice redirected compact-notice'}>
+              <><Send size={17} /> Marcado para {pedido.redirigido_a_operador_nombre ?? 'otro operador'}{pedido.redireccion_mensaje ? `: ${pedido.redireccion_mensaje}` : ''}</>
+            </DismissibleNotice>
           )}
 
           <section className="liquidation-card" aria-label="Liquidacion de la orden">
@@ -416,11 +612,11 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
                       <span>{label}</span>
                       {copyable ? (
                         <button className={copiaActiva(label) ? 'copy-field-button copied' : 'copy-field-button'} type="button" onClick={() => copiarCampo(value, label)} aria-label={'Copiar ' + label}>
-                          <strong>{mostrarValor(value)}</strong>
+                          <strong>{mostrarDetalleValor(key, value)}</strong>
                           <Copy size={16} />
                         </button>
                       ) : (
-                        <strong>{mostrarValor(value)}</strong>
+                        <strong>{mostrarDetalleValor(key, value)}</strong>
                       )}
                     </div>
                   );
@@ -451,79 +647,144 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
                 />
                 <button className="ghost-button" type="button" onClick={guardarRedireccion} disabled={redirigiendo || (!operadorDestino && !pedido.redirigido_a_operador_id)}>
                   {redirigiendo ? <RefreshCw size={16} /> : <Send size={16} />}
-                  {operadorDestino ? 'Marcar' : 'Limpiar'}
+                  {operadorDestino ? 'Marcar' : 'Transferir'}
                 </button>
               </div>
             )}
           </section>
 
           {pedido.mensaje_operacion && (
-            <section className="order-detail-section message-box order-message-box">
-              <div className="order-section-heading">
-                <MessageCircle size={18} />
-                <div>
-                  <h3>Mensaje operativo</h3>
-                  <small>Listo para copiar o abrir en WhatsApp</small>
-                </div>
-              </div>
-              <div className="message-actions">
-                <button className="ghost-button" type="button" onClick={() => copiarCampo(pedido.mensaje_operacion ?? '', 'Mensaje')}>
-                  <Copy size={16} /> Copiar mensaje
-                </button>
-              </div>
-              <pre>{pedido.mensaje_operacion}</pre>
+            <section className={mensajeAbierto ? 'order-detail-section message-box order-message-box open' : 'order-detail-section message-box order-message-box collapsed'}>
+              <button className="secondary-action-toggle" type="button" onClick={() => setMensajeAbierto((current) => !current)} aria-expanded={mensajeAbierto}>
+                <span><MessageCircle size={17} /> Mensaje operativo</span>
+                <ChevronDown size={17} />
+              </button>
+              {mensajeAbierto && (
+                <>
+                  <div className="message-actions">
+                    <button className="ghost-button" type="button" onClick={() => copiarCampo(pedido.mensaje_operacion ?? '', 'Mensaje')}>
+                      <Copy size={16} /> Copiar mensaje
+                    </button>
+                  </div>
+                  <pre>{pedido.mensaje_operacion}</pre>
+                </>
+              )}
             </section>
           )}
 
-          <section className="order-detail-section order-evidence-section">
-            <div className="order-section-heading">
-              <Upload size={18} />
-              <div>
-                <h3>Evidencias</h3>
-                <small>{(pedido.archivos ?? []).length} archivo(s) registrado(s)</small>
-              </div>
-            </div>
-            <label className={bloqueadoPorOtro ? 'upload-button disabled-upload' : 'upload-button'}>
-              <Upload size={16} /> {uploading ? 'Subiendo...' : 'Subir comprobante'}
-              <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={handleUpload} disabled={bloqueadoPorOtro || uploading} />
-            </label>
-            <div className="archivo-list order-file-list">
-              {(pedido.archivos ?? []).length === 0 && <div className="order-empty-line">Sin evidencias todavia</div>}
-              {(pedido.archivos ?? []).map((archivo) => (
-                <div key={archivo.id} className="archivo-row">
-                  <strong>{archivo.tipo.replaceAll('_', ' ')}</strong>
-                  <span>{archivo.nombre_archivo ?? archivo.ruta_archivo}</span>
-                  {archivo.created_at && <small>{formatoFecha(archivo.created_at)}</small>}
+          {confirmarPagoAbierto && (
+            <section className="order-detail-section payment-proof-panel">
+              <div className="order-section-heading">
+                <Upload size={18} />
+                <div>
+                  <h3>Comprobante de pago</h3>
+                  <small>Sube el comprobante para marcar el pago como recibido.</small>
                 </div>
-              ))}
-            </div>
+              </div>
+              <label className={bloqueadoPorOtro ? 'upload-button disabled-upload' : 'upload-button'}>
+                <Upload size={16} /> {uploading ? 'Subiendo...' : 'Seleccionar comprobante'}
+                <input
+                  ref={comprobantePagoInputRef}
+                  type="file"
+                  accept="image/*,application/pdf,.pdf,.doc,.docx"
+                  onChange={handleComprobantePagoConfirmado}
+                  disabled={bloqueadoPorOtro || uploading || saving}
+                />
+              </label>
+              <button className="ghost-button" type="button" onClick={() => setConfirmarPagoAbierto(false)} disabled={uploading || saving}>
+                Cancelar
+              </button>
+            </section>
+          )}
+
+          <section className={evidenciasAbiertas ? 'order-detail-section order-evidence-section open' : 'order-detail-section order-evidence-section collapsed'}>
+            <button className="secondary-action-toggle" type="button" onClick={() => setEvidenciasAbiertas((current) => !current)} aria-expanded={evidenciasAbiertas}>
+              <span><Upload size={17} /> Evidencias · {(pedido.archivos ?? []).length}</span>
+              <ChevronDown size={17} />
+            </button>
+            {evidenciasAbiertas && (
+              <>
+                <label className={bloqueadoPorOtro ? 'upload-button disabled-upload' : 'upload-button'}>
+                  <Upload size={16} /> {uploading ? 'Subiendo...' : 'Subir comprobante'}
+                  <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={handleUpload} disabled={bloqueadoPorOtro || uploading} />
+                </label>
+                <div className="archivo-list order-file-list">
+                  {(pedido.archivos ?? []).length === 0 && <div className="order-empty-line">Sin evidencias todavia</div>}
+                  {(pedido.archivos ?? []).map((archivo) => (
+                    <a key={archivo.id} className="archivo-row file-preview-card" href={archivoUrl(archivo)} target="_blank" rel="noreferrer">
+                      <span className="file-preview-media">
+                        {archivoEsImagen(archivo) ? (
+                          <img src={archivoUrl(archivo)} alt="" loading="lazy" decoding="async" />
+                        ) : archivoEsPdf(archivo) ? (
+                          <FileText size={28} />
+                        ) : (
+                          <FileText size={28} />
+                        )}
+                      </span>
+                      <span className="file-preview-copy">
+                        <strong>{archivoTipoLabel(archivo.tipo)}</strong>
+                        <span>{archivo.nombre_archivo ?? 'Archivo adjunto'}</span>
+                        {archivo.created_at && <small>{formatoFecha(archivo.created_at)}</small>}
+                      </span>
+                      <ExternalLink size={16} />
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
 
-          <section className="order-detail-section order-history-section">
-            <div className="order-section-heading">
-              <History size={18} />
-              <div>
-                <h3>Historial</h3>
-                <small>Trazabilidad de cambios de estado</small>
-              </div>
-            </div>
-            <div className="order-history-list">
-              {(pedido.historial ?? []).length === 0 && <div className="order-empty-line">Sin cambios de estado registrados</div>}
-              {(pedido.historial ?? []).map((item) => (
-                <div key={item.id} className="order-history-row">
-                  <span className={`order-state-dot ${item.estado_nuevo}`} />
-                  <div>
-                    <strong>{estadoLabel(item.estado_nuevo)}</strong>
-                    <small>{item.usuario ?? 'Sistema'} · {formatoFecha(item.created_at) ?? 'sin fecha'}</small>
-                    {item.estado_anterior && <small>Antes: {estadoLabel(item.estado_anterior)}</small>}
+          <section className={historialAbierto ? 'order-detail-section order-history-section open' : 'order-detail-section order-history-section collapsed'}>
+            <button className="secondary-action-toggle" type="button" onClick={() => setHistorialAbierto((current) => !current)} aria-expanded={historialAbierto}>
+              <span><History size={17} /> Historial · {(pedido.historial ?? []).length}</span>
+              <ChevronDown size={17} />
+            </button>
+            {historialAbierto && (
+              <div className="order-history-list">
+                {(pedido.historial ?? []).length === 0 && <div className="order-empty-line">Sin cambios de estado registrados</div>}
+                {(pedido.historial ?? []).map((item) => (
+                  <div key={item.id} className="order-history-row">
+                    <span className={`order-state-dot ${item.estado_nuevo}`} />
+                    <div>
+                      <strong>{estadoLabel(item.estado_nuevo)}</strong>
+                      <small>{item.usuario ?? 'Sistema'} · {formatoFecha(item.created_at) ?? 'sin fecha'}</small>
+                      {item.estado_anterior && <small>Antes: {estadoLabel(item.estado_anterior)}</small>}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
+
+          {cancelacionAbierta && (
+            <section className="order-cancel-confirm" aria-label="Confirmar cancelacion">
+              <div>
+                <strong>Cancelar pedido</strong>
+                <small>Esta accion cambiara el pedido a cancelado y puede notificar al cliente.</small>
+              </div>
+              <label>
+                Motivo de cancelacion
+                <textarea
+                  value={motivoCancelacion}
+                  onChange={(event) => setMotivoCancelacion(event.target.value)}
+                  placeholder="Ejemplo: cliente no completo el pago, datos incorrectos, pedido duplicado..."
+                  rows={3}
+                  disabled={saving}
+                />
+              </label>
+              <div className="order-cancel-confirm-actions">
+                <button className="ghost-button" type="button" onClick={cerrarCancelacion} disabled={saving}>
+                  No, volver
+                </button>
+                <button className="danger-button order-cancel-confirm-button" type="button" onClick={confirmarCancelacion} disabled={saving || cancelCountdown > 0}>
+                  {saving ? 'Cancelando...' : cancelCountdown > 0 ? `Si, cancelar (${cancelCountdown})` : 'Si, cancelar'}
+                </button>
+              </div>
+            </section>
+          )}
 
           <div className="order-bottom-actions" role="group" aria-label="Acciones principales de pedido">
-            <button className="danger-button order-cancel-action" type="button" onClick={() => void cambiarEstadoRapido('cancelado')} disabled={bloqueadoPorOtro || saving || pedido.estado === 'cancelado' || pedido.estado === 'completado'} title="Cancelar">
+            <button className="danger-button order-cancel-action" type="button" onClick={abrirCancelacion} disabled={bloqueadoPorOtro || saving || pedido.estado === 'cancelado' || pedido.estado === 'completado'} title="Cancelar">
               <X size={20} />
               <span>Cancelar</span>
             </button>
@@ -532,8 +793,9 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
               {saving ? 'Procesando...' : accionPrincipalLabel}
             </button>
           </div>
-        </div>
-      )}
-    </Modal>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

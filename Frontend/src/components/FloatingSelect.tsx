@@ -77,15 +77,23 @@ export function FloatingSelect({ value, options, onChange, disabled = false, pla
       if (event.key === 'Escape') setOpen(false);
     }
 
+    function handleScroll() {
+      setOpen(false);
+    }
+
     document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('mousedown', handleMouseDown, true);
     document.addEventListener('touchstart', handleTouchStart, true);
     document.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('mousedown', handleMouseDown, true);
       document.removeEventListener('touchstart', handleTouchStart, true);
       document.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
     };
   }, [open]);
 

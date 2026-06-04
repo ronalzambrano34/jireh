@@ -94,9 +94,20 @@ DEFAULT_NOTIFICATION_TEMPLATES = {
     "template_grupo_finalizado": "*Operacion finalizada*\nCodigo: {codigo_operacion}\nServicio: {servicio}\nCliente: {cliente_nombre} ({cliente_telefono})\nPago: {monto_pago} {moneda_pago} por {metodo_pago}\nRecibe: {monto_resultado}\nTasa: {tasa_final}\nGanancia: {ganancia}\nComprobante: {comprobante_pago}",
 }
 
+DEFAULT_OPERATION_TEMPLATES = {
+    "template_transferencia": "*Transferencia*\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Monto CUP:* {monto_resultado}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}",
+    "template_efectivo": "*Efectivo*\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Monto CUP:* {monto_resultado}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}",
+    "template_saldo": "*Saldo Movil*\n*Telefono destinatario:* {telefono_destinatario}\n*Saldo:* {saldo_cup} CUP\n*Pago:* {monto_pago} {moneda_pago}",
+    "template_divisa": "*Divisa*\n*Tipo de tarjeta:* {tipo_tarjeta}\n*Numero de tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Monto divisa:* {monto_divisa}\n*Pago:* {monto_pago} {moneda_pago}\n*Tasa efectiva:* {tasa_final}",
+    "template_otros": "*Otros*\n*Cliente:* {cliente_nombre}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Info:* {observaciones}",
+}
+
 
 def asegurar_templates_default(db: Session):
-    for clave, valor in DEFAULT_NOTIFICATION_TEMPLATES.items():
+    for clave, valor in {
+        **DEFAULT_OPERATION_TEMPLATES,
+        **DEFAULT_NOTIFICATION_TEMPLATES,
+    }.items():
         existe = db.query(Configuracion).filter(Configuracion.clave == clave).first()
         if not existe:
             db.add(Configuracion(clave=clave, valor=valor))

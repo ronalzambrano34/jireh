@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { calcularOperacion, crearTransferencia, listarMetodosPago } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
+import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PasteButton } from '../components/PasteButton';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
@@ -143,7 +144,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
       });
@@ -191,10 +192,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           <div className="form-grid">
             <label>
               Tarjeta destinatario
-              <span className="input-action-row">
-                <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
-                <PasteButton onPaste={(value) => update('numero_tarjeta', value)} title="Pegar tarjeta destinatario" />
-              </span>
+              <CardNumberInput value={form.numero_tarjeta} onChange={(value) => update('numero_tarjeta', value)} required pasteTitle="Pegar tarjeta destinatario" />
             </label>
             <label>
               Telefono destinatario Cuba
@@ -244,7 +242,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando transferencia" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear transferencia'}

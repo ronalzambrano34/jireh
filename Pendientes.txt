@@ -1,0 +1,25 @@
+
+
+//todo en el caso del login, al dar loguearse, que aparezca el icono del logo que habiamos definido que rebotaba como pelota y que abajo de la pelota aparezca los tectos de progreso, tambien añade algunos textos comicos como: "Pensando en las musarañas" "Despertando al servidor"
+
+//todo cuando se finalice el pedido, cierra la vista pedido
+
+//todo el boton cerrar en la notificacion "cliente encontrado" no esta fijo a la derecha, revisa los demas Componentes de notificacion
+
+//todo en la operacion "Nuevo pedido/divisa/tipo de tarjeta" las tarjetas son las mismas que estan en la oferta (MLC, USD, Clasica)
+
+//todo en la operacion "Nuevo pedido/saldo/tasa aplicada" los numeros que estan apareciendo no tienen que ver con la oferta de saldo (360=20,720=40,1080=55) y lo q esta mostrando es (360=18,720=18,1080=19.64)
+
+//todo en las vistas "Nuevo pedido/transferencia,efectivo,divisa,otros" intercambia de lugar "Metodo de pago" con "Monto pago"
+
+//todo probemos algo en pedido finalizado solamente manda el mensaje al grupo, igual que en pago realizado y en el estado operar, man
+
+
+
+
+
+
+
+
+
+

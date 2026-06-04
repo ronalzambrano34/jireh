@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Smartphone, UserRound, WalletCards } from 'lucide-react';
 import { descargarReporteCsv, listarOperadores, obtenerReporte } from '../api/client';
 import type { Operador, ReporteGeneral, ReporteGrupo } from '../types/api';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
 import { FloatingSelect } from '../components/FloatingSelect';
 
@@ -276,11 +277,11 @@ export function ReportesPage() {
         </div>
       </div>
 
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && !reporte && <PageLoader label="Buscando datos del reporte" inline />}
       {loading && reporte && <PageLoader label="Actualizando reporte" inline />}
       {!loading && !error && !reporte && (
-        <div className="notice warning">No se pudo mostrar el reporte todavia. Prueba otro periodo o actualiza la pantalla.</div>
+        <DismissibleNotice className="notice warning">No se pudo mostrar el reporte todavia. Prueba otro periodo o actualiza la pantalla.</DismissibleNotice>
       )}
 
       {reporte && (

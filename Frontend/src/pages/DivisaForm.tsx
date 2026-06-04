@@ -2,11 +2,12 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { crearDivisa, listarMetodosPago } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
+import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PasteButton } from '../components/PasteButton';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
@@ -125,7 +126,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         numero_tarjeta: form.numero_tarjeta || undefined,
         telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         observaciones: observacionesConBono(),
       });
@@ -183,10 +184,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             </label>
             <label>
               Tarjeta destinatario
-              <span className="input-action-row">
-                <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
-                <PasteButton onPaste={(value) => update('numero_tarjeta', value)} title="Pegar tarjeta destinatario" />
-              </span>
+              <CardNumberInput value={form.numero_tarjeta} onChange={(value) => update('numero_tarjeta', value)} required pasteTitle="Pegar tarjeta destinatario" />
             </label>
             <label>
               Telefono destinatario Cuba
@@ -244,7 +242,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando divisa" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear divisa'}

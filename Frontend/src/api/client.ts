@@ -106,11 +106,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function login(telefono: string, password: string) {
-  return request<AuthResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ telefono, password }),
-  });
+export async function login(telefono: string, password: string) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 45000);
+
+  try {
+    return await request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ telefono, password }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('La conexion sigue muy lenta. Revisa la senal e intenta entrar otra vez.');
+    }
+    if (err instanceof TypeError) {
+      throw new Error('No se pudo conectar con el servidor. Revisa la red local o la senal.');
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 export function getMe() {

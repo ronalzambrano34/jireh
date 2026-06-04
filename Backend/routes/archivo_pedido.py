@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
-    require_permission
+    require_any_permission
 )
 
 from Backend.schemas.archivo_pedido import (
@@ -24,13 +24,14 @@ from Backend.services.archivo_pedido_service import (
 
 router = APIRouter(
     prefix="/pedido",
-    tags=["Archivos Pedido"],
-    dependencies=[
-        Depends(
-            require_permission(
-                "pedidos:gestionar"
-            )
-        )
+    tags=["Archivos Pedido"]
+)
+
+pedido_archivo_permission = require_any_permission(
+    [
+        "pedidos:crear",
+        "pedidos:gestionar",
+        "empresa:control_total"
     ]
 )
 
@@ -43,6 +44,9 @@ def listar_archivos_route(
     codigo_operacion: str,
     db: Session = Depends(
         get_db
+    ),
+    _operador = Depends(
+        pedido_archivo_permission
     )
 ):
     try:
@@ -68,9 +72,7 @@ def registrar_archivo_route(
         get_db
     ),
     operador = Depends(
-        require_permission(
-            "pedidos:gestionar"
-        )
+        pedido_archivo_permission
     )
 ):
     try:
@@ -109,9 +111,7 @@ def upload_archivo_route(
         get_db
     ),
     operador = Depends(
-        require_permission(
-            "pedidos:gestionar"
-        )
+        pedido_archivo_permission
     )
 ):
     try:

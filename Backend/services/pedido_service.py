@@ -14,7 +14,11 @@ from Backend.models.pedido_historial import (PedidoHistorial)
 from Backend.services.pedido_estado import (PedidoEstado)
 from Backend.services.whatsapp_service import (
     generar_notificacion_estado_cliente,
+    generar_notificacion_grupo_pedido,
     generar_notificacion_grupo_finalizado
+)
+from Backend.services.mensaje_operacion import (
+    generar_mensaje_operacion
 )
 
 ESTADOS_ALIASES = {
@@ -117,18 +121,50 @@ def _operador_asignado_nombre(
     return operador.nombre if operador else None
 
 
+def _operadores_nombre_ids(
+    db: Session,
+    operador_ids
+):
+    ids = {
+        operador_id
+        for operador_id in operador_ids
+        if operador_id
+    }
+    if not ids:
+        return {}
+
+    return {
+        operador.id: operador.nombre
+        for operador in (
+            db.query(
+                Operador
+            )
+            .filter(
+                Operador.id.in_(ids)
+            )
+            .all()
+        )
+    }
+
+
 def _redireccion_dict(
     db: Session,
-    pedido: Pedido
+    pedido: Pedido,
+    operadores_nombre: dict[int, str] | None = None
 ):
+    operadores_nombre = operadores_nombre or {}
     return {
         "redirigido_a_operador_id": pedido.redirigido_a_operador_id,
-        "redirigido_a_operador_nombre": _operador_asignado_nombre(
+        "redirigido_a_operador_nombre": operadores_nombre.get(
+            pedido.redirigido_a_operador_id
+        ) or _operador_asignado_nombre(
             db,
             pedido.redirigido_a_operador_id
         ),
         "redirigido_por_operador_id": pedido.redirigido_por_operador_id,
-        "redirigido_por_operador_nombre": _operador_asignado_nombre(
+        "redirigido_por_operador_nombre": operadores_nombre.get(
+            pedido.redirigido_por_operador_id
+        ) or _operador_asignado_nombre(
             db,
             pedido.redirigido_por_operador_id
         ),
@@ -139,14 +175,18 @@ def _redireccion_dict(
 
 def _lock_dict(
     db: Session,
-    pedido: Pedido
+    pedido: Pedido,
+    operadores_nombre: dict[int, str] | None = None
 ):
+    operadores_nombre = operadores_nombre or {}
     lock_activo = _lock_activo(
         pedido
     )
     return {
         "operador_asignado_id": pedido.operador_asignado_id,
-        "operador_asignado_nombre": _operador_asignado_nombre(
+        "operador_asignado_nombre": operadores_nombre.get(
+            pedido.operador_asignado_id
+        ) or _operador_asignado_nombre(
             db,
             pedido.operador_asignado_id
         ),
@@ -444,6 +484,193 @@ def obtener_detalle(
     )
 
 
+def _operadores_nombre_map(
+    db: Session,
+    pedidos: list[Pedido]
+):
+    operador_ids = {
+        operador_id
+        for pedido in pedidos
+        for operador_id in (
+            pedido.operador_asignado_id,
+            pedido.redirigido_a_operador_id,
+            pedido.redirigido_por_operador_id
+        )
+        if operador_id
+    }
+
+    if not operador_ids:
+        return {}
+
+    return dict(
+        db.query(
+            Operador.id,
+            Operador.nombre
+        )
+        .filter(
+            Operador.id.in_(
+                operador_ids
+            )
+        )
+        .all()
+    )
+
+
+def _detalles_por_pedido_map(
+    db: Session,
+    pedidos: list[Pedido]
+):
+    detalles: dict[int, dict] = {}
+    ids_por_servicio: dict[str, list[int]] = {}
+
+    for pedido in pedidos:
+        if pedido.servicio == "otros":
+            detalles[pedido.id] = {
+                "informacion_operacion": pedido.observaciones,
+            }
+            continue
+
+        ids_por_servicio.setdefault(
+            pedido.servicio,
+            []
+        ).append(
+            pedido.id
+        )
+
+    transferencia_ids = ids_por_servicio.get(
+        "transferencia",
+        []
+    )
+    if transferencia_ids:
+        for detalle in (
+            db.query(
+                PedidoTransferencia
+            )
+            .filter(
+                PedidoTransferencia.pedido_id.in_(
+                    transferencia_ids
+                )
+            )
+            .all()
+        ):
+            detalles[detalle.pedido_id] = {
+                "numero_tarjeta": detalle.numero_tarjeta,
+                "telefono_destinatario": detalle.telefono_destinatario,
+                "monto_cup": detalle.monto_cup,
+            }
+
+    efectivo_ids = ids_por_servicio.get(
+        "efectivo",
+        []
+    )
+    if efectivo_ids:
+        for detalle in (
+            db.query(
+                PedidoEfectivo
+            )
+            .filter(
+                PedidoEfectivo.pedido_id.in_(
+                    efectivo_ids
+                )
+            )
+            .all()
+        ):
+            detalles[detalle.pedido_id] = {
+                "monto_cup": detalle.monto_cup,
+                "telefono_destinatario": detalle.telefono_destinatario,
+                "punto_recogida_id": detalle.punto_recogida_id,
+                "documento_identidad_url": detalle.documento_identidad_url,
+            }
+
+    saldo_ids = ids_por_servicio.get(
+        "saldo",
+        []
+    )
+    if saldo_ids:
+        for detalle in (
+            db.query(
+                PedidoSaldo
+            )
+            .filter(
+                PedidoSaldo.pedido_id.in_(
+                    saldo_ids
+                )
+            )
+            .all()
+        ):
+            detalles[detalle.pedido_id] = {
+                "telefono_destinatario": detalle.telefono_destinatario,
+                "saldo_cup": detalle.saldo_cup,
+            }
+
+    divisa_ids = ids_por_servicio.get(
+        "divisa",
+        []
+    )
+    if divisa_ids:
+        for detalle in (
+            db.query(
+                PedidoDivisa
+            )
+            .filter(
+                PedidoDivisa.pedido_id.in_(
+                    divisa_ids
+                )
+            )
+            .all()
+        ):
+            detalles[detalle.pedido_id] = {
+                "tipo_tarjeta": detalle.tipo_tarjeta,
+                "numero_tarjeta": detalle.numero_tarjeta,
+                "telefono_destinatario": detalle.telefono_destinatario,
+                "monto_divisa": detalle.monto_divisa,
+            }
+
+    return detalles
+
+
+def pedido_resumen_dict(
+    pedido: Pedido,
+    detalles_por_pedido: dict[int, dict],
+    operadores_nombre: dict[int, str]
+):
+    data = pedido_base_dict(
+        pedido
+    )
+    data["detalle"] = detalles_por_pedido.get(
+        pedido.id
+    )
+    data.update(
+        {
+            "operador_asignado_id": pedido.operador_asignado_id,
+            "operador_asignado_nombre": operadores_nombre.get(
+                pedido.operador_asignado_id
+            ),
+            "asignado_en": pedido.asignado_en,
+            "lock_expires_at": pedido.lock_expires_at,
+            "lock_activo": _lock_activo(
+                pedido
+            ),
+        }
+    )
+    data.update(
+        {
+            "redirigido_a_operador_id": pedido.redirigido_a_operador_id,
+            "redirigido_a_operador_nombre": operadores_nombre.get(
+                pedido.redirigido_a_operador_id
+            ),
+            "redirigido_por_operador_id": pedido.redirigido_por_operador_id,
+            "redirigido_por_operador_nombre": operadores_nombre.get(
+                pedido.redirigido_por_operador_id
+            ),
+            "redirigido_en": pedido.redirigido_en,
+            "redireccion_mensaje": pedido.redireccion_mensaje,
+        }
+    )
+
+    return data
+
+
 def pedido_dict(
     db: Session,
     pedido: Pedido,
@@ -451,6 +678,14 @@ def pedido_dict(
 ):
     data = pedido_base_dict(
         pedido
+    )
+    operadores_nombre = _operadores_nombre_ids(
+        db,
+        (
+            pedido.operador_asignado_id,
+            pedido.redirigido_a_operador_id,
+            pedido.redirigido_por_operador_id
+        )
     )
 
     if incluir_detalle:
@@ -470,13 +705,15 @@ def pedido_dict(
     data.update(
         _lock_dict(
             db,
-            pedido
+            pedido,
+            operadores_nombre
         )
     )
     data.update(
         _redireccion_dict(
             db,
-            pedido
+            pedido,
+            operadores_nombre
         )
     )
 
@@ -557,11 +794,20 @@ def listar_pedidos(
         .all()
     )
 
+    detalles_por_pedido = _detalles_por_pedido_map(
+        db,
+        pedidos
+    )
+    operadores_nombre = _operadores_nombre_map(
+        db,
+        pedidos
+    )
+
     return [
-        pedido_dict(
-            db,
+        pedido_resumen_dict(
             pedido,
-            incluir_detalle=True
+            detalles_por_pedido,
+            operadores_nombre
         )
         for pedido in pedidos
     ]
@@ -967,6 +1213,24 @@ def actualizar_estado_pedido(
         db,
         pedido
     )
+    mensaje_grupo_pedido = {
+        "mensaje": None,
+        "whatsapp_url": None
+    }
+    if (
+        estado_normalizado
+        ==
+        PedidoEstado.PAGO_CONFIRMADO
+    ):
+        mensaje_operacion = generar_mensaje_operacion(
+            db=db,
+            pedido=pedido
+        )
+        mensaje_grupo_pedido = generar_notificacion_grupo_pedido(
+            db=db,
+            mensaje_operacion=mensaje_operacion["mensaje"]
+        )
+
     mensaje_finalizado = generar_notificacion_grupo_finalizado(
         db,
         pedido
@@ -975,6 +1239,8 @@ def actualizar_estado_pedido(
     data.update({
         "mensaje_cliente_estado": mensaje_cliente["mensaje"],
         "whatsapp_estado_url": mensaje_cliente["whatsapp_url"],
+        "mensaje_grupo_pedidos": mensaje_grupo_pedido["mensaje"],
+        "whatsapp_grupo_pedidos_url": mensaje_grupo_pedido["whatsapp_url"],
         "mensaje_grupo_finalizado": mensaje_finalizado["mensaje"],
         "whatsapp_grupo_finalizado_url": mensaje_finalizado["whatsapp_url"],
     })

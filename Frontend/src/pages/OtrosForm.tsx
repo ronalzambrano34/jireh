@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { crearOtros, listarMetodosPago } from '../api/client';
 import { ClienteLookup } from '../components/ClienteLookup';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PageLoader } from '../components/PageLoader';
@@ -84,7 +85,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         observaciones: form.observaciones.trim(),
       });
@@ -172,7 +173,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando pedido" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !puedeCrear}>
         {loading ? 'Creando...' : 'Crear otros'}

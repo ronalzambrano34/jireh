@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { CheckCircle2, X } from 'lucide-react';
 import { listarClientes } from '../api/client';
 import type { Cliente } from '../types/api';
+import { DismissibleNotice } from './DismissibleNotice';
 import { PhoneInput } from './PhoneInput';
+import { PasteButton } from './PasteButton';
 
 type ClienteLookupProps = {
   telefono: string;
@@ -20,12 +22,17 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
   const [resultados, setResultados] = useState<Cliente[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [busquedaHecha, setBusquedaHecha] = useState(false);
+  const [clienteEncontradoOculto, setClienteEncontradoOculto] = useState(false);
   const termino = useMemo(() => (telefono || nombre).trim(), [nombre, telefono]);
   const resumen = clienteId
     ? `Historial vinculado #${clienteId}`
     : nombre || telefono
       ? `${nombre || 'Cliente sin nombre'}${telefono ? ` · ${telefono}` : ''}`
       : 'Se crea automaticamente si es nuevo';
+
+  useEffect(() => {
+    setClienteEncontradoOculto(false);
+  }, [clienteId]);
 
   useEffect(() => {
     if (clienteId) {
@@ -109,20 +116,40 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
         </label>
         <label>
           Nombre cliente
-          <input value={nombre} onChange={(event) => onChange({ nombre: event.target.value, clienteId: '' })} />
+          <span className="input-action-row">
+            <input
+              value={nombre}
+              onChange={(event) => onChange({ nombre: event.target.value, clienteId: '' })}
+              placeholder={telefono ? `Si queda vacio se usara ${telefono}` : 'Opcional'}
+            />
+            <PasteButton onPaste={(value) => onChange({ nombre: value, clienteId: '' })} title="Pegar nombre del cliente" />
+          </span>
         </label>
         {resultados.length > 0 && (
           <div className="lookup-suggestions" role="listbox" aria-label="Clientes encontrados">
             {resultados.map((cliente) => (
               <button type="button" key={cliente.id} onClick={() => seleccionar(cliente)} role="option">
-                <strong>{cliente.nombre}</strong>
-                <span>{clienteResumen(cliente)}</span>
+                <span className="lookup-suggestion-copy">
+                  <strong>{cliente.nombre}</strong>
+                  <span>{clienteResumen(cliente)}</span>
+                </span>
+                <small>Usar cliente</small>
               </button>
             ))}
           </div>
         )}
-        {clienteId && <div className="lookup-hit">Cliente encontrado. El historial y contactos quedan disponibles.</div>}
-        {!clienteId && busquedaHecha && !buscando && termino.length >= 3 && resultados.length === 0 && <div className="lookup-hit lookup-new-client">Cliente nuevo. Se registrara al crear el pedido.</div>}
+        {clienteId && !clienteEncontradoOculto && (
+          <div className="lookup-hit lookup-client-found dismissible-notice">
+            <CheckCircle2 size={18} />
+            <span><strong>Cliente encontrado</strong><small>Historial y contactos vinculados</small></span>
+            <button type="button" onClick={() => setClienteEncontradoOculto(true)} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+              <X size={15} />
+            </button>
+          </div>
+        )}
+        {!clienteId && busquedaHecha && !buscando && termino.length >= 3 && resultados.length === 0 && (
+          <DismissibleNotice className="lookup-hit lookup-new-client">Cliente nuevo. Se registrara al crear el pedido.</DismissibleNotice>
+        )}
       </div>
     </section>
   );

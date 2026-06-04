@@ -4,6 +4,7 @@ import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/clien
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
@@ -154,7 +155,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         paquete_saldo_id: form.paquete_saldo_id ? Number(form.paquete_saldo_id) : null,
         moneda_pago: form.moneda_pago,
@@ -262,7 +263,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando saldo" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear saldo'}

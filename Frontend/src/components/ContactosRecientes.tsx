@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CreditCard, Phone, X } from 'lucide-react';
 import { eliminarContacto, listarContactos } from '../api/client';
 import type { Contacto } from '../types/api';
+import { formatearNumeroTarjeta } from '../utils/tarjetas';
 
 type ContactosRecientesProps = {
   clienteId?: string;
@@ -48,46 +49,38 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
     }
   }
 
-  if (!clienteId) {
-    return (
-      <div className="recent-contacts-empty">
-        Busca el cliente, para ver sus destinatarios recientes.
-      </div>
-    );
-  }
-
-  if (loading) {
-    return <div className="recent-contacts-empty">Cargando contactos recientes...</div>;
-  }
-
-  if (contactos.length === 0) {
-    return <div className="recent-contacts-empty">Sin contactos guardados para este cliente.</div>;
-  }
+  if (!clienteId || loading || contactos.length === 0) return null;
 
   return (
-    <div className="recent-contacts-rail" aria-label="Contactos recientes">
-      {contactos.map((contacto) => (
-        <article className="recent-contact-card" key={contacto.id}>
-          <button className="recent-contact-main" type="button" onClick={() => onSelect(contacto)}>
-            <strong>{contacto.nombre}</strong>
-            {contacto.numero_tarjeta && (
-              <span><CreditCard size={14} /> {contacto.numero_tarjeta}</span>
-            )}
-            {contacto.telefono && (
-              <span><Phone size={14} /> {contacto.telefono}</span>
-            )}
-          </button>
-          <button
-            className="recent-contact-delete"
-            type="button"
-            onClick={() => void borrarContacto(contacto)}
-            title="Eliminar contacto del historial"
-            aria-label={`Eliminar ${contacto.nombre} del historial`}
-          >
-            <X size={16} />
-          </button>
-        </article>
-      ))}
-    </div>
+    <section className="recent-contacts-block" aria-label="Destinatarios frecuentes">
+      <header className="recent-contacts-header">
+        <strong>Destinatarios frecuentes</strong>
+        <small>Toca uno para reutilizar sus datos</small>
+      </header>
+      <div className="recent-contacts-rail">
+        {contactos.map((contacto) => (
+          <article className="recent-contact-card" key={contacto.id}>
+            <button className="recent-contact-main" type="button" onClick={() => onSelect(contacto)}>
+              <strong>{contacto.nombre}</strong>
+              {contacto.numero_tarjeta && (
+                <span><CreditCard size={14} /> {formatearNumeroTarjeta(contacto.numero_tarjeta)}</span>
+              )}
+              {contacto.telefono && (
+                <span><Phone size={14} /> {contacto.telefono}</span>
+              )}
+            </button>
+            <button
+              className="recent-contact-delete"
+              type="button"
+              onClick={() => void borrarContacto(contacto)}
+              title="Eliminar contacto frecuente"
+              aria-label={`Eliminar ${contacto.nombre} de contactos frecuentes`}
+            >
+              <X size={16} />
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

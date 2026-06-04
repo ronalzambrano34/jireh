@@ -11,6 +11,14 @@ from Backend.services.telefonos import (
 )
 
 
+def normalizar_numero_tarjeta(numero: str | None) -> str | None:
+    if numero is None or not str(numero).strip():
+        return None
+
+    digitos = "".join(ch for ch in str(numero) if ch.isdigit())
+    return digitos or None
+
+
 def _normalizar_datos_contacto(
     telefono: str | None,
     pais: str | None = "br"
@@ -162,7 +170,7 @@ def crear_contacto(
         cliente_id=data.cliente_id,
         nombre=data.nombre,
         telefono=telefono,
-        numero_tarjeta=data.numero_tarjeta,
+        numero_tarjeta=normalizar_numero_tarjeta(data.numero_tarjeta),
         tipo_tarjeta=data.tipo_tarjeta,
         documento_identidad_url=data.documento_identidad_url,
         pais=pais,
@@ -226,6 +234,11 @@ def actualizar_contacto(
 
         cambios["telefono"] = telefono
         cambios["pais"] = pais
+
+    if "numero_tarjeta" in cambios:
+        cambios["numero_tarjeta"] = normalizar_numero_tarjeta(
+            cambios["numero_tarjeta"]
+        )
 
     for campo, valor in cambios.items():
         setattr(

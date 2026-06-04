@@ -1,8 +1,10 @@
-import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Banknote, CalendarClock, ChevronDown, FileText, ImagePlus, MapPin, Megaphone, MessageCircle, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Banknote, CalendarClock, ChevronDown, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
 import { PhoneInput } from '../components/PhoneInput';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
 import {
@@ -89,6 +91,16 @@ function togglePermiso(permisos: string[], permiso: string) {
   return [...permisos, permiso];
 }
 
+
+function SavingLabel({ saving, idle, busy }: { saving: boolean; idle: string; busy: string }) {
+  return (
+    <>
+      {saving ? <Loader2 className="button-spinner" size={18} /> : <Save size={18} />}
+      {saving ? busy : idle}
+    </>
+  );
+}
+
 function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChange: (permisos: string[]) => void }) {
   const grupos = Array.from(new Set(permisosOperador.map((permiso) => permiso.group)));
 
@@ -173,6 +185,45 @@ function estadoPromocion(item: Promocion) {
   return 'activa';
 }
 
+const templateVariablesComunes = [
+  'codigo_operacion',
+  'servicio',
+  'estado',
+  'cliente_nombre',
+  'cliente_telefono',
+  'monto_pago',
+  'moneda_pago',
+  'monto_resultado',
+  'tasa_final',
+  'metodo_pago',
+  'ganancia',
+  'comprobante_pago',
+  'observaciones',
+];
+
+const templateVariablesPorClave: Record<string, string[]> = {
+  template_transferencia: ['numero_tarjeta', 'telefono_destinatario', 'telefono'],
+  template_efectivo: ['telefono_destinatario', 'telefono', 'documento_identidad_url'],
+  template_saldo: ['telefono_destinatario', 'telefono', 'numero_telefono', 'saldo_cup'],
+  template_divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'telefono', 'monto_divisa'],
+  template_otros: ['observaciones'],
+};
+
+const configuracionesDestacadas = new Set([
+  'whatsapp_grupo_pedidos_url',
+  'whatsapp_grupo_finalizados_url',
+]);
+
+const todasLasVariablesTemplate = Array.from(new Set([
+  ...templateVariablesComunes,
+  ...Object.values(templateVariablesPorClave).flat(),
+]));
+
+function variablesDisponiblesTemplate(clave: string) {
+  const especificas = templateVariablesPorClave[clave] ?? [];
+  return Array.from(new Set([...templateVariablesComunes, ...especificas]));
+}
+
 
 export function AdminCatalogosPage() {
   const [metodos, setMetodos] = useState<MetodoPago[]>([]);
@@ -207,6 +258,9 @@ export function AdminCatalogosPage() {
   const [cuentaMetodoForm, setCuentaMetodoForm] = useState({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
   const [promoEditando, setPromoEditando] = useState<Promocion | null>(null);
   const [metodoUploading, setMetodoUploading] = useState(false);
+  const [metodoSaving, setMetodoSaving] = useState(false);
+  const [metodoEditSaving, setMetodoEditSaving] = useState(false);
+  const [cuentaMetodoSaving, setCuentaMetodoSaving] = useState(false);
   const [promoUploading, setPromoUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -214,6 +268,8 @@ export function AdminCatalogosPage() {
   const [estadoVista, setEstadoVista] = useState<AdminEstadoVista>('activos');
   const [temaActivo, setTemaActivo] = useState<AdminTema | null>(null);
   const [crearModalTema, setCrearModalTema] = useState<AdminTema | null>(null);
+  const configTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const templateTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const mostrarActivos = estadoVista === 'activos';
   const metodosVisibles = useMemo(() => metodos.filter((metodo) => metodo.activo === mostrarActivos), [metodos, mostrarActivos]);
@@ -249,6 +305,15 @@ export function AdminCatalogosPage() {
     ...item,
     valor: configuraciones.find((config) => config.clave === item.clave)?.valor ?? '',
   })), [configuraciones]);
+  const configuracionesSistema = useMemo(
+    () => configuraciones.filter((item) => !item.clave.startsWith('template_') && !configuracionesDestacadas.has(item.clave)),
+    [configuraciones]
+  );
+  const configuracionesSistemaTotal = configuracionesSistema.length + whatsappConfiguraciones.length;
+  const templateVariables = useMemo(
+    () => variablesDisponiblesTemplate(templateForm.clave),
+    [templateForm.clave]
+  );
 
   async function cargar() {
     setLoading(true);
@@ -324,8 +389,10 @@ export function AdminCatalogosPage() {
 
   async function guardarMetodo(event: FormEvent) {
     event.preventDefault();
+    if (metodoSaving) return;
     setError(null);
     setNotice(null);
+    setMetodoSaving(true);
     try {
       await crearMetodoPago({
         nombre: metodoForm.nombre,
@@ -339,6 +406,8 @@ export function AdminCatalogosPage() {
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el metodo');
+    } finally {
+      setMetodoSaving(false);
     }
   }
 
@@ -722,6 +791,44 @@ export function AdminCatalogosPage() {
     setTemplateModalOpen(true);
   }
 
+  function insertarVariableConfig(variable: string) {
+    const token = '{' + variable + '}';
+    const textarea = configTextareaRef.current;
+    const start = textarea?.selectionStart ?? configForm.valor.length;
+    const end = textarea?.selectionEnd ?? start;
+    const valor = configForm.valor.slice(0, start) + token + configForm.valor.slice(end);
+    const cursor = start + token.length;
+
+    setConfigForm((current) => ({
+      ...current,
+      valor,
+    }));
+
+    window.setTimeout(() => {
+      configTextareaRef.current?.focus();
+      configTextareaRef.current?.setSelectionRange(cursor, cursor);
+    }, 0);
+  }
+
+  function insertarVariableTemplate(variable: string) {
+    const token = '{' + variable + '}';
+    const textarea = templateTextareaRef.current;
+    const start = textarea?.selectionStart ?? templateForm.valor.length;
+    const end = textarea?.selectionEnd ?? start;
+    const valor = templateForm.valor.slice(0, start) + token + templateForm.valor.slice(end);
+    const cursor = start + token.length;
+
+    setTemplateForm((current) => ({
+      ...current,
+      valor,
+    }));
+
+    window.setTimeout(() => {
+      templateTextareaRef.current?.focus();
+      templateTextareaRef.current?.setSelectionRange(cursor, cursor);
+    }, 0);
+  }
+
   function abrirEditarMetodo(metodo: MetodoPago) {
     setMetodoEditando(metodo);
     setMetodoForm({
@@ -730,19 +837,23 @@ export function AdminCatalogosPage() {
       imagen_url: metodo.imagen_url ?? '',
       activo: metodo.activo,
     });
-    setCuentaMetodoForm({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
+    setCuentaMetodoForm({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: false, activa: true });
     setError(null);
     setNotice(null);
     listarCuentasMetodoPago(metodo.id, true)
-      .then(setCuentasMetodo)
+      .then((cuentas) => {
+        setCuentasMetodo(cuentas);
+        setCuentaMetodoForm((current) => ({ ...current, predeterminada: cuentas.length === 0 }));
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar las cuentas del metodo'));
   }
 
   async function guardarMetodoEditado(event: FormEvent) {
     event.preventDefault();
-    if (!metodoEditando) return;
+    if (!metodoEditando || metodoEditSaving) return;
     setError(null);
     setNotice(null);
+    setMetodoEditSaving(true);
     try {
       await actualizarMetodoPago(metodoEditando.id, {
         nombre: metodoForm.nombre,
@@ -755,14 +866,17 @@ export function AdminCatalogosPage() {
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
+    } finally {
+      setMetodoEditSaving(false);
     }
   }
 
   async function guardarCuentaMetodo(event: FormEvent) {
     event.preventDefault();
-    if (!metodoEditando) return;
+    if (!metodoEditando || cuentaMetodoSaving) return;
     setError(null);
     setNotice(null);
+    setCuentaMetodoSaving(true);
     try {
       await crearCuentaMetodoPago(metodoEditando.id, {
         alias: cuentaMetodoForm.alias,
@@ -772,11 +886,21 @@ export function AdminCatalogosPage() {
         predeterminada: cuentaMetodoForm.predeterminada,
         activa: cuentaMetodoForm.activa,
       });
-      setCuentaMetodoForm({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
-      setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
+      const cuentasActualizadas = await listarCuentasMetodoPago(metodoEditando.id, true);
+      setCuentaMetodoForm({
+        alias: '',
+        cuenta: '',
+        titular: '',
+        qr_url: '',
+        predeterminada: cuentasActualizadas.length === 0,
+        activa: true,
+      });
+      setCuentasMetodo(cuentasActualizadas);
       setNotice('Cuenta de pago guardada');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
+    } finally {
+      setCuentaMetodoSaving(false);
     }
   }
 
@@ -905,8 +1029,8 @@ export function AdminCatalogosPage() {
         </div>
       </div>
 
-      {error && <div className="notice error">{error}</div>}
-      {notice && <div className="notice">{notice}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {notice && <DismissibleNotice className="notice">{notice}</DismissibleNotice>}
       {loading && !temaActivo && metodos.length === 0 && <PageLoader label="Cargando administracion" inline />}
 
       {!temaActivo && (
@@ -968,7 +1092,7 @@ export function AdminCatalogosPage() {
             <h3>Sistema</h3>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('configuracion')}>
               <Settings2 size={22} />
-              <span><strong>Configuracion</strong><small>{configuraciones.length} claves</small></span>
+              <span><strong>Configuracion</strong><small>{configuracionesSistemaTotal} claves</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('templates')}>
@@ -1278,7 +1402,7 @@ export function AdminCatalogosPage() {
             <span className="admin-section-icon"><Settings2 size={22} /></span>
             <div>
               <h3>Configuracion</h3>
-              <small>{configuraciones.length}</small>
+              <small>{configuracionesSistemaTotal}</small>
             </div>
             <button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); setConfigModalOpen(true); }}>
               Nueva
@@ -1294,12 +1418,13 @@ export function AdminCatalogosPage() {
             ))}
           </div>
           <div className="config-list">
-            {configuraciones.map((item) => (
+            {configuracionesSistema.map((item) => (
               <button type="button" className="config-row" key={item.clave} onClick={() => abrirConfig(item)}>
                 <strong>{item.clave}</strong>
                 <span>{item.valor}</span>
               </button>
             ))}
+            {configuracionesSistema.length === 0 && <div className="admin-empty-row">Sin configuraciones adicionales</div>}
           </div>
         </section>
       )}
@@ -1335,7 +1460,7 @@ export function AdminCatalogosPage() {
             <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda" align="left" />
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />
             <div className="method-image-note"><ImagePlus size={16} /> Si lo dejas vacio, usa el logo automatico desde assets.</div>
-            <button className="primary-button"><Save size={18} /> Crear</button>
+            <button className="primary-button" disabled={metodoSaving}><SavingLabel saving={metodoSaving} idle="Crear" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -1369,7 +1494,7 @@ export function AdminCatalogosPage() {
             <div className="inline-form three">
               <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda" align="left" />
               <FloatingSelect value={metodoForm.activo ? 'activo' : 'inactivo'} onChange={(value) => setMetodoForm((current) => ({ ...current, activo: value === 'activo' }))} options={[{ value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} ariaLabel="Estado" align="left" />
-              <button className="primary-button"><Save size={18} /> Guardar</button>
+              <button className="primary-button" disabled={metodoEditSaving}><SavingLabel saving={metodoEditSaving} idle="Guardar" busy="Guardando..." /></button>
             </div>
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL o /storage/metodos-pago/archivo.webp" />
           </form>
@@ -1406,7 +1531,7 @@ export function AdminCatalogosPage() {
                 <span>Predeterminada<small>Usar esta cuenta en pedidos nuevos con este metodo.</small></span>
                 <input type="checkbox" checked={cuentaMetodoForm.predeterminada} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, predeterminada: event.target.checked }))} />
               </label>
-              <button className="primary-button"><Save size={18} /> Agregar cuenta</button>
+              <button className="primary-button" disabled={cuentaMetodoSaving}><SavingLabel saving={cuentaMetodoSaving} idle="Agregar cuenta" busy="Agregando..." /></button>
             </form>
           </section>
         </Modal>
@@ -1548,7 +1673,7 @@ export function AdminCatalogosPage() {
             <input value={contactoForm.nombre} onChange={(event) => setContactoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre contacto" required />
             <PhoneInput value={contactoForm.telefono} onChange={(value) => setContactoForm((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono Cuba" />
             <div className="inline-form three">
-              <input value={contactoForm.numero_tarjeta} onChange={(event) => setContactoForm((current) => ({ ...current, numero_tarjeta: event.target.value }))} placeholder="Tarjeta" />
+              <CardNumberInput value={contactoForm.numero_tarjeta} onChange={(value) => setContactoForm((current) => ({ ...current, numero_tarjeta: value }))} placeholder="Tarjeta" pasteTitle="Pegar tarjeta" />
               <input value={contactoForm.tipo_tarjeta} onChange={(event) => setContactoForm((current) => ({ ...current, tipo_tarjeta: event.target.value }))} placeholder="Tipo tarjeta" />
               <input value={contactoForm.pais} onChange={(event) => setContactoForm((current) => ({ ...current, pais: event.target.value }))} placeholder="pais" />
             </div>
@@ -1592,7 +1717,14 @@ export function AdminCatalogosPage() {
         <Modal title="Configuracion" subtitle={configForm.clave || 'Nueva clave'} onClose={() => setConfigModalOpen(false)} wide>
           <form className="stack-form modal-form" onSubmit={guardarConfig}>
             <input value={configForm.clave} onChange={(event) => setConfigForm((current) => ({ ...current, clave: event.target.value }))} placeholder="clave" required />
-            <textarea value={configForm.valor} onChange={(event) => setConfigForm((current) => ({ ...current, valor: event.target.value }))} placeholder="valor" rows={10} required />
+            <textarea ref={configTextareaRef} value={configForm.valor} onChange={(event) => setConfigForm((current) => ({ ...current, valor: event.target.value }))} placeholder="valor" rows={10} required />
+            <div className="template-variable-panel" aria-label="Variables disponibles">
+              {todasLasVariablesTemplate.map((variable) => (
+                <button key={variable} type="button" onClick={() => insertarVariableConfig(variable)} title={'Agregar {' + variable + '}'}>
+                  {'{' + variable + '}'}
+                </button>
+              ))}
+            </div>
             <button className="primary-button"><Save size={18} /> Guardar configuracion</button>
           </form>
         </Modal>
@@ -1601,7 +1733,14 @@ export function AdminCatalogosPage() {
         <Modal title="Template" subtitle={templateForm.clave} onClose={() => setTemplateModalOpen(false)} wide>
           <form className="stack-form modal-form" onSubmit={guardarTemplateActual}>
             <FloatingSelect value={templateForm.clave} onChange={seleccionarTemplate} options={templates.map((template) => ({ value: template.clave, label: template.clave }))} ariaLabel="Template" align="left" />
-            <textarea value={templateForm.valor} onChange={(event) => setTemplateForm((current) => ({ ...current, valor: event.target.value }))} rows={12} />
+            <textarea ref={templateTextareaRef} value={templateForm.valor} onChange={(event) => setTemplateForm((current) => ({ ...current, valor: event.target.value }))} rows={12} />
+            <div className="template-variable-panel" aria-label="Variables disponibles">
+              {templateVariables.map((variable) => (
+                <button key={variable} type="button" onClick={() => insertarVariableTemplate(variable)} title={'Agregar {' + variable + '}'}>
+                  {'{' + variable + '}'}
+                </button>
+              ))}
+            </div>
             <button className="primary-button"><Save size={18} /> Guardar template</button>
           </form>
         </Modal>

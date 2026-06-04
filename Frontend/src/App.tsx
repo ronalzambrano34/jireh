@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirMiFotoPerfil } from './api/client';
+import { Banknote, BarChart3, BriefcaseBusiness, CheckCircle2, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
@@ -16,6 +16,9 @@ import { PageLoader } from './components/PageLoader';
 import { Modal } from './components/Modal';
 import { PasswordField } from './components/PasswordField';
 import { FloatingSelect } from './components/FloatingSelect';
+import { DismissibleNotice } from './components/DismissibleNotice';
+import { formatearNumeroTarjeta } from './utils/tarjetas';
+import { copiarAlPortapapeles } from './utils/clipboard';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const estados = [
@@ -48,6 +51,7 @@ type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
 type AppTheme = 'light' | 'dark-deep' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
+type AppToastKind = 'success' | 'error';
 
 const THEME_KEY = 'jireh.theme';
 const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
@@ -56,6 +60,9 @@ const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: stri
 ];
 
 const estadosBandeja = estados.filter((item) => item.value);
+const INFO_TOAST_DURATION_MS = 3800;
+const PROFILE_TOAST_DURATION_MS = 5600;
+const ERROR_TOAST_DURATION_MS = 5200;
 
 function estadoLabel(value: string) {
   return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
@@ -93,9 +100,21 @@ function OperadorAvatar({ operador, className }: { operador: Operador; className
   return <span className={className}>{inicialesOperador(operador)}</span>;
 }
 
+function AppToast({ kind, message, onClose }: { kind: AppToastKind; message: string; onClose: () => void }) {
+  return (
+    <div className={`app-toast ${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
+      <span>{message}</span>
+      <button type="button" onClick={onClose} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 function detalleValor(pedido: PedidoResumen, key: string) {
   const value = pedido.detalle?.[key];
   if (value === null || value === undefined || value === '') return null;
+  if (key === 'numero_tarjeta') return formatearNumeroTarjeta(String(value));
   return String(value);
 }
 
@@ -225,7 +244,7 @@ export function App() {
   const lastScrollYRef = useRef(0);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [quickCreateHidden, setQuickCreateHidden] = useState(false);
-  const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set());
+  const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set(['completado', 'cancelado']));
   const [profileSection, setProfileSection] = useState<ProfileSection>(null);
   const [profileNombre, setProfileNombre] = useState('');
   const [profilePassword, setProfilePassword] = useState({
@@ -237,6 +256,12 @@ export function App() {
   const [profilePhotoSaving, setProfilePhotoSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [confirmandoPagoCreado, setConfirmandoPagoCreado] = useState(false);
+  const copyToastTimeoutRef = useRef<number | null>(null);
+  const profileMessageTimeoutRef = useRef<number | null>(null);
+  const errorTimeoutRef = useRef<number | null>(null);
+  const profileErrorTimeoutRef = useRef<number | null>(null);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -440,13 +465,66 @@ export function App() {
   }
 
   async function copiarPago(value?: string | null) {
-    if (!value || typeof navigator === 'undefined' || !navigator.clipboard) return;
-    await navigator.clipboard.writeText(value);
+    if (!value) return;
+    const copiado = await copiarAlPortapapeles(value);
+    if (copiado) {
+      setCopyToast('Copiado');
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
+    } else {
+      setError('No se pudo copiar. Selecciona el texto y copialo manualmente.');
+    }
+  }
+
+  function cerrarCopyToast() {
+    if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+    copyToastTimeoutRef.current = null;
+    setCopyToast(null);
+  }
+
+  function cerrarProfileMessage() {
+    if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+    profileMessageTimeoutRef.current = null;
+    setProfileMessage(null);
+  }
+
+  function cerrarError() {
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+    errorTimeoutRef.current = null;
+    setError(null);
+  }
+
+  function cerrarProfileError() {
+    if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+    profileErrorTimeoutRef.current = null;
+    setProfileError(null);
   }
 
   function abrirUrlPago(url?: string | null) {
     if (!url || typeof window === 'undefined') return;
     window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async function confirmarPagoPedidoCreado() {
+    if (!pedidoPagoModal || confirmandoPagoCreado) return;
+    setConfirmandoPagoCreado(true);
+    setError(null);
+    try {
+      await actualizarEstado(
+        pedidoPagoModal.codigo_operacion,
+        'pago_confirmado',
+        'Pago confirmado al crear el pedido: el cliente ya habia pagado.',
+      );
+      setPedidoPagoModal(null);
+      await cargarPedidos();
+      setCopyToast('Pago confirmado');
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago');
+    } finally {
+      setConfirmandoPagoCreado(false);
+    }
   }
 
   const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[]) => {
@@ -499,8 +577,11 @@ export function App() {
     if (!getToken()) return;
     getMe()
       .then(setOperador)
-      .catch(() => {
-        clearToken();
+      .catch((err) => {
+        const message = err instanceof Error ? err.message.toLowerCase() : '';
+        if (message.includes('401') || message.includes('token')) {
+          clearToken();
+        }
         setOperador(null);
       });
   }, []);
@@ -542,6 +623,7 @@ export function App() {
       if (Math.abs(delta) < 10) return;
 
       if (quickCreateOpen) {
+        setQuickCreateOpen(false);
         lastScrollYRef.current = currentY;
         return;
       }
@@ -557,6 +639,21 @@ export function App() {
       window.removeEventListener('resize', handleQuickCreateScroll);
     };
   }, [quickCreateOpen, vista]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+
+    function closeUserMenuOnScroll() {
+      setUserMenuOpen(false);
+    }
+
+    window.addEventListener('scroll', closeUserMenuOnScroll, true);
+    window.addEventListener('resize', closeUserMenuOnScroll);
+    return () => {
+      window.removeEventListener('scroll', closeUserMenuOnScroll, true);
+      window.removeEventListener('resize', closeUserMenuOnScroll);
+    };
+  }, [userMenuOpen]);
 
 
   useEffect(() => {
@@ -588,6 +685,50 @@ export function App() {
     return () => {
       window.removeEventListener('online', syncOnline);
       window.removeEventListener('offline', syncOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!profileMessage) return undefined;
+    if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+    profileMessageTimeoutRef.current = window.setTimeout(() => setProfileMessage(null), PROFILE_TOAST_DURATION_MS);
+    return () => {
+      if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+    };
+  }, [profileMessage]);
+
+  useEffect(() => {
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+    if (!error) return undefined;
+    errorTimeoutRef.current = window.setTimeout(() => {
+      setError(null);
+      errorTimeoutRef.current = null;
+    }, ERROR_TOAST_DURATION_MS);
+    return () => {
+      if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    };
+  }, [error]);
+
+  useEffect(() => {
+    if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+    if (!profileError) return undefined;
+    profileErrorTimeoutRef.current = window.setTimeout(() => {
+      setProfileError(null);
+      profileErrorTimeoutRef.current = null;
+    }, ERROR_TOAST_DURATION_MS);
+    return () => {
+      if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+      profileErrorTimeoutRef.current = null;
+    };
+  }, [profileError]);
+
+  useEffect(() => {
+    return () => {
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+      if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+      if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
     };
   }, []);
 
@@ -657,8 +798,22 @@ export function App() {
     return <LoginPage onLogin={setOperador} />;
   }
 
+  const appShellClassName = [
+    'app-shell',
+    vista === 'bandeja' ? 'orders-view-shell' : '',
+    vista === 'bandeja' && seleccionado ? 'order-detail-view-shell' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className={vista === 'bandeja' ? 'app-shell orders-view-shell' : 'app-shell'}>
+    <div className={appShellClassName}>
+      {(copyToast || error || profileMessage || profileError) && (
+        <div className="app-toast-stack" aria-live="polite">
+          {copyToast && <AppToast kind="success" message={copyToast} onClose={cerrarCopyToast} />}
+          {profileMessage && <AppToast kind="success" message={profileMessage} onClose={cerrarProfileMessage} />}
+          {error && <AppToast kind="error" message={error} onClose={cerrarError} />}
+          {profileError && <AppToast kind="error" message={profileError} onClose={cerrarProfileError} />}
+        </div>
+      )}
       <aside className={mobileMenuOpen ? 'sidebar mobile-open' : 'sidebar'}>
         <div>
           <div className="mobile-sidebar-head">
@@ -792,15 +947,9 @@ export function App() {
               <div className="profile-hero-meta">
                 <span>Codigo: <strong>{operador.codigo_operador}</strong></span>
                 <span>Rol: <strong>{operador.rol}</strong></span>
-                <button className="icon-button" onClick={() => navigator.clipboard.writeText(operador.codigo_operador)} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
+                <button className="icon-button" onClick={() => void copiarPago(operador.codigo_operador)} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
               </div>
             </div>
-
-            {(profileMessage || profileError) && (
-              <div className={profileError ? 'profile-feedback error' : 'profile-feedback success'}>
-                {profileError || profileMessage}
-              </div>
-            )}
 
             <div className="profile-section">
               <h3>Mi cuenta</h3>
@@ -996,6 +1145,9 @@ export function App() {
           </section>
         ) : (
           <>
+            {seleccionado ? (
+              <PedidoDetallePanel codigo={seleccionado} operadorId={operador.id} onChanged={cargarPedidos} onClose={() => setSeleccionado(null)} />
+            ) : (
             <section className="content-grid orders-content-grid">
               <div className="list-panel orders-list-panel">
                 <div className="filters orders-toolbar-row">
@@ -1017,35 +1169,33 @@ export function App() {
                       <strong>{todasPedidosConteo}</strong>
                     </button>
                   )}
-                </div>
-                <div className="orders-filter-grid" aria-label="Filtros de pedidos">
-                  <div className="order-filter-field order-filter-floating">
-                    <FloatingSelect
-                      value={servicio}
-                      onChange={setServicio}
-                      options={servicios.map((item) => ({
-                        value: item.value,
-                        label: item.value ? item.label : 'Todos los servicios',
-                        icon: servicioIcon(item.value, 17),
-                      }))}
-                      ariaLabel="Filtrar por servicio"
-                      align="left"
-                      buttonClassName="order-filter-button"
-                    />
-                  </div>
-                  <div className="order-filter-field order-filter-floating">
-                    <FloatingSelect
-                      value={estado}
-                      onChange={setEstado}
-                      options={estados.map((item) => ({
-                        value: item.value,
-                        label: item.value ? item.label : 'Todos los estados',
-                        icon: <CircleDot size={17} />,
-                      }))}
-                      ariaLabel="Filtrar por estado"
-                      align="left"
-                      buttonClassName="order-filter-button"
-                    />
+                  <div className="orders-top-actions">
+                    <div className="order-filter-field order-filter-floating orders-service-action">
+                      <FloatingSelect
+                        value={servicio}
+                        onChange={setServicio}
+                        options={servicios.map((item) => ({
+                          value: item.value,
+                          label: item.value ? item.label : 'Todos los servicios',
+                          icon: servicioIcon(item.value, 17),
+                        }))}
+                        ariaLabel="Filtrar por servicio"
+                        align="right"
+                        buttonClassName="order-filter-button"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="view-toggle single-view-toggle"
+                      onClick={() => setVistaPedidos((current) => current === 'lista' ? 'kanban' : 'lista')}
+                      title={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
+                      aria-label={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
+                    >
+                      {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
+                    </button>
+                    <button className="icon-button orders-refresh-button" onClick={cargarPedidos} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={loading}>
+                      <RefreshCw size={18} />
+                    </button>
                   </div>
                 </div>
                 <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
@@ -1065,23 +1215,8 @@ export function App() {
                     </button>
                   ))}
                 </div>
-                {error && <div className="notice error">{error}</div>}
                 {loading && <PageLoader label="Cargando pedidos" inline />}
-                {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
-                <div className="orders-view-mode-row">
-                  <button
-                    type="button"
-                    className="view-toggle single-view-toggle"
-                    onClick={() => setVistaPedidos((current) => current === 'lista' ? 'kanban' : 'lista')}
-                    title={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
-                    aria-label={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
-                  >
-                    {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
-                  </button>
-                  <button className="icon-button orders-refresh-button" onClick={cargarPedidos} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={loading}>
-                    <RefreshCw size={18} />
-                  </button>
-                </div>
+                {pedidosFiltrados.length === 0 && !loading && <DismissibleNotice className="notice">No hay pedidos para estos filtros</DismissibleNotice>}
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
                     {pedidosListaOrdenada.map((pedido) => {
@@ -1181,11 +1316,11 @@ export function App() {
                 )}
               </div>
             </section>
-            <PedidoDetallePanel codigo={seleccionado} operadorId={operador.id} onChanged={cargarPedidos} onClose={() => setSeleccionado(null)} />
+            )}
           </>
         )}
       </main>
-      {puedeCrear && (vista === 'inicio' || vista === 'bandeja') && (
+      {puedeCrear && (vista === 'inicio' || (vista === 'bandeja' && !seleccionado)) && (
         <div className={[quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap', quickCreateHidden && !quickCreateOpen ? 'hide-on-scroll' : ''].filter(Boolean).join(' ')}>
           {quickCreateOpen && <button className="floating-create-backdrop" aria-label="Cerrar menu de creacion" onClick={() => setQuickCreateOpen(false)} />}
           {quickCreateOpen && (
@@ -1244,6 +1379,15 @@ export function App() {
                 </button>
               </div>
             </div>
+            <section className="payment-already-paid">
+              <div>
+                <strong>Si el cliente ya pago</strong>
+                <small>Confirma el pago y evita enviarle instrucciones repetidas.</small>
+              </div>
+              <button className="primary-button" type="button" onClick={() => void confirmarPagoPedidoCreado()} disabled={confirmandoPagoCreado}>
+                <CheckCircle2 size={16} /> {confirmandoPagoCreado ? 'Confirmando...' : 'Marcar pago recibido'}
+              </button>
+            </section>
             <div className="message-actions payment-modal-actions">
               <button className="ghost-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.mensaje_pago_cliente)}>
                 <Copy size={16} /> Copiar mensaje

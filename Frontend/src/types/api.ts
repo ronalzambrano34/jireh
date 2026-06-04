@@ -75,6 +75,8 @@ export type PedidoResumen = {
   moneda_pago: string;
   monto_resultado: number;
   tasa_final: number;
+  operador_id?: number | null;
+  observaciones?: string | null;
   created_at?: string;
   updated_at?: string;
   fecha_pago_confirmado?: string | null;
@@ -98,7 +100,6 @@ export type PedidoDetalle = PedidoResumen & {
   tasa_usada?: number;
   bonificacion?: number;
   ganancia?: number;
-  observaciones?: string | null;
   updated_at?: string;
   fecha_pago_confirmado?: string | null;
   fecha_en_operacion?: string | null;

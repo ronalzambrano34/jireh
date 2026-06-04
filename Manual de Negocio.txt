@@ -1268,11 +1268,14 @@ Actualizacion de interfaz aplicada:
 
 
 Pendiante:
--cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login
+- cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login
 
-//todo hay que pensar en una forma de normalizar el numero de telefono, para que aunque el cliente escriba el numero de telefono con el numero de pais, no se imprima "+55 +55 48...." o si lo pega de otro lougar que ya contenga el codigo del pais, tambien manejar que el cliente pegue un numero con espacios. tambienhay algunas cosas a tener en cuenta, en el caso de brasil. el numero de telefono es (codigo de pais + dd + numero) ejemplo "+55 48 991233191" aunque cuando copias ese numero de whatsapp le falta un 9, (91233191). eso mismo ocurre con Uruguay, los numeros los escriben con +598 09..., pero ese 0 sobra. busca info sobre estos casos y dame una solucion. tambien pense que en vez de poner el codigo de pais en un campo aparte, estube pensando que cuando el cliente eligiera un codigo de pais, ese codigo se auto escribiera en el input y q el cliente terminara de escribir su numero de telefono. 
+- Los telefonos se normalizan en frontend y backend: se limpian espacios/separadores, se evita duplicar el codigo internacional, Brasil agrega el 9 movil despues del DDD cuando llega el formato viejo de WhatsApp y Uruguay elimina el 0 local despues de +598.
+- Los numeros de tarjeta se normalizan al escribir, pegar y guardar: visualmente se muestran agrupados como xxxx-xxxx-xxxx-xxxx, pero frontend y backend guardan solo digitos.
 
-Mi solucion pensada fue al pegar un numero, comenzarlos a colocar de atras para alante, asi en el caso de Cuba +53, solo se pegaria 53843778 y solo faltaria concatenarle el codigo de pais.
+Mi solucion pensada fue al pegar un numero, comenzarlos a colocar de atras para alante, asi en el caso de Cuba +53, solo se pegaria 53843778 (8 ultimos digios) igual que en el caso de uruguay y solo faltaria concatenarle el codigo de pais, en el caso de brasil ya es un poco complicado pq ademas de los 8 digitos, hay q agregar el codigo de estado (DD),para algo asi (+55 48 9 91233191) en el cual el 9 intermedio sobra, deberia quedar +55 48 91233191, pero el cliente puede pegar cualquier combinacion, ejemplo 5548991233191.
 
-//todo hay q pensar en normalizar los nuemros de tarjeta, cuando el cliente los pega o escribe, puede que lo escriba o pegue con los siguientes formatos (xxxx-xxxx-xxxx-xxxx),(xxxx xxxx xxxx xxxx), (xxxx.xxxx.xxxx.xxxx); quisiera que visualmente se mostrara (xxxx-xxxx-xxxx-xxxx) ó (xxxx xxxx xxxx xxxx) pero que se guarde sin esos caractéres, solo numeros.
-//todo en nuevo pedido, los botones Pegar, no estan funcionanado, probe pegar una tarjeta y un numero de telefono en un nueovo pedidod / transferencia
+- En la vista de pago posterior a crear un pedido, el operador tiene una accion directa "Marcar pago recibido". Si el cliente ya habia pagado antes de registrar el pedido, el sistema cambia el estado a pago_confirmado, refresca la bandeja y evita enviar instrucciones de pago innecesarias.
+
+//todo la carga de detalles de pedidos esta un poco lenta, creo q esta demorando demasiado y veo esa vista un poco cargada visualmente
+ 

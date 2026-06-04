@@ -1,19 +1,20 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { MapPin, MessageCircle } from 'lucide-react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ImagePlus, MapPin, MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
-import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida } from '../api/client';
+import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
-const DOCUMENTO_WHATSAPP_DEFAULT = 'Foto enviada por WhatsApp';
+const DOCUMENTO_ADJUNTO_LABEL = 'Documento adjunto en evidencias';
 
 function telefonoCubaCompleto(value: string) {
   return value.replace(/\D/g, '').length > 2;
@@ -41,7 +42,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
     tipo_pago_id: '',
     punto_recogida_id: '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
-    documento_identidad_url: DOCUMENTO_WHATSAPP_DEFAULT,
+    documento_identidad_url: '',
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -56,6 +57,8 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
   const [calculando, setCalculando] = useState(false);
   const [calculoError, setCalculoError] = useState<string | null>(null);
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+  const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
 
   const metodosFiltrados = useMemo<MetodoPago[]>(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -127,6 +130,17 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
+  useEffect(() => {
+    if (!documentoFile || !documentoFile.type.startsWith('image/')) {
+      setDocumentoPreview(null);
+      return undefined;
+    }
+
+    const url = URL.createObjectURL(documentoFile);
+    setDocumentoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [documentoFile]);
+
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -149,6 +163,10 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
       setError('Completa el telefono de Cuba despues de +53');
       return;
     }
+    if (!documentoFile && !form.documento_identidad_url) {
+      setError('Sube la foto del documento de identidad');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -159,20 +177,32 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
         tipo_pago_id: Number(form.tipo_pago_id),
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
-        documento_identidad_url: form.documento_identidad_url || undefined,
+        documento_identidad_url: documentoFile ? DOCUMENTO_ADJUNTO_LABEL : form.documento_identidad_url || undefined,
         punto_recogida_id: form.punto_recogida_id ? Number(form.punto_recogida_id) : null,
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
         observaciones: form.observaciones || undefined,
       });
+      if (documentoFile) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'documento_identidad');
+        uploadForm.set('archivo', documentoFile);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
       onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleDocumentoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setDocumentoFile(file);
+    if (file) update('documento_identidad_url', DOCUMENTO_ADJUNTO_LABEL);
   }
 
   return (
@@ -234,7 +264,16 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
             </label>
             <label>
               Foto del documento
-              <input value={form.documento_identidad_url} onChange={(event) => update('documento_identidad_url', event.target.value)} placeholder="Foto enviada por WhatsApp" required />
+              <span className="document-upload-field">
+                <span className={documentoPreview ? 'document-preview has-image' : 'document-preview'}>
+                  {documentoPreview ? <img src={documentoPreview} alt="" /> : <ImagePlus size={24} />}
+                </span>
+                <span>
+                  <strong>{documentoFile?.name ?? (form.documento_identidad_url || 'Seleccionar imagen')}</strong>
+                  <small>Imagen del documento del destinatario</small>
+                </span>
+                <input type="file" accept="image/*" onChange={handleDocumentoChange} required={!form.documento_identidad_url} />
+              </span>
             </label>
             <label className="wide">
               Punto de recogida
@@ -296,7 +335,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando efectivo" inline />}
       <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
         {loading ? 'Creando...' : 'Crear efectivo'}

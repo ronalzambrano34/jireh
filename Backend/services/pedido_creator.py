@@ -83,6 +83,14 @@ def normalizar_telefono_destinatario(
     return telefono
 
 
+def normalizar_numero_tarjeta(numero: str | None) -> str | None:
+    if numero is None or not str(numero).strip():
+        return None
+
+    digitos = "".join(ch for ch in str(numero) if ch.isdigit())
+    return digitos or None
+
+
 
 
 def _metodo_pago_key(nombre: str | None):
@@ -187,6 +195,148 @@ def _aplicar_contacto_a_pedido(
             data[campo] = valor
 
 
+def _nombre_contacto_frecuente(
+    telefono: str | None,
+    numero_tarjeta: str | None
+):
+    if telefono:
+        return "Destinatario " + telefono
+
+    if numero_tarjeta:
+        return "Tarjeta " + numero_tarjeta[-4:]
+
+    return "Destinatario frecuente"
+
+
+def _documento_contacto_valido(
+    value: str | None
+):
+    if _valor_vacio(value):
+        return None
+
+    texto = str(value).strip()
+    if texto.lower().startswith("documento adjunto"):
+        return None
+
+    return texto
+
+
+def _guardar_contacto_frecuente(
+    db: Session,
+    cliente: Cliente,
+    data: dict,
+    contacto: Contacto | None
+):
+    telefono = normalizar_telefono_destinatario(
+        data.get(
+            "telefono_destinatario"
+        )
+    )
+    numero_tarjeta = normalizar_numero_tarjeta(
+        data.get(
+            "numero_tarjeta"
+        )
+    )
+    tipo_tarjeta = (
+        data.get(
+            "tipo_tarjeta"
+        )
+        or None
+    )
+    documento_identidad_url = _documento_contacto_valido(
+        data.get(
+            "documento_identidad_url"
+        )
+    )
+
+    if (
+        not telefono
+        and not numero_tarjeta
+        and not documento_identidad_url
+    ):
+        return None
+
+    contacto_existente = contacto
+
+    if not contacto_existente and telefono:
+        contacto_existente = (
+            db.query(
+                Contacto
+            )
+            .filter(
+                Contacto.cliente_id
+                ==
+                cliente.id,
+                Contacto.telefono
+                ==
+                telefono
+            )
+            .first()
+        )
+
+    if not contacto_existente and numero_tarjeta:
+        contacto_existente = (
+            db.query(
+                Contacto
+            )
+            .filter(
+                Contacto.cliente_id
+                ==
+                cliente.id,
+                Contacto.numero_tarjeta
+                ==
+                numero_tarjeta
+            )
+            .first()
+        )
+
+    if contacto_existente:
+        contacto_existente.cliente_id = cliente.id
+        contacto_existente.activo = True
+        if telefono:
+            contacto_existente.telefono = telefono
+        if numero_tarjeta:
+            contacto_existente.numero_tarjeta = numero_tarjeta
+        if tipo_tarjeta:
+            contacto_existente.tipo_tarjeta = tipo_tarjeta
+        if documento_identidad_url:
+            contacto_existente.documento_identidad_url = (
+                documento_identidad_url
+            )
+        if (
+            not contacto_existente.nombre
+            or contacto_existente.nombre.startswith(
+                "Destinatario "
+            )
+            or contacto_existente.nombre.startswith(
+                "Tarjeta "
+            )
+        ):
+            contacto_existente.nombre = _nombre_contacto_frecuente(
+                telefono,
+                numero_tarjeta
+            )
+        return contacto_existente
+
+    contacto_nuevo = Contacto(
+        cliente_id=cliente.id,
+        nombre=_nombre_contacto_frecuente(
+            telefono,
+            numero_tarjeta
+        ),
+        telefono=telefono,
+        numero_tarjeta=numero_tarjeta,
+        tipo_tarjeta=tipo_tarjeta,
+        documento_identidad_url=documento_identidad_url,
+        pais="Cuba",
+        activo=True
+    )
+    db.add(
+        contacto_nuevo
+    )
+    return contacto_nuevo
+
+
 
 
 def _validar_datos_servicio(
@@ -267,6 +417,13 @@ def crear_pedido(
     db: Session,
     data: dict
 ):
+
+    if "numero_tarjeta" in data:
+        data["numero_tarjeta"] = normalizar_numero_tarjeta(
+            data.get(
+                "numero_tarjeta"
+            )
+        )
 
     if (
         data["servicio"]
@@ -849,6 +1006,13 @@ def crear_pedido(
         db.add(
             detalle
         )
+
+    _guardar_contacto_frecuente(
+        db,
+        cliente,
+        data,
+        contacto
+    )
 
     db.commit()
 

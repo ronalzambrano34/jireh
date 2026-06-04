@@ -3,6 +3,7 @@ import type { MouseEvent, ReactNode, TouchEvent } from 'react';
 import { ArrowRight, Banknote, Calculator, CheckCircle2, ChevronDown, ClipboardList, Clock3, Flame, RefreshCw, Search, Smartphone, WalletCards } from 'lucide-react';
 import { apiAssetUrl, obtenerPedido, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoDetalle, TasaOperativaResponse } from '../types/api';
+import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
 
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
@@ -712,9 +713,9 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
     <section className="home-page">
       <HeroCarousel grupo={grupoActivo} generatedAt={data?.sync?.last_success_at ?? data?.generated_at} loading={loading} syncing={syncing} canSyncTasas={canSyncTasas} onRefresh={actualizarTasas} onCreate={onCreate} promos={promocionesCarrusel} />
 
-      {error && <div className="notice error">{error}</div>}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {!error && !loading && data && gruposMoneda.length === 0 && (
-        <div className="notice warning">No hay tasas activas configuradas</div>
+        <DismissibleNotice className="notice warning">No hay tasas activas configuradas</DismissibleNotice>
       )}
 
       {loading && !data && <PageLoader label="Cargando tasas" inline />}

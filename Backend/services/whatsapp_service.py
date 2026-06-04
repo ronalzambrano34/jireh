@@ -171,6 +171,12 @@ def render_template_con_default(db: Session, clave: str, default: str, variables
 
 def generar_notificacion_grupo_pedido(db: Session, mensaje_operacion: str):
     destino = obtener_config(db, WHATSAPP_GRUPO_PEDIDOS_KEY, "")
+    if not (destino or "").strip():
+        return {
+            "mensaje": mensaje_operacion,
+            "whatsapp_url": None,
+        }
+
     return {
         "mensaje": mensaje_operacion,
         "whatsapp_url": crear_whatsapp_url(destino, mensaje_operacion),
@@ -206,6 +212,12 @@ def generar_notificacion_grupo_finalizado(db: Session, pedido: Pedido):
         variables,
     )
     destino = obtener_config(db, WHATSAPP_GRUPO_FINALIZADOS_KEY, "")
+    if not (destino or "").strip():
+        return {
+            "mensaje": mensaje,
+            "whatsapp_url": None,
+        }
+
     return {
         "mensaje": mensaje,
         "whatsapp_url": crear_whatsapp_url(destino, mensaje),
