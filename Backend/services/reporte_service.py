@@ -1,64 +1,104 @@
+from sqlalchemy import String
+from sqlalchemy import cast
 from sqlalchemy import func
+from sqlalchemy import literal
+from sqlalchemy import select
+from sqlalchemy import union_all
 from sqlalchemy.orm import Session
 
-from Backend.models.pedido import Pedido
 from Backend.models.metodo_pago import MetodoPago
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
+from Backend.models.pedido import Pedido
 
 
-def _query_pedidos(
-    db: Session,
+def _filtros_reporte(
     fecha_desde=None,
     fecha_hasta=None,
     estado: str | None = None,
     servicio: str | None = None,
     moneda_pago: str | None = None,
-    operador_id: int | None = None
+    operador_id: int | None = None,
+    metodo_pago_id: int | None = None,
+    cuenta_pago_id: int | None = None
 ):
-    query = db.query(
-        Pedido
-    )
+    filtros = []
 
     if fecha_desde:
-        query = query.filter(
+        filtros.append(
             Pedido.created_at >= fecha_desde
         )
 
     if fecha_hasta:
-        query = query.filter(
+        filtros.append(
             Pedido.created_at <= fecha_hasta
         )
 
     if estado:
-        query = query.filter(
+        filtros.append(
             Pedido.estado == estado.strip()
         )
 
     if servicio:
-        query = query.filter(
+        filtros.append(
             Pedido.servicio == servicio.strip().lower()
         )
 
     if moneda_pago:
-        query = query.filter(
+        filtros.append(
             Pedido.moneda_pago == moneda_pago.strip().upper()
         )
 
     if operador_id is not None:
-        query = query.filter(
+        filtros.append(
             Pedido.operador_id == operador_id
         )
 
-    return query
+    if metodo_pago_id is not None:
+        filtros.append(
+            Pedido.tipo_pago_id == metodo_pago_id
+        )
+
+    if cuenta_pago_id is not None:
+        filtros.append(
+            Pedido.cuenta_pago_id == cuenta_pago_id
+        )
+
+    return filtros
 
 
-def resumen_pedidos(
-    query
+def _consulta_agregada(
+    seccion: str,
+    filtros,
+    campo=None,
+    incluir_monto_resultado: bool = False,
+    unir_metodo_pago: bool = False,
+    unir_cuenta_pago: bool = False
 ):
-    fila = query.with_entities(
+    clave = (
+        cast(
+            campo,
+            String
+        )
+        if campo is not None
+        else cast(
+            literal(None),
+            String
+        )
+    )
+
+    consulta = select(
+        literal(
+            seccion
+        ).label(
+            "seccion"
+        ),
+        clave.label(
+            "clave"
+        ),
         func.count(
             Pedido.id
         ).label(
-            "total"
+            "cantidad"
         ),
         func.coalesce(
             func.sum(
@@ -68,11 +108,15 @@ def resumen_pedidos(
         ).label(
             "monto_pago"
         ),
-        func.coalesce(
-            func.sum(
-                Pedido.monto_resultado
-            ),
-            0
+        (
+            func.coalesce(
+                func.sum(
+                    Pedido.monto_resultado
+                ),
+                0
+            )
+            if incluir_monto_resultado
+            else literal(0)
         ).label(
             "monto_resultado"
         ),
@@ -84,206 +128,59 @@ def resumen_pedidos(
         ).label(
             "ganancia"
         )
-    ).one()
-
-    return {
-        "total_pedidos": fila.total or 0,
-        "monto_pago_total": float(
-            fila.monto_pago or 0
-        ),
-        "monto_resultado_total": float(
-            fila.monto_resultado or 0
-        ),
-        "ganancia_total": float(
-            fila.ganancia or 0
-        ),
-    }
-
-
-def _agrupar(
-    query,
-    campo,
-    limit: int = 60
-):
-    filas = (
-        query.with_entities(
-            campo.label(
-                "clave"
-            ),
-            func.count(
-                Pedido.id
-            ).label(
-                "cantidad"
-            ),
-            func.coalesce(
-                func.sum(
-                    Pedido.monto_pago
-                ),
-                0
-            ).label(
-                "monto_pago"
-            ),
-            func.coalesce(
-                func.sum(
-                    Pedido.ganancia
-                ),
-                0
-            ).label(
-                "ganancia"
-            )
-        )
-        .group_by(
-            campo
-        )
-        .order_by(
-            func.count(
-                Pedido.id
-            ).desc()
-        )
-        .limit(
-            limit
-        )
-        .all()
+    ).select_from(
+        Pedido
     )
 
-    return [
-        {
-            "clave": fila.clave,
-            "cantidad": fila.cantidad,
-            "monto_pago": float(
-                fila.monto_pago
-            ),
-            "ganancia": float(
-                fila.ganancia
-            ),
-        }
-        for fila in filas
-    ]
-
-
-def _agrupar_por_dia(query, limit: int = 120):
-    campo = func.date(
-        Pedido.created_at
-    )
-
-    filas = (
-        query.with_entities(
-            campo.label(
-                "clave"
-            ),
-            func.count(
-                Pedido.id
-            ).label(
-                "cantidad"
-            ),
-            func.coalesce(
-                func.sum(
-                    Pedido.monto_pago
-                ),
-                0
-            ).label(
-                "monto_pago"
-            ),
-            func.coalesce(
-                func.sum(
-                    Pedido.ganancia
-                ),
-                0
-            ).label(
-                "ganancia"
-            )
-        )
-        .group_by(
-            campo
-        )
-        .order_by(
-            campo.desc()
-        )
-        .limit(
-            limit
-        )
-        .all()
-    )
-
-    return [
-        {
-            "clave": str(
-                fila.clave
-            ),
-            "cantidad": fila.cantidad,
-            "monto_pago": float(
-                fila.monto_pago
-            ),
-            "ganancia": float(
-                fila.ganancia
-            ),
-        }
-        for fila in filas
-    ]
-
-
-def _agrupar_por_metodo_pago(query, limit: int = 60):
-    filas = (
-        query.outerjoin(
+    if unir_metodo_pago:
+        consulta = consulta.outerjoin(
             MetodoPago,
             Pedido.tipo_pago_id == MetodoPago.id
         )
-        .with_entities(
-            func.coalesce(
-                MetodoPago.nombre,
-                "Sin metodo"
-            ).label(
-                "clave"
-            ),
-            func.count(
-                Pedido.id
-            ).label(
-                "cantidad"
-            ),
-            func.coalesce(
-                func.sum(
-                    Pedido.monto_pago
-                ),
-                0
-            ).label(
-                "monto_pago"
-            ),
-            func.coalesce(
-                func.sum(
-                    Pedido.ganancia
-                ),
-                0
-            ).label(
-                "ganancia"
-            )
-        )
-        .group_by(
-            MetodoPago.nombre
-        )
-        .order_by(
-            func.count(
-                Pedido.id
-            ).desc()
-        )
-        .limit(
-            limit
-        )
-        .all()
-    )
 
-    return [
-        {
-            "clave": fila.clave,
-            "cantidad": fila.cantidad,
-            "monto_pago": float(
-                fila.monto_pago
-            ),
-            "ganancia": float(
-                fila.ganancia
-            ),
-        }
-        for fila in filas
-    ]
+    if unir_cuenta_pago:
+        consulta = consulta.outerjoin(
+            MetodoPagoCuenta,
+            Pedido.cuenta_pago_id == MetodoPagoCuenta.id
+        ).outerjoin(
+            MetodoPago,
+            Pedido.tipo_pago_id == MetodoPago.id
+        )
+
+    if filtros:
+        consulta = consulta.where(
+            *filtros
+        )
+
+    if campo is not None:
+        consulta = consulta.group_by(
+            campo
+        )
+
+    return consulta
+
+
+def _fila_grupo(fila):
+    clave = fila.clave
+
+    if (
+        fila.seccion == "por_operador"
+        and clave is not None
+    ):
+        clave = int(
+            clave
+        )
+
+    return {
+        "clave": clave,
+        "cantidad": fila.cantidad,
+        "monto_pago": float(
+            fila.monto_pago or 0
+        ),
+        "ganancia": float(
+            fila.ganancia or 0
+        ),
+    }
 
 
 def reporte_general(
@@ -293,42 +190,141 @@ def reporte_general(
     estado: str | None = None,
     servicio: str | None = None,
     moneda_pago: str | None = None,
-    operador_id: int | None = None
+    operador_id: int | None = None,
+    metodo_pago_id: int | None = None,
+    cuenta_pago_id: int | None = None
 ):
-    query = _query_pedidos(
-        db,
+    filtros = _filtros_reporte(
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         estado=estado,
         servicio=servicio,
         moneda_pago=moneda_pago,
-        operador_id=operador_id
+        operador_id=operador_id,
+        metodo_pago_id=metodo_pago_id,
+        cuenta_pago_id=cuenta_pago_id
+    )
+    metodo_pago = func.coalesce(
+        MetodoPago.nombre,
+        "Sin metodo"
+    )
+    dia = func.date(
+        Pedido.created_at
+    )
+    cuenta_pago = func.coalesce(
+        MetodoPago.nombre + " - " + MetodoPagoCuenta.alias,
+        MetodoPago.nombre + " - Sin cuenta",
+        "Sin cuenta"
     )
 
-    return {
-        "resumen": resumen_pedidos(
-            query
+    consulta = union_all(
+        _consulta_agregada(
+            "resumen",
+            filtros,
+            incluir_monto_resultado=True
         ),
-        "por_estado": _agrupar(
-            query,
+        _consulta_agregada(
+            "por_estado",
+            filtros,
             Pedido.estado
         ),
-        "por_servicio": _agrupar(
-            query,
+        _consulta_agregada(
+            "por_servicio",
+            filtros,
             Pedido.servicio
         ),
-        "por_moneda": _agrupar(
-            query,
+        _consulta_agregada(
+            "por_moneda",
+            filtros,
             Pedido.moneda_pago
         ),
-        "por_operador": _agrupar(
-            query,
+        _consulta_agregada(
+            "por_operador",
+            filtros,
             Pedido.operador_id
         ),
-        "por_metodo_pago": _agrupar_por_metodo_pago(
-            query
+        _consulta_agregada(
+            "por_metodo_pago",
+            filtros,
+            metodo_pago,
+            unir_metodo_pago=True
         ),
-        "por_dia": _agrupar_por_dia(
-            query
+        _consulta_agregada(
+            "por_cuenta_pago",
+            filtros,
+            cuenta_pago,
+            unir_cuenta_pago=True
         ),
+        _consulta_agregada(
+            "por_dia",
+            filtros,
+            dia
+        )
+    )
+
+    filas = db.execute(
+        consulta
+    ).all()
+    reporte = {
+        "resumen": {
+            "total_pedidos": 0,
+            "monto_pago_total": 0.0,
+            "monto_resultado_total": 0.0,
+            "ganancia_total": 0.0,
+        },
+        "por_estado": [],
+        "por_servicio": [],
+        "por_moneda": [],
+        "por_operador": [],
+        "por_metodo_pago": [],
+        "por_cuenta_pago": [],
+        "por_dia": [],
     }
+
+    for fila in filas:
+        if fila.seccion == "resumen":
+            reporte["resumen"] = {
+                "total_pedidos": fila.cantidad or 0,
+                "monto_pago_total": float(
+                    fila.monto_pago or 0
+                ),
+                "monto_resultado_total": float(
+                    fila.monto_resultado or 0
+                ),
+                "ganancia_total": float(
+                    fila.ganancia or 0
+                ),
+            }
+            continue
+
+        reporte[fila.seccion].append(
+            _fila_grupo(
+                fila
+            )
+        )
+
+    for seccion in [
+        "por_estado",
+        "por_servicio",
+        "por_moneda",
+        "por_operador",
+        "por_metodo_pago",
+        "por_cuenta_pago",
+    ]:
+        reporte[seccion].sort(
+            key=lambda fila: fila["cantidad"],
+            reverse=True
+        )
+        reporte[seccion] = reporte[seccion][
+            :60
+        ]
+
+    reporte["por_dia"].sort(
+        key=lambda fila: fila["clave"] or "",
+        reverse=True
+    )
+    reporte["por_dia"] = reporte["por_dia"][
+        :120
+    ]
+
+    return reporte

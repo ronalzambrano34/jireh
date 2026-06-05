@@ -111,6 +111,9 @@ def crear_pedido_efectivo(
         "tipo_pago_id":
         data.tipo_pago_id,
 
+        "cuenta_pago_id":
+        getattr(data, "cuenta_pago_id", None),
+
         "punto_recogida_id":
         punto_recogida_id,
 

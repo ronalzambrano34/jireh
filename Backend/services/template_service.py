@@ -83,6 +83,10 @@ from Backend.models.configuracion import (
     Configuracion
 )
 
+DEFAULT_FINALIZACION_SIN_COMPROBANTE = (
+    "Listo, operacion exitosa para el pedido {codigo_operacion}, "
+    "pero por factores ajenos a nosotros no es posible enviar el comprobante."
+)
 
 DEFAULT_NOTIFICATION_TEMPLATES = {
     "template_cliente_estado_pendiente_pago": "Hola {cliente_nombre}, tu pedido {codigo_operacion} esta pendiente de pago. Monto a pagar: {monto_pago} {moneda_pago}.",
@@ -92,6 +96,7 @@ DEFAULT_NOTIFICATION_TEMPLATES = {
     "template_cliente_estado_cancelado": "Hola {cliente_nombre}, tu pedido {codigo_operacion} fue cancelado. Observaciones: {observaciones}",
     "template_cliente_estado_error": "Hola {cliente_nombre}, tu pedido {codigo_operacion} requiere revision. El equipo de El Jireh te contactara por este chat.",
     "template_grupo_finalizado": "*Operacion finalizada*\nCodigo: {codigo_operacion}\nServicio: {servicio}\nCliente: {cliente_nombre} ({cliente_telefono})\nPago: {monto_pago} {moneda_pago} por {metodo_pago}\nRecibe: {monto_resultado}\nTasa: {tasa_final}\nGanancia: {ganancia}\nComprobante: {comprobante_pago}",
+    "template_finalizacion_sin_comprobante": DEFAULT_FINALIZACION_SIN_COMPROBANTE,
 }
 
 DEFAULT_OPERATION_TEMPLATES = {

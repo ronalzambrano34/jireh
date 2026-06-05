@@ -1209,8 +1209,8 @@ Prueba de flujo de negocio recomendada:
 6. Tomar o abrir el pedido como operador.
 7. Subir o registrar evidencia/comprobante cuando corresponda.
 8. Cambiar estado siguiendo el flujo operativo: pendiente de pago, pago confirmado, en operacion, completado.
-9. En cada cambio de estado, confirmar que el mensaje WhatsApp al cliente se genere con el template correcto.
-10. Al completar, confirmar que se genere mensaje para el grupo historico/finalizados.
+9. En pago confirmado y en operacion, confirmar que se genere y abra solo el mensaje para el grupo operativo.
+10. Al completar, confirmar que se genere y abra solo el mensaje para el grupo historico/finalizados.
 11. Confirmar que el pedido finalizado mantiene tasa_final, monto_pago, monto_resultado, moneda y datos de destino congelados.
 12. Revisar Reportes para confirmar que la operacion aparece en el periodo actual.
 
@@ -1252,6 +1252,8 @@ Actualizacion de interfaz aplicada:
 - La pestana del navegador usa el icono del logo de El Jireh como favicon.
 - En Perfil > Soporte/Ayuda para operar, los accesos de soporte quedan centrados para lectura movil.
 - Reportes carga con periodo mensual por defecto, skeleton de carga e indices runtime para evitar la sensacion de pantalla vacia.
+- El resumen de Reportes resuelve sus totales y agrupaciones en una sola consulta para reducir la espera contra la base remota.
+- Al seleccionar un cliente durante la creacion de pedidos, sus destinatarios frecuentes se consultan por la ruta de cliente, disponible para operadores que crean o gestionan pedidos.
 - En Pedidos, el boton de vista queda a la izquierda y Actualizar a la derecha en la misma fila; las columnas agrupadas por estado se pueden minimizar/desplegar.
 - En Crear pedido > Pago de la operacion, monto y metodo de pago quedan en dos columnas cuando hay espacio; la moneda pasa al header como selector compacto con bandera.
 - En Nuevo pedido, el bloque de cliente queda directo y compacto; telefono del cliente, tarjeta destinatario y telefono destinatario tienen boton Pegar desde portapapeles.
@@ -1261,21 +1263,22 @@ Actualizacion de interfaz aplicada:
 - En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
 - El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
 - Todos los campos editables de telefono usan selector de codigo de pais y guardan el numero completo con prefijo internacional.
+- Los telefonos se normalizan en frontend y backend: se limpian espacios/separadores, se evita duplicar el codigo internacional, Brasil agrega el 9 movil despues del DDD cuando llega el formato viejo de WhatsApp y Uruguay elimina el 0 local despues de +598.
+- Los numeros de tarjeta se normalizan al escribir, pegar y guardar: visualmente se muestran agrupados como xxxx-xxxx-xxxx-xxxx, pero frontend y backend guardan solo digitos.
 - El header tiene menu desplegable de usuario con accesos a modificar usuario, perfil, sesion, apariencia, configuracion, soporte y salir.
 - En Perfil, el operador puede subir o cambiar su foto; se guarda en storage/operadores y se muestra en el header, menu de usuario y tarjeta de perfil.
 - En Nuevo pedido, el telefono/WhatsApp del cliente es obligatorio. Al crear la orden, el sistema genera y abre WhatsApp con instrucciones de pago al cliente usando el metodo/cuenta configurada, y abre/genera la orden para el grupo operativo configurado.
-- En Pedidos, cada cambio de estado genera mensaje WhatsApp para el cliente mediante templates editables. Al completar, tambien se genera mensaje para el grupo historico de operaciones finalizadas.
-
-
-Pendiante:
-- cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login
-
-- Los telefonos se normalizan en frontend y backend: se limpian espacios/separadores, se evita duplicar el codigo internacional, Brasil agrega el 9 movil despues del DDD cuando llega el formato viejo de WhatsApp y Uruguay elimina el 0 local despues de +598.
-- Los numeros de tarjeta se normalizan al escribir, pegar y guardar: visualmente se muestran agrupados como xxxx-xxxx-xxxx-xxxx, pero frontend y backend guardan solo digitos.
-
-Mi solucion pensada fue al pegar un numero, comenzarlos a colocar de atras para alante, asi en el caso de Cuba +53, solo se pegaria 53843778 (8 ultimos digios) igual que en el caso de uruguay y solo faltaria concatenarle el codigo de pais, en el caso de brasil ya es un poco complicado pq ademas de los 8 digitos, hay q agregar el codigo de estado (DD),para algo asi (+55 48 9 91233191) en el cual el 9 intermedio sobra, deberia quedar +55 48 91233191, pero el cliente puede pegar cualquier combinacion, ejemplo 5548991233191.
-
 - En la vista de pago posterior a crear un pedido, el operador tiene una accion directa "Marcar pago recibido". Si el cliente ya habia pagado antes de registrar el pedido, el sistema cambia el estado a pago_confirmado, refresca la bandeja y evita enviar instrucciones de pago innecesarias.
+- En Pedidos, pago confirmado y en operacion abren solo mensaje para el grupo operativo; completado abre solo mensaje para el grupo historico de operaciones finalizadas. Los templates de cliente quedan disponibles para mensajes manuales cuando se necesiten.
+- En Login, al enviar credenciales se muestra el logo como pelota rebotando con textos rotativos de progreso.
+- En Nuevo pedido > Pago de la operacion, monto pago aparece antes que metodo de pago en transferencia, efectivo, divisa y otros.
+- En saldo, la tasa aplicada corresponde al precio del paquete de saldo y no al cociente saldo_cup / monto_pago.
+- El detalle de pedido carga menos datos accesorios por defecto: evidencias e historial se mantienen colapsados y el backend devuelve solo los archivos e historial recientes.
+- En Datos de operacion, la foto del documento se muestra como miniatura dentro de una tarjeta del mismo tamaño que los otros datos y se puede abrir completa; no se presenta la ruta del archivo como texto.
+- Para finalizar un pedido se exige un comprobante de exito de la operacion. Como excepcion, el operador puede activar Finalizar sin comprobante cuando la conexion o el proveedor impiden obtenerlo; debe escribir una explicacion, que queda registrada en observaciones e historial y se refleja en el aviso al cliente.
+- Los enlaces de invitacion de grupos de WhatsApp abren el selector de compartir con el mensaje preparado, porque WhatsApp no permite precargar texto directamente en un link chat.whatsapp.com. Al crear el pedido se muestran acciones separadas para enviar instrucciones al cliente y enviar la orden al grupo.
+- El switch Finalizar sin comprobante completa automaticamente una explicacion desde el template configurable template_finalizacion_sin_comprobante. El valor predeterminado informa que la operacion fue exitosa pero, por factores ajenos a la empresa, no es posible enviar el comprobante; el operador puede editarlo antes de confirmar.
 
-//todo la carga de detalles de pedidos esta un poco lenta, creo q esta demorando demasiado y veo esa vista un poco cargada visualmente
- 
+
+Pendiente:
+- cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login

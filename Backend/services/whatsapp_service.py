@@ -9,6 +9,7 @@ from Backend.models.pedido_divisa import PedidoDivisa
 from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.pedido_saldo import PedidoSaldo
 from Backend.models.pedido_transferencia import PedidoTransferencia
+from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.services.config_service import obtener_config
 from Backend.services.pedido_estado import PedidoEstado
 from Backend.services.template_service import render_template, render_text_template
@@ -67,6 +68,11 @@ def crear_whatsapp_url(destino: str | None, mensaje: str):
         return destino.replace("{mensaje}", texto)
 
     destino_lower = destino.lower()
+    if "chat.whatsapp.com/" in destino_lower:
+        # Los enlaces de invitacion no aceptan texto. Abrimos el selector
+        # de WhatsApp con el mensaje listo para elegir el grupo.
+        return "https://wa.me/?text=" + texto
+
     if (
         "wa.me/" in destino_lower
         or "api.whatsapp.com/send" in destino_lower
@@ -76,7 +82,6 @@ def crear_whatsapp_url(destino: str | None, mensaje: str):
         separador = "&" if "?" in destino else "?"
         return destino + separador + "text=" + texto
 
-    # Los links de invitacion de grupo (chat.whatsapp.com) no aceptan texto precargado.
     return destino
 
 
@@ -143,6 +148,38 @@ def _detalle(db: Session, pedido: Pedido):
 def contexto_pedido(db: Session, pedido: Pedido):
     cliente = _cliente(db, pedido)
     metodo = _metodo_pago(db, pedido)
+    comprobante_final = (
+        db.query(
+            ArchivoPedido
+        )
+        .filter(
+            ArchivoPedido.pedido_id == pedido.id,
+            ArchivoPedido.tipo == "comprobante_final"
+        )
+        .order_by(
+            ArchivoPedido.created_at.desc(),
+            ArchivoPedido.id.desc()
+        )
+        .first()
+    )
+    comprobante_final_texto = (
+        comprobante_final.ruta_archivo
+        if comprobante_final
+        else (
+            (
+                pedido.observaciones.split(
+                    "Operacion finalizada sin comprobante:",
+                    1
+                )[1].strip()
+                or "No disponible por inconvenientes ajenos a nosotros."
+            )
+            if "Operacion finalizada sin comprobante:" in (
+                pedido.observaciones
+                or ""
+            )
+            else "Pendiente"
+        )
+    )
     data = {
         "codigo_operacion": pedido.codigo_operacion or "",
         "servicio": pedido.servicio or "",
@@ -152,10 +189,14 @@ def contexto_pedido(db: Session, pedido: Pedido):
         "monto_pago": pedido.monto_pago,
         "moneda_pago": pedido.moneda_pago,
         "monto_resultado": pedido.monto_resultado,
-        "tasa_final": pedido.tasa_final,
+        "tasa_final": (
+            pedido.monto_pago
+            if pedido.servicio == "saldo"
+            else pedido.tasa_final
+        ),
         "ganancia": pedido.ganancia,
         "metodo_pago": metodo.nombre if metodo else "",
-        "comprobante_pago": pedido.comprobante_pago or "Pendiente",
+        "comprobante_pago": comprobante_final_texto,
         "observaciones": pedido.observaciones or "",
     }
     data.update(_detalle(db, pedido))

@@ -22,6 +22,15 @@ button:disabled {
   opacity: 0.55;
 }
 
+.visually-hidden-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .login-screen {
   min-height: 100vh;
   display: grid;
@@ -646,6 +655,28 @@ input, select, textarea {
   padding: 14px 16px;
   font-size: 16px;
   border-bottom: 1px solid #e1e7ef;
+}
+
+.account-balance-section {
+  margin-bottom: 18px;
+}
+
+.withdrawal-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(110px, 0.6fr) minmax(220px, 1.5fr) auto;
+  gap: 10px;
+  margin-top: 14px;
+  align-items: center;
+}
+
+.withdrawal-form input {
+  min-height: 44px;
+}
+
+@media (max-width: 900px) {
+  .withdrawal-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .data-table {
@@ -2940,6 +2971,33 @@ textarea {
   color: #755400;
 }
 
+.login-progress {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border: 1px solid rgba(203, 211, 221, 0.82);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.login-progress .logo-bounce-loader.inline-loader {
+  width: 100%;
+  min-height: 106px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.login-progress .login-progress-text {
+  min-height: 18px;
+  color: #526173;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: center;
+}
+
 .login-panel > label,
 .login-field {
   display: grid;
@@ -4505,7 +4563,9 @@ textarea {
 }
 
 .dismissible-notice {
+  display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .dismissible-notice-content {
@@ -7510,13 +7570,18 @@ body {
 .lookup-client-found {
   min-height: 48px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr) 28px;
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(23, 107, 93, 0.34);
   background: linear-gradient(135deg, #d7f7e9 0%, #ecfff6 100%);
   color: #0f5f44;
   box-shadow: 0 10px 24px rgba(23, 107, 93, 0.14);
+}
+
+.lookup-client-found button {
+  grid-column: 3;
+  justify-self: end;
 }
 
 .lookup-client-found svg {
@@ -15044,6 +15109,169 @@ body {
   margin-bottom: 4px;
 }
 
+.order-detail-fields .operation-document-detail {
+  padding: 10px;
+}
+
+.finalization-proof-panel {
+  border: 1px solid rgba(23, 107, 93, 0.28);
+  border-radius: 10px;
+  background: #f2faf7;
+}
+
+.finalization-modal-content {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.finalization-modal-content .upload-button,
+.finalization-modal-content > .ghost-button {
+  width: 100%;
+}
+
+.finalization-alternative {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  color: #6a7583;
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.finalization-alternative::before,
+.finalization-alternative::after {
+  content: "";
+  height: 1px;
+  background: #d4dedb;
+}
+
+.finalization-exception-switch {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid #d4dedb;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #1f2937;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.finalization-exception-switch:hover,
+.finalization-exception-switch:focus-visible {
+  border-color: #b7791f;
+  box-shadow: 0 0 0 3px rgba(217, 154, 43, 0.14);
+}
+
+.finalization-exception-switch.active {
+  border-color: #d99a2b;
+  background: #fff8e8;
+}
+
+.finalization-switch-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.finalization-exception-switch small {
+  color: #6a7583;
+  line-height: 1.35;
+}
+
+.finalization-switch-control {
+  width: 46px;
+  height: 26px;
+  display: block;
+  border: 1px solid #aeb9c5;
+  border-radius: 999px;
+  background: #dfe5eb;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.finalization-switch-control > span {
+  width: 20px;
+  height: 20px;
+  display: block;
+  margin: 2px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 5px rgba(19, 34, 53, 0.24);
+  transition: transform 0.18s ease;
+}
+
+.finalization-exception-switch.active .finalization-switch-control {
+  border-color: #b7791f;
+  background: #d99a2b;
+}
+
+.finalization-exception-switch.active .finalization-switch-control > span {
+  transform: translateX(20px);
+}
+
+.finalization-exception-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.finalization-exception-fields > label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.operation-document-detail > span {
+  margin-bottom: 6px;
+}
+
+.operation-document-detail a {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid #cbd5df;
+  border-radius: 8px;
+  background: #eef2f6;
+}
+
+.operation-document-detail img {
+  width: 100%;
+  height: 72px;
+  display: block;
+  object-fit: cover;
+}
+
+.operation-document-detail small {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: rgba(19, 34, 53, 0.86);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 850;
+  backdrop-filter: blur(8px);
+}
+
+.operation-document-detail a:hover,
+.operation-document-detail a:focus-visible {
+  border-color: rgba(23, 107, 93, 0.52);
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+  outline: 0;
+}
+
 
 .order-detail-fields .operation-detail-placeholder {
   visibility: hidden;
@@ -15370,6 +15598,33 @@ body {
 :root[data-theme="dark-sidebar"] .order-cancel-confirm small,
 :root[data-theme="dark-vscode"] .order-cancel-confirm small {
   color: #ffb1b1;
+}
+
+:root[data-theme="dark"] .finalization-proof-panel,
+:root[data-theme="dark-deep"] .finalization-proof-panel,
+:root[data-theme="dark-sidebar"] .finalization-proof-panel,
+:root[data-theme="dark-vscode"] .finalization-proof-panel {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(10, 35, 29, 0.82);
+}
+
+:root[data-theme="dark"] .finalization-exception-switch,
+:root[data-theme="dark-deep"] .finalization-exception-switch,
+:root[data-theme="dark-sidebar"] .finalization-exception-switch,
+:root[data-theme="dark-vscode"] .finalization-exception-switch {
+  border-color: var(--menu-line, var(--jireh-line));
+  background: var(--menu-surface, #111827);
+}
+
+:root[data-theme="dark"] .finalization-exception-switch small,
+:root[data-theme="dark-deep"] .finalization-exception-switch small,
+:root[data-theme="dark-sidebar"] .finalization-exception-switch small,
+:root[data-theme="dark-vscode"] .finalization-exception-switch small,
+:root[data-theme="dark"] .finalization-exception-fields > label,
+:root[data-theme="dark-deep"] .finalization-exception-fields > label,
+:root[data-theme="dark-sidebar"] .finalization-exception-fields > label,
+:root[data-theme="dark-vscode"] .finalization-exception-fields > label {
+  color: var(--menu-muted, #b8c4d4);
 }
 
 :root[data-theme="dark"] .liquidation-cell,

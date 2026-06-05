@@ -120,6 +120,7 @@ export type PedidoDetalle = PedidoResumen & {
   mensaje_grupo_finalizado?: string | null;
   whatsapp_grupo_finalizado_url?: string | null;
   comprobante_pago?: string | null;
+  mensaje_finalizacion_sin_comprobante?: string | null;
 };
 
 export type PedidoHistorial = {
@@ -149,6 +150,7 @@ export type CrearTransferenciaPayload = {
   numero_tarjeta: string;
   telefono_destinatario?: string;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -198,6 +200,7 @@ export type CrearEfectivoPayload = {
   monto_pago: number;
   moneda_pago: string;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -225,6 +228,7 @@ export type CrearSaldoPayload = {
   telefono_destinatario?: string;
   contacto_id?: number | null;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -242,6 +246,7 @@ export type CrearOtrosPayload = {
   monto_pago: number;
   moneda_pago: string;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -259,6 +264,7 @@ export type CrearDivisaPayload = {
   contacto_id?: number | null;
   monto_divisa: number;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -300,7 +306,29 @@ export type ReporteGeneral = {
   por_moneda: ReporteGrupo[];
   por_operador: ReporteGrupo[];
   por_metodo_pago: ReporteGrupo[];
+  por_cuenta_pago: ReporteGrupo[];
   por_dia: ReporteGrupo[];
+};
+
+export type SaldoCuenta = {
+  cuenta_pago_id: number;
+  metodo_pago_id: number;
+  metodo_pago: string;
+  alias: string;
+  cuenta: string;
+  moneda: string;
+  ingresos: number;
+  extracciones: number;
+  saldo: number;
+};
+
+export type ExtraccionCuenta = {
+  id: number;
+  cuenta_pago_id: number;
+  operador_id: number;
+  monto: number;
+  motivo: string;
+  created_at: string;
 };
 
 

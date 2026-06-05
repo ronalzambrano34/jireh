@@ -307,10 +307,15 @@ export function crearOtros(payload: CrearOtrosPayload) {
   });
 }
 
-export function actualizarEstado(codigo: string, estado: string, observaciones?: string) {
+export function actualizarEstado(
+  codigo: string,
+  estado: string,
+  observaciones?: string,
+  options: { finalizar_sin_comprobante?: boolean; motivo_sin_comprobante?: string } = {},
+) {
   return request<PedidoDetalle>(`/pedido/${codigo}/estado`, {
     method: 'PATCH',
-    body: JSON.stringify({ estado, observaciones }),
+    body: JSON.stringify({ estado, observaciones, ...options }),
   });
 }
 
@@ -322,7 +327,7 @@ export function subirArchivo(codigo: string, formData: FormData) {
 }
 
 
-export function obtenerReporte(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string } = {}) {
+export function obtenerReporte(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string; metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) query.set(key, value);
@@ -331,12 +336,33 @@ export function obtenerReporte(params: { fecha_desde?: string; fecha_hasta?: str
 }
 
 
-export function descargarReporteCsv(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string } = {}) {
+export function descargarReporteCsv(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string; metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) query.set(key, value);
   });
   return requestBlob(`/reportes/resumen.csv?${query.toString()}`);
+}
+
+export function listarSaldosCuenta(params: { metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) query.set(key, value);
+  });
+  return request<import('../types/api').SaldoCuenta[]>(`/reportes/cuentas/saldos?${query.toString()}`);
+}
+
+export function crearExtraccionCuenta(payload: { cuenta_pago_id: number; monto: number; motivo: string }) {
+  return request<import('../types/api').ExtraccionCuenta>('/reportes/extracciones', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listarExtraccionesCuenta(cuentaPagoId?: string) {
+  const query = new URLSearchParams();
+  if (cuentaPagoId) query.set('cuenta_pago_id', cuentaPagoId);
+  return request<import('../types/api').ExtraccionCuenta[]>(`/reportes/extracciones?${query.toString()}`);
 }
 
 export function crearMetodoPago(payload: { nombre: string; moneda: string; imagen_url?: string }) {
@@ -560,9 +586,14 @@ export function crearCliente(payload: { nombre: string; email?: string; telefono
 
 export function listarContactos(clienteId?: string, incluirInactivos = false) {
   const query = new URLSearchParams();
-  if (clienteId) query.set('cliente_id', clienteId);
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<Contacto[]>(`/contactos/?${query.toString()}`);
+  const suffix = query.toString();
+
+  if (clienteId) {
+    return request<Contacto[]>(`/clientes/${clienteId}/contactos${suffix ? `?${suffix}` : ''}`);
+  }
+
+  return request<Contacto[]>(`/contactos/${suffix ? `?${suffix}` : ''}`);
 }
 
 export function crearContacto(payload: { cliente_id?: number | null; nombre: string; telefono?: string; numero_tarjeta?: string; tipo_tarjeta?: string; documento_identidad_url?: string; pais?: string; notas?: string }) {

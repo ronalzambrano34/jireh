@@ -6,16 +6,28 @@ import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import { PhoneInput } from '../components/PhoneInput';
 import { PasswordField } from '../components/PasswordField';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { PageLoader } from '../components/PageLoader';
 
 const DEV_LOGIN_TELEFONO = import.meta.env.VITE_TEST_LOGIN_TELEFONO || (import.meta.env.DEV ? '+1234567890' : '');
 const DEV_LOGIN_PASSWORD = import.meta.env.VITE_TEST_LOGIN_PASSWORD || (import.meta.env.DEV ? 'admin' : '');
 const LOGIN_PHONE_KEY = 'jireh.login.telefono';
 
+const LOGIN_PROGRESS_MESSAGES = [
+  'Comprobando la conexion...',
+  'Validando telefono y contraseña...',
+  'Enviando credenciales de forma segura...',
+  'Esperando respuesta del servidor...',
+  'Despertando al servidor...',
+  'Comprobando el acceso del operador...',
+  'Pensando en las musarañas...',
+  'Verificando permisos de la cuenta...',
+  'Acomodando los cables imaginarios...',
+  'Confirmando la sesion...',
+];
+
 function loginProgressLabel(seconds: number) {
-  if (seconds >= 25) return 'La red esta muy lenta. Seguimos intentando...';
-  if (seconds >= 12) return 'Todavia conectando. No cierres esta pantalla.';
-  if (seconds >= 5) return 'Conectando con el servidor...';
-  return 'Verificando datos...';
+  if (seconds >= 30) return 'La respuesta esta demorando. Comprueba tu conexion; seguimos intentando...';
+  return LOGIN_PROGRESS_MESSAGES[Math.floor(seconds / 3) % LOGIN_PROGRESS_MESSAGES.length];
 }
 
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
@@ -115,7 +127,12 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
           <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
         </div>
         {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
-        {loading && <div className="login-network-status">{progressLabel}</div>}
+        {loading && (
+          <div className="login-progress" role="status" aria-live="polite">
+            <PageLoader inline label="Iniciando sesion" />
+            <div className="login-progress-text">{progressLabel}</div>
+          </div>
+        )}
         <button className="primary-button" disabled={loading || !online} aria-busy={loading}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
       </form>
     </main>

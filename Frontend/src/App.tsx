@@ -1,6 +1,6 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, CheckCircle2, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirMiFotoPerfil } from './api/client';
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
@@ -19,6 +19,13 @@ import { FloatingSelect } from './components/FloatingSelect';
 import { DismissibleNotice } from './components/DismissibleNotice';
 import { formatearNumeroTarjeta } from './utils/tarjetas';
 import { copiarAlPortapapeles } from './utils/clipboard';
+import {
+  abrirWhatsAppUrl,
+  abrirWhatsAppUrlsReservadas,
+  cerrarVentanasWhatsApp,
+  reservarVentanasWhatsApp,
+  type VentanaWhatsApp,
+} from './utils/whatsapp';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const estados = [
@@ -122,6 +129,11 @@ function monedaEntregaPedido(pedido: PedidoResumen) {
   if (pedido.servicio === 'divisa') return detalleValor(pedido, 'tipo_tarjeta') ?? 'DIVISA';
   if (pedido.servicio === 'otros') return pedido.moneda_pago;
   return 'CUP';
+}
+
+function tasaAplicadaPedido(pedido: PedidoResumen) {
+  if (pedido.servicio === 'saldo') return pedido.monto_pago;
+  return pedido.tasa_final;
 }
 
 function camposTarjetaPedido(pedido: PedidoResumen) {
@@ -259,6 +271,7 @@ export function App() {
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const [confirmandoPagoCreado, setConfirmandoPagoCreado] = useState(false);
   const copyToastTimeoutRef = useRef<number | null>(null);
+  const comprobantePedidoCreadoInputRef = useRef<HTMLInputElement | null>(null);
   const profileMessageTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
   const profileErrorTimeoutRef = useRef<number | null>(null);
@@ -501,19 +514,30 @@ export function App() {
   }
 
   function abrirUrlPago(url?: string | null) {
-    if (!url || typeof window === 'undefined') return;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    abrirWhatsAppUrl(url);
   }
 
-  async function confirmarPagoPedidoCreado() {
+  function abrirMensajeGrupoPedido() {
+    abrirUrlPago(pedidoPagoModal?.whatsapp_grupo_pedidos_url);
+  }
+
+  async function confirmarPagoPedidoCreado(file: File, ventanasWhatsApp: VentanaWhatsApp[]) {
     if (!pedidoPagoModal || confirmandoPagoCreado) return;
     setConfirmandoPagoCreado(true);
     setError(null);
     try {
-      await actualizarEstado(
+      const form = new FormData();
+      form.set('tipo', 'comprobante_cliente');
+      form.set('archivo', file);
+      await subirArchivo(pedidoPagoModal.codigo_operacion, form);
+      const actualizado = await actualizarEstado(
         pedidoPagoModal.codigo_operacion,
         'pago_confirmado',
-        'Pago confirmado al crear el pedido: el cliente ya habia pagado.',
+        'Pago confirmado al crear el pedido con comprobante cargado.',
+      );
+      abrirWhatsAppUrlsReservadas(
+        ventanasWhatsApp,
+        actualizado.whatsapp_grupo_pedidos_url,
       );
       setPedidoPagoModal(null);
       await cargarPedidos();
@@ -521,10 +545,24 @@ export function App() {
       if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
       copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
     } catch (err) {
+      cerrarVentanasWhatsApp(ventanasWhatsApp);
       setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago');
     } finally {
       setConfirmandoPagoCreado(false);
     }
+  }
+
+  function seleccionarComprobantePedidoCreado() {
+    if (confirmandoPagoCreado) return;
+    comprobantePedidoCreadoInputRef.current?.click();
+  }
+
+  function handleComprobantePedidoCreado(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const ventanasWhatsApp = reservarVentanasWhatsApp(1);
+    void confirmarPagoPedidoCreado(file, ventanasWhatsApp);
   }
 
   const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[]) => {
@@ -1052,14 +1090,14 @@ export function App() {
               {profileSection === 'ayuda' && (
                 <div className="profile-support-options">
                   <div className="profile-support-panel">
-                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Brasil</strong>
                         <small>+55 48 9123-3191</small>
                       </span>
                     </a>
-                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Uruguay</strong>
@@ -1068,14 +1106,14 @@ export function App() {
                     </a>
                   </div>
                   <div className="profile-support-panel profile-support-panel-list">
-                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Soporte Brasil</strong>
                         <small>+55 48 9123-3191</small>
                       </span>
                     </a>
-                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Soporte Uruguay</strong>
@@ -1303,7 +1341,7 @@ export function App() {
                               </span>
                               <span className="pedido-card-pay compact-pay">
                                 <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
-                                <small>Tasa {pedido.tasa_final}</small>
+                                <small>Tasa {tasaAplicadaPedido(pedido)}</small>
                               </span>
                             </button>
                             );
@@ -1382,18 +1420,28 @@ export function App() {
             <section className="payment-already-paid">
               <div>
                 <strong>Si el cliente ya pago</strong>
-                <small>Confirma el pago y evita enviarle instrucciones repetidas.</small>
+                <small>Sube el comprobante y confirma el pago sin salir de esta vista.</small>
               </div>
-              <button className="primary-button" type="button" onClick={() => void confirmarPagoPedidoCreado()} disabled={confirmandoPagoCreado}>
-                <CheckCircle2 size={16} /> {confirmandoPagoCreado ? 'Confirmando...' : 'Marcar pago recibido'}
+              <button className="primary-button" type="button" onClick={seleccionarComprobantePedidoCreado} disabled={confirmandoPagoCreado}>
+                {confirmandoPagoCreado ? <RefreshCw className="button-spinner" size={16} /> : <Upload size={16} />} {confirmandoPagoCreado ? 'Subiendo...' : 'Subir comprobante y confirmar'}
               </button>
+              <input
+                ref={comprobantePedidoCreadoInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="visually-hidden-file"
+                onChange={handleComprobantePedidoCreado}
+              />
             </section>
             <div className="message-actions payment-modal-actions">
               <button className="ghost-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.mensaje_pago_cliente)}>
                 <Copy size={16} /> Copiar mensaje
               </button>
               <button className="primary-button" type="button" onClick={() => abrirUrlPago(pedidoPagoModal.whatsapp_pago_url)} disabled={!pedidoPagoModal.whatsapp_pago_url}>
-                Enviar por WhatsApp
+                Enviar al cliente
+              </button>
+              <button className="primary-button" type="button" onClick={abrirMensajeGrupoPedido} disabled={!pedidoPagoModal.whatsapp_grupo_pedidos_url}>
+                Enviar al grupo
               </button>
             </div>
           </div>

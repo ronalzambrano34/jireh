@@ -6,12 +6,19 @@ from datetime import time
 
 from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import require_permission
 from Backend.services.reporte_service import reporte_general
+from Backend.schemas.extraccion_cuenta import ExtraccionCuentaCreate
+from Backend.services.cuenta_service import (
+    crear_extraccion_cuenta,
+    listar_extracciones_cuenta,
+    listar_saldos_cuenta
+)
 
 
 def _normalizar_fecha_desde(value: date | None):
@@ -55,6 +62,8 @@ def resumen_route(
     servicio: str | None = None,
     moneda_pago: str | None = None,
     operador_id: int | None = None,
+    metodo_pago_id: int | None = None,
+    cuenta_pago_id: int | None = None,
     db: Session = Depends(
         get_db
     )
@@ -66,7 +75,9 @@ def resumen_route(
         estado=estado,
         servicio=servicio,
         moneda_pago=moneda_pago,
-        operador_id=operador_id
+        operador_id=operador_id,
+        metodo_pago_id=metodo_pago_id,
+        cuenta_pago_id=cuenta_pago_id
     )
 
 
@@ -80,6 +91,8 @@ def resumen_csv_route(
     servicio: str | None = None,
     moneda_pago: str | None = None,
     operador_id: int | None = None,
+    metodo_pago_id: int | None = None,
+    cuenta_pago_id: int | None = None,
     db: Session = Depends(
         get_db
     )
@@ -91,7 +104,9 @@ def resumen_csv_route(
         estado=estado,
         servicio=servicio,
         moneda_pago=moneda_pago,
-        operador_id=operador_id
+        operador_id=operador_id,
+        metodo_pago_id=metodo_pago_id,
+        cuenta_pago_id=cuenta_pago_id
     )
 
     output = StringIO()
@@ -133,6 +148,7 @@ def resumen_csv_route(
         "por_servicio",
         "por_moneda",
         "por_metodo_pago",
+        "por_cuenta_pago",
         "por_operador"
     ]:
         for fila in reporte[
@@ -163,3 +179,41 @@ def resumen_csv_route(
             "Content-Disposition": "attachment; filename=reporte_resumen.csv"
         }
     )
+
+
+@router.get("/cuentas/saldos")
+def saldos_cuenta_route(
+    metodo_pago_id: int | None = None,
+    cuenta_pago_id: int | None = None,
+    db: Session = Depends(get_db)
+):
+    return listar_saldos_cuenta(
+        db,
+        metodo_pago_id=metodo_pago_id,
+        cuenta_pago_id=cuenta_pago_id
+    )
+
+
+@router.get("/extracciones")
+def extracciones_cuenta_route(
+    cuenta_pago_id: int | None = None,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    return listar_extracciones_cuenta(
+        db,
+        cuenta_pago_id=cuenta_pago_id,
+        limit=limit
+    )
+
+
+@router.post("/extracciones")
+def crear_extraccion_cuenta_route(
+    data: ExtraccionCuentaCreate,
+    db: Session = Depends(get_db),
+    operador = Depends(require_permission("pedidos:gestionar"))
+):
+    try:
+        return crear_extraccion_cuenta(db, data, operador)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

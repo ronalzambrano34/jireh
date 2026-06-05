@@ -12,6 +12,7 @@ import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogi
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
+import { abrirWhatsAppUrl } from '../utils/whatsapp';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 const DOCUMENTO_ADJUNTO_LABEL = 'Documento adjunto en evidencias';
@@ -40,6 +41,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
+    cuenta_pago_id: '',
     punto_recogida_id: '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     documento_identidad_url: '',
@@ -175,6 +177,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
         monto_pago: Number(form.monto_pago),
         moneda_pago: form.moneda_pago,
         tipo_pago_id: Number(form.tipo_pago_id),
+        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
@@ -252,6 +255,11 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                   <a
                     className={telefonoCubaCompleto(form.telefono_destinatario) ? 'icon-button field-action-button' : 'icon-button field-action-button disabled-link'}
                     href={telefonoCubaCompleto(form.telefono_destinatario) ? whatsappHref(form.telefono_destinatario) : undefined}
+                    onClick={(event) => {
+                      if (!telefonoCubaCompleto(form.telefono_destinatario)) return;
+                      event.preventDefault();
+                      abrirWhatsAppUrl(whatsappHref(form.telefono_destinatario));
+                    }}
                     target="_blank"
                     rel="noreferrer"
                     title="Llamar por WhatsApp"
@@ -310,18 +318,20 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
           </header>
           <div className="form-grid payment-grid">
             <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
-            </label>
-            <label>
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
                 metodos={metodosFiltrados}
                 onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
                 disabled={cargandoCatalogos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
+            </label>
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
             <label>
               Cupon o bono

@@ -34,6 +34,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
     monto_divisa: initialData?.monto_divisa ?? '100',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
+    cuenta_pago_id: '',
     tipo_tarjeta: initialData?.tipo_tarjeta ?? 'MLC',
     numero_tarjeta: '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
@@ -121,6 +122,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         moneda_pago: form.moneda_pago,
         monto_divisa: Number(form.monto_divisa),
         tipo_pago_id: Number(form.tipo_pago_id),
+        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
         tipo_tarjeta: form.tipo_tarjeta || undefined,
         numero_tarjeta: form.numero_tarjeta || undefined,
@@ -178,7 +180,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
                 value={form.tipo_tarjeta}
                 onChange={(value) => update('tipo_tarjeta', value)}
                 ariaLabel="Tipo tarjeta"
-                options={[{ value: 'MLC', label: 'MLC', icon: <CreditCard size={17} /> }, { value: 'CUP', label: 'CUP', icon: <CreditCard size={17} /> }, { value: 'USD', label: 'USD', icon: <CreditCard size={17} /> }, { value: 'OTRA', label: 'Otra', icon: <CreditCard size={17} /> }]}
+                options={[{ value: 'MLC', label: 'MLC', icon: <CreditCard size={17} /> }, { value: 'USD', label: 'USD', icon: <CreditCard size={17} /> }, { value: 'Clasica', label: 'Clasica', icon: <CreditCard size={17} /> }]}
                 align="left"
               />
             </label>
@@ -213,18 +215,20 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           </header>
           <div className="form-grid payment-grid">
             <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
-            </label>
-            <label>
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
                 metodos={metodosFiltrados}
                 onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
                 disabled={cargandoMetodos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
+            </label>
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
             <label>
               Cupon o bono

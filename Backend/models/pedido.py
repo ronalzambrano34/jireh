@@ -121,6 +121,12 @@ class Pedido(Base):
         ForeignKey("metodos_pago.id")
     )
 
+    cuenta_pago_id = Column(
+        Integer,
+        ForeignKey("metodo_pago_cuentas.id"),
+        nullable=True
+    )
+
     oferta_id = Column(
         Integer,
         ForeignKey("ofertas.id"),

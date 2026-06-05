@@ -179,7 +179,9 @@ def actualizar_estado(
             data.comprobante_pago,
             data.observaciones,
             usuario=operador.nombre,
-            operador=operador
+            operador=operador,
+            finalizar_sin_comprobante=data.finalizar_sin_comprobante,
+            motivo_sin_comprobante=data.motivo_sin_comprobante
         )
     except Exception as exc:
         raise HTTPException(
@@ -333,4 +335,3 @@ def crear(
             status_code=400,
             detail=str(exc)
         ) from exc
-

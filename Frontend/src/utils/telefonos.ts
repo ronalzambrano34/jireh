@@ -22,13 +22,7 @@ function findCodeByDigits(digits: string) {
 
 function stripRepeatedCode(digits: string, code: string) {
   const prefix = codeDigits(code);
-  let local = digits;
-
-  while (local.startsWith(prefix) && local.length > prefix.length + 5) {
-    local = local.slice(prefix.length);
-  }
-
-  return local;
+  return digits.startsWith(prefix) ? digits.slice(prefix.length) : digits;
 }
 
 function normalizeLocalByCountry(code: string, local: string) {
@@ -56,10 +50,15 @@ function normalizeLocalByCountry(code: string, local: string) {
 export function normalizarTelefono(value: string, defaultCode = '+55', codeLocked = false) {
   const compact = value.trim();
   const digits = digitsOnly(compact);
+  const hasExplicitInternationalCode = compact.startsWith('+') || digits.startsWith('00');
   const digitsWithoutInternationalPrefix = digits.startsWith('00') ? digits.slice(2) : digits;
   const detected = !codeLocked ? findCodeByDigits(digitsWithoutInternationalPrefix) : undefined;
   const selected = codeLocked ? defaultCode : detected?.code ?? defaultCode;
-  const local = normalizeLocalByCountry(selected, stripRepeatedCode(digitsWithoutInternationalPrefix, selected));
+  const shouldStripCode = hasExplicitInternationalCode || (!codeLocked && Boolean(detected));
+  const localDigits = shouldStripCode
+    ? stripRepeatedCode(digitsWithoutInternationalPrefix, selected)
+    : digitsWithoutInternationalPrefix;
+  const local = normalizeLocalByCountry(selected, localDigits);
 
   return local ? `${selected}${local}` : selected;
 }

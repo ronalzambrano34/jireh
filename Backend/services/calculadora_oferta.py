@@ -168,6 +168,19 @@ def calcular_saldo(
         "paquete_id":
         paquete.id,
 
+        "tasa":
+        float(
+            paquete.monto_pago
+        ),
+
+        "bonificacion":
+        0,
+
+        "tasa_final":
+        float(
+            paquete.monto_pago
+        ),
+
         "saldo_cup":
         paquete.saldo_cup,
 
@@ -224,4 +237,3 @@ def calcular_operacion(
     raise Exception(
         "Servicio no soportado"
     )
-

@@ -16,7 +16,8 @@ import { telefonoClienteCompleto } from '../utils/telefonos';
 const TELEFONO_CUBA_DEFAULT = '+53';
 
 function telefonoCubaCompleto(value: string) {
-  return value.replace(/\D/g, '').length > 2;
+  const digits = value.replace(/\D/g, '');
+  return digits.startsWith('53') && digits.slice(2).length === 8;
 }
 
 function telefonoCubaPayload(value: string) {
@@ -31,6 +32,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   const [form, setForm] = useState({
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
+    cuenta_pago_id: '',
     paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     cliente_id: '',
@@ -112,8 +114,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     return {
       paquete_id: paqueteSeleccionado.id,
       monto_resultado: saldoCup,
-      tasa: montoPago > 0 ? saldoCup / montoPago : undefined,
-      tasa_final: montoPago > 0 ? saldoCup / montoPago : undefined,
+      tasa: montoPago,
+      tasa_final: montoPago,
       saldo_cup: saldoCup,
     };
   }, [paqueteSeleccionado]);
@@ -143,7 +145,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       return;
     }
     if (!telefonoCubaCompleto(form.telefono_destinatario)) {
-      setError('Completa el telefono de Cuba despues de +53');
+      setError('El telefono de Cuba debe tener 8 digitos despues de +53');
       return;
     }
 
@@ -153,6 +155,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       const response = await crearSaldo({
         telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         tipo_pago_id: Number(form.tipo_pago_id),
+        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
@@ -235,6 +238,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 value={form.tipo_pago_id}
                 metodos={metodosFiltrados}
                 onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
                 disabled={cargandoCatalogos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />

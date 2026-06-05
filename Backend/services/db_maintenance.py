@@ -315,6 +315,13 @@ def ensure_runtime_columns(
 
     _add_column_if_missing(
         db,
+        "pedidos",
+        "cuenta_pago_id",
+        "cuenta_pago_id INTEGER"
+    )
+
+    _add_column_if_missing(
+        db,
         "pedido_efectivo",
         "documento_identidad_url",
         "documento_identidad_url VARCHAR"
@@ -355,6 +362,7 @@ def ensure_runtime_indexes(
         ("ix_pedidos_report_moneda_pago", ("moneda_pago",)),
         ("ix_pedidos_report_operador_id", ("operador_id",)),
         ("ix_pedidos_report_tipo_pago_id", ("tipo_pago_id",)),
+        ("ix_pedidos_report_cuenta_pago_id", ("cuenta_pago_id",)),
         ("ix_pedidos_report_fecha_estado", ("created_at", "estado")),
         ("ix_pedidos_report_fecha_servicio", ("created_at", "servicio")),
     ]:

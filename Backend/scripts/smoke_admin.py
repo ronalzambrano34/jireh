@@ -4,7 +4,7 @@ import sys
 import tempfile
 
 from fastapi import UploadFile
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,6 +17,7 @@ from Backend.models.cliente import Cliente
 from Backend.models.configuracion import Configuracion
 from Backend.models.contacto import Contacto
 from Backend.models.metodo_pago import MetodoPago
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 from Backend.models.oferta import Oferta
 from Backend.models.operador import Operador
 from Backend.models.paquete_saldo import PaqueteSaldo
@@ -26,6 +27,7 @@ from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.pedido_historial import PedidoHistorial
 from Backend.models.pedido_saldo import PedidoSaldo
 from Backend.models.pedido_transferencia import PedidoTransferencia
+from Backend.models.provincia_servicio import ProvinciaServicio
 from Backend.models.punto_recogida import PuntoRecogida
 
 from Backend.schemas.oferta import OfertaCreate, OfertaUpdate
@@ -263,12 +265,42 @@ def run():
             "archivo: comprobante_cliente no actualizo pedido"
         )
 
-        reporte = reporte_general(
-            db,
-            servicio="TRANSFERENCIA",
-            moneda_pago="brl",
-            operador_id=operador.id
+        operador_id = operador.id
+        consultas_reporte = []
+
+        def registrar_consulta(
+            _conn,
+            _cursor,
+            statement,
+            _parameters,
+            _context,
+            _executemany
+        ):
+            if statement.lstrip().upper().startswith(
+                "SELECT"
+            ):
+                consultas_reporte.append(
+                    statement
+                )
+
+        event.listen(
+            db.get_bind(),
+            "before_cursor_execute",
+            registrar_consulta
         )
+        try:
+            reporte = reporte_general(
+                db,
+                servicio="TRANSFERENCIA",
+                moneda_pago="brl",
+                operador_id=operador_id
+            )
+        finally:
+            event.remove(
+                db.get_bind(),
+                "before_cursor_execute",
+                registrar_consulta
+            )
         _assert(
             reporte["resumen"]["total_pedidos"] == 1,
             "reporte: total inesperado"
@@ -276,6 +308,14 @@ def run():
         _assert(
             reporte["por_estado"][0]["clave"] == "pendiente_pago",
             "reporte: agrupacion por estado inesperada"
+        )
+        _assert(
+            reporte["por_operador"][0]["clave"] == operador_id,
+            "reporte: operador debe conservar su identificador numerico"
+        )
+        _assert(
+            len(consultas_reporte) == 1,
+            "reporte: debe resolverse en una sola consulta"
         )
 
     finally:

@@ -126,7 +126,11 @@ def generar_mensaje_operacion(
         pedido.moneda_pago,
 
         "tasa_final":
-        pedido.tasa_final,
+        (
+            pedido.monto_pago
+            if pedido.servicio == "saldo"
+            else pedido.tasa_final
+        ),
 
         "monto_resultado":
         pedido.monto_resultado,

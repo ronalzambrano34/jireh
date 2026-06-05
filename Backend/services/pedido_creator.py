@@ -25,6 +25,7 @@ from Backend.models.cliente import (
 from Backend.models.metodo_pago import (
     MetodoPago
 )
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 from Backend.models.contacto import (
     Contacto
 )
@@ -80,6 +81,11 @@ def normalizar_telefono_destinatario(
             "telefono_destinatario debe ser un numero de Cuba (+53)"
         )
 
+    if len(telefono.removeprefix("+53")) != 8:
+        raise Exception(
+            "telefono_destinatario debe tener 8 digitos despues de +53"
+        )
+
     return telefono
 
 
@@ -130,7 +136,14 @@ def _generar_mensaje_pago_cliente(
             db,
             pedido.moneda_pago,
             _metodo_pago_key(metodo_pago.nombre),
-            metodo_pago=metodo_pago
+            metodo_pago=metodo_pago,
+            cuenta_pago=(
+                db.query(MetodoPagoCuenta)
+                .filter(MetodoPagoCuenta.id == pedido.cuenta_pago_id)
+                .first()
+                if pedido.cuenta_pago_id
+                else None
+            )
         )
     except Exception:
         datos_pago = {
@@ -475,24 +488,19 @@ def crear_pedido(
             data["saldo_cup"]
         )
 
-        tasa = (
-            saldo_cup
-            / monto_pago
-        )
-
         calculo = {
 
             "oferta_id":
             None,
 
             "tasa":
-            tasa,
+            monto_pago,
 
             "bonificacion":
             0,
 
             "tasa_final":
-            tasa,
+            monto_pago,
 
             "monto_resultado":
             saldo_cup,
@@ -729,6 +737,36 @@ def crear_pedido(
             "El metodo de pago no corresponde a la moneda del pedido"
         )
 
+    cuenta_pago = None
+    cuenta_pago_id = data.get("cuenta_pago_id")
+    if cuenta_pago_id is not None:
+        cuenta_pago = (
+            db.query(MetodoPagoCuenta)
+            .filter(
+                MetodoPagoCuenta.id == cuenta_pago_id,
+                MetodoPagoCuenta.metodo_pago_id == metodo_pago.id,
+                MetodoPagoCuenta.activa == True
+            )
+            .first()
+        )
+        if not cuenta_pago:
+            raise Exception(
+                "La cuenta seleccionada no pertenece al metodo de pago o esta inactiva"
+            )
+    else:
+        cuenta_pago = (
+            db.query(MetodoPagoCuenta)
+            .filter(
+                MetodoPagoCuenta.metodo_pago_id == metodo_pago.id,
+                MetodoPagoCuenta.activa == True
+            )
+            .order_by(
+                MetodoPagoCuenta.predeterminada.desc(),
+                MetodoPagoCuenta.id.asc()
+            )
+            .first()
+        )
+
     _validar_datos_servicio(
         data
     )
@@ -777,6 +815,9 @@ def crear_pedido(
         data[
             "tipo_pago_id"
         ],
+
+        cuenta_pago_id=
+        cuenta_pago.id if cuenta_pago else None,
 
         oferta_id=
         calculo.get(
@@ -1069,7 +1110,11 @@ def crear_pedido(
         pedido.monto_resultado,
 
         "tasa_final":
-        pedido.tasa_final,
+        (
+            pedido.monto_pago
+            if pedido.servicio == "saldo"
+            else pedido.tasa_final
+        ),
 
         "mensaje_operacion":
         mensaje_data[

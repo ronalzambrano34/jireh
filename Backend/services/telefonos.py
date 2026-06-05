@@ -61,15 +61,11 @@ def _detectar_codigo(numero: str) -> str | None:
 
 def _quitar_codigo_repetido(numero: str, codigo: str) -> str:
     prefijo = _digitos_codigo(codigo)
-    local = numero
-
-    while (
-        local.startswith(prefijo)
-        and len(local) > len(prefijo) + 5
-    ):
-        local = local[len(prefijo):]
-
-    return local
+    return (
+        numero[len(prefijo):]
+        if numero.startswith(prefijo)
+        else numero
+    )
 
 
 def _normalizar_local_por_pais(codigo: str, local: str) -> str:
@@ -121,15 +117,29 @@ def normalizar_telefono(
             "El número de teléfono no puede estar vacío"
         )
 
-    # Obtener código de país
-    codigo = _detectar_codigo(numero) or CODIGOS_PAIS.get(
+    texto = str(numero).strip()
+    digitos_originales = _solo_digitos(texto)
+    codigo_explicito = (
+        texto.startswith("+")
+        or digitos_originales.startswith("00")
+    )
+    codigo = (
+        _detectar_codigo(texto)
+        if codigo_explicito
+        else None
+    ) or CODIGOS_PAIS.get(
         pais.lower(),
         CODIGO_DEFECTO
     )
-    digitos = _quitar_prefijo_internacional(_solo_digitos(numero))
+    digitos = _quitar_prefijo_internacional(digitos_originales)
+    local_sin_codigo = (
+        _quitar_codigo_repetido(digitos, codigo)
+        if codigo_explicito
+        else digitos
+    )
     local = _normalizar_local_por_pais(
         codigo,
-        _quitar_codigo_repetido(digitos, codigo)
+        local_sin_codigo
     )
 
     return f"{codigo}{local}" if local else codigo

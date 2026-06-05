@@ -35,6 +35,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     numero_tarjeta: '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     tipo_pago_id: '1',
+    cuenta_pago_id: '',
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -142,6 +143,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         numero_tarjeta: form.numero_tarjeta,
         telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         tipo_pago_id: Number(form.tipo_pago_id),
+        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
@@ -221,18 +223,20 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           </header>
           <div className="form-grid payment-grid">
             <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
-            </label>
-            <label>
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
                 metodos={metodosFiltrados}
                 onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
                 disabled={cargandoMetodos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
+            </label>
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
             <label>
               Cupon o bono

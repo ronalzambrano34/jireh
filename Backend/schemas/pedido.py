@@ -11,6 +11,10 @@ class PedidoEstadoUpdate(
 
     observaciones: str | None = None
 
+    finalizar_sin_comprobante: bool = False
+
+    motivo_sin_comprobante: str | None = None
+
 
 class PedidoRedireccionUpdate(
     BaseModel

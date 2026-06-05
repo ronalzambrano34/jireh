@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Smartphone, UserRound, WalletCards } from 'lucide-react';
-import { descargarReporteCsv, listarOperadores, obtenerReporte } from '../api/client';
-import type { Operador, ReporteGeneral, ReporteGrupo } from '../types/api';
+import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, MinusCircle, Smartphone, UserRound, WalletCards } from 'lucide-react';
+import { crearExtraccionCuenta, descargarReporteCsv, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
+import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, ReporteGrupo, SaldoCuenta } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
 import { FloatingSelect } from '../components/FloatingSelect';
@@ -129,10 +129,18 @@ export function ReportesPage() {
     servicio: '',
     moneda_pago: '',
     operador_id: '',
+    metodo_pago_id: '',
+    cuenta_pago_id: '',
   }));
   const [reporte, setReporte] = useState<ReporteGeneral | null>(null);
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [operadoresLoading, setOperadoresLoading] = useState(false);
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
+  const [cuentasPago, setCuentasPago] = useState<MetodoPagoCuenta[]>([]);
+  const [saldosCuenta, setSaldosCuenta] = useState<SaldoCuenta[]>([]);
+  const [extracciones, setExtracciones] = useState<ExtraccionCuenta[]>([]);
+  const [extraccion, setExtraccion] = useState({ cuenta_pago_id: '', monto: '', motivo: '' });
+  const [guardandoExtraccion, setGuardandoExtraccion] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -149,6 +157,18 @@ export function ReportesPage() {
 
   useEffect(() => {
     void cargarOperadores();
+    listarMetodosPago()
+      .then(async (metodos) => {
+        setMetodosPago(metodos);
+        const cuentas = await Promise.all(
+          metodos.map((metodo) => listarCuentasMetodoPago(metodo.id, false)),
+        );
+        setCuentasPago(cuentas.flat());
+      })
+      .catch(() => {
+        setMetodosPago([]);
+        setCuentasPago([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -159,7 +179,18 @@ export function ReportesPage() {
       setError(null);
       try {
         const data = await obtenerReporte(filters);
-        if (active) setReporte(data);
+        const [saldos, movimientos] = await Promise.all([
+          listarSaldosCuenta({
+            metodo_pago_id: filters.metodo_pago_id,
+            cuenta_pago_id: filters.cuenta_pago_id,
+          }),
+          listarExtraccionesCuenta(filters.cuenta_pago_id),
+        ]);
+        if (active) {
+          setReporte(data);
+          setSaldosCuenta(saldos);
+          setExtracciones(movimientos);
+        }
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
       } finally {
@@ -175,7 +206,37 @@ export function ReportesPage() {
   }, [filters]);
 
   function update(field: keyof typeof filters, value: string) {
-    setFilters((current) => ({ ...current, [field]: value }));
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'metodo_pago_id' ? { cuenta_pago_id: '' } : {}),
+    }));
+  }
+
+  async function registrarExtraccion() {
+    if (!extraccion.cuenta_pago_id || Number(extraccion.monto) <= 0 || !extraccion.motivo.trim()) {
+      setError('Selecciona una cuenta, escribe un monto valido y el motivo');
+      return;
+    }
+    setGuardandoExtraccion(true);
+    setError(null);
+    try {
+      await crearExtraccionCuenta({
+        cuenta_pago_id: Number(extraccion.cuenta_pago_id),
+        monto: Number(extraccion.monto),
+        motivo: extraccion.motivo.trim(),
+      });
+      setExtraccion({ cuenta_pago_id: '', monto: '', motivo: '' });
+      setSaldosCuenta(await listarSaldosCuenta({
+        metodo_pago_id: filters.metodo_pago_id,
+        cuenta_pago_id: filters.cuenta_pago_id,
+      }));
+      setExtracciones(await listarExtraccionesCuenta(filters.cuenta_pago_id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo registrar la extraccion');
+    } finally {
+      setGuardandoExtraccion(false);
+    }
   }
 
   function updatePeriodo(value: PeriodoReporte) {
@@ -270,6 +331,44 @@ export function ReportesPage() {
             buttonClassName="filter-modal-button"
           />
         </div>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.metodo_pago_id}
+            onChange={(value) => update('metodo_pago_id', value)}
+            options={[
+              { value: '', label: 'Todos los metodos', icon: <WalletCards size={17} /> },
+              ...metodosPago.map((metodo) => ({
+                value: String(metodo.id),
+                label: metodo.nombre,
+                description: metodo.moneda,
+                icon: <WalletCards size={17} />,
+              })),
+            ]}
+            ariaLabel="Filtrar por metodo de pago"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
+        </div>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.cuenta_pago_id}
+            onChange={(value) => update('cuenta_pago_id', value)}
+            options={[
+              { value: '', label: 'Todas las cuentas', icon: <Landmark size={17} /> },
+              ...cuentasPago
+                .filter((cuenta) => !filters.metodo_pago_id || String(cuenta.metodo_pago_id) === filters.metodo_pago_id)
+                .map((cuenta) => ({
+                  value: String(cuenta.id),
+                  label: cuenta.alias,
+                  description: metodosPago.find((metodo) => metodo.id === cuenta.metodo_pago_id)?.nombre,
+                  icon: <Landmark size={17} />,
+                })),
+            ]}
+            ariaLabel="Filtrar por cuenta de pago"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
+        </div>
         <div className="report-filter-actions">
           <button type="button" className="ghost-button" onClick={exportarCsv} disabled={loading}>
             <Download size={18} /> CSV
@@ -293,12 +392,87 @@ export function ReportesPage() {
             <div><span>Ganancia</span><strong>{money(reporte.resumen.ganancia_total)}</strong></div>
           </div>
 
+          <section className="report-table account-balance-section">
+            <h2>Saldos por cuenta</h2>
+            <div className="data-table">
+              <div className="data-row header">
+                <span>Cuenta</span>
+                <span>Ingresos</span>
+                <span>Extracciones</span>
+                <span>Saldo</span>
+              </div>
+              {saldosCuenta.map((saldo) => (
+                <div className="data-row" key={saldo.cuenta_pago_id}>
+                  <span>{saldo.metodo_pago} - {saldo.alias} ({saldo.moneda})</span>
+                  <span>{money(saldo.ingresos)}</span>
+                  <span>{money(saldo.extracciones)}</span>
+                  <strong>{money(saldo.saldo)}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="withdrawal-form">
+              <FloatingSelect
+                value={extraccion.cuenta_pago_id}
+                onChange={(value) => setExtraccion((current) => ({ ...current, cuenta_pago_id: value }))}
+                options={[
+                  { value: '', label: 'Cuenta a extraer', icon: <Landmark size={17} /> },
+                  ...saldosCuenta.map((saldo) => ({
+                    value: String(saldo.cuenta_pago_id),
+                    label: `${saldo.metodo_pago} - ${saldo.alias}`,
+                    description: `Disponible: ${money(saldo.saldo)} ${saldo.moneda}`,
+                    icon: <Landmark size={17} />,
+                  })),
+                ]}
+                ariaLabel="Cuenta para extraccion"
+              />
+              <input
+                value={extraccion.monto}
+                onChange={(event) => setExtraccion((current) => ({ ...current, monto: event.target.value }))}
+                inputMode="decimal"
+                placeholder="Monto"
+              />
+              <input
+                value={extraccion.motivo}
+                onChange={(event) => setExtraccion((current) => ({ ...current, motivo: event.target.value }))}
+                placeholder="Motivo de la extraccion"
+              />
+              <button type="button" className="ghost-button" onClick={registrarExtraccion} disabled={guardandoExtraccion}>
+                <MinusCircle size={18} /> {guardandoExtraccion ? 'Registrando...' : 'Registrar extraccion'}
+              </button>
+            </div>
+          </section>
+
+          <section className="report-table">
+            <h2>Ultimas extracciones</h2>
+            <div className="data-table">
+              <div className="data-row header">
+                <span>Fecha</span>
+                <span>Cuenta</span>
+                <span>Monto</span>
+                <span>Motivo</span>
+              </div>
+              {extracciones.length === 0 && <div className="empty-row">Sin extracciones registradas</div>}
+              {extracciones.map((movimiento) => {
+                const cuenta = cuentasPago.find((item) => item.id === movimiento.cuenta_pago_id);
+                return (
+                  <div className="data-row" key={movimiento.id}>
+                    <span>{new Date(movimiento.created_at).toLocaleString('es-UY')}</span>
+                    <span>{cuenta?.alias ?? `Cuenta ${movimiento.cuenta_pago_id}`}</span>
+                    <span>{money(movimiento.monto)}</span>
+                    <span>{movimiento.motivo}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
           <div className="report-grid">
             <ReportTable title="Por dias" rows={reporte.por_dia} />
             <ReportTable title="Por estado" rows={reporte.por_estado} />
             <ReportTable title="Por servicio" rows={reporte.por_servicio} />
             <ReportTable title="Por moneda" rows={reporte.por_moneda} />
             <ReportTable title="Por metodo de pago" rows={reporte.por_metodo_pago} />
+            <ReportTable title="Por cuenta de pago" rows={reporte.por_cuenta_pago} />
             <ReportTable title="Por operador" rows={reporte.por_operador} />
           </div>
         </div>

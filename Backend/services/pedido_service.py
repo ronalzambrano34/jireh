@@ -20,6 +20,11 @@ from Backend.services.whatsapp_service import (
 from Backend.services.mensaje_operacion import (
     generar_mensaje_operacion
 )
+from Backend.services.template_service import (
+    DEFAULT_FINALIZACION_SIN_COMPROBANTE,
+    render_template,
+    render_text_template
+)
 
 ESTADOS_ALIASES = {
     "pendiente": PedidoEstado.PENDIENTE_PAGO,
@@ -39,6 +44,19 @@ ESTADOS_PERMITIDOS = (
     )
 )
 
+ESTADOS_TERMINALES = {
+    PedidoEstado.COMPLETADO,
+    PedidoEstado.CANCELADO,
+}
+
+
+def _validar_pedido_operable(pedido: Pedido):
+    if pedido.estado in ESTADOS_TERMINALES:
+        raise Exception(
+            "Las ordenes completadas o canceladas son solo de consulta"
+        )
+
+
 def _utcnow():
     return datetime.utcnow()
 
@@ -48,6 +66,8 @@ def _lock_activo(
     now: datetime | None = None
 ):
     return bool(
+        pedido.estado not in ESTADOS_TERMINALES
+        and
         pedido.operador_asignado_id
     )
 
@@ -246,6 +266,12 @@ def _liberar_bloqueo(
 def pedido_base_dict(
     pedido: Pedido
 ):
+    tasa_aplicada = (
+        pedido.monto_pago
+        if pedido.servicio == "saldo"
+        else pedido.tasa_final
+    )
+
     return {
         "id": pedido.id,
         "codigo_operacion": pedido.codigo_operacion,
@@ -253,9 +279,13 @@ def pedido_base_dict(
         "estado": pedido.estado,
         "monto_pago": pedido.monto_pago,
         "moneda_pago": pedido.moneda_pago,
-        "tasa_usada": pedido.tasa_usada,
+        "tasa_usada": (
+            pedido.monto_pago
+            if pedido.servicio == "saldo"
+            else pedido.tasa_usada
+        ),
         "bonificacion": pedido.bonificacion,
-        "tasa_final": pedido.tasa_final,
+        "tasa_final": tasa_aplicada,
         "monto_resultado": pedido.monto_resultado,
         "ganancia": pedido.ganancia,
         "comprobante_pago": pedido.comprobante_pago,
@@ -263,6 +293,7 @@ def pedido_base_dict(
         "cliente_id": pedido.cliente_id,
         "operador_id": pedido.operador_id,
         "tipo_pago_id": pedido.tipo_pago_id,
+        "cuenta_pago_id": pedido.cuenta_pago_id,
         "oferta_id": pedido.oferta_id,
         "fecha_pago_confirmado": pedido.fecha_pago_confirmado,
         "fecha_en_operacion": pedido.fecha_en_operacion,
@@ -375,7 +406,8 @@ def detalle_divisa(
 
 def listar_archivos_dict(
     db: Session,
-    pedido_id: int
+    pedido_id: int,
+    limit: int = 8
 ):
     archivos = (
         db.query(
@@ -387,6 +419,9 @@ def listar_archivos_dict(
         .order_by(
             ArchivoPedido.created_at.desc(),
             ArchivoPedido.id.desc()
+        )
+        .limit(
+            limit
         )
         .all()
     )
@@ -408,7 +443,8 @@ def listar_archivos_dict(
 
 def listar_historial_dict(
     db: Session,
-    pedido_id: int
+    pedido_id: int,
+    limit: int = 12
 ):
     historial = (
         db.query(
@@ -420,6 +456,9 @@ def listar_historial_dict(
         .order_by(
             PedidoHistorial.created_at.desc(),
             PedidoHistorial.id.desc()
+        )
+        .limit(
+            limit
         )
         .all()
     )
@@ -701,6 +740,22 @@ def pedido_dict(
             db,
             pedido.id
         )
+        variables_finalizacion = {
+            "codigo_operacion": pedido.codigo_operacion or "",
+            "monto_resultado": pedido.monto_resultado,
+            "servicio": pedido.servicio or "",
+        }
+        try:
+            data["mensaje_finalizacion_sin_comprobante"] = render_template(
+                db,
+                "template_finalizacion_sin_comprobante",
+                variables_finalizacion
+            )
+        except Exception:
+            data["mensaje_finalizacion_sin_comprobante"] = render_text_template(
+                DEFAULT_FINALIZACION_SIN_COMPROBANTE,
+                variables_finalizacion
+            )
 
     data.update(
         _lock_dict(
@@ -948,6 +1003,9 @@ def tomar_operacion_pedido(
         codigo_operacion
     )
 
+    _validar_pedido_operable(
+        pedido
+    )
     validar_bloqueo_pedido(
         db,
         pedido,
@@ -980,6 +1038,9 @@ def renovar_bloqueo_pedido(
         codigo_operacion
     )
 
+    _validar_pedido_operable(
+        pedido
+    )
     validar_bloqueo_pedido(
         db,
         pedido,
@@ -1049,7 +1110,9 @@ def actualizar_estado_pedido(
     observaciones: str | None = None,
     usuario: str | None = None,
     comentario: str | None = None,
-    operador: Operador | None = None
+    operador: Operador | None = None,
+    finalizar_sin_comprobante: bool = False,
+    motivo_sin_comprobante: str | None = None
 ):
 
     estado_normalizado = (
@@ -1100,6 +1163,63 @@ def actualizar_estado_pedido(
         pedido.estado
     )
 
+    if (
+        observaciones
+        is not None
+    ):
+        pedido.observaciones = (
+            observaciones
+        )
+
+    comentario_historial = comentario
+    if (
+        estado_normalizado
+        ==
+        PedidoEstado.COMPLETADO
+    ):
+        tiene_comprobante_final = (
+            db.query(
+                ArchivoPedido.id
+            )
+            .filter(
+                ArchivoPedido.pedido_id == pedido.id,
+                ArchivoPedido.tipo == "comprobante_final"
+            )
+            .first()
+            is not None
+        )
+        motivo_finalizacion = (
+            motivo_sin_comprobante
+            or ""
+        ).strip()
+
+        if not tiene_comprobante_final and not finalizar_sin_comprobante:
+            raise Exception(
+                "Sube el comprobante de exito de la operacion o activa la finalizacion sin comprobante"
+            )
+
+        if finalizar_sin_comprobante and len(
+            motivo_finalizacion
+        ) < 10:
+            raise Exception(
+                "Explica por que no se pudo obtener el comprobante final"
+            )
+
+        if finalizar_sin_comprobante:
+            nota_finalizacion = (
+                "Operacion finalizada sin comprobante: "
+                + motivo_finalizacion
+            )
+            pedido.observaciones = " | ".join(
+                parte
+                for parte in [
+                    pedido.observaciones,
+                    nota_finalizacion
+                ]
+                if parte
+            )
+            comentario_historial = nota_finalizacion
+
     pedido.estado = (
         estado_normalizado
     )
@@ -1118,14 +1238,6 @@ def actualizar_estado_pedido(
     ):
         pedido.comprobante_pago = (
             comprobante_pago
-        )
-
-    if (
-        observaciones
-        is not None
-    ):
-        pedido.observaciones = (
-            observaciones
         )
 
     if (
@@ -1184,7 +1296,7 @@ def actualizar_estado_pedido(
             usuario,
 
             comentario=
-            comentario
+            comentario_historial
         )
     )
 
@@ -1229,6 +1341,22 @@ def actualizar_estado_pedido(
         mensaje_grupo_pedido = generar_notificacion_grupo_pedido(
             db=db,
             mensaje_operacion=mensaje_operacion["mensaje"]
+        )
+
+    elif (
+        estado_normalizado
+        ==
+        PedidoEstado.EN_OPERACION
+    ):
+        mensaje_grupo_pedido = generar_notificacion_grupo_pedido(
+            db=db,
+            mensaje_operacion=(
+                "*Operacion en curso*\n"
+                f"Codigo: {pedido.codigo_operacion}\n"
+                f"Servicio: {pedido.servicio}\n"
+                f"Pago: {pedido.monto_pago} {pedido.moneda_pago}\n"
+                f"Entrega: {pedido.monto_resultado}"
+            )
         )
 
     mensaje_finalizado = generar_notificacion_grupo_finalizado(
