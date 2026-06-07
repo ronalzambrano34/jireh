@@ -3,7 +3,7 @@ import brouLogo from '../assets/icono_bancos/brow.webp';
 import itauLogo from '../assets/icono_bancos/itau.webp';
 import mdLogo from '../assets/icono_bancos/MiDinero.webp';
 import ocaLogo from '../assets/icono_bancos/oca.webp';
-import pixLogo from '../assets/icono_bancos/pix.png';
+import pixLogo from '../assets/icono_bancos/pix.webp';
 import prexLogo from '../assets/icono_bancos/prex.webp';
 import santanderLogo from '../assets/icono_bancos/santander.webp';
 import scotiaLogo from '../assets/icono_bancos/soctiabank.webp';

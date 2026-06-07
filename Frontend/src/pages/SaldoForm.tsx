@@ -148,6 +148,14 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       setError('El telefono de Cuba debe tener 8 digitos despues de +53');
       return;
     }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!form.paquete_saldo_id) {
+      setError(`No hay un paquete de saldo seleccionado para ${form.moneda_pago}`);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -173,7 +181,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -268,9 +276,9 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           </div>
         </section>
       </div>
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando saldo" inline />}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear saldo'}
       </button>
     </form>

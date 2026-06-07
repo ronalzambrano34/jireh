@@ -21,10 +21,6 @@ import { formatearNumeroTarjeta } from './utils/tarjetas';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import {
   abrirWhatsAppUrl,
-  abrirWhatsAppUrlsReservadas,
-  cerrarVentanasWhatsApp,
-  reservarVentanasWhatsApp,
-  type VentanaWhatsApp,
 } from './utils/whatsapp';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
@@ -32,7 +28,6 @@ const estados = [
   { value: '', label: 'Estado' },
   { value: 'pendiente_pago', label: 'Pendiente pago' },
   { value: 'pago_confirmado', label: 'Pago confirmado' },
-  { value: 'en_operacion', label: 'En operacion' },
   { value: 'completado', label: 'Completado' },
   { value: 'cancelado', label: 'Cancelado' },
 ];
@@ -57,6 +52,7 @@ type CrearPedidoDraft = {
 type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
 type AppTheme = 'light' | 'dark-deep' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
+type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 type AppToastKind = 'success' | 'error';
 
@@ -72,7 +68,12 @@ const PROFILE_TOAST_DURATION_MS = 5600;
 const ERROR_TOAST_DURATION_MS = 5200;
 
 function estadoLabel(value: string) {
+  if (value === 'en_operacion') return 'Pago confirmado';
   return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
+}
+
+function estadoFaseUno(value: string) {
+  return value === 'en_operacion' ? 'pago_confirmado' : value;
 }
 
 function servicioIcon(value: string, size = 18) {
@@ -204,25 +205,25 @@ function tiempoRelativo(value?: string, nowMs = Date.now()) {
   return `hace ${diffDias} d`;
 }
 
-function minutosDesde(value?: string | null, nowMs = Date.now()) {
-  if (!value) return null;
-  const fecha = new Date(value);
-  if (Number.isNaN(fecha.getTime())) return null;
-  return Math.max(0, Math.floor((nowMs - fecha.getTime()) / 60000));
-}
+function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
+  if (periodo === 'todos') return {};
 
-function pedidoEnOperacionRetrasado(pedido: PedidoResumen, nowMs: number) {
-  if (pedido.estado !== 'en_operacion') return false;
-  const minutos = minutosDesde(pedido.fecha_en_operacion ?? pedido.asignado_en ?? pedido.updated_at ?? pedido.created_at, nowMs);
-  return minutos !== null && minutos >= 10;
-}
+  const ahora = new Date();
+  const hasta = new Date(ahora);
+  hasta.setHours(24, 0, 0, 0);
 
-function tiempoEnOperacionLabel(pedido: PedidoResumen, nowMs: number) {
-  if (pedido.estado !== 'en_operacion') return null;
-  const base = pedido.fecha_en_operacion ?? pedido.asignado_en ?? pedido.updated_at ?? pedido.created_at;
-  const minutos = minutosDesde(base, nowMs);
-  if (minutos === null) return null;
-  return `${minutos} min en operacion`;
+  const desde = new Date(ahora);
+  desde.setHours(0, 0, 0, 0);
+  if (periodo === '7_dias') {
+    desde.setDate(desde.getDate() - 6);
+  } else if (periodo === 'mes') {
+    desde.setDate(1);
+  }
+
+  return {
+    fecha_desde: desde.toISOString(),
+    fecha_hasta: hasta.toISOString(),
+  };
 }
 
 export function App() {
@@ -236,10 +237,16 @@ export function App() {
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
   const [pedidoPagoModal, setPedidoPagoModal] = useState<PedidoDetalle | null>(null);
+  const [whatsappGrupoPendiente, setWhatsappGrupoPendiente] = useState<{
+    codigo: string;
+    url: string;
+    mensaje: string;
+  } | null>(null);
   const [alcanceConteos, setAlcanceConteos] = useState({ mis: 0, todas: 0 });
   const [estado, setEstado] = useState('');
   const [servicio, setServicio] = useState('');
   const [alcancePedidos, setAlcancePedidos] = useState<AlcancePedidos>('mis');
+  const [periodoPedidos, setPeriodoPedidos] = useState<PeriodoPedidos>('hoy');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
@@ -305,7 +312,7 @@ export function App() {
     const term = busqueda.trim().toLowerCase();
 
     return pedidos.filter((pedido) => {
-      if (estado && pedido.estado !== estado) return false;
+      if (estado && estadoFaseUno(pedido.estado) !== estado) return false;
       if (servicio && pedido.servicio !== servicio) return false;
       if (!term) return true;
 
@@ -337,7 +344,8 @@ export function App() {
         ].join(' ').toLowerCase();
         if (!searchable.includes(term)) continue;
       }
-      counts.set(pedido.estado, (counts.get(pedido.estado) ?? 0) + 1);
+      const estadoVisible = estadoFaseUno(pedido.estado);
+      counts.set(estadoVisible, (counts.get(estadoVisible) ?? 0) + 1);
     }
 
     return counts;
@@ -360,6 +368,10 @@ export function App() {
 
   const misPedidosConteo = alcanceConteos.mis;
   const todasPedidosConteo = alcanceConteos.todas;
+  const pedidoSeleccionadoInicial = useMemo(
+    () => pedidos.find((pedido) => pedido.codigo_operacion === seleccionado) ?? null,
+    [pedidos, seleccionado],
+  );
 
   function pedidoTomadoPorMi(pedido: PedidoResumen) {
     return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id === operador.id);
@@ -385,7 +397,7 @@ export function App() {
       .map((item, index) => ({
         ...item,
         orden: index,
-        pedidos: pedidosFiltrados.filter((pedido) => pedido.estado === item.value),
+        pedidos: pedidosFiltrados.filter((pedido) => estadoFaseUno(pedido.estado) === item.value),
       }))
       .filter((grupo) => grupo.pedidos.length > 0 || Boolean(estado));
   }, [estado, pedidosFiltrados]);
@@ -521,7 +533,7 @@ export function App() {
     abrirUrlPago(pedidoPagoModal?.whatsapp_grupo_pedidos_url);
   }
 
-  async function confirmarPagoPedidoCreado(file: File, ventanasWhatsApp: VentanaWhatsApp[]) {
+  async function confirmarPagoPedidoCreado(file: File) {
     if (!pedidoPagoModal || confirmandoPagoCreado) return;
     setConfirmandoPagoCreado(true);
     setError(null);
@@ -535,17 +547,19 @@ export function App() {
         'pago_confirmado',
         'Pago confirmado al crear el pedido con comprobante cargado.',
       );
-      abrirWhatsAppUrlsReservadas(
-        ventanasWhatsApp,
-        actualizado.whatsapp_grupo_pedidos_url,
-      );
+      if (actualizado.whatsapp_grupo_pedidos_url) {
+        setWhatsappGrupoPendiente({
+          codigo: actualizado.codigo_operacion,
+          url: actualizado.whatsapp_grupo_pedidos_url,
+          mensaje: actualizado.mensaje_grupo_pedidos ?? '',
+        });
+      }
       setPedidoPagoModal(null);
       await cargarPedidos();
       setCopyToast('Pago confirmado');
       if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
       copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
     } catch (err) {
-      cerrarVentanasWhatsApp(ventanasWhatsApp);
       setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago');
     } finally {
       setConfirmandoPagoCreado(false);
@@ -561,8 +575,7 @@ export function App() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    const ventanasWhatsApp = reservarVentanasWhatsApp(1);
-    void confirmarPagoPedidoCreado(file, ventanasWhatsApp);
+    void confirmarPagoPedidoCreado(file);
   }
 
   const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[]) => {
@@ -576,7 +589,11 @@ export function App() {
     setError(null);
     try {
       const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
-      const data = await listarPedidos({ limit: 200, alcance: alcanceCarga });
+      const data = await listarPedidos({
+        limit: 200,
+        alcance: alcanceCarga,
+        ...rangoPeriodoPedidos(periodoPedidos),
+      });
       if (puedeVerTodasLasOrdenes) {
         aplicarPedidosPorAlcance(data);
       } else {
@@ -588,12 +605,16 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes]);
+  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos]);
 
   const refrescarPedidosSilencioso = useCallback(async () => {
     try {
       const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
-      const data = await listarPedidos({ limit: 200, alcance: alcanceCarga });
+      const data = await listarPedidos({
+        limit: 200,
+        alcance: alcanceCarga,
+        ...rangoPeriodoPedidos(periodoPedidos),
+      });
       if (puedeVerTodasLasOrdenes) {
         aplicarPedidosPorAlcance(data);
       } else {
@@ -603,7 +624,7 @@ export function App() {
     } catch {
       // El refresco silencioso no debe interrumpir al operador si falla una vuelta.
     }
-  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes]);
+  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos]);
 
 
   useEffect(() => {
@@ -1184,7 +1205,13 @@ export function App() {
         ) : (
           <>
             {seleccionado ? (
-              <PedidoDetallePanel codigo={seleccionado} operadorId={operador.id} onChanged={cargarPedidos} onClose={() => setSeleccionado(null)} />
+              <PedidoDetallePanel
+                codigo={seleccionado}
+                pedidoInicial={pedidoSeleccionadoInicial}
+                operadorId={operador.id}
+                onChanged={cargarPedidos}
+                onClose={() => setSeleccionado(null)}
+              />
             ) : (
             <section className="content-grid orders-content-grid">
               <div className="list-panel orders-list-panel">
@@ -1208,6 +1235,21 @@ export function App() {
                     </button>
                   )}
                   <div className="orders-top-actions">
+                    <div className="order-filter-field order-filter-floating orders-period-action">
+                      <FloatingSelect
+                        value={periodoPedidos}
+                        onChange={(value) => setPeriodoPedidos(value as PeriodoPedidos)}
+                        options={[
+                          { value: 'hoy', label: 'Hoy' },
+                          { value: '7_dias', label: '7 dias' },
+                          { value: 'mes', label: 'Este mes' },
+                          { value: 'todos', label: 'Todos' },
+                        ]}
+                        ariaLabel="Filtrar pedidos por fecha"
+                        align="left"
+                        buttonClassName="order-filter-button"
+                      />
+                    </div>
                     <div className="order-filter-field order-filter-floating orders-service-action">
                       <FloatingSelect
                         value={servicio}
@@ -1258,13 +1300,11 @@ export function App() {
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
                     {pedidosListaOrdenada.map((pedido) => {
-                      const retrasado = pedidoEnOperacionRetrasado(pedido, pedidosClock);
-                      const tiempoOperacion = tiempoEnOperacionLabel(pedido, pedidosClock);
                       const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
                       return (
                       <button
                         key={pedido.codigo_operacion}
-                        className={disponibilidadPedidoClass(pedido, 'chat-order-card', seleccionado === pedido.codigo_operacion, retrasado)}
+                        className={disponibilidadPedidoClass(pedido, 'chat-order-card', seleccionado === pedido.codigo_operacion, false)}
                         onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
                         disabled={bloqueadoPorOtro}
                       >
@@ -1284,7 +1324,6 @@ export function App() {
                         </span>
                         <span className="chat-card-side">
                           <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
-                          {tiempoOperacion && <small className={retrasado ? 'order-delay-chip delayed' : 'order-delay-chip'}>{retrasado ? 'Retrasado' : tiempoOperacion}</small>}
                           {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own' : 'order-redirect-chip'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
                           {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned">Lo tienes tu</small>}
                           {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
@@ -1310,13 +1349,11 @@ export function App() {
                         </header>
                         {!colapsado && <div className="pedido-list">
                           {grupo.pedidos.map((pedido) => {
-                            const retrasado = pedidoEnOperacionRetrasado(pedido, pedidosClock);
-                            const tiempoOperacion = tiempoEnOperacionLabel(pedido, pedidosClock);
                             const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
                             return (
                             <button
                               key={pedido.codigo_operacion}
-                              className={disponibilidadPedidoClass(pedido, 'pedido-row', seleccionado === pedido.codigo_operacion, retrasado)}
+                              className={disponibilidadPedidoClass(pedido, 'pedido-row', seleccionado === pedido.codigo_operacion, false)}
                               onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
                               disabled={bloqueadoPorOtro}
                             >
@@ -1324,7 +1361,6 @@ export function App() {
                                 <span className="pedido-card-head">
                                   <strong>{pedido.servicio}</strong>
                                   <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
-                                  {tiempoOperacion && <small className={retrasado ? 'order-delay-chip delayed inline' : 'order-delay-chip inline'}>{retrasado ? `Retrasado · ${tiempoOperacion}` : tiempoOperacion}</small>}
                                   {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
                                   {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned inline">Lo tienes tu</small>}
                                   {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked inline">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
@@ -1444,6 +1480,46 @@ export function App() {
                 Enviar al grupo
               </button>
             </div>
+          </div>
+        </Modal>
+      )}
+      {whatsappGrupoPendiente && (
+        <Modal
+          title="Pago confirmado"
+          subtitle={`${whatsappGrupoPendiente.codigo} · mensaje listo para Operaciones`}
+          onClose={() => setWhatsappGrupoPendiente(null)}
+          className="payment-confirmed-modal"
+        >
+          <div className="whatsapp-message-preview">
+            <label htmlFor="whatsapp-grupo-pendiente">Mensaje que se enviara</label>
+            <textarea
+              id="whatsapp-grupo-pendiente"
+              value={whatsappGrupoPendiente.mensaje}
+              rows={8}
+              readOnly
+            />
+          </div>
+          <div className="message-actions payment-modal-actions">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => void copiarPago(whatsappGrupoPendiente.mensaje)}
+            >
+              <Copy size={16} /> Copiar mensaje
+            </button>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => {
+                abrirWhatsAppUrl(whatsappGrupoPendiente.url);
+                setWhatsappGrupoPendiente(null);
+              }}
+            >
+              Enviar al grupo por WhatsApp
+            </button>
+            <button className="ghost-button" type="button" onClick={() => setWhatsappGrupoPendiente(null)}>
+              Enviar despues
+            </button>
           </div>
         </Modal>
       )}

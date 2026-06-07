@@ -1,10 +1,24 @@
 from sqlalchemy.orm import (
     Session
 )
+from decimal import Decimal
 
 from Backend.services.config_service import (
     obtener_config
 )
+
+
+def formatear_valor_template(value):
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float, Decimal)):
+        texto = format(Decimal(str(value)), "f")
+        if "." in texto:
+            texto = texto.rstrip("0").rstrip(".")
+        return texto or "0"
+    return str(value)
 
 
 def render_template(
@@ -33,7 +47,7 @@ def render_template(
         template = (
             template.replace(
                 f"{{{{{key}}}}}",
-                str(value or "")
+                formatear_valor_template(value)
             )
         )
 
@@ -41,7 +55,7 @@ def render_template(
         template = (
             template.replace(
                 f"{{{key}}}",
-                str(value or "")
+                formatear_valor_template(value)
             )
         )
 
@@ -61,7 +75,7 @@ def render_text_template(
         template = (
             template.replace(
                 f"{{{{{key}}}}}",
-                str(value or "")
+                formatear_valor_template(value)
             )
         )
 
@@ -69,7 +83,7 @@ def render_text_template(
         template = (
             template.replace(
                 f"{{{key}}}",
-                str(value or "")
+                formatear_valor_template(value)
             )
         )
 

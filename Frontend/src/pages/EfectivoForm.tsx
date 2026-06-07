@@ -169,6 +169,18 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
       setError('Sube la foto del documento de identidad');
       return;
     }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!(Number(form.monto_pago) > 0)) {
+      setError('Escribe un monto de pago mayor que cero');
+      return;
+    }
+    if (!form.punto_recogida_id) {
+      setError('Selecciona un punto de recogida');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -209,7 +221,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -345,9 +357,9 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
           </div>
         </section>
       </div>
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando efectivo" inline />}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear efectivo'}
       </button>
     </form>

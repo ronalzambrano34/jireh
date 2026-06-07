@@ -134,6 +134,18 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
       setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
       return;
     }
+    if (!form.numero_tarjeta.trim()) {
+      setError('Completa la tarjeta del destinatario');
+      return;
+    }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!(Number(form.monto_pago) > 0)) {
+      setError('Escribe un monto de pago mayor que cero');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -159,7 +171,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -246,9 +258,9 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           </div>
         </section>
       </div>
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando transferencia" inline />}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear transferencia'}
       </button>
     </form>

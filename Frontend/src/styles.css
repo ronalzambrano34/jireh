@@ -2972,30 +2972,45 @@ textarea {
 }
 
 .login-progress {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 12px 14px 14px;
-  border: 1px solid rgba(203, 211, 221, 0.82);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.62);
+  position: fixed;
+  inset: 0;
+  z-index: 141;
+  padding: 0;
+  border: 0;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.62) 24%,
+      rgba(248, 250, 252, 0.2) 52%,
+      transparent 76%
+    );
+  pointer-events: none;
 }
 
 .login-progress .logo-bounce-loader.inline-loader {
-  width: 100%;
-  min-height: 106px;
-  padding: 6px;
+  width: auto;
+  min-height: 0;
+  padding: 0;
   border: 0;
   background: transparent;
   backdrop-filter: none;
 }
 
 .login-progress .login-progress-text {
-  min-height: 18px;
-  color: #526173;
+  position: absolute;
+  top: calc(50% + 64px);
+  left: 50%;
+  width: min(88vw, 360px);
+  min-height: 0;
+  transform: translateX(-50%);
+  color: #243244;
   font-size: 13px;
   font-weight: 850;
   text-align: center;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92),
+    0 2px 10px rgba(24, 33, 47, 0.18);
 }
 
 .login-panel > label,
@@ -8232,10 +8247,14 @@ body {
   position: fixed;
   inset: 0;
   z-index: 140;
-  display: grid;
-  place-items: center;
-  background: rgba(248, 250, 252, 0.78);
-  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
 }
 
 .logo-bounce-loader img {
@@ -8248,14 +8267,15 @@ body {
 }
 
 .logo-bounce-loader.inline-loader {
-  position: relative;
-  inset: auto;
-  z-index: 1;
-  min-height: 132px;
-  border: 1px solid #d9e0e8;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(3px);
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
 }
 
 .logo-bounce-loader.inline-loader img {
@@ -8340,14 +8360,36 @@ body {
 :root[data-theme="dark-deep"] .logo-bounce-loader,
 :root[data-theme="dark-sidebar"] .logo-bounce-loader,
 :root[data-theme="dark-vscode"] .logo-bounce-loader {
-  background: rgba(3, 7, 18, 0.72);
+  background: transparent;
+}
+
+:root[data-theme="dark"] .login-progress .login-progress-text,
+:root[data-theme="dark-deep"] .login-progress .login-progress-text,
+:root[data-theme="dark-sidebar"] .login-progress .login-progress-text,
+:root[data-theme="dark-vscode"] .login-progress .login-progress-text {
+  color: #f8fafc;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.72);
+}
+
+:root[data-theme="dark"] .login-progress,
+:root[data-theme="dark-deep"] .login-progress,
+:root[data-theme="dark-sidebar"] .login-progress,
+:root[data-theme="dark-vscode"] .login-progress {
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(15, 23, 42, 0.88) 0%,
+      rgba(15, 23, 42, 0.58) 24%,
+      rgba(3, 7, 18, 0.18) 52%,
+      transparent 76%
+    );
 }
 
 :root[data-theme="dark"] .logo-bounce-loader.inline-loader,
 :root[data-theme="dark-deep"] .logo-bounce-loader.inline-loader,
 :root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader,
 :root[data-theme="dark-vscode"] .logo-bounce-loader.inline-loader {
-  border-color: var(--jireh-line);
+  border-color: transparent;
 }
 
 
@@ -13319,22 +13361,32 @@ body {
 
 .order-filter-floating .floating-select-menu {
   top: calc(100% + 8px);
-  right: auto;
-  left: 0;
-  width: min(260px, calc(100vw - 28px));
-  transform-origin: top left;
+  right: 0;
+  left: auto;
+  width: min(230px, calc(100vw - 32px));
+  transform-origin: top right;
   animation: floating-create-rise 0.16s ease-out both;
 }
 
 .order-filter-floating .floating-select.drop-up .floating-select-menu {
   top: auto;
   bottom: calc(100% + 8px);
+  transform-origin: bottom right;
+}
+
+.order-filter-floating .floating-select-menu.align-left {
+  right: auto;
+  left: 0;
+  transform-origin: top left;
+}
+
+.order-filter-floating .floating-select.drop-up .floating-select-menu.align-left {
   transform-origin: bottom left;
 }
 
 @media (max-width: 560px) {
   .order-filter-floating .floating-select-menu {
-    width: min(280px, calc(100vw - 22px));
+    width: min(230px, calc(100vw - 22px));
   }
 }
 
@@ -14909,10 +14961,74 @@ body {
   min-height: 44px;
 }
 
+.whatsapp-message-preview {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.whatsapp-message-preview label {
+  color: var(--jireh-muted, #526173);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.whatsapp-message-preview textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  white-space: pre-wrap;
+  font-family: inherit;
+  line-height: 1.45;
+}
+
+.whatsapp-attachment-preview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(33, 184, 131, 0.28);
+  border-radius: 10px;
+  background: rgba(33, 184, 131, 0.08);
+  color: inherit;
+  text-decoration: none;
+}
+
+.whatsapp-attachment-preview span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.whatsapp-attachment-preview small {
+  overflow: hidden;
+  color: var(--jireh-muted, #526173);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 520px) {
   .payment-already-paid,
   .payment-modal-actions {
     grid-template-columns: 1fr;
+  }
+
+  .modal-panel.payment-confirmed-modal {
+    width: calc(100vw - 24px);
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+    margin: 12px;
+    border: 1px solid #d9e0e8;
+    border-radius: 10px;
+  }
+
+  .payment-confirmed-modal .modal-body,
+  .payment-confirmed-modal .payment-modal-actions,
+  .payment-confirmed-modal .payment-modal-actions button {
+    min-width: 0;
+    max-width: 100%;
   }
 }
 
@@ -15247,6 +15363,22 @@ body {
   height: 72px;
   display: block;
   object-fit: cover;
+}
+
+.operation-evidence-file {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: #334155;
+}
+
+.operation-evidence-file strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .operation-document-detail small {
@@ -15722,6 +15854,12 @@ body {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  overflow: visible;
+}
+
+.orders-period-action {
+  width: 124px;
+  min-width: 112px;
 }
 
 .orders-scope-chips > button {

@@ -517,7 +517,7 @@ function trackEstadoLabel(value: string) {
   const labels: Record<string, string> = {
     pendiente_pago: 'Pendiente pago',
     pago_confirmado: 'Pago confirmado',
-    en_operacion: 'En operacion',
+    en_operacion: 'Pago confirmado',
     completado: 'Completado',
     cancelado: 'Cancelado',
   };
@@ -816,7 +816,6 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
                             onClick={() => onCreate('divisa', {
                               monto_pago: String(oferta.minimo_pago ?? ''),
                               moneda_pago: monedaPago(oferta.moneda_pago ?? grupoActivo.moneda),
-                              monto_divisa: String(oferta.tasa ?? ''),
                               tipo_tarjeta: tipoTarjetaDesdeOferta(oferta),
                             })}
                           >

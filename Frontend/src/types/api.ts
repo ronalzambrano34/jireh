@@ -262,7 +262,7 @@ export type CrearDivisaPayload = {
   numero_tarjeta?: string;
   telefono_destinatario?: string;
   contacto_id?: number | null;
-  monto_divisa: number;
+  monto_divisa?: number;
   tipo_pago_id: number;
   cuenta_pago_id?: number | null;
   operador_id: number;

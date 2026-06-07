@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from Backend.routes.webhook import router as webhook_router
 
 from Backend.config import FRONTEND_ORIGINS
+from Backend.config import RUN_DB_MAINTENANCE
 
 from Backend.database import Base
 from Backend.database import engine
@@ -81,9 +82,10 @@ Base.metadata.create_all(
 
 _db = SessionLocal()
 try:
-    ensure_runtime_columns(
-        _db
-    )
+    if RUN_DB_MAINTENANCE:
+        ensure_runtime_columns(
+            _db
+        )
     seed_cliente_generico(
         _db
     )

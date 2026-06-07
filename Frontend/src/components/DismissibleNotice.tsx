@@ -5,9 +5,10 @@ type DismissibleNoticeProps = {
   children: ReactNode;
   className?: string;
   role?: 'alert' | 'status';
+  onDismiss?: () => void;
 };
 
-export function DismissibleNotice({ children, className = 'notice', role = 'status' }: DismissibleNoticeProps) {
+export function DismissibleNotice({ children, className = 'notice', role = 'status', onDismiss }: DismissibleNoticeProps) {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -19,7 +20,15 @@ export function DismissibleNotice({ children, className = 'notice', role = 'stat
   return (
     <div className={`${className} dismissible-notice`} role={role}>
       <span className="dismissible-notice-content">{children}</span>
-      <button type="button" onClick={() => setHidden(true)} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+      <button
+        type="button"
+        onClick={() => {
+          setHidden(true);
+          onDismiss?.();
+        }}
+        title="Cerrar notificacion"
+        aria-label="Cerrar notificacion"
+      >
         <X size={15} />
       </button>
     </div>

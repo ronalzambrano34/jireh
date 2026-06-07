@@ -75,6 +75,14 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
       setError('Escribe la informacion de la operacion');
       return;
     }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!(Number(form.monto_pago) > 0)) {
+      setError('Escribe un monto de pago mayor que cero');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -99,10 +107,8 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
     }
   }
 
-  const puedeCrear = Boolean(form.tipo_pago_id && telefonoClienteCompleto(form.numero_telefono_cliente) && form.observaciones.trim() && Number(form.monto_pago) > 0);
-
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -177,9 +183,9 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
           </div>
         </section>
       </div>
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando pedido" inline />}
-      <button className="primary-button create-submit-button" disabled={loading || !puedeCrear}>
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear otros'}
       </button>
     </form>

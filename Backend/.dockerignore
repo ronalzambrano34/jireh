@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.env
+credentials*.json
+pedidos/
+storage/
+venv/

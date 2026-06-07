@@ -30,3 +30,12 @@ npm run dev -- --host 0.0.0.0
 
 ollama run codellama
 ollama run llama2:7b
+
+
+cd /home/usuario/Documentos/jireh
+docker compose up --build
+
+chmod +x start.sh   #dar_permisos
+nano start.sh
+
+    

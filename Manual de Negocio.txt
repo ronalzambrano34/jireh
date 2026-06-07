@@ -157,7 +157,6 @@ Estados definidos en el sistema:
 - creado
 - pendiente_pago
 - pago_confirmado
-- en_operacion
 - completado
 - cancelado
 - error
@@ -173,23 +172,20 @@ Flujo recomendado:
 3. pago_confirmado
    Se confirmo que el pago del cliente fue recibido.
 
-4. en_operacion
-   La operacion fue enviada o asignada para ejecucion.
-
-5. completado
+4. completado
    El operador ejecuto la operacion y existe confirmacion.
 
-6. cancelado
+5. cancelado
    La operacion no se realizara.
 
-7. error
+6. error
    Hubo un problema operativo, dato incorrecto, falla bancaria, rechazo, o situacion que requiere revision.
 
 Compatibilidad actual:
 El sistema acepta algunos nombres viejos y los normaliza:
 
 - pendiente -> pendiente_pago
-- en_proceso -> en_operacion
+- en_operacion y en_proceso se conservan solo para compatibilidad con pedidos historicos de fases anteriores.
 - realizado -> completado
 - finalizado -> completado
 - error_operacion -> error
@@ -1281,4 +1277,5 @@ Actualizacion de interfaz aplicada:
 
 
 Pendiente:
+
 - cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login

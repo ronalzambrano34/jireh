@@ -14,7 +14,9 @@ def _get_columns(
         db.get_bind()
     )
 
-    if table_name not in inspector.get_table_names():
+    if not inspector.has_table(
+        table_name
+    ):
         return set()
 
     return {
@@ -59,7 +61,9 @@ def _add_index_if_missing(
         db.get_bind()
     )
 
-    if table_name not in inspector.get_table_names():
+    if not inspector.has_table(
+        table_name
+    ):
         return
 
     table_columns = _get_columns(

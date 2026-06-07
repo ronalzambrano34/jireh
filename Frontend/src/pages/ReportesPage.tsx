@@ -10,7 +10,6 @@ const estados = [
   { value: '', label: 'Estado' },
   { value: 'pendiente_pago', label: 'Pendiente pago' },
   { value: 'pago_confirmado', label: 'Pago confirmado' },
-  { value: 'en_operacion', label: 'En operacion' },
   { value: 'completado', label: 'Completado' },
   { value: 'cancelado', label: 'Cancelado' },
   { value: 'error', label: 'Error' },

@@ -234,11 +234,20 @@ export function buscarClientePorTelefono(telefono: string, pais = 'br') {
   return request<Cliente>(`/clientes/buscar?${query.toString()}`);
 }
 
-export function listarPedidos(params: { estado?: string; servicio?: string; limit?: number; alcance?: 'mis' | 'todas' } = {}) {
+export function listarPedidos(params: {
+  estado?: string;
+  servicio?: string;
+  limit?: number;
+  alcance?: 'mis' | 'todas';
+  fecha_desde?: string;
+  fecha_hasta?: string;
+} = {}) {
   const query = new URLSearchParams();
   if (params.estado) query.set('estado', params.estado);
   if (params.servicio) query.set('servicio', params.servicio);
   if (params.alcance) query.set('alcance', params.alcance);
+  if (params.fecha_desde) query.set('fecha_desde', params.fecha_desde);
+  if (params.fecha_hasta) query.set('fecha_hasta', params.fecha_hasta);
   query.set('limit', String(params.limit ?? 200));
   return request<PedidoResumen[]>(`/pedido/?${query.toString()}`);
 }

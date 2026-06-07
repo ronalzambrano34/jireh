@@ -290,11 +290,6 @@ def run():
             transferencia["codigo_operacion"],
             "pago_confirmado"
         )
-        actualizar_estado_pedido(
-            db,
-            transferencia["codigo_operacion"],
-            "en_operacion"
-        )
         try:
             actualizar_estado_pedido(
                 db,
@@ -385,11 +380,6 @@ def run():
             db,
             saldo["codigo_operacion"],
             "pago_confirmado"
-        )
-        actualizar_estado_pedido(
-            db,
-            saldo["codigo_operacion"],
-            "en_operacion"
         )
         saldo_completado = actualizar_estado_pedido(
             db,

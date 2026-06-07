@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
-import { crearDivisa, listarMetodosPago } from '../api/client';
+import { calcularOperacion, crearDivisa, listarMetodosPago } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -26,12 +26,11 @@ function telefonoCubaPayload(value: string) {
 }
 
 
-type DivisaInitialData = { monto_pago?: string; monto_divisa?: string; moneda_pago?: string; tipo_tarjeta?: string };
+type DivisaInitialData = { monto_pago?: string; moneda_pago?: string; tipo_tarjeta?: string };
 
 export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: DivisaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    monto_divisa: initialData?.monto_divisa ?? '100',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
     cuenta_pago_id: '',
@@ -48,6 +47,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
+  const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -80,13 +80,24 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
-  const calculo = useMemo<CalculoOperacionResponse | null>(() => {
-    const montoPago = Number(form.monto_pago) || 0;
-    const montoDivisa = Number(form.monto_divisa) || 0;
-    if (montoPago <= 0 || montoDivisa <= 0) return null;
-    const tasa = montoDivisa / montoPago;
-    return { monto_resultado: montoDivisa, tasa, tasa_final: tasa };
-  }, [form.monto_pago, form.monto_divisa]);
+  useEffect(() => {
+    const montoPago = Number(form.monto_pago);
+    if (!montoPago || montoPago <= 0) {
+      setCalculo(null);
+      return;
+    }
+
+    let activo = true;
+    calcularOperacion({
+      servicio: form.tipo_tarjeta.toLowerCase(),
+      moneda_pago: form.moneda_pago,
+      monto_pago: montoPago,
+    })
+      .then((data) => { if (activo) setCalculo(data); })
+      .catch(() => { if (activo) setCalculo(null); });
+
+    return () => { activo = false; };
+  }, [form.monto_pago, form.moneda_pago, form.tipo_tarjeta]);
 
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -114,13 +125,24 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
       setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
       return;
     }
+    if (!form.numero_tarjeta.trim()) {
+      setError('Completa la tarjeta del destinatario');
+      return;
+    }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!(Number(form.monto_pago) > 0)) {
+      setError('Escribe un monto de pago mayor que cero');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const response = await crearDivisa({
         monto_pago: Number(form.monto_pago),
         moneda_pago: form.moneda_pago,
-        monto_divisa: Number(form.monto_divisa),
         tipo_pago_id: Number(form.tipo_pago_id),
         cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
@@ -141,7 +163,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -201,7 +223,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             <span className="form-step-number">3</span>
             <div>
               <h3>Pago de la operacion</h3>
-              <p>Cantidad, metodo y monto en divisa.</p>
+              <p>Cantidad, metodo y divisa calculada segun la oferta.</p>
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
               <FloatingSelect
@@ -234,10 +256,6 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
               Cupon o bono
               <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Referencia opcional" />
             </label>
-            <label>
-              Monto divisa
-              <input value={form.monto_divisa} onChange={(event) => update('monto_divisa', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" required />
-            </label>
             <CalculoPreview calculo={calculo} monedaResultado={form.tipo_tarjeta || 'DIV'} />
             <label className="wide">
               Observaciones
@@ -246,9 +264,9 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           </div>
         </section>
       </div>
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
       {loading && <PageLoader label="Creando divisa" inline />}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !telefonoClienteCompleto(form.numero_telefono_cliente)}>
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear divisa'}
       </button>
     </form>

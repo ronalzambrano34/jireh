@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./Backend
+    container_name: jireh-backend
+    environment:
+      RUN_DB_MAINTENANCE: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Backend:/app/Backend
+    restart: always
+
+  frontend:
+    build: ./Frontend
+    container_name: jireh-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./Frontend:/app
+      - frontend_node_modules:/app/node_modules
+    restart: always
+
+volumes:
+  frontend_node_modules:

@@ -4,12 +4,9 @@ import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
 import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
-import type { ArchivoPedido, Operador, PedidoDetalle } from '../types/api';
+import type { ArchivoPedido, Operador, PedidoDetalle, PedidoResumen } from '../types/api';
 import {
-  abrirWhatsAppUrlsReservadas,
-  cerrarVentanasWhatsApp,
-  reservarVentanasWhatsApp,
-  type VentanaWhatsApp,
+  abrirWhatsAppUrl,
 } from '../utils/whatsapp';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { formatearNumeroTarjeta } from '../utils/tarjetas';
@@ -18,7 +15,6 @@ import { copiarAlPortapapeles } from '../utils/clipboard';
 const estados = [
   { value: 'pendiente_pago', label: 'Pendiente pago' },
   { value: 'pago_confirmado', label: 'Pago confirmado' },
-  { value: 'en_operacion', label: 'En operacion' },
   { value: 'completado', label: 'Completado' },
   { value: 'cancelado', label: 'Cancelado' },
 ];
@@ -39,22 +35,35 @@ function tasaAplicadaPedido(pedido: PedidoDetalle) {
 }
 const detallePrioridadOperativa = ['numero_tarjeta', 'telefono_destinatario', ...detalleMontoKeys];
 
-function abrirNotificacionesEstado(
-  pedido: PedidoDetalle,
-  nuevoEstado: string,
-  ventanas: VentanaWhatsApp[],
-) {
+function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string) {
   if (nuevoEstado === 'completado') {
-    abrirWhatsAppUrlsReservadas(ventanas, pedido.whatsapp_grupo_finalizado_url);
-    return;
+    const comprobante = pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_final')
+      ?? pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_cliente')
+      ?? null;
+    return pedido.whatsapp_grupo_finalizado_url
+      ? {
+          titulo: 'Operacion completada',
+          detalle: 'Mensaje listo para el grupo de operaciones finalizadas.',
+          url: pedido.whatsapp_grupo_finalizado_url,
+          mensaje: pedido.mensaje_grupo_finalizado ?? '',
+          comprobante,
+        }
+      : null;
   }
 
-  if (nuevoEstado === 'pago_confirmado' || nuevoEstado === 'en_operacion') {
-    abrirWhatsAppUrlsReservadas(ventanas, pedido.whatsapp_grupo_pedidos_url);
-    return;
+  if (nuevoEstado === 'pago_confirmado') {
+    return pedido.whatsapp_grupo_pedidos_url
+      ? {
+          titulo: 'Pago confirmado',
+          detalle: 'Mensaje listo para el grupo de Operaciones.',
+          url: pedido.whatsapp_grupo_pedidos_url,
+          mensaje: pedido.mensaje_grupo_pedidos ?? '',
+          comprobante: null,
+        }
+      : null;
   }
 
-  cerrarVentanasWhatsApp(ventanas);
+  return null;
 }
 
 const detalleLabels: Record<string, string> = {
@@ -81,6 +90,7 @@ const ERROR_TOAST_DURATION_MS = 5200;
 const ESTADOS_TERMINALES = new Set(['completado', 'cancelado']);
 
 function estadoLabel(value: string) {
+  if (value === 'en_operacion') return 'Pago confirmado';
   return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
 }
 
@@ -204,8 +214,22 @@ function archivoTipoLabel(tipo: string) {
   return tipo.replaceAll('_', ' ');
 }
 
-export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: { codigo: string | null; operadorId: number; onChanged: () => void; onClose: () => void }) {
-  const [pedido, setPedido] = useState<PedidoDetalle | null>(null);
+export function PedidoDetallePanel({
+  codigo,
+  pedidoInicial,
+  operadorId,
+  onChanged,
+  onClose,
+}: {
+  codigo: string | null;
+  pedidoInicial?: PedidoResumen | null;
+  operadorId: number;
+  onChanged: () => void;
+  onClose: () => void;
+}) {
+  const [pedido, setPedido] = useState<PedidoDetalle | null>(
+    pedidoInicial as PedidoDetalle | null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -218,6 +242,14 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
   const [redireccionAbierta, setRedireccionAbierta] = useState(false);
   const [cancelacionAbierta, setCancelacionAbierta] = useState(false);
   const [confirmarPagoAbierto, setConfirmarPagoAbierto] = useState(false);
+  const [whatsappPendiente, setWhatsappPendiente] = useState<{
+    titulo: string;
+    detalle: string;
+    url: string;
+    mensaje: string;
+    comprobante: ArchivoPedido | null;
+  } | null>(null);
+  const [compartiendoComprobante, setCompartiendoComprobante] = useState(false);
   const [finalizacionAbierta, setFinalizacionAbierta] = useState(false);
   const [finalizarSinComprobante, setFinalizarSinComprobante] = useState(false);
   const [motivoSinComprobante, setMotivoSinComprobante] = useState('');
@@ -235,6 +267,13 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
   const bloqueoPropio = Boolean(pedido?.lock_activo && pedido.operador_asignado_id === operadorId);
   const bloqueadoPorOtro = Boolean(pedido?.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operadorId);
   const detalle = useMemo(() => (pedido ? detalleEntries(pedido) : []), [pedido]);
+  const evidenciaPrincipal = useMemo(() => {
+    const archivos = pedido?.archivos ?? [];
+    return archivos.find((archivo) => archivo.tipo === 'comprobante_cliente')
+      ?? archivos.find((archivo) => archivo.tipo === 'comprobante_final')
+      ?? archivos[0]
+      ?? null;
+  }, [pedido?.archivos]);
   const monedaEntrega = pedido ? monedaEntregaPedido(pedido) : 'CUP';
   const tieneComprobantePago = Boolean(
     pedido?.comprobante_pago
@@ -247,16 +286,14 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
   const proximoEstadoPrincipal = useMemo(() => {
     if (!pedido) return 'pago_confirmado';
     if (pedido.estado === 'pendiente_pago') return 'pago_confirmado';
-    if (pedido.estado === 'pago_confirmado') return 'en_operacion';
-    if (pedido.estado === 'en_operacion') return 'completado';
+    if (pedido.estado === 'pago_confirmado' || pedido.estado === 'en_operacion') return 'completado';
     return 'completado';
   }, [pedido]);
 
   const accionPrincipalLabel = useMemo(() => {
     if (!pedido) return 'Confirmar pago';
     if (pedido.estado === 'pendiente_pago') return 'Confirmar pago';
-    if (pedido.estado === 'pago_confirmado') return 'Iniciar operacion';
-    if (pedido.estado === 'en_operacion') return 'Finalizar';
+    if (pedido.estado === 'pago_confirmado' || pedido.estado === 'en_operacion') return 'Finalizar';
     if (pedido.estado === 'completado') return 'Finalizado';
     return 'Confirmar';
   }, [pedido]);
@@ -268,7 +305,8 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     }
 
     let active = true;
-    setLoading(true);
+    setPedido(pedidoInicial?.codigo_operacion === codigo ? pedidoInicial as PedidoDetalle : null);
+    setLoading(!pedidoInicial || pedidoInicial.codigo_operacion !== codigo);
     setError(null);
     setMensajeAbierto(false);
     setEvidenciasAbiertas(false);
@@ -281,8 +319,9 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
     obtenerPedido(codigo)
       .then(async (data) => {
         if (!active) return;
+        setPedido(data);
+        setLoading(false);
         if (ESTADOS_TERMINALES.has(data.estado)) {
-          setPedido(data);
           return;
         }
 
@@ -441,13 +480,6 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       setFinalizacionAbierta(true);
       return;
     }
-    const ventanasWhatsApp = reservarVentanasWhatsApp(
-      nuevoEstado === 'pago_confirmado'
-      || nuevoEstado === 'en_operacion'
-      || nuevoEstado === 'completado'
-        ? 1
-        : 0,
-    );
     setSaving(true);
     setError(null);
     try {
@@ -459,13 +491,62 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       }
       vibrarFeedback(24);
       onChanged();
-      abrirNotificacionesEstado(actualizado, nuevoEstado, ventanasWhatsApp);
-      if (nuevoEstado === 'completado') onClose();
+      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, nuevoEstado));
     } catch (err) {
-      cerrarVentanasWhatsApp(ventanasWhatsApp);
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function enviarWhatsAppPendiente() {
+    if (!whatsappPendiente || compartiendoComprobante) return;
+    const comprobante = whatsappPendiente.comprobante;
+
+    if (!comprobante) {
+      abrirWhatsAppUrl(whatsappPendiente.url);
+      setWhatsappPendiente(null);
+      if (pedido?.estado === 'completado') onClose();
+      return;
+    }
+
+    setCompartiendoComprobante(true);
+    setError(null);
+    try {
+      const response = await fetch(archivoUrl(comprobante));
+      if (!response.ok) throw new Error('No se pudo descargar el comprobante');
+
+      const blob = await response.blob();
+      const nombre = comprobante.nombre_archivo
+        || comprobante.ruta_archivo.split('/').pop()
+        || 'comprobante';
+      const file = new File(
+        [blob],
+        nombre,
+        { type: comprobante.mime_type || blob.type || 'application/octet-stream' },
+      );
+      const shareData: ShareData = {
+        title: whatsappPendiente.titulo,
+        text: whatsappPendiente.mensaje,
+        files: [file],
+      };
+
+      if (!navigator.share || (navigator.canShare && !navigator.canShare(shareData))) {
+        throw new Error('Este navegador no permite compartir archivos directamente');
+      }
+
+      await navigator.share(shareData);
+      setWhatsappPendiente(null);
+      if (pedido?.estado === 'completado') onClose();
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setError(
+        err instanceof Error
+          ? `${err.message}. Abre el comprobante y compartelo manualmente por WhatsApp.`
+          : 'No se pudo compartir el comprobante por WhatsApp',
+      );
+    } finally {
+      setCompartiendoComprobante(false);
     }
   }
 
@@ -543,7 +624,6 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
 
   async function handleComprobantePagoConfirmado(event: ChangeEvent<HTMLInputElement>) {
     if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
-    const ventanasWhatsApp = reservarVentanasWhatsApp(1);
     setUploading(true);
     setSaving(true);
     setError(null);
@@ -557,9 +637,8 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       setConfirmarPagoAbierto(false);
       vibrarFeedback(24);
       onChanged();
-      abrirNotificacionesEstado(actualizado, 'pago_confirmado', ventanasWhatsApp);
+      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'pago_confirmado'));
     } catch (err) {
-      cerrarVentanasWhatsApp(ventanasWhatsApp);
       setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante y confirmar el pago');
     } finally {
       event.target.value = '';
@@ -570,7 +649,6 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
 
   async function handleComprobanteFinal(event: ChangeEvent<HTMLInputElement>) {
     if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
-    const ventanasWhatsApp = reservarVentanasWhatsApp(1);
     setUploading(true);
     setSaving(true);
     setError(null);
@@ -588,10 +666,8 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       setFinalizacionAbierta(false);
       vibrarFeedback(24);
       onChanged();
-      abrirNotificacionesEstado(actualizado, 'completado', ventanasWhatsApp);
-      onClose();
+      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'completado'));
     } catch (err) {
-      cerrarVentanasWhatsApp(ventanasWhatsApp);
       setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante final');
     } finally {
       event.target.value = '';
@@ -608,7 +684,6 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       return;
     }
 
-    const ventanasWhatsApp = reservarVentanasWhatsApp(1);
     setSaving(true);
     setError(null);
     try {
@@ -625,10 +700,8 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
       setFinalizacionAbierta(false);
       vibrarFeedback(24);
       onChanged();
-      abrirNotificacionesEstado(actualizado, 'completado', ventanasWhatsApp);
-      onClose();
+      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'completado'));
     } catch (err) {
-      cerrarVentanasWhatsApp(ventanasWhatsApp);
       setError(err instanceof Error ? err.message : 'No se pudo finalizar la operacion');
     } finally {
       setSaving(false);
@@ -744,7 +817,26 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
               <div className="detail-fields order-detail-fields">
                 {detalle.map(([key, value], index) => {
                   if (key.startsWith('__slot_')) {
-                    return <div key={key} className="operation-detail-placeholder" aria-hidden="true" />;
+                    if (!evidenciaPrincipal) {
+                      return <div key={key} className="operation-detail-placeholder" aria-hidden="true" />;
+                    }
+
+                    return (
+                      <div key={key} className="operation-document-detail operation-evidence-detail">
+                        <span>Evidencia</span>
+                        <a href={archivoUrl(evidenciaPrincipal)} target="_blank" rel="noreferrer" aria-label="Ver evidencia completa">
+                          {archivoEsImagen(evidenciaPrincipal) ? (
+                            <img src={archivoUrl(evidenciaPrincipal)} alt="Evidencia del pedido" loading="lazy" decoding="async" />
+                          ) : (
+                            <span className="operation-evidence-file">
+                              <FileText size={28} />
+                              <strong>{evidenciaPrincipal.nombre_archivo ?? archivoTipoLabel(evidenciaPrincipal.tipo)}</strong>
+                            </span>
+                          )}
+                          <small>Ver evidencia <ExternalLink size={14} /></small>
+                        </a>
+                      </div>
+                    );
                   }
 
                   const copyable = camposCopiables.has(key);
@@ -932,6 +1024,70 @@ export function PedidoDetallePanel({ codigo, operadorId, onChanged, onClose }: {
               >
                 Cancelar
               </button>
+              </div>
+            </Modal>
+          )}
+
+          {whatsappPendiente && (
+            <Modal
+              title={whatsappPendiente.titulo}
+              subtitle={whatsappPendiente.detalle}
+              onClose={() => setWhatsappPendiente(null)}
+            >
+              <div className="whatsapp-message-preview">
+                <label htmlFor="whatsapp-estado-pendiente">Mensaje que se enviara</label>
+                <textarea
+                  id="whatsapp-estado-pendiente"
+                  value={whatsappPendiente.mensaje}
+                  rows={8}
+                  readOnly
+                />
+                {whatsappPendiente.comprobante && (
+                  <a
+                    className="whatsapp-attachment-preview"
+                    href={archivoUrl(whatsappPendiente.comprobante)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <FileText size={17} />
+                    <span>
+                      <strong>Comprobante adjunto</strong>
+                      <small>{whatsappPendiente.comprobante.nombre_archivo ?? 'Ver archivo'}</small>
+                    </span>
+                    <ExternalLink size={15} />
+                  </a>
+                )}
+              </div>
+              <div className="message-actions payment-modal-actions">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => copiarCampo(whatsappPendiente.mensaje, 'Mensaje')}
+                >
+                  <Copy size={16} /> Copiar mensaje
+                </button>
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => void enviarWhatsAppPendiente()}
+                  disabled={compartiendoComprobante}
+                >
+                  {compartiendoComprobante
+                    ? 'Preparando comprobante...'
+                    : whatsappPendiente.comprobante
+                      ? 'Compartir mensaje y comprobante'
+                      : 'Enviar al grupo por WhatsApp'}
+                </button>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    setWhatsappPendiente(null);
+                    if (pedido.estado === 'completado') onClose();
+                  }}
+                >
+                  Enviar despues
+                </button>
               </div>
             </Modal>
           )}

@@ -3,6 +3,7 @@ from fastapi import Depends
 from fastapi import HTTPException
 
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
@@ -38,6 +39,15 @@ router = APIRouter(
     prefix="/pedido",
     tags=["Pedidos"]
 )
+
+
+def _fecha_utc_sin_zona(value: str | None):
+    if not value:
+        return None
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 @router.post(
@@ -82,6 +92,8 @@ def listar(
     limit: int = 50,
     offset: int = 0,
     alcance: str = "mis",
+    fecha_desde: str | None = None,
+    fecha_hasta: str | None = None,
     db: Session = Depends(
         get_db
     ),
@@ -108,15 +120,23 @@ def listar(
             detail="No tienes permiso para ver todas las ordenes"
         )
 
-    return listar_pedidos(
-        db,
-        estado=estado,
-        servicio=servicio,
-        limit=limit,
-        offset=offset,
-        alcance=alcance_normalizado,
-        operador=operador
-    )
+    try:
+        return listar_pedidos(
+            db,
+            estado=estado,
+            servicio=servicio,
+            limit=limit,
+            offset=offset,
+            alcance=alcance_normalizado,
+            operador=operador,
+            fecha_desde=_fecha_utc_sin_zona(fecha_desde),
+            fecha_hasta=_fecha_utc_sin_zona(fecha_hasta)
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Rango de fechas invalido"
+        ) from exc
 
 
 @router.get(

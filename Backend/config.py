@@ -114,6 +114,16 @@ OFERTAS_SYNC_START_DELAY_SECONDS = int(
     )
 )
 
+RUN_DB_MAINTENANCE = os.getenv(
+    "RUN_DB_MAINTENANCE",
+    "true"
+).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "si"
+}
+
 
 GOOGLE_SHEET_ID = os.getenv(
     "GOOGLE_SHEET_ID"

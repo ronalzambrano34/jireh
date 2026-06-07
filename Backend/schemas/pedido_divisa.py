@@ -22,7 +22,7 @@ class PedidoDivisaCreate(
 
     contacto_id: int | None = None
 
-    monto_divisa: float
+    monto_divisa: float | None = None
 
     tipo_pago_id: int
 

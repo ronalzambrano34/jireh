@@ -85,9 +85,6 @@ def crear_pedido_divisa(
             None
         ),
 
-        "monto_divisa":
-        data.monto_divisa,
-
         "bonificacion_manual":
         0,
 

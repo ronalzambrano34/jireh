@@ -57,6 +57,9 @@ from Backend.services.payment_service import (
 from Backend.services.whatsapp_service import (
     generar_notificacion_grupo_pedido
 )
+from Backend.services.template_service import (
+    formatear_valor_template
+)
 
 
 def normalizar_telefono_destinatario(
@@ -155,7 +158,7 @@ def _generar_mensaje_pago_cliente(
     mensaje = (
         "*El Jireh - Instrucciones de pago*\n"
         f"Hola {cliente.nombre}, tu pedido {pedido.codigo_operacion} fue recibido.\n"
-        f"*Monto a pagar:* {pedido.monto_pago} {pedido.moneda_pago}\n"
+        f"*Monto a pagar:* {formatear_valor_template(pedido.monto_pago)} {pedido.moneda_pago}\n"
         f"*Metodo:* {datos_pago.get('metodo_pago') or metodo_pago.nombre}\n"
         f"*Cuenta:* {datos_pago.get('cuenta_pago') or 'Por confirmar'}\n"
         f"*Titular:* {datos_pago.get('titular_pago') or 'El Jireh'}\n"
@@ -519,45 +522,33 @@ def crear_pedido(
             data["monto_pago"]
         )
 
-        monto_divisa = float(
-            data["monto_divisa"]
-        )
-
         if monto_pago <= 0:
             raise Exception(
                 "El monto_pago debe ser mayor que cero"
             )
 
-        if monto_divisa <= 0:
+        tipo_tarjeta = str(
+            data.get("tipo_tarjeta") or ""
+        ).strip().lower()
+
+        servicio_divisa = {
+            "mlc": "mlc",
+            "usd": "usd",
+            "clasica": "clasica",
+            "clásica": "clasica"
+        }.get(tipo_tarjeta)
+
+        if not servicio_divisa:
             raise Exception(
-                "El monto_divisa debe ser mayor que cero"
+                "Tipo de tarjeta no soportado"
             )
 
-        tasa = (
-            monto_divisa
-            / monto_pago
+        calculo = calcular_operacion(
+            db=db,
+            servicio=servicio_divisa,
+            moneda_pago=data["moneda_pago"],
+            monto_pago=monto_pago
         )
-
-        calculo = {
-
-            "oferta_id":
-            None,
-
-            "tasa":
-            tasa,
-
-            "bonificacion":
-            0,
-
-            "tasa_final":
-            tasa,
-
-            "monto_resultado":
-            monto_divisa,
-
-            "ganancia":
-            0
-        }
 
     else:
 

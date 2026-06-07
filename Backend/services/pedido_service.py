@@ -782,7 +782,9 @@ def listar_pedidos(
     limit: int = 50,
     offset: int = 0,
     alcance: str = "mis",
-    operador: Operador | None = None
+    operador: Operador | None = None,
+    fecha_desde: datetime | None = None,
+    fecha_hasta: datetime | None = None
 ):
     query = db.query(
         Pedido
@@ -820,6 +822,16 @@ def listar_pedidos(
     if servicio:
         query = query.filter(
             Pedido.servicio == servicio.strip().lower()
+        )
+
+    if fecha_desde:
+        query = query.filter(
+            Pedido.created_at >= fecha_desde
+        )
+
+    if fecha_hasta:
+        query = query.filter(
+            Pedido.created_at < fecha_hasta
         )
 
     limit_seguro = max(
@@ -1142,6 +1154,11 @@ def actualizar_estado_pedido(
         )
     )
 
+    if estado_normalizado == PedidoEstado.EN_OPERACION:
+        raise Exception(
+            "El estado en_operacion no se usa en la fase 1. Finaliza directamente desde pago_confirmado"
+        )
+
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
         codigo_operacion
@@ -1264,15 +1281,6 @@ def actualizar_estado_pedido(
     elif (
         estado_normalizado
         ==
-        PedidoEstado.EN_OPERACION
-    ):
-        pedido.fecha_en_operacion = (
-            datetime.utcnow()
-        )
-
-    elif (
-        estado_normalizado
-        ==
         PedidoEstado.COMPLETADO
     ):
         pedido.fecha_completado = (
@@ -1341,22 +1349,6 @@ def actualizar_estado_pedido(
         mensaje_grupo_pedido = generar_notificacion_grupo_pedido(
             db=db,
             mensaje_operacion=mensaje_operacion["mensaje"]
-        )
-
-    elif (
-        estado_normalizado
-        ==
-        PedidoEstado.EN_OPERACION
-    ):
-        mensaje_grupo_pedido = generar_notificacion_grupo_pedido(
-            db=db,
-            mensaje_operacion=(
-                "*Operacion en curso*\n"
-                f"Codigo: {pedido.codigo_operacion}\n"
-                f"Servicio: {pedido.servicio}\n"
-                f"Pago: {pedido.monto_pago} {pedido.moneda_pago}\n"
-                f"Entrega: {pedido.monto_resultado}"
-            )
         )
 
     mensaje_finalizado = generar_notificacion_grupo_finalizado(
