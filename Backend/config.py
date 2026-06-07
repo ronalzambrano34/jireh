@@ -34,7 +34,7 @@ FRONTEND_ORIGINS = list(dict.fromkeys([
         origin.strip()
         for origin in os.getenv(
             "FRONTEND_ORIGINS",
-            "http://127.0.0.1:5173,http://localhost:5173"
+            "http://127.0.0.1:5173,http://localhost:5173,*"
         ).split(",")
         if origin.strip()
     ],
