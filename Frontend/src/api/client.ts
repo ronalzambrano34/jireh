@@ -37,6 +37,12 @@ const CONFIGURED_API_IS_LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)
 const API_URL = (USING_REMOTE_HOST && CONFIGURED_API_IS_LOOPBACK ? DEFAULT_API_URL : CONFIGURED_API_URL || DEFAULT_API_URL).replace(/\/$/, '');
 const TOKEN_KEY = 'jireh.auth.token';
 
+function addTunnelHeaders(headers: Headers) {
+  if (/^https:\/\/[^/]+\.loca\.lt$/i.test(API_URL)) {
+    headers.set('bypass-tunnel-reminder', 'true');
+  }
+}
+
 export function apiAssetUrl(path: string | null | undefined) {
   if (!path) return '';
   if (/^(https?:|data:|blob:)/i.test(path)) return path;
@@ -62,6 +68,7 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  addTunnelHeaders(headers);
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -86,6 +93,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  addTunnelHeaders(headers);
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
