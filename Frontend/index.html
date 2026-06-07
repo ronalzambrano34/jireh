@@ -19,6 +19,29 @@
       })();
     </script>
     <div id="root"></div>
+    <script>
+      window.setTimeout(function () {
+        var root = document.getElementById('root');
+        if (!root || root.childElementCount > 0) return;
+
+        var reloadKey = 'jireh.pages.reload';
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, '1');
+          var url = new URL(window.location.href);
+          url.searchParams.set('reload', Date.now().toString());
+          window.location.replace(url.toString());
+          return;
+        }
+
+        root.innerHTML =
+          '<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;background:#f7f8fa;color:#18202a">' +
+          '<section style="max-width:420px;text-align:center">' +
+          '<h1 style="font-size:1.35rem">No se pudo cargar Jireh</h1>' +
+          '<p>Actualiza la pagina. Si el problema continua, espera un minuto mientras termina el despliegue.</p>' +
+          '<button onclick="sessionStorage.removeItem(&quot;jireh.pages.reload&quot;);location.reload()" style="border:0;border-radius:10px;padding:12px 18px;background:#166534;color:white;font-weight:700">Volver a cargar</button>' +
+          '</section></main>';
+      }, 4000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
