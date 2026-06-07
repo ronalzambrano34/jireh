@@ -28,14 +28,17 @@ AUTH_TOKEN_MINUTES = int(
     )
 )
 
-FRONTEND_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv(
-        "FRONTEND_ORIGINS",
-        "http://127.0.0.1:5173,http://localhost:5173"
-    ).split(",")
-    if origin.strip()
-]
+FRONTEND_ORIGINS = list(dict.fromkeys([
+    "https://ronalzambrano34.github.io",
+    *[
+        origin.strip()
+        for origin in os.getenv(
+            "FRONTEND_ORIGINS",
+            "http://127.0.0.1:5173,http://localhost:5173"
+        ).split(",")
+        if origin.strip()
+    ],
+]))
 
 OPERADOR_ADMIN_NOMBRE = os.getenv(
     "OPERADOR_ADMIN_NOMBRE",

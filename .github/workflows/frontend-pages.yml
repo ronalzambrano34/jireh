@@ -36,7 +36,7 @@ jobs:
 
       - name: Check API URL
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://jireh-2r7o.onrender.com' }}
         run: |
           if [ -z "$VITE_API_URL" ]; then
             echo "::warning::VITE_API_URL is not configured. The frontend will deploy, but remote API operations will remain unavailable."
@@ -46,7 +46,7 @@ jobs:
         run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://jireh-2r7o.onrender.com' }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
