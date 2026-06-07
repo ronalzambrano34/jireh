@@ -12,6 +12,8 @@ class PuntoRecogidaBase(
 
     telefono: str | None = None
 
+    provincia_id: int | None = None
+
 
 class PuntoRecogidaCreate(
     PuntoRecogidaBase
@@ -30,6 +32,8 @@ class PuntoRecogidaUpdate(
 
     telefono: str | None = None
 
+    provincia_id: int | None = None
+
     activo: bool | None = None
 
 
@@ -42,5 +46,9 @@ class PuntoRecogidaResponse(
     )
 
     id: int
+
+    provincia_id: int | None = None
+
+    provincia_nombre: str | None = None
 
     activo: bool

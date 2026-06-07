@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
+from Backend.models.provincia_servicio import ProvinciaServicio
 
 
 def _get_columns(
@@ -13,7 +14,9 @@ def _get_columns(
         db.get_bind()
     )
 
-    if table_name not in inspector.get_table_names():
+    if not inspector.has_table(
+        table_name
+    ):
         return set()
 
     return {
@@ -58,7 +61,9 @@ def _add_index_if_missing(
         db.get_bind()
     )
 
-    if table_name not in inspector.get_table_names():
+    if not inspector.has_table(
+        table_name
+    ):
         return
 
     table_columns = _get_columns(
@@ -190,6 +195,30 @@ def ensure_runtime_columns(
         "lock_expires_at",
         "lock_expires_at TIMESTAMP"
     )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redirigido_a_operador_id",
+        "redirigido_a_operador_id INTEGER"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redirigido_por_operador_id",
+        "redirigido_por_operador_id INTEGER"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redirigido_en",
+        "redirigido_en TIMESTAMP"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "redireccion_mensaje",
+        "redireccion_mensaje VARCHAR"
+    )
     _rename_column_if_needed(
         db,
         "pedido_transferencia",
@@ -267,6 +296,19 @@ def ensure_runtime_columns(
         "password_hash",
         "password_hash VARCHAR"
     )
+    _add_column_if_missing(
+        db,
+        "operadores",
+        "foto_url",
+        "foto_url VARCHAR"
+    )
+
+    _add_column_if_missing(
+        db,
+        "operadores",
+        "permisos_config",
+        "permisos_config VARCHAR"
+    )
 
     _add_column_if_missing(
         db,
@@ -277,9 +319,23 @@ def ensure_runtime_columns(
 
     _add_column_if_missing(
         db,
+        "pedidos",
+        "cuenta_pago_id",
+        "cuenta_pago_id INTEGER"
+    )
+
+    _add_column_if_missing(
+        db,
         "pedido_efectivo",
         "documento_identidad_url",
         "documento_identidad_url VARCHAR"
+    )
+
+    _add_column_if_missing(
+        db,
+        "puntos_recogida",
+        "provincia_id",
+        "provincia_id INTEGER"
     )
 
     ensure_runtime_indexes(
@@ -290,6 +346,10 @@ def ensure_runtime_columns(
 def ensure_runtime_tables(
     db: Session
 ):
+    ProvinciaServicio.__table__.create(
+        bind=db.get_bind(),
+        checkfirst=True
+    )
     ArchivoPedido.__table__.create(
         bind=db.get_bind(),
         checkfirst=True
@@ -306,6 +366,7 @@ def ensure_runtime_indexes(
         ("ix_pedidos_report_moneda_pago", ("moneda_pago",)),
         ("ix_pedidos_report_operador_id", ("operador_id",)),
         ("ix_pedidos_report_tipo_pago_id", ("tipo_pago_id",)),
+        ("ix_pedidos_report_cuenta_pago_id", ("cuenta_pago_id",)),
         ("ix_pedidos_report_fecha_estado", ("created_at", "estado")),
         ("ix_pedidos_report_fecha_servicio", ("created_at", "servicio")),
     ]:

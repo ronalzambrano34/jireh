@@ -57,6 +57,28 @@ class Pedido(Base):
         nullable=True
     )
 
+    redirigido_a_operador_id = Column(
+        Integer,
+        ForeignKey("operadores.id"),
+        nullable=True
+    )
+
+    redirigido_por_operador_id = Column(
+        Integer,
+        ForeignKey("operadores.id"),
+        nullable=True
+    )
+
+    redirigido_en = Column(
+        DateTime,
+        nullable=True
+    )
+
+    redireccion_mensaje = Column(
+        String,
+        nullable=True
+    )
+
     servicio = Column(
         String,
         nullable=False
@@ -97,6 +119,12 @@ class Pedido(Base):
     tipo_pago_id = Column(
         Integer,
         ForeignKey("metodos_pago.id")
+    )
+
+    cuenta_pago_id = Column(
+        Integer,
+        ForeignKey("metodo_pago_cuentas.id"),
+        nullable=True
     )
 
     oferta_id = Column(

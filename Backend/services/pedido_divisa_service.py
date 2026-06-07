@@ -61,6 +61,9 @@ def crear_pedido_divisa(
         "tipo_pago_id":
         data.tipo_pago_id,
 
+        "cuenta_pago_id":
+        getattr(data, "cuenta_pago_id", None),
+
         "tipo_tarjeta":
         getattr(
             data,
@@ -81,9 +84,6 @@ def crear_pedido_divisa(
             "telefono_destinatario",
             None
         ),
-
-        "monto_divisa":
-        data.monto_divisa,
 
         "bonificacion_manual":
         0,

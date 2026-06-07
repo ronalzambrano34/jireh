@@ -46,7 +46,7 @@ DEFAULT_TEMPLATES = {
     "template_efectivo": (
         "*Efectivo*\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
-        "*Documento identidad:* {{documento_identidad_url}}\n"
+        "*Foto documento:* {{documento_identidad_url}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}"
@@ -65,6 +65,13 @@ DEFAULT_TEMPLATES = {
         "*Monto divisa:* {{monto_divisa}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Tasa efectiva:* {{tasa_final}}"
+    ),
+    "template_otros": (
+        "*Otros*\n"
+        "*Cliente:* {{cliente_nombre}}\n"
+        "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
+        "*Metodo de pago:* {{metodo_pago}}\n"
+        "*Info:* {{observaciones}}"
     )
 }
 
@@ -119,7 +126,11 @@ def generar_mensaje_operacion(
         pedido.moneda_pago,
 
         "tasa_final":
-        pedido.tasa_final,
+        (
+            pedido.monto_pago
+            if pedido.servicio == "saldo"
+            else pedido.tasa_final
+        ),
 
         "monto_resultado":
         pedido.monto_resultado,
@@ -306,6 +317,32 @@ def generar_mensaje_operacion(
 
         template_key = (
             "template_divisa"
+        )
+
+    elif pedido.servicio == "otros":
+
+        variables.update({
+
+            "observaciones":
+            pedido.observaciones
+            or ""
+        })
+
+        template_key = (
+            "template_otros"
+        )
+
+    else:
+
+        variables.update({
+
+            "observaciones":
+            pedido.observaciones
+            or ""
+        })
+
+        template_key = (
+            "template_otros"
         )
 
     try:

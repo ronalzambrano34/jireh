@@ -1,27 +1,102 @@
-import { FormEvent, useState } from 'react';
-import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { LockKeyhole, WifiOff } from 'lucide-react';
 import { login, setToken } from '../api/client';
 import type { Operador } from '../types/api';
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
+import { PhoneInput } from '../components/PhoneInput';
+import { PasswordField } from '../components/PasswordField';
+import { DismissibleNotice } from '../components/DismissibleNotice';
+import { PageLoader } from '../components/PageLoader';
+
+const DEV_LOGIN_TELEFONO = import.meta.env.VITE_TEST_LOGIN_TELEFONO || (import.meta.env.DEV ? '+1234567890' : '');
+const DEV_LOGIN_PASSWORD = import.meta.env.VITE_TEST_LOGIN_PASSWORD || (import.meta.env.DEV ? 'admin' : '');
+const LOGIN_PHONE_KEY = 'jireh.login.telefono';
+
+const LOGIN_PROGRESS_MESSAGES = [
+  'Comprobando la conexion...',
+  'Validando telefono y contraseña...',
+  'Enviando credenciales de forma segura...',
+  'Esperando respuesta del servidor...',
+  'Despertando al servidor...',
+  'Comprobando el acceso del operador...',
+  'Pensando en las musarañas...',
+  'Verificando permisos de la cuenta...',
+  'Acomodando los cables imaginarios...',
+  'Confirmando la sesion...',
+];
+
+function loginProgressLabel(seconds: number) {
+  if (seconds >= 30) return 'La respuesta esta demorando. Comprueba tu conexion; seguimos intentando...';
+  return LOGIN_PROGRESS_MESSAGES[Math.floor(seconds / 3) % LOGIN_PROGRESS_MESSAGES.length];
+}
 
 export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
-  const [telefono, setTelefono] = useState(import.meta.env.VITE_TEST_LOGIN_TELEFONO ?? '');
-  const [password, setPassword] = useState(import.meta.env.VITE_TEST_LOGIN_PASSWORD ?? '');
+  const [telefono, setTelefono] = useState(() => DEV_LOGIN_TELEFONO || localStorage.getItem(LOGIN_PHONE_KEY) || '');
+  const [password, setPassword] = useState(DEV_LOGIN_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const submittingRef = useRef(false);
+  const progressLabel = useMemo(() => loginProgressLabel(elapsedSeconds), [elapsedSeconds]);
+
+  useEffect(() => {
+    function handleOnline() {
+      setOnline(true);
+    }
+
+    function handleOffline() {
+      setOnline(false);
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [loading]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (submittingRef.current) return;
+
+    if (!telefono.trim() || !password) {
+      setError('Escribe telefono y contraseña para entrar.');
+      return;
+    }
+
+    if (!online) {
+      setError('No hay conexion en este momento. Cuando vuelva la senal, intenta entrar otra vez.');
+      return;
+    }
+
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
       const response = await login(telefono, password);
+      localStorage.setItem(LOGIN_PHONE_KEY, telefono);
       setToken(response.access_token);
       onLogin(response.operador);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesion');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -38,32 +113,27 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
           <h1>Jireh Operaciones</h1>
           <p>Panel interno de pedidos y tasas</p>
         </div>
-        <label>
-          Telefono
-          <input value={telefono} onChange={(event) => setTelefono(event.target.value)} autoComplete="username" />
-        </label>
-        <label>
-          Contraseña
-          <div className="password-field">
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type={mostrarPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              className="password-toggle"
-              onClick={() => setMostrarPassword((value) => !value)}
-              title={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            >
-              {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+        {!online && (
+          <div className="login-network-status offline">
+            <WifiOff size={16} /> Sin conexion. Conservamos tus datos en pantalla.
           </div>
-        </label>
-        {error && <div className="notice error">{error}</div>}
-        <button className="primary-button" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
+        )}
+        <div className="login-field">
+          <label htmlFor="login-telefono">Telefono</label>
+          <PhoneInput inputId="login-telefono" value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
+        </div>
+        <div className="login-field">
+          <label htmlFor="login-password">Contraseña</label>
+          <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+        </div>
+        {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+        {loading && (
+          <div className="login-progress" role="status" aria-live="polite">
+            <PageLoader inline label="Iniciando sesion" />
+            <div className="login-progress-text">{progressLabel}</div>
+          </div>
+        )}
+        <button className="primary-button" disabled={loading || !online} aria-busy={loading}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
       </form>
     </main>
   );

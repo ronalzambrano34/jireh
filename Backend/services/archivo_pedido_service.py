@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.pedido import Pedido
+from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.operador import Operador
 
 from Backend.schemas.archivo_pedido import (
@@ -154,6 +155,16 @@ def registrar_archivo_pedido(
     if tipo == "comprobante_cliente":
         pedido.comprobante_pago = ruta_archivo
         db.commit()
+
+    if tipo == "documento_identidad":
+        detalle_efectivo = (
+            db.query(PedidoEfectivo)
+            .filter(PedidoEfectivo.pedido_id == pedido.id)
+            .first()
+        )
+        if detalle_efectivo:
+            detalle_efectivo.documento_identidad_url = ruta_archivo
+            db.commit()
 
     return archivo_pedido_dict(
         archivo

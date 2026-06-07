@@ -3,6 +3,7 @@ from fastapi import Depends
 from fastapi import HTTPException
 
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
@@ -10,7 +11,8 @@ from Backend.services.auth_service import (
 )
 
 from Backend.schemas.pedido import (
-    PedidoEstadoUpdate
+    PedidoEstadoUpdate,
+    PedidoRedireccionUpdate
 )
 from Backend.schemas.pedido_transferencia import (
     PedidoTransferenciaCreate
@@ -21,6 +23,7 @@ from Backend.services.pedido_service import (
     liberar_bloqueo_pedido,
     listar_pedidos,
     obtener_pedido_por_codigo,
+    redirigir_pedido_operador,
     renovar_bloqueo_pedido,
     tomar_operacion_pedido
 )
@@ -36,6 +39,15 @@ router = APIRouter(
     prefix="/pedido",
     tags=["Pedidos"]
 )
+
+
+def _fecha_utc_sin_zona(value: str | None):
+    if not value:
+        return None
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 @router.post(
@@ -79,24 +91,52 @@ def listar(
     servicio: str | None = None,
     limit: int = 50,
     offset: int = 0,
+    alcance: str = "mis",
+    fecha_desde: str | None = None,
+    fecha_hasta: str | None = None,
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador = Depends(
         require_any_permission(
             [
+                "pedidos:crear",
                 "pedidos:gestionar"
             ]
         )
     )
 ):
-    return listar_pedidos(
-        db,
-        estado=estado,
-        servicio=servicio,
-        limit=limit,
-        offset=offset
+    alcance_normalizado = (alcance or "mis").strip().lower()
+    if alcance_normalizado not in ("mis", "todas"):
+        alcance_normalizado = "mis"
+    puede_ver_todas = (
+        operador.rol in ("admin", "supervisor")
+        or "pedidos:gestionar" in operador.permisos
+        or "empresa:control_total" in operador.permisos
     )
+    if alcance_normalizado == "todas" and not puede_ver_todas:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permiso para ver todas las ordenes"
+        )
+
+    try:
+        return listar_pedidos(
+            db,
+            estado=estado,
+            servicio=servicio,
+            limit=limit,
+            offset=offset,
+            alcance=alcance_normalizado,
+            operador=operador,
+            fecha_desde=_fecha_utc_sin_zona(fecha_desde),
+            fecha_hasta=_fecha_utc_sin_zona(fecha_hasta)
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Rango de fechas invalido"
+        ) from exc
 
 
 @router.get(
@@ -107,9 +147,10 @@ def obtener_por_codigo(
     db: Session = Depends(
         get_db
     ),
-    _operador = Depends(
+    operador = Depends(
         require_any_permission(
             [
+                "pedidos:crear",
                 "pedidos:gestionar"
             ]
         )
@@ -118,8 +159,14 @@ def obtener_por_codigo(
     try:
         return obtener_pedido_por_codigo(
             db,
-            codigo_operacion
+            codigo_operacion,
+            operador=operador
         )
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc)
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=404,
@@ -152,7 +199,41 @@ def actualizar_estado(
             data.comprobante_pago,
             data.observaciones,
             usuario=operador.nombre,
-            operador=operador
+            operador=operador,
+            finalizar_sin_comprobante=data.finalizar_sin_comprobante,
+            motivo_sin_comprobante=data.motivo_sin_comprobante
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+
+
+@router.patch(
+    "/{codigo_operacion}/redirigir"
+)
+def redirigir_operacion(
+    codigo_operacion: str,
+    data: PedidoRedireccionUpdate,
+    db: Session = Depends(
+        get_db
+    ),
+    operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:gestionar"
+            ]
+        )
+    )
+):
+    try:
+        return redirigir_pedido_operador(
+            db,
+            codigo_operacion,
+            data.operador_destino_id,
+            data.mensaje,
+            operador
         )
     except Exception as exc:
         raise HTTPException(
@@ -264,8 +345,13 @@ def crear(
     )
 ):
 
-    return crear_pedido(
-        db,
-        data
-    )
-
+    try:
+        return crear_pedido(
+            db,
+            data
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc

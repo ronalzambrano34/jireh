@@ -4,17 +4,14 @@
 #Activar el entorno virtual
 source venv/bin/activate
 
-# Ir al directorio del backend
 cd /home/usuario/Documentos/jireh
-
-# Levantar el servidor con uvicorn
-uvicorn Backend.main:app --reload --host 0.0.0.0
+Backend/venv/bin/python -m uvicorn Backend.main:app --reload --host 0.0.0.0
 
 ####consola
 #🔧 Backend (consola)
-cd /home/usuario/Documentos/jireh
+cd /home/usuario/Documentos/jireh/Backend
 source venv/bin/activate
-uvicorn Backend.main:app --reload --host 0.0.0.0
+uvicorn Backend/main:app --reload --host 0.0.0.0
 
 
 #🎨 Frontend
@@ -33,3 +30,12 @@ npm run dev -- --host 0.0.0.0
 
 ollama run codellama
 ollama run llama2:7b
+
+
+cd /home/usuario/Documentos/jireh
+docker compose up --build
+
+chmod +x start.sh   #dar_permisos
+nano start.sh
+
+    

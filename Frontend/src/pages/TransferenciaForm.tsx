@@ -1,23 +1,41 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { calcularOperacion, crearTransferencia, listarMetodosPago } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
+import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PasteButton } from '../components/PasteButton';
-import type { CalculoOperacionResponse, Contacto, MetodoPago } from '../types/api';
+import { PhoneInput } from '../components/PhoneInput';
+import { PageLoader } from '../components/PageLoader';
+import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
+import { telefonoClienteCompleto } from '../utils/telefonos';
+
+const TELEFONO_CUBA_DEFAULT = '+53';
+
+function telefonoCubaCompleto(value: string) {
+  return value.replace(/\D/g, '').length > 2;
+}
+
+function telefonoCubaPayload(value: string) {
+  const limpio = value.trim();
+  return telefonoCubaCompleto(limpio) ? limpio : undefined;
+}
+
 
 type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
 
 
-export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: TransferenciaInitialData }) {
+export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
-    monto_pago: initialData?.monto_pago ?? '230',
+    monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     numero_tarjeta: '',
-    telefono_destinatario: '',
+    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     tipo_pago_id: '1',
+    cuenta_pago_id: '',
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -112,6 +130,22 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!telefonoClienteCompleto(form.numero_telefono_cliente)) {
+      setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
+      return;
+    }
+    if (!form.numero_tarjeta.trim()) {
+      setError('Completa la tarjeta del destinatario');
+      return;
+    }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!(Number(form.monto_pago) > 0)) {
+      setError('Escribe un monto de pago mayor que cero');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -119,15 +153,16 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         monto_pago: Number(form.monto_pago),
         moneda_pago: form.moneda_pago,
         numero_tarjeta: form.numero_tarjeta,
-        telefono_destinatario: form.telefono_destinatario || undefined,
+        telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         tipo_pago_id: Number(form.tipo_pago_id),
+        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
       });
-      onCreated(response.codigo_operacion);
+      onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -136,7 +171,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -171,17 +206,11 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           <div className="form-grid">
             <label>
               Tarjeta destinatario
-              <span className="input-action-row">
-                <input value={form.numero_tarjeta} onChange={(event) => update('numero_tarjeta', event.target.value)} required />
-                <PasteButton onPaste={(value) => update('numero_tarjeta', value)} title="Pegar tarjeta destinatario" />
-              </span>
+              <CardNumberInput value={form.numero_tarjeta} onChange={(value) => update('numero_tarjeta', value)} required pasteTitle="Pegar tarjeta destinatario" />
             </label>
             <label>
               Telefono destinatario Cuba
-              <span className="input-action-row">
-                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" />
-                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
-              </span>
+              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" codeLocked pasteTitle="Pegar telefono destinatario" />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -195,29 +224,31 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
               <p>Cantidad y metodo usado para pagar.</p>
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
-              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
-              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
-                    <option value="BRL">BRL</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="UYU">UYU</option>
-              </select>
+              <FloatingSelect
+                className="payment-currency-select"
+                value={form.moneda_pago}
+                onChange={(value) => update('moneda_pago', value)}
+                ariaLabel="Moneda de pago"
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
+              />
             </label>
           </header>
           <div className="form-grid payment-grid">
-            <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} inputMode="decimal" required />
-            </label>
             <label>
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
                 metodos={metodosFiltrados}
                 onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
                 disabled={cargandoMetodos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
+            </label>
+            <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
             <label>
               Cupon o bono
@@ -227,8 +258,9 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id}>
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
+      {loading && <PageLoader label="Creando transferencia" inline />}
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear transferencia'}
       </button>
     </form>

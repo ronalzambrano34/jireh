@@ -1,21 +1,40 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Smartphone } from 'lucide-react';
 import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PasteButton } from '../components/PasteButton';
-import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo } from '../types/api';
+import { PhoneInput } from '../components/PhoneInput';
+import { PageLoader } from '../components/PageLoader';
+import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
 import { banderaMoneda } from '../utils/monedas';
+import { telefonoClienteCompleto } from '../utils/telefonos';
+
+const TELEFONO_CUBA_DEFAULT = '+53';
+
+function telefonoCubaCompleto(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.startsWith('53') && digits.slice(2).length === 8;
+}
+
+function telefonoCubaPayload(value: string) {
+  const limpio = value.trim();
+  return telefonoCubaCompleto(limpio) ? limpio : undefined;
+}
+
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
-export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (codigo: string) => void; initialData?: SaldoInitialData }) {
+export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: SaldoInitialData }) {
   const [form, setForm] = useState({
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
+    cuenta_pago_id: '',
     paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
-    telefono_destinatario: '',
+    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
@@ -95,8 +114,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     return {
       paquete_id: paqueteSeleccionado.id,
       monto_resultado: saldoCup,
-      tasa: montoPago > 0 ? saldoCup / montoPago : undefined,
-      tasa_final: montoPago > 0 ? saldoCup / montoPago : undefined,
+      tasa: montoPago,
+      tasa_final: montoPago,
       saldo_cup: saldoCup,
     };
   }, [paqueteSeleccionado]);
@@ -121,21 +140,39 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!telefonoClienteCompleto(form.numero_telefono_cliente)) {
+      setError('El telefono/WhatsApp del cliente es obligatorio para enviarle las instrucciones de pago');
+      return;
+    }
+    if (!telefonoCubaCompleto(form.telefono_destinatario)) {
+      setError('El telefono de Cuba debe tener 8 digitos despues de +53');
+      return;
+    }
+    if (!form.tipo_pago_id) {
+      setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!form.paquete_saldo_id) {
+      setError(`No hay un paquete de saldo seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const response = await crearSaldo({
-        telefono_destinatario: form.telefono_destinatario || undefined,
+        telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
         tipo_pago_id: Number(form.tipo_pago_id),
+        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
         operador_id: operadorId,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente || undefined,
+        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         paquete_saldo_id: form.paquete_saldo_id ? Number(form.paquete_saldo_id) : null,
         moneda_pago: form.moneda_pago,
         observaciones: observacionesConBono(),
       });
-      onCreated(response.codigo_operacion);
+      onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -144,7 +181,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit}>
+    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">
         <section className="form-section-card client-step">
           <header className="form-section-header">
@@ -179,10 +216,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           <div className="form-grid">
             <label>
               Telefono destinatario Cuba
-              <span className="input-action-row">
-                <input value={form.telefono_destinatario} onChange={(event) => update('telefono_destinatario', event.target.value)} placeholder="12345678" required />
-                <PasteButton onPaste={(value) => update('telefono_destinatario', value)} title="Pegar telefono destinatario" />
-              </span>
+              <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" codeLocked pasteTitle="Pegar telefono destinatario" required />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
@@ -196,13 +230,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
               <p>Metodo y paquete activo para la recarga.</p>
             </div>
             <label className="payment-currency-picker" title="Moneda de pago">
-              <span className="currency-flag" aria-hidden="true">{banderaMoneda(form.moneda_pago)}</span>
-              <select value={form.moneda_pago} onChange={(event) => update('moneda_pago', event.target.value)} aria-label="Moneda de pago">
-                    <option value="BRL">BRL</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="UYU">UYU</option>
-              </select>
+              <FloatingSelect
+                className="payment-currency-select"
+                value={form.moneda_pago}
+                onChange={(value) => update('moneda_pago', value)}
+                ariaLabel="Moneda de pago"
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
+              />
             </label>
           </header>
           <div className="form-grid payment-grid">
@@ -212,25 +246,23 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 value={form.tipo_pago_id}
                 metodos={metodosFiltrados}
                 onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
                 disabled={cargandoCatalogos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
             </label>
             <label>
               Paquete de saldo
-              <select
+              <FloatingSelect
                 value={form.paquete_saldo_id}
-                onChange={(event) => update('paquete_saldo_id', event.target.value)}
-                required
+                onChange={(value) => update('paquete_saldo_id', value)}
                 disabled={cargandoCatalogos || paquetesFiltrados.length === 0}
-              >
-                {paquetesFiltrados.length === 0 && <option value="">Sin paquetes para {form.moneda_pago}</option>}
-                {paquetesFiltrados.map((paquete) => (
-                  <option key={paquete.id} value={paquete.id}>
-                    {paquete.nombre} · {paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP
-                  </option>
-                ))}
-              </select>
+                placeholder={`Sin paquetes para ${form.moneda_pago}`}
+                ariaLabel="Paquete de saldo"
+                options={paquetesFiltrados.length === 0 ? [{ value: '', label: `Sin paquetes para ${form.moneda_pago}`, disabled: true, icon: <Smartphone size={17} /> }] : paquetesFiltrados.map((paquete) => ({ value: String(paquete.id), label: paquete.nombre, description: `${paquete.monto_pago} ${paquete.moneda_pago} · ${paquete.saldo_cup} CUP`, icon: <Smartphone size={17} /> }))}
+                align="left"
+              />
             </label>
             <label>
               Cupon o bono
@@ -244,8 +276,9 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           </div>
         </section>
       </div>
-      {error && <div className="notice error">{error}</div>}
-      <button className="primary-button create-submit-button" disabled={loading || !form.tipo_pago_id || !form.paquete_saldo_id}>
+      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
+      {loading && <PageLoader label="Creando saldo" inline />}
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : 'Crear saldo'}
       </button>
     </form>

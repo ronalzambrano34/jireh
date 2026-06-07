@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 from datetime import datetime
 from pathlib import Path
+import json
 import re
 from time import perf_counter
 import unicodedata
@@ -15,12 +16,17 @@ from sqlalchemy.orm import Session
 
 from Backend.models.oferta import Oferta
 from Backend.models.paquete_saldo import PaqueteSaldo
+from Backend.config import (
+    GOOGLE_SHEET_ID,
+    GOOGLE_SHEET_RANGE,
+    GOOGLE_SHEET_WORKSHEET
+)
 from Backend.services.monedas import normalizar_moneda
 
 
-SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
-WORKSHEET_TITLE = "Calcular Oferta"
-SHEET_RANGE = "A1:L160"
+DEFAULT_SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
+WORKSHEET_TITLE = GOOGLE_SHEET_WORKSHEET or "Calcular Oferta"
+SHEET_RANGE = GOOGLE_SHEET_RANGE or "A1:L160"
 ORIGEN_GOOGLE_SHEET = "google_sheet"
 CREDENTIALS_FILE = Path(__file__).resolve().parents[1] / "credentials.json"
 SERVICIOS_OFERTAS = {"transferencia", "efectivo", "mlc", "usd", "clasica"}
@@ -31,6 +37,44 @@ NOMBRES_SERVICIO = {
     "usd": "USD",
     "clasica": "Clasica",
 }
+
+
+def normalizar_spreadsheet_id(value: str | None) -> str:
+    texto = (value or DEFAULT_SHEET_ID).strip()
+    if not texto:
+        return DEFAULT_SHEET_ID
+
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9_-]+)", texto)
+    if match:
+        return match.group(1)
+
+    match = re.search(r"[?&]id=([a-zA-Z0-9_-]+)", texto)
+    if match:
+        return match.group(1)
+
+    return texto
+
+
+def sheet_id_configurado() -> str:
+    return normalizar_spreadsheet_id(
+        GOOGLE_SHEET_ID
+    )
+
+
+def credentials_client_email() -> str:
+    try:
+        data = json.loads(
+            CREDENTIALS_FILE.read_text()
+        )
+    except Exception:
+        return ""
+
+    return str(
+        data.get(
+            "client_email",
+            ""
+        )
+    )
 
 
 @dataclass
@@ -81,10 +125,10 @@ def float_distinto(actual, nuevo):
     return key_float(actual) != key_float(nuevo)
 
 
-def detectar_servicio(row) -> str | None:
-    titulo = texto_normalizado(get_col(row, 1))
+def detectar_servicio_en_texto(value) -> str | None:
+    titulo = texto_normalizado(value)
 
-    if not titulo:
+    if not titulo or "sync" not in titulo:
         return None
 
     if titulo == "usd" or titulo.startswith("usd "):
@@ -101,6 +145,45 @@ def detectar_servicio(row) -> str | None:
         return "saldo"
 
     return None
+
+
+def detectar_servicio(row) -> str | None:
+    for cell in row:
+        servicio = detectar_servicio_en_texto(cell)
+        if servicio:
+            return servicio
+
+    return None
+
+
+def buscar_columna(row, opciones, default: int | None = None):
+    opciones_normalizadas = [
+        texto_normalizado(opcion)
+        for opcion in opciones
+    ]
+
+    for index, cell in enumerate(row):
+        texto = texto_normalizado(cell)
+        if not texto:
+            continue
+        if any(opcion in texto for opcion in opciones_normalizadas):
+            return index
+
+    return default
+
+
+def buscar_columna_exacta(row, opciones, default: int | None = None):
+    opciones_normalizadas = {
+        texto_normalizado(opcion)
+        for opcion in opciones
+    }
+
+    for index, cell in enumerate(row):
+        texto = texto_normalizado(cell)
+        if texto in opciones_normalizadas:
+            return index
+
+    return default
 
 
 def normalizar_moneda_segura(value, default=""):
@@ -184,6 +267,28 @@ def deduplicar_saldo(items):
 def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
     items = []
     vio_datos = False
+    encabezado = rows[fila_encabezado]
+    monto_col = buscar_columna(
+        encabezado,
+        ["real", "monto reales", "brl recibido"],
+        default=3,
+    )
+    oferta_cup_col = buscar_columna(
+        encabezado,
+        ["oferta cup", "cup entregados"],
+        default=10,
+    )
+    tasa_col = buscar_columna(
+        encabezado,
+        ["oferta"],
+        default=10,
+    )
+    oferta_col = buscar_columna_exacta(
+        encabezado,
+        ["oferta"],
+        default=None,
+    )
+    saldo_cup_col = oferta_col
 
     for index in range(fila_encabezado + 1, len(rows)):
         row = rows[index]
@@ -195,12 +300,14 @@ def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
                 break
             continue
 
-        monto_pago = safe_float(get_col(row, 3))
+        monto_pago = safe_float(get_col(row, monto_col))
         if monto_pago <= 0:
             continue
 
         if servicio == "saldo":
-            saldo_cup = int(safe_float(get_col(row, 11)))
+            if saldo_cup_col is None:
+                continue
+            saldo_cup = int(safe_float(get_col(row, saldo_cup_col)))
             if saldo_cup <= 0:
                 continue
             items.append({
@@ -212,11 +319,13 @@ def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
             vio_datos = True
             continue
 
-        tasa = safe_float(get_col(row, 10))
-        if tasa <= 0 and servicio in {"transferencia", "efectivo"}:
-            oferta_cup = safe_float(get_col(row, 8))
-            if oferta_cup > 0:
-                tasa = oferta_cup / monto_pago
+        if servicio in {"mlc", "usd", "clasica"} and oferta_col is not None:
+            tasa = safe_float(get_col(row, oferta_col))
+        else:
+            oferta_cup = safe_float(get_col(row, oferta_cup_col))
+            tasa = oferta_cup / monto_pago if oferta_cup > 0 else 0.0
+            if tasa <= 0:
+                tasa = safe_float(get_col(row, tasa_col))
 
         if tasa <= 0:
             continue
@@ -326,7 +435,7 @@ def obtener_rows_sheet():
     gc = gspread.service_account(
         filename=str(CREDENTIALS_FILE)
     )
-    sheet = gc.open_by_key(SHEET_ID)
+    sheet = gc.open_by_key(sheet_id_configurado())
     try:
         worksheet = sheet.worksheet(WORKSHEET_TITLE)
     except WorksheetNotFound:
@@ -544,6 +653,7 @@ def sync_ofertas(db: Session):
 
     resultado["meta"].update({
         "filas_leidas": len(rows),
+        "spreadsheet_id": sheet_id_configurado(),
         "worksheet": WORKSHEET_TITLE,
         "rango_leido": SHEET_RANGE,
         "ofertas_db": stats_ofertas,

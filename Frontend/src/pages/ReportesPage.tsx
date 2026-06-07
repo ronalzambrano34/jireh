@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Banknote, BriefcaseBusiness, CalendarRange, ChevronDown, CircleDot, Coins, Download, Smartphone, UserRound, WalletCards, X } from 'lucide-react';
-import { descargarReporteCsv, listarOperadores, obtenerReporte } from '../api/client';
-import type { Operador, ReporteGeneral, ReporteGrupo } from '../types/api';
+import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, MinusCircle, Smartphone, UserRound, WalletCards } from 'lucide-react';
+import { crearExtraccionCuenta, descargarReporteCsv, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
+import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, ReporteGrupo, SaldoCuenta } from '../types/api';
+import { DismissibleNotice } from '../components/DismissibleNotice';
+import { PageLoader } from '../components/PageLoader';
+import { FloatingSelect } from '../components/FloatingSelect';
 
 const estados = [
   { value: '', label: 'Estado' },
   { value: 'pendiente_pago', label: 'Pendiente pago' },
   { value: 'pago_confirmado', label: 'Pago confirmado' },
-  { value: 'en_operacion', label: 'En operacion' },
   { value: 'completado', label: 'Completado' },
   { value: 'cancelado', label: 'Cancelado' },
   { value: 'error', label: 'Error' },
@@ -19,6 +21,7 @@ const servicios = [
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'saldo', label: 'Saldo' },
   { value: 'divisa', label: 'Divisa' },
+  { value: 'otros', label: 'Otros' },
 ];
 
 const periodos = [
@@ -92,26 +95,6 @@ function money(value: number) {
   return new Intl.NumberFormat('es-UY', { maximumFractionDigits: 2 }).format(value);
 }
 
-function ReportSkeleton() {
-  return (
-    <>
-      <div className="report-summary report-summary-loading" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => <div key={item}><span /><strong /></div>)}
-      </div>
-      <div className="report-grid report-grid-loading" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => (
-          <section className="report-table report-table-skeleton" key={item}>
-            <h2 />
-            <div className="data-table">
-              {[0, 1, 2, 3].map((row) => <div className="data-row" key={row}><span /><span /><span /><span /></div>)}
-            </div>
-          </section>
-        ))}
-      </div>
-    </>
-  );
-}
-
 function ReportTable({ title, rows }: { title: string; rows: ReporteGrupo[] }) {
   return (
     <section className="report-table">
@@ -145,15 +128,18 @@ export function ReportesPage() {
     servicio: '',
     moneda_pago: '',
     operador_id: '',
+    metodo_pago_id: '',
+    cuenta_pago_id: '',
   }));
   const [reporte, setReporte] = useState<ReporteGeneral | null>(null);
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [operadoresLoading, setOperadoresLoading] = useState(false);
-  const [periodoSheetOpen, setPeriodoSheetOpen] = useState(false);
-  const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
-  const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
-  const [monedaSheetOpen, setMonedaSheetOpen] = useState(false);
-  const [operadorSheetOpen, setOperadorSheetOpen] = useState(false);
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
+  const [cuentasPago, setCuentasPago] = useState<MetodoPagoCuenta[]>([]);
+  const [saldosCuenta, setSaldosCuenta] = useState<SaldoCuenta[]>([]);
+  const [extracciones, setExtracciones] = useState<ExtraccionCuenta[]>([]);
+  const [extraccion, setExtraccion] = useState({ cuenta_pago_id: '', monto: '', motivo: '' });
+  const [guardandoExtraccion, setGuardandoExtraccion] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -170,6 +156,18 @@ export function ReportesPage() {
 
   useEffect(() => {
     void cargarOperadores();
+    listarMetodosPago()
+      .then(async (metodos) => {
+        setMetodosPago(metodos);
+        const cuentas = await Promise.all(
+          metodos.map((metodo) => listarCuentasMetodoPago(metodo.id, false)),
+        );
+        setCuentasPago(cuentas.flat());
+      })
+      .catch(() => {
+        setMetodosPago([]);
+        setCuentasPago([]);
+      });
   }, []);
 
   useEffect(() => {
@@ -180,7 +178,18 @@ export function ReportesPage() {
       setError(null);
       try {
         const data = await obtenerReporte(filters);
-        if (active) setReporte(data);
+        const [saldos, movimientos] = await Promise.all([
+          listarSaldosCuenta({
+            metodo_pago_id: filters.metodo_pago_id,
+            cuenta_pago_id: filters.cuenta_pago_id,
+          }),
+          listarExtraccionesCuenta(filters.cuenta_pago_id),
+        ]);
+        if (active) {
+          setReporte(data);
+          setSaldosCuenta(saldos);
+          setExtracciones(movimientos);
+        }
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
       } finally {
@@ -196,7 +205,37 @@ export function ReportesPage() {
   }, [filters]);
 
   function update(field: keyof typeof filters, value: string) {
-    setFilters((current) => ({ ...current, [field]: value }));
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'metodo_pago_id' ? { cuenta_pago_id: '' } : {}),
+    }));
+  }
+
+  async function registrarExtraccion() {
+    if (!extraccion.cuenta_pago_id || Number(extraccion.monto) <= 0 || !extraccion.motivo.trim()) {
+      setError('Selecciona una cuenta, escribe un monto valido y el motivo');
+      return;
+    }
+    setGuardandoExtraccion(true);
+    setError(null);
+    try {
+      await crearExtraccionCuenta({
+        cuenta_pago_id: Number(extraccion.cuenta_pago_id),
+        monto: Number(extraccion.monto),
+        motivo: extraccion.motivo.trim(),
+      });
+      setExtraccion({ cuenta_pago_id: '', monto: '', motivo: '' });
+      setSaldosCuenta(await listarSaldosCuenta({
+        metodo_pago_id: filters.metodo_pago_id,
+        cuenta_pago_id: filters.cuenta_pago_id,
+      }));
+      setExtracciones(await listarExtraccionesCuenta(filters.cuenta_pago_id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo registrar la extraccion');
+    } finally {
+      setGuardandoExtraccion(false);
+    }
   }
 
   function updatePeriodo(value: PeriodoReporte) {
@@ -207,14 +246,6 @@ export function ReportesPage() {
         ...rangoPeriodo(value),
       }));
     }
-  }
-
-  function cerrarFiltros() {
-    setPeriodoSheetOpen(false);
-    setEstadoSheetOpen(false);
-    setServicioSheetOpen(false);
-    setMonedaSheetOpen(false);
-    setOperadorSheetOpen(false);
   }
 
   async function exportarCsv() {
@@ -235,12 +266,15 @@ export function ReportesPage() {
   return (
     <section className="reports-page">
       <div className="filters report-filters">
-        <div className="report-filter-field">
-          <CalendarRange className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setPeriodoSheetOpen(true)} aria-haspopup="dialog" aria-expanded={periodoSheetOpen}>
-            <span>{periodo === 'todo' ? 'Periodo' : optionLabel(periodos, periodo, 'Periodo')}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={periodo}
+            onChange={(value) => updatePeriodo(value as PeriodoReporte)}
+            options={periodos.map((item) => ({ value: item.value, label: item.value === 'todo' ? 'Todos los periodos' : item.label, icon: <CalendarRange size={17} /> }))}
+            ariaLabel="Filtrar por periodo"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
         {periodo === 'personalizado' && (
           <>
@@ -254,33 +288,85 @@ export function ReportesPage() {
             </label>
           </>
         )}
-        <div className="report-filter-field">
-          <CircleDot className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setEstadoSheetOpen(true)} aria-haspopup="dialog" aria-expanded={estadoSheetOpen}>
-            <span>{filters.estado ? optionLabel(estados, filters.estado, 'Estado') : 'Estado'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.estado}
+            onChange={(value) => update('estado', value)}
+            options={estados.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los estados', icon: <CircleDot size={17} /> }))}
+            ariaLabel="Filtrar por estado"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
-        <div className="report-filter-field">
-          <span className="report-filter-icon">{servicioIcon(filters.servicio, 17)}</span>
-          <button type="button" className="filter-modal-button" onClick={() => setServicioSheetOpen(true)} aria-haspopup="dialog" aria-expanded={servicioSheetOpen}>
-            <span>{filters.servicio ? optionLabel(servicios, filters.servicio, 'Servicio') : 'Servicio'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.servicio}
+            onChange={(value) => update('servicio', value)}
+            options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios', icon: servicioIcon(item.value, 17) }))}
+            ariaLabel="Filtrar por servicio"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
-        <div className="report-filter-field">
-          <Coins className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setMonedaSheetOpen(true)} aria-haspopup="dialog" aria-expanded={monedaSheetOpen}>
-            <span>{filters.moneda_pago || 'Moneda'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.moneda_pago}
+            onChange={(value) => update('moneda_pago', value)}
+            options={monedas.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todas las monedas', icon: <Coins size={17} /> }))}
+            ariaLabel="Filtrar por moneda"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
-        <div className="report-filter-field report-filter-field-wide">
-          <UserRound className="report-filter-icon" size={17} />
-          <button type="button" className="filter-modal-button" onClick={() => setOperadorSheetOpen(true)} aria-haspopup="dialog" aria-expanded={operadorSheetOpen} disabled={operadoresLoading}>
-            <span>{filters.operador_id ? operadores.find((item) => String(item.id) === filters.operador_id)?.nombre ?? 'Operador' : 'Operador'}</span>
-            <ChevronDown className="filter-modal-caret" size={17} />
-          </button>
+        <div className="report-filter-field report-filter-field-wide report-filter-floating">
+          <FloatingSelect
+            value={filters.operador_id}
+            onChange={(value) => update('operador_id', value)}
+            options={[{ value: '', label: 'Todos los operadores', icon: <UserRound size={17} /> }, ...operadores.map((item) => ({ value: String(item.id), label: item.nombre, description: item.codigo_operador, icon: <UserRound size={17} /> }))]}
+            disabled={operadoresLoading}
+            placeholder={operadoresLoading ? 'Cargando operadores' : 'Operador'}
+            ariaLabel="Filtrar por operador"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
+        </div>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.metodo_pago_id}
+            onChange={(value) => update('metodo_pago_id', value)}
+            options={[
+              { value: '', label: 'Todos los metodos', icon: <WalletCards size={17} /> },
+              ...metodosPago.map((metodo) => ({
+                value: String(metodo.id),
+                label: metodo.nombre,
+                description: metodo.moneda,
+                icon: <WalletCards size={17} />,
+              })),
+            ]}
+            ariaLabel="Filtrar por metodo de pago"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
+        </div>
+        <div className="report-filter-field report-filter-floating">
+          <FloatingSelect
+            value={filters.cuenta_pago_id}
+            onChange={(value) => update('cuenta_pago_id', value)}
+            options={[
+              { value: '', label: 'Todas las cuentas', icon: <Landmark size={17} /> },
+              ...cuentasPago
+                .filter((cuenta) => !filters.metodo_pago_id || String(cuenta.metodo_pago_id) === filters.metodo_pago_id)
+                .map((cuenta) => ({
+                  value: String(cuenta.id),
+                  label: cuenta.alias,
+                  description: metodosPago.find((metodo) => metodo.id === cuenta.metodo_pago_id)?.nombre,
+                  icon: <Landmark size={17} />,
+                })),
+            ]}
+            ariaLabel="Filtrar por cuenta de pago"
+            align="left"
+            buttonClassName="filter-modal-button"
+          />
         </div>
         <div className="report-filter-actions">
           <button type="button" className="ghost-button" onClick={exportarCsv} disabled={loading}>
@@ -289,17 +375,12 @@ export function ReportesPage() {
         </div>
       </div>
 
-      {error && <div className="notice error">{error}</div>}
-      {loading && (
-        <div className="notice report-loading-notice">
-          {reporte ? 'Actualizando reporte...' : 'Buscando datos del reporte...'}
-        </div>
-      )}
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {loading && !reporte && <PageLoader label="Buscando datos del reporte" inline />}
+      {loading && reporte && <PageLoader label="Actualizando reporte" inline />}
       {!loading && !error && !reporte && (
-        <div className="notice warning">No se pudo mostrar el reporte todavia. Prueba otro periodo o actualiza la pantalla.</div>
+        <DismissibleNotice className="notice warning">No se pudo mostrar el reporte todavia. Prueba otro periodo o actualiza la pantalla.</DismissibleNotice>
       )}
-
-      {loading && !reporte && <ReportSkeleton />}
 
       {reporte && (
         <div className={loading ? 'report-loaded is-refreshing' : 'report-loaded'}>
@@ -310,93 +391,92 @@ export function ReportesPage() {
             <div><span>Ganancia</span><strong>{money(reporte.resumen.ganancia_total)}</strong></div>
           </div>
 
+          <section className="report-table account-balance-section">
+            <h2>Saldos por cuenta</h2>
+            <div className="data-table">
+              <div className="data-row header">
+                <span>Cuenta</span>
+                <span>Ingresos</span>
+                <span>Extracciones</span>
+                <span>Saldo</span>
+              </div>
+              {saldosCuenta.map((saldo) => (
+                <div className="data-row" key={saldo.cuenta_pago_id}>
+                  <span>{saldo.metodo_pago} - {saldo.alias} ({saldo.moneda})</span>
+                  <span>{money(saldo.ingresos)}</span>
+                  <span>{money(saldo.extracciones)}</span>
+                  <strong>{money(saldo.saldo)}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="withdrawal-form">
+              <FloatingSelect
+                value={extraccion.cuenta_pago_id}
+                onChange={(value) => setExtraccion((current) => ({ ...current, cuenta_pago_id: value }))}
+                options={[
+                  { value: '', label: 'Cuenta a extraer', icon: <Landmark size={17} /> },
+                  ...saldosCuenta.map((saldo) => ({
+                    value: String(saldo.cuenta_pago_id),
+                    label: `${saldo.metodo_pago} - ${saldo.alias}`,
+                    description: `Disponible: ${money(saldo.saldo)} ${saldo.moneda}`,
+                    icon: <Landmark size={17} />,
+                  })),
+                ]}
+                ariaLabel="Cuenta para extraccion"
+              />
+              <input
+                value={extraccion.monto}
+                onChange={(event) => setExtraccion((current) => ({ ...current, monto: event.target.value }))}
+                inputMode="decimal"
+                placeholder="Monto"
+              />
+              <input
+                value={extraccion.motivo}
+                onChange={(event) => setExtraccion((current) => ({ ...current, motivo: event.target.value }))}
+                placeholder="Motivo de la extraccion"
+              />
+              <button type="button" className="ghost-button" onClick={registrarExtraccion} disabled={guardandoExtraccion}>
+                <MinusCircle size={18} /> {guardandoExtraccion ? 'Registrando...' : 'Registrar extraccion'}
+              </button>
+            </div>
+          </section>
+
+          <section className="report-table">
+            <h2>Ultimas extracciones</h2>
+            <div className="data-table">
+              <div className="data-row header">
+                <span>Fecha</span>
+                <span>Cuenta</span>
+                <span>Monto</span>
+                <span>Motivo</span>
+              </div>
+              {extracciones.length === 0 && <div className="empty-row">Sin extracciones registradas</div>}
+              {extracciones.map((movimiento) => {
+                const cuenta = cuentasPago.find((item) => item.id === movimiento.cuenta_pago_id);
+                return (
+                  <div className="data-row" key={movimiento.id}>
+                    <span>{new Date(movimiento.created_at).toLocaleString('es-UY')}</span>
+                    <span>{cuenta?.alias ?? `Cuenta ${movimiento.cuenta_pago_id}`}</span>
+                    <span>{money(movimiento.monto)}</span>
+                    <span>{movimiento.motivo}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
           <div className="report-grid">
-            <ReportTable title="Por dia" rows={reporte.por_dia} />
+            <ReportTable title="Por dias" rows={reporte.por_dia} />
             <ReportTable title="Por estado" rows={reporte.por_estado} />
             <ReportTable title="Por servicio" rows={reporte.por_servicio} />
             <ReportTable title="Por moneda" rows={reporte.por_moneda} />
             <ReportTable title="Por metodo de pago" rows={reporte.por_metodo_pago} />
+            <ReportTable title="Por cuenta de pago" rows={reporte.por_cuenta_pago} />
             <ReportTable title="Por operador" rows={reporte.por_operador} />
           </div>
         </div>
       )}
 
-      {periodoSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de periodo" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por periodo">
-            <header className="bottom-sheet-header"><strong>Periodo</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {periodos.map((item) => (
-                <button key={item.value} type="button" className={periodo === item.value ? 'active' : ''} onClick={() => { updatePeriodo(item.value); cerrarFiltros(); }}>
-                  <CalendarRange size={18} /><span>{item.value === 'todo' ? 'Todos' : item.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {estadoSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de estado" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por estado">
-            <header className="bottom-sheet-header"><strong>Estado</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {estados.map((item) => (
-                <button key={item.value || 'todos-estados'} type="button" className={filters.estado === item.value ? 'active' : ''} onClick={() => { update('estado', item.value); cerrarFiltros(); }}>
-                  <CircleDot size={18} /><span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {servicioSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de servicio" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por servicio">
-            <header className="bottom-sheet-header"><strong>Servicio</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {servicios.map((item) => (
-                <button key={item.value || 'todos-servicios'} type="button" className={filters.servicio === item.value ? 'active' : ''} onClick={() => { update('servicio', item.value); cerrarFiltros(); }}>
-                  {servicioIcon(item.value, 18)}<span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {monedaSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de moneda" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por moneda">
-            <header className="bottom-sheet-header"><strong>Moneda</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              {monedas.map((item) => (
-                <button key={item.value || 'todas-monedas'} type="button" className={filters.moneda_pago === item.value ? 'active' : ''} onClick={() => { update('moneda_pago', item.value); cerrarFiltros(); }}>
-                  <Coins size={18} /><span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
-      {operadorSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de operador" onClick={cerrarFiltros} />
-          <section className="bottom-sheet-panel" role="dialog" aria-modal="true" aria-label="Filtrar reportes por operador">
-            <header className="bottom-sheet-header"><strong>Operador</strong><button className="icon-button" type="button" onClick={cerrarFiltros} title="Cerrar" aria-label="Cerrar"><X size={18} /></button></header>
-            <div className="bottom-sheet-options">
-              <button type="button" className={filters.operador_id === '' ? 'active' : ''} onClick={() => { update('operador_id', ''); cerrarFiltros(); }}><UserRound size={18} /><span>Todos</span></button>
-              {operadores.map((item) => (
-                <button key={item.id} type="button" className={filters.operador_id === String(item.id) ? 'active' : ''} onClick={() => { update('operador_id', String(item.id)); cerrarFiltros(); }}>
-                  <UserRound size={18} /><span>{item.nombre} ({item.codigo_operador})</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
     </section>
   );
 }

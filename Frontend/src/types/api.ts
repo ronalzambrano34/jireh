@@ -2,6 +2,7 @@ export type Operador = {
   id: number;
   nombre: string;
   telefono: string;
+  foto_url?: string | null;
   codigo_operador: string;
   rol: string;
   permisos: string[];
@@ -14,6 +15,7 @@ export type OperadorCreatePayload = {
   telefono: string;
   password?: string;
   rol: string;
+  permisos?: string[];
 };
 
 export type OperadorUpdatePayload = {
@@ -22,6 +24,7 @@ export type OperadorUpdatePayload = {
   password?: string;
   rol?: string;
   activo?: boolean;
+  permisos?: string[];
 };
 
 export type AuthResponse = {
@@ -55,6 +58,13 @@ export type CalculoOperacionResponse = {
   saldo_cup?: number;
 };
 
+export type DatosPagoPedido = {
+  metodo_pago?: string | null;
+  cuenta_pago?: string | null;
+  titular_pago?: string | null;
+  qr_pago_url?: string | null;
+};
+
 export type PedidoResumen = {
   id?: number;
   pedido_id?: number;
@@ -65,12 +75,24 @@ export type PedidoResumen = {
   moneda_pago: string;
   monto_resultado: number;
   tasa_final: number;
+  operador_id?: number | null;
+  observaciones?: string | null;
   created_at?: string;
+  updated_at?: string;
+  fecha_pago_confirmado?: string | null;
+  fecha_en_operacion?: string | null;
+  fecha_completado?: string | null;
   operador_asignado_id?: number | null;
   operador_asignado_nombre?: string | null;
   asignado_en?: string | null;
   lock_expires_at?: string | null;
   lock_activo?: boolean;
+  redirigido_a_operador_id?: number | null;
+  redirigido_a_operador_nombre?: string | null;
+  redirigido_por_operador_id?: number | null;
+  redirigido_por_operador_nombre?: string | null;
+  redirigido_en?: string | null;
+  redireccion_mensaje?: string | null;
   detalle?: Record<string, unknown> | null;
 };
 
@@ -78,7 +100,6 @@ export type PedidoDetalle = PedidoResumen & {
   tasa_usada?: number;
   bonificacion?: number;
   ganancia?: number;
-  observaciones?: string | null;
   updated_at?: string;
   fecha_pago_confirmado?: string | null;
   fecha_en_operacion?: string | null;
@@ -89,7 +110,17 @@ export type PedidoDetalle = PedidoResumen & {
   historial?: PedidoHistorial[];
   mensaje_operacion?: string;
   whatsapp_url?: string;
+  mensaje_pago_cliente?: string;
+  whatsapp_pago_url?: string | null;
+  datos_pago?: DatosPagoPedido | null;
+  mensaje_grupo_pedidos?: string;
+  whatsapp_grupo_pedidos_url?: string | null;
+  mensaje_cliente_estado?: string | null;
+  whatsapp_estado_url?: string | null;
+  mensaje_grupo_finalizado?: string | null;
+  whatsapp_grupo_finalizado_url?: string | null;
   comprobante_pago?: string | null;
+  mensaje_finalizacion_sin_comprobante?: string | null;
 };
 
 export type PedidoHistorial = {
@@ -119,6 +150,7 @@ export type CrearTransferenciaPayload = {
   numero_tarjeta: string;
   telefono_destinatario?: string;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -136,11 +168,31 @@ export type MetodoPago = {
 };
 
 
+
+export type MetodoPagoCuenta = {
+  id: number;
+  metodo_pago_id: number;
+  alias: string;
+  cuenta: string;
+  titular: string;
+  qr_url?: string | null;
+  predeterminada: boolean;
+  activa: boolean;
+};
+
+export type ProvinciaServicio = {
+  id: number;
+  nombre: string;
+  activo: boolean;
+};
+
 export type PuntoRecogida = {
   id: number;
   nombre: string;
   direccion: string;
   telefono?: string | null;
+  provincia_id?: number | null;
+  provincia_nombre?: string | null;
   activo: boolean;
 };
 
@@ -148,6 +200,7 @@ export type CrearEfectivoPayload = {
   monto_pago: number;
   moneda_pago: string;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -175,6 +228,7 @@ export type CrearSaldoPayload = {
   telefono_destinatario?: string;
   contacto_id?: number | null;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -187,6 +241,20 @@ export type CrearSaldoPayload = {
 };
 
 
+export type CrearOtrosPayload = {
+  servicio: 'otros';
+  monto_pago: number;
+  moneda_pago: string;
+  tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
+  operador_id: number;
+  cliente_id?: number | null;
+  nombre_cliente?: string;
+  numero_telefono_cliente?: string;
+  observaciones: string;
+};
+
+
 export type CrearDivisaPayload = {
   monto_pago: number;
   moneda_pago: string;
@@ -194,8 +262,9 @@ export type CrearDivisaPayload = {
   numero_tarjeta?: string;
   telefono_destinatario?: string;
   contacto_id?: number | null;
-  monto_divisa: number;
+  monto_divisa?: number;
   tipo_pago_id: number;
+  cuenta_pago_id?: number | null;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -237,7 +306,29 @@ export type ReporteGeneral = {
   por_moneda: ReporteGrupo[];
   por_operador: ReporteGrupo[];
   por_metodo_pago: ReporteGrupo[];
+  por_cuenta_pago: ReporteGrupo[];
   por_dia: ReporteGrupo[];
+};
+
+export type SaldoCuenta = {
+  cuenta_pago_id: number;
+  metodo_pago_id: number;
+  metodo_pago: string;
+  alias: string;
+  cuenta: string;
+  moneda: string;
+  ingresos: number;
+  extracciones: number;
+  saldo: number;
+};
+
+export type ExtraccionCuenta = {
+  id: number;
+  cuenta_pago_id: number;
+  operador_id: number;
+  monto: number;
+  motivo: string;
+  created_at: string;
 };
 
 
@@ -250,6 +341,18 @@ export type Oferta = {
   moneda_pago?: string | null;
   origen?: string | null;
   activa: boolean;
+};
+
+export type Promocion = {
+  id: number;
+  imagen_url: string;
+  descripcion: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  activa: boolean;
+  vigente: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 
@@ -278,6 +381,17 @@ export type SyncOfertasResponse = {
   meta?: Record<string, unknown>;
 };
 
+
+export type TasaOperativaSyncStatus = {
+  interval_hours: number;
+  last_success_at?: string | null;
+  last_attempt_at?: string | null;
+  next_sync_at?: string | null;
+  stale: boolean;
+  running: boolean;
+  last_error?: string | null;
+};
+
 export type OfertaOperativa = Oferta;
 
 export type PaqueteSaldoOperativo = PaqueteSaldo;
@@ -287,6 +401,8 @@ export type TasaOperativaResponse = {
   ofertas: OfertaOperativa[];
   ofertas_divisa: OfertaOperativa[];
   paquetes_saldo: PaqueteSaldoOperativo[];
+  promociones: Promocion[];
+  sync?: TasaOperativaSyncStatus;
 };
 
 export type Configuracion = {

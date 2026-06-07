@@ -1,5 +1,5 @@
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-05-24
+Actualizado: 2026-06-02
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -157,7 +157,6 @@ Estados definidos en el sistema:
 - creado
 - pendiente_pago
 - pago_confirmado
-- en_operacion
 - completado
 - cancelado
 - error
@@ -173,23 +172,20 @@ Flujo recomendado:
 3. pago_confirmado
    Se confirmo que el pago del cliente fue recibido.
 
-4. en_operacion
-   La operacion fue enviada o asignada para ejecucion.
-
-5. completado
+4. completado
    El operador ejecuto la operacion y existe confirmacion.
 
-6. cancelado
+5. cancelado
    La operacion no se realizara.
 
-7. error
+6. error
    Hubo un problema operativo, dato incorrecto, falla bancaria, rechazo, o situacion que requiere revision.
 
 Compatibilidad actual:
 El sistema acepta algunos nombres viejos y los normaliza:
 
 - pendiente -> pendiente_pago
-- en_proceso -> en_operacion
+- en_operacion y en_proceso se conservan solo para compatibilidad con pedidos historicos de fases anteriores.
 - realizado -> completado
 - finalizado -> completado
 - error_operacion -> error
@@ -333,10 +329,20 @@ Campos actuales:
 - nombre
 - direccion
 - telefono
+- provincia_id
+- activo
+
+5.7.1 ProvinciaServicio
+
+Representa una provincia de Cuba donde se ofrece entrega de efectivo. Permite habilitar o deshabilitar zonas completas sin borrar puntos de recogida.
+
+Campos actuales:
+
+- nombre
 - activo
 
 Estado actual:
-Implementado.
+Implementado en Configuracion Admin > Provincias de servicio. Santiago de Cuba queda habilitada por defecto; La Habana y Las Tunas quedan creadas pero deshabilitadas hasta que se active el servicio. El formulario de efectivo solo muestra puntos activos cuya provincia tambien este habilitada.
 
 Pendiente recomendado:
 Agregar ciudad, horario e instrucciones para que el mensaje de efectivo se genere completo desde datos estructurados.
@@ -488,7 +494,7 @@ Servicios sincronizados actualmente:
 - usd
 - clasica
 
-El sync lee la pestana operativa Calcular Oferta y el rango A1:L160, para no cargar hojas historicas completas ni cientos de filas que no se usan en la operacion diaria.
+El sync lee la pestana operativa Calcular Oferta y el rango A1:Z160. El rango debe incluir columnas auxiliares fuera de A:L, especialmente la columna exacta Oferta usada por saldo, MLC, USD y Clasica.
 El sync debe cargar credentials.json desde la carpeta Backend, sin depender del directorio desde donde se arranque Uvicorn.
 La verificacion de tablas y columnas ocurre al arrancar el backend; el sync no debe repetir mantenimiento de schema en cada ejecucion para no demorar el boton Actualizar.
 Antes de escribir, el sync deduplica filas por servicio, moneda y minimo de pago; los paquetes de saldo se deduplican por moneda, monto de pago y saldo CUP.
@@ -496,13 +502,16 @@ El sync aplica escritura diferencial: crea lo nuevo, actualiza lo que cambio, co
 
 Reglas actuales del parser:
 
-- Detecta secciones por nombre de servicio en la columna B; acepta variantes con errores comunes como Transferecia, Efectlvo y Saido.
+- Solo detecta secciones cuyo titulo contiene la palabra Sync. Ejemplos validos: Transferecia Sync, Efectivo Sync, Saldo Sync, MLC Sync, USD Sync y Clasica Sync.
+- Los textos con Sync son marcadores internos de Google Sheets; en la web no deben mostrarse con la palabra Sync.
+- El servicio se puede detectar en cualquier columna de la fila de titulo, para soportar la estructura actual de la hoja.
 - Usa la fecha mas reciente por servicio como corte vigente. Las secciones antiguas del mismo servicio se ignoran aunque tengan otra moneda, para evitar publicar tasas viejas.
 - Si hay mas de una seccion del mismo servicio y moneda dentro de la fecha vigente, gana la seccion que este mas abajo en la hoja.
-- Detecta la moneda de pago principalmente desde la columna D de la fila de encabezado, para evitar confundir USDT con USD.
-- Para transferencia y efectivo lee monto/minimo en columna D y tasa/oferta en columna K; si K esta vacia, calcula la tasa con OFERTA CUP de columna I dividido entre el monto de columna D.
-- Para mlc, usd y clasica lee monto/minimo en columna D y tasa/oferta en columna K.
-- Para saldo lee monto de pago en columna D y saldo CUP en columna L.
+- Detecta la moneda de pago desde la fila de encabezado o desde la fila del servicio, evitando confundir USDT con USD.
+- Lee columnas por encabezado, no por posicion fija, siempre que el encabezado exista.
+- Para transferencia y efectivo lee monto/minimo desde REAL y calcula la tasa usando OFERTA CUP dividido entre el monto de pago. Si no puede calcular, usa la columna de oferta disponible como respaldo.
+- Para saldo lee monto de pago desde REAL y saldo CUP desde la columna exacta Oferta. No debe usar OFERTA CUP para paquetes de saldo.
+- Para mlc, usd y clasica lee monto/minimo desde REAL y tasa/oferta desde la columna exacta Oferta. No debe usar OFERTA CUP para estas tarjetas.
 - Cada fila valida de oferta se sincroniza como una oferta independiente; solo se deduplican filas con la misma moneda y el mismo minimo exacto.
 - El endpoint devuelve meta.secciones_usadas, meta.worksheet, meta.rango_leido, meta.ofertas_db, meta.saldo_db y meta.tiempos_seg para auditar que filas fueron sincronizadas y donde se consume el tiempo.
 
@@ -514,9 +523,21 @@ Implementado.
 
 Riesgos actuales:
 
-- Si la hoja cambia las columnas D, I, K o L, debe actualizarse el parser.
+- Si la hoja cambia los encabezados REAL, OFERTA CUP u Oferta, debe actualizarse el parser y documentarse aqui antes de sincronizar en produccion.
+- Si una seccion no tiene la palabra Sync, el sistema la ignora aunque tenga datos validos.
 - Si una seccion vigente no tiene fecha y existe otra del mismo servicio con fecha valida, la seccion sin fecha puede quedar ignorada por seguridad.
 - Si el negocio decide mantener monedas vigentes con fechas diferentes para un mismo servicio, debe ajustarse la regla de seleccion vigente y documentarse aqui antes de usarlo en produccion.
+
+
+Regla de cuentas de metodos de pago:
+
+- Un metodo de pago puede tener varias cuentas o destinos de pago asociados.
+- Cada cuenta tiene alias, cuenta/clave, titular, QR opcional, estado activo y marca predeterminada.
+- Para PIX, la cuenta/clave corresponde a la Llave Pix y el titular corresponde al nombre del titular.
+- Solo una cuenta activa por metodo debe marcarse como predeterminada para uso operativo normal.
+- Al crear un pedido, las instrucciones de pago al cliente usan la cuenta predeterminada del metodo seleccionado.
+- Si no existe cuenta predeterminada, el sistema puede caer temporalmente en configuracion heredada o mostrar Por confirmar, pero eso no es aceptable para operacion real.
+- Administracion > Metodos de pago permite configurar estas cuentas y elegir la predeterminada.
 
 8. MENSAJES Y WHATSAPP
 
@@ -530,16 +551,20 @@ El negocio se apoya en WhatsApp para:
 
 Estado actual del sistema:
 
-- Genera mensaje_operacion.
+- Genera mensaje_operacion para el flujo operativo.
 - Genera whatsapp_url con texto prellenado.
+- En Administracion > Configuracion existen los campos whatsapp_grupo_pedidos_url y whatsapp_grupo_finalizados_url.
+- Al crear un pedido, se abre WhatsApp al cliente con instrucciones de pago y tambien se genera/apertura la orden para el grupo de pedidos en trabajo.
+- Al cambiar estado, se genera mensaje WhatsApp al cliente segun template_cliente_estado_{estado}.
+- Al finalizar un pedido, se genera mensaje para el cliente y tambien para el grupo de operaciones finalizadas, con datos utiles para historico/Excel y calculo de ganancias.
+- Los templates de estado y grupo finalizado se gestionan desde Administracion > Templates.
 - Tiene endpoint /test para webhook basico.
 
 Pendiente:
 
-- Integracion real con WhatsApp API.
-- Envio automatico a grupos o destinatarios.
+- Integracion real con WhatsApp API para enviar sin depender de ventanas/enlaces manuales.
 - Recepcion y procesamiento de mensajes entrantes.
-- Adjuntar automaticamente comprobantes al envio final de WhatsApp.
+- Adjuntar automaticamente archivos binarios de comprobante al envio final de WhatsApp; por ahora se envia referencia/link si existe en comprobante_pago.
 
 9. CONTABILIDAD Y GANANCIA
 
@@ -654,10 +679,14 @@ Implementado para registro de metadatos, upload binario local y control de permi
 Estado actual:
 
 - El detalle se abre como modal desde la bandeja de pedidos.
-- Al abrir, el sistema intenta tomar/bloquear la operacion para el operador actual.
-- Si el bloqueo es propio, se renueva periodicamente mientras el panel siga abierto.
-- Si otro operador tiene el bloqueo activo, el panel permite revisar pero bloquea edicion de estado y subida de comprobantes.
-- Al cerrar, se intenta liberar el bloqueo propio.
+- Al abrir, el sistema intenta tomar/fijar la operacion para el operador actual.
+- Un operador puede tener varios pedidos fijados al mismo tiempo.
+- El pedido fijado queda asignado hasta que el operador lo libere explicitamente o cambie su estado.
+- Mis Ordenes es el alcance por defecto de la bandeja: muestra pedidos creados por el operador, fijados por el operador o redirigidos al operador.
+- Los operadores con permisos de gestion pueden alternar entre Mis Ordenes y Todas.
+- Al crear un pedido, queda en pendiente_pago y la interfaz vuelve a Mis Ordenes sin abrir el detalle automaticamente, para que el operador pueda seguir creando o atendiendo.
+- Si otro operador tiene la asignacion activa, el panel permite revisar pero bloquea edicion de estado y subida de comprobantes.
+- Al cerrar el detalle no se libera la asignacion.
 - Muestra codigo, servicio, moneda, estado, enviado, tasa y recibe.
 - Muestra datos especificos de operacion segun tipo de pedido.
 - Permite cambiar estado del pedido.
@@ -1145,6 +1174,53 @@ Reglas visuales:
 - Cancelados debe aparecer al final del orden visual de estados.
 
 
+21. MANUAL OPERATIVO DE PRUEBA DE FLUJO
+
+Esta seccion se usa como guia de prueba manual antes de operar con clientes reales. La prueba debe ejecutarse en modo desarrollo o entorno controlado, usando un pedido de prueba y datos no sensibles.
+
+Acceso en desarrollo:
+
+- Backend local: arrancar con uvicorn en 0.0.0.0 puerto 8000.
+- Frontend local: arrancar Vite en 0.0.0.0 puerto 5173.
+- Si se prueba desde telefono, abrir el frontend con la IP actual de la laptop y confirmar que la API abre en la misma IP puerto 8000.
+- El login de desarrollo precarga el operador de prueba cuando Vite corre en modo dev.
+- Si se usa hotspot o cambia la red, FRONTEND_ORIGINS debe incluir el origen real del navegador, por ejemplo http://10.97.251.180:5173 o http://192.168.1.24:5173.
+
+Preparacion de tasas:
+
+1. Abrir Inicio.
+2. Ejecutar Sincronizar si el operador tiene permiso.
+3. Confirmar que transferencia y efectivo muestren tasas por moneda.
+4. Confirmar que saldo muestre paquetes desde Saldo Sync usando la columna exacta Oferta.
+5. Confirmar que MLC, USD y Clasica usen la columna exacta Oferta.
+6. Confirmar que ningun texto visible al cliente muestre la palabra Sync.
+
+Prueba de flujo de negocio recomendada:
+
+1. Crear pedido de transferencia desde Inicio usando una oferta activa.
+2. Verificar que el formulario se abra con moneda, monto y tasa precargados.
+3. Completar telefono/WhatsApp del cliente, datos de tarjeta o destino, metodo de pago y monto.
+4. Crear pedido y confirmar que se genera mensaje WhatsApp con instrucciones de pago al cliente.
+5. Abrir Pedidos y verificar que el pedido aparezca en el estado inicial correcto.
+6. Tomar o abrir el pedido como operador.
+7. Subir o registrar evidencia/comprobante cuando corresponda.
+8. Cambiar estado siguiendo el flujo operativo: pendiente de pago, pago confirmado, en operacion, completado.
+9. En pago confirmado y en operacion, confirmar que se genere y abra solo el mensaje para el grupo operativo.
+10. Al completar, confirmar que se genere y abra solo el mensaje para el grupo historico/finalizados.
+11. Confirmar que el pedido finalizado mantiene tasa_final, monto_pago, monto_resultado, moneda y datos de destino congelados.
+12. Revisar Reportes para confirmar que la operacion aparece en el periodo actual.
+
+Criterios de aceptacion de la prueba:
+
+- La creacion no debe exigir datos que no correspondan al servicio.
+- Los montos calculados deben coincidir con la oferta activa usada.
+- El operador debe poder copiar datos clave desde el detalle.
+- El pedido no debe perder historial al cambiar de estado.
+- El sistema no debe mostrar Sync en textos visibles de ofertas.
+- Los botones principales en movil deben quedar alineados y ser faciles de tocar.
+- Si ocurre error, debe quedar claro si es problema de login, CORS, API apagada, permisos o validacion del formulario.
+
+
 ------------------Ideas del futuro------------------
 -------------para la fase en la que el operario crea el pedido.-----------------
 Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el operario le pregunta si desea cambiar un minuto de su tiempo en la creacion de su cuenta, para obtener un descuento (BONO) en la siguiente compra, logicamente en el sistema que maneja el opeario le debio aparecer un boton de crear cuenta y al finalizar el pedido un modal preguntando si el cliente quiso crear cuenta o no. Logicamente tambien debe estar implementado el sistema de recompensa de nuevos integrantes,para poder realizar dicha oferta de bonificacion.
@@ -1157,7 +1233,7 @@ Sistema de roles para operarios implementado: los operarios tienen rol admin, su
 
 Implementado en frontend interno:
 - Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones funcionales de cuenta, seguridad, soporte y salida.
-- Perfil interno funcional: Mis datos muestra ficha del operador; Modificar perfil actualiza el nombre propio desde /auth/me; Cambiar contrasena valida la contrasena actual y actualiza la nueva desde /auth/me/password; Mis permisos y rol muestra permisos reales; Ayuda abre contactos de soporte por WhatsApp.
+- Perfil interno funcional: Mis datos muestra ficha del operador; Modificar perfil actualiza el nombre propio desde /auth/me; Cambiar contraseña valida la contraseña actual y actualiza la nueva desde /auth/me/password; Mis permisos y rol muestra permisos reales; Ayuda abre contactos de soporte por WhatsApp.
 - Criterio de producto: el sistema debe priorizar uso en telefonos y usuarios con poca experiencia informatica; las acciones frecuentes deben ser grandes, claras y con pocos pasos.
 - En entrega de efectivo, el telefono del destinatario tiene acceso directo a WhatsApp al lado del campo.
 - En detalle de pedido, tarjeta, telefono destinatario y montos principales tienen boton de copiar.
@@ -1167,30 +1243,39 @@ Implementado en frontend interno:
 - La oferta de saldo en Inicio se muestra como paquetes de recarga: saldo recibido destacado y precio en moneda de pago como badge accionable.
 - Crear pedido queda organizado por flujo operativo: primero datos del cliente, despues destino/tarjeta/telefono y por ultimo pago de la operacion; la moneda se muestra como campo destacado con bandera del pais.
 
-Actualizacion de interfaz aplicada:
 
+Actualizacion de interfaz aplicada:
 - La pestana del navegador usa el icono del logo de El Jireh como favicon.
 - En Perfil > Soporte/Ayuda para operar, los accesos de soporte quedan centrados para lectura movil.
 - Reportes carga con periodo mensual por defecto, skeleton de carga e indices runtime para evitar la sensacion de pantalla vacia.
+- El resumen de Reportes resuelve sus totales y agrupaciones en una sola consulta para reducir la espera contra la base remota.
+- Al seleccionar un cliente durante la creacion de pedidos, sus destinatarios frecuentes se consultan por la ruta de cliente, disponible para operadores que crean o gestionan pedidos.
 - En Pedidos, el boton de vista queda a la izquierda y Actualizar a la derecha en la misma fila; las columnas agrupadas por estado se pueden minimizar/desplegar.
 - En Crear pedido > Pago de la operacion, monto y metodo de pago quedan en dos columnas cuando hay espacio; la moneda pasa al header como selector compacto con bandera.
 - En Nuevo pedido, el bloque de cliente queda directo y compacto; telefono del cliente, tarjeta destinatario y telefono destinatario tienen boton Pegar desde portapapeles.
 - En Nuevo pedido > Pago de la operacion, al capturar monto se muestra cuanto recibe el destinatario y la tasa aplicada; transferencia y efectivo aceptan bono manual de tasa.
 - Los metodos de pago muestran imagen automaticamente segun el nombre del banco o metodo cuando existe asset local; no requiere campo nuevo en configuracion por ahora.
-- En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contrasena/estado y desactivar o reactivar accesos.
+- En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contraseña/estado y desactivar o reactivar accesos.
 - En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
 - El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
+- Todos los campos editables de telefono usan selector de codigo de pais y guardan el numero completo con prefijo internacional.
+- Los telefonos se normalizan en frontend y backend: se limpian espacios/separadores, se evita duplicar el codigo internacional, Brasil agrega el 9 movil despues del DDD cuando llega el formato viejo de WhatsApp y Uruguay elimina el 0 local despues de +598.
+- Los numeros de tarjeta se normalizan al escribir, pegar y guardar: visualmente se muestran agrupados como xxxx-xxxx-xxxx-xxxx, pero frontend y backend guardan solo digitos.
+- El header tiene menu desplegable de usuario con accesos a modificar usuario, perfil, sesion, apariencia, configuracion, soporte y salir.
+- En Perfil, el operador puede subir o cambiar su foto; se guarda en storage/operadores y se muestra en el header, menu de usuario y tarjeta de perfil.
+- En Nuevo pedido, el telefono/WhatsApp del cliente es obligatorio. Al crear la orden, el sistema genera y abre WhatsApp con instrucciones de pago al cliente usando el metodo/cuenta configurada, y abre/genera la orden para el grupo operativo configurado.
+- En la vista de pago posterior a crear un pedido, el operador tiene una accion directa "Marcar pago recibido". Si el cliente ya habia pagado antes de registrar el pedido, el sistema cambia el estado a pago_confirmado, refresca la bandeja y evita enviar instrucciones de pago innecesarias.
+- En Pedidos, pago confirmado y en operacion abren solo mensaje para el grupo operativo; completado abre solo mensaje para el grupo historico de operaciones finalizadas. Los templates de cliente quedan disponibles para mensajes manuales cuando se necesiten.
+- En Login, al enviar credenciales se muestra el logo como pelota rebotando con textos rotativos de progreso.
+- En Nuevo pedido > Pago de la operacion, monto pago aparece antes que metodo de pago en transferencia, efectivo, divisa y otros.
+- En saldo, la tasa aplicada corresponde al precio del paquete de saldo y no al cociente saldo_cup / monto_pago.
+- El detalle de pedido carga menos datos accesorios por defecto: evidencias e historial se mantienen colapsados y el backend devuelve solo los archivos e historial recientes.
+- En Datos de operacion, la foto del documento se muestra como miniatura dentro de una tarjeta del mismo tamaño que los otros datos y se puede abrir completa; no se presenta la ruta del archivo como texto.
+- Para finalizar un pedido se exige un comprobante de exito de la operacion. Como excepcion, el operador puede activar Finalizar sin comprobante cuando la conexion o el proveedor impiden obtenerlo; debe escribir una explicacion, que queda registrada en observaciones e historial y se refleja en el aviso al cliente.
+- Los enlaces de invitacion de grupos de WhatsApp abren el selector de compartir con el mensaje preparado, porque WhatsApp no permite precargar texto directamente en un link chat.whatsapp.com. Al crear el pedido se muestran acciones separadas para enviar instrucciones al cliente y enviar la orden al grupo.
+- El switch Finalizar sin comprobante completa automaticamente una explicacion desde el template configurable template_finalizacion_sin_comprobante. El valor predeterminado informa que la operacion fue exitosa pero, por factores ajenos a la empresa, no es posible enviar el comprobante; el operador puede editarlo antes de confirmar.
 
 
-//todo el buscar cliente que sea dinamico, mientras escribes ya esta buscando semejanzas. ocultar la lupa
-//todo los botones pegar no estan pegando del portapapeles y seria bueno si estan visualmente unidos al campo al que van a pegar la info.
-//todo telefono del destinatario cuba que tenga predeterminado el +53.
-//todo todos los numeros de telefono que tengan un campo codigo de pais.
-//todo en el header cuando se presiones el icono del usuario que aparezca un acordion con los botones basicos estandar de ese boton, modificar usuario, configuracion, salit, etc.
-//todo en el perfil que se pueda añadir foto. 
+Pendiente:
 
-// todo nueva funcionalidad, para los nuevos pedido, el campo cliente es obligatorio, pq cuando se cree el pedido, automaticamente se enviaræ un mensaje por whatsapp a ese cliente enviandole el cuanta a la que debe hacer la transferencia.
-
-//todo Reportes la tabla Por dias, no tiene espaceado con la parte superios
-
-//todo las tarjetas de los pedidos no estan bien alineados, hay q centrarlos, y en la vista lista, el monto pagado (centro a la derecha) y el monto recibe (abajo a la derecha), se van de lugar cuando cambias de tamaño a pequeño.
+- cambiar el login, ahora la pantalla principal va a ser el inicio, pro para realizar alguna operacion, ya tendrias que loguearte, para loguearte, apareceria un modal en el que saldria el mismo formulario de login

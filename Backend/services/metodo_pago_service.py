@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from Backend.models.metodo_pago import (
     MetodoPago
 )
+from Backend.models.metodo_pago_cuenta import (
+    MetodoPagoCuenta
+)
 
 
 def _normalizar_moneda(
@@ -323,3 +326,203 @@ def guardar_imagen_metodo_pago(
     )
 
     return metodo
+
+
+
+def listar_cuentas_metodo_pago(
+    db: Session,
+    metodo_id: int,
+    incluir_inactivas: bool = True
+):
+    obtener_metodo_pago(
+        db,
+        metodo_id
+    )
+
+    query = db.query(
+        MetodoPagoCuenta
+    ).filter(
+        MetodoPagoCuenta.metodo_pago_id == metodo_id
+    )
+
+    if not incluir_inactivas:
+        query = query.filter(
+            MetodoPagoCuenta.activa == True
+        )
+
+    return (
+        query.order_by(
+            MetodoPagoCuenta.predeterminada.desc(),
+            MetodoPagoCuenta.alias.asc()
+        ).all()
+    )
+
+
+def _limpiar_predeterminadas(
+    db: Session,
+    metodo_id: int,
+    cuenta_id: int | None = None
+):
+    query = db.query(
+        MetodoPagoCuenta
+    ).filter(
+        MetodoPagoCuenta.metodo_pago_id == metodo_id
+    )
+
+    if cuenta_id is not None:
+        query = query.filter(
+            MetodoPagoCuenta.id != cuenta_id
+        )
+
+    query.update(
+        {MetodoPagoCuenta.predeterminada: False},
+        synchronize_session=False
+    )
+
+
+def crear_cuenta_metodo_pago(
+    db: Session,
+    metodo_id: int,
+    data
+):
+    obtener_metodo_pago(
+        db,
+        metodo_id
+    )
+
+    cuenta = MetodoPagoCuenta(
+        metodo_pago_id=metodo_id,
+        alias=data.alias.strip(),
+        cuenta=data.cuenta.strip(),
+        titular=data.titular.strip(),
+        qr_url=(data.qr_url or None),
+        predeterminada=bool(data.predeterminada),
+        activa=bool(data.activa),
+    )
+
+    if cuenta.predeterminada:
+        _limpiar_predeterminadas(
+            db,
+            metodo_id
+        )
+
+    db.add(
+        cuenta
+    )
+    db.commit()
+    db.refresh(
+        cuenta
+    )
+
+    return cuenta
+
+
+def obtener_cuenta_metodo_pago(
+    db: Session,
+    metodo_id: int,
+    cuenta_id: int
+):
+    cuenta = (
+        db.query(
+            MetodoPagoCuenta
+        )
+        .filter(
+            MetodoPagoCuenta.id == cuenta_id,
+            MetodoPagoCuenta.metodo_pago_id == metodo_id
+        )
+        .first()
+    )
+
+    if not cuenta:
+        raise Exception(
+            "Cuenta del metodo de pago no encontrada"
+        )
+
+    return cuenta
+
+
+def actualizar_cuenta_metodo_pago(
+    db: Session,
+    metodo_id: int,
+    cuenta_id: int,
+    data
+):
+    cuenta = obtener_cuenta_metodo_pago(
+        db,
+        metodo_id,
+        cuenta_id
+    )
+
+    cambios = data.model_dump(
+        exclude_unset=True
+    )
+
+    if cambios.get(
+        "predeterminada"
+    ) is True:
+        _limpiar_predeterminadas(
+            db,
+            metodo_id,
+            cuenta_id=cuenta.id
+        )
+
+    for campo, valor in cambios.items():
+        if isinstance(
+            valor,
+            str
+        ):
+            valor = valor.strip()
+        setattr(
+            cuenta,
+            campo,
+            valor
+        )
+
+    db.commit()
+    db.refresh(
+        cuenta
+    )
+
+    return cuenta
+
+
+def eliminar_cuenta_metodo_pago(
+    db: Session,
+    metodo_id: int,
+    cuenta_id: int
+):
+    cuenta = obtener_cuenta_metodo_pago(
+        db,
+        metodo_id,
+        cuenta_id
+    )
+    cuenta.activa = False
+    if cuenta.predeterminada:
+        cuenta.predeterminada = False
+
+    db.commit()
+    db.refresh(
+        cuenta
+    )
+
+    return cuenta
+
+
+def obtener_cuenta_predeterminada_metodo_pago(
+    db: Session,
+    metodo_id: int
+):
+    return (
+        db.query(
+            MetodoPagoCuenta
+        )
+        .filter(
+            MetodoPagoCuenta.metodo_pago_id == metodo_id,
+            MetodoPagoCuenta.activa == True
+        )
+        .order_by(
+            MetodoPagoCuenta.predeterminada.desc(),
+            MetodoPagoCuenta.id.asc()
+        )
+        .first()
+    )

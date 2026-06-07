@@ -5,12 +5,19 @@ from sqlalchemy.orm import (
 from Backend.services.config_service import (
     obtener_config
 )
+from Backend.models.metodo_pago import MetodoPago
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
+from Backend.services.metodo_pago_service import (
+    obtener_cuenta_predeterminada_metodo_pago
+)
 
 
 def obtener_datos_pago(
     db: Session,
     moneda: str,
-    tipo_pago: str | None = None
+    tipo_pago: str | None = None,
+    metodo_pago: MetodoPago | None = None,
+    cuenta_pago: MetodoPagoCuenta | None = None
 ):
 
     moneda = (
@@ -23,6 +30,28 @@ def obtener_datos_pago(
         tipo_pago
         or ""
     ).strip().lower()
+
+
+    if cuenta_pago is not None:
+        return {
+            "metodo_pago": metodo_pago.nombre if metodo_pago else "",
+            "cuenta_pago": cuenta_pago.cuenta,
+            "titular_pago": cuenta_pago.titular,
+            "qr_pago_url": cuenta_pago.qr_url
+        }
+
+    if metodo_pago is not None:
+        cuenta_predeterminada = obtener_cuenta_predeterminada_metodo_pago(
+            db,
+            metodo_pago.id
+        )
+        if cuenta_predeterminada:
+            return {
+                "metodo_pago": metodo_pago.nombre,
+                "cuenta_pago": cuenta_predeterminada.cuenta,
+                "titular_pago": cuenta_predeterminada.titular,
+                "qr_pago_url": cuenta_predeterminada.qr_url
+            }
 
     # ---------- BRASIL ----------
 

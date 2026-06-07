@@ -7,9 +7,10 @@ type ModalProps = {
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  className?: string;
 };
 
-export function Modal({ title, subtitle, children, onClose, wide = false }: ModalProps) {
+export function Modal({ title, subtitle, children, onClose, wide = false, className = '' }: ModalProps) {
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
@@ -27,7 +28,7 @@ export function Modal({ title, subtitle, children, onClose, wide = false }: Moda
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
-        className={wide ? 'modal-panel wide-modal' : 'modal-panel'}
+        className={['modal-panel', wide ? 'wide-modal' : '', className].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"

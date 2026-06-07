@@ -1,13 +1,16 @@
 from sqlalchemy import or_
+import json
 from sqlalchemy.orm import Session
 
 from Backend.config import OPERADOR_ADMIN_TELEFONO
 
 from Backend.models.operador import (
-    Operador
+    Operador,
+    PERMISOS_POR_ROL
 )
 
 from Backend.schemas.operador import (
+    PERMISOS_OPERADOR,
     ROLES_OPERADOR
 )
 
@@ -35,6 +38,52 @@ def _validar_rol(
 
     return rol_normalizado
 
+
+
+
+def _validar_permisos(
+    permisos: list[str] | None,
+    rol: str | None = None
+):
+    if permisos is None:
+        return None
+
+    permisos_validos = set(
+        PERMISOS_OPERADOR
+    )
+    permisos_normalizados = []
+
+    for permiso in permisos:
+        permiso_normalizado = (
+            permiso
+            or ""
+        ).strip()
+
+        if permiso_normalizado not in permisos_validos:
+            raise Exception(
+                f"Permiso de operador invalido: {permiso_normalizado}"
+            )
+
+        if permiso_normalizado not in permisos_normalizados:
+            permisos_normalizados.append(
+                permiso_normalizado
+            )
+
+    return json.dumps(
+        permisos_normalizados
+    )
+
+
+def _permisos_por_rol(
+    rol: str | None
+):
+    rol_normalizado = _validar_rol(
+        rol
+    )
+    return PERMISOS_POR_ROL.get(
+        rol_normalizado,
+        PERMISOS_POR_ROL["operador"]
+    )
 
 def _normalizar_telefono(
     telefono: str | None
@@ -84,6 +133,16 @@ def _proteger_admin_configurado(
     ):
         raise Exception(
             "El admin protegido no puede ser desactivado, degradado ni cambiar de telefono desde el panel"
+        )
+
+    if "permisos" in cambios and set(
+        cambios.get("permisos")
+        or []
+    ) != set(
+        operador.permisos
+    ):
+        raise Exception(
+            "Los permisos del admin protegido no se pueden cambiar desde el panel"
         )
 
     if not mismo_operador and (
@@ -259,6 +318,14 @@ def crear_operador(
             else None
         ),
 
+        permisos_config=_validar_permisos(
+            data.permisos
+            if data.permisos is not None
+            else _permisos_por_rol(
+                data.rol
+            )
+        ),
+
         codigo_operador=codigo
     )
 
@@ -319,6 +386,14 @@ def actualizar_operador(
     if "rol" in cambios:
         cambios["rol"] = _validar_rol(
             cambios["rol"]
+        )
+
+    if "permisos" in cambios:
+        permisos = cambios.pop(
+            "permisos"
+        )
+        cambios["permisos_config"] = _validar_permisos(
+            permisos
         )
 
     if "password" in cambios:

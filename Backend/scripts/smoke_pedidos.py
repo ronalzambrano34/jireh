@@ -13,7 +13,9 @@ from Backend.database import Base
 from Backend.models.cliente import Cliente
 from Backend.models.configuracion import Configuracion
 from Backend.models.contacto import Contacto
+from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.metodo_pago import MetodoPago
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 from Backend.models.oferta import Oferta
 from Backend.models.operador import Operador
 from Backend.models.paquete_saldo import PaqueteSaldo
@@ -23,6 +25,7 @@ from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.pedido_historial import PedidoHistorial
 from Backend.models.pedido_saldo import PedidoSaldo
 from Backend.models.pedido_transferencia import PedidoTransferencia
+from Backend.models.provincia_servicio import ProvinciaServicio
 from Backend.models.punto_recogida import PuntoRecogida
 
 from Backend.schemas.archivo_pedido import ArchivoPedidoCreate
@@ -38,7 +41,10 @@ from Backend.services.archivo_pedido_service import (
 from Backend.services.pedido_divisa_service import crear_pedido_divisa
 from Backend.services.pedido_efectivo_service import crear_pedido_efectivo
 from Backend.services.pedido_saldo_service import crear_pedido_saldo
-from Backend.services.pedido_service import obtener_pedido_por_codigo
+from Backend.services.pedido_service import (
+    actualizar_estado_pedido,
+    obtener_pedido_por_codigo
+)
 from Backend.services.pedido_transferencia_service import crear_pedido_transferencia
 
 
@@ -103,10 +109,19 @@ def sembrar_datos(db):
         moneda_pago="BRL",
         activa=True
     )
+    provincia = ProvinciaServicio(
+        nombre="La Habana",
+        activo=True
+    )
+    db.add(
+        provincia
+    )
+    db.flush()
     punto = PuntoRecogida(
         nombre="Punto Smoke",
         direccion="La Habana",
         telefono="+5370000000",
+        provincia_id=provincia.id,
         activo=True
     )
     paquete = PaqueteSaldo(
@@ -226,6 +241,15 @@ def run():
             "transferencia",
             "+5312345678"
         )
+        _assert(
+            "operacion exitosa" in (
+                pedido_transferencia.get(
+                    "mensaje_finalizacion_sin_comprobante"
+                )
+                or ""
+            ).lower(),
+            "finalizacion: no devolvio el template predeterminado"
+        )
         archivo = registrar_archivo_pedido(
             db,
             transferencia["codigo_operacion"],
@@ -261,6 +285,46 @@ def run():
             len(pedido_transferencia.get("archivos", [])) == 1,
             "archivo: obtener_pedido_por_codigo no incluye archivos"
         )
+        actualizar_estado_pedido(
+            db,
+            transferencia["codigo_operacion"],
+            "pago_confirmado"
+        )
+        try:
+            actualizar_estado_pedido(
+                db,
+                transferencia["codigo_operacion"],
+                "completado"
+            )
+            raise AssertionError(
+                "finalizacion: permitio completar sin comprobante ni excepcion"
+            )
+        except Exception as exc:
+            _assert(
+                "comprobante de exito" in str(exc),
+                "finalizacion: error inesperado sin comprobante"
+            )
+
+        registrar_archivo_pedido(
+            db,
+            transferencia["codigo_operacion"],
+            ArchivoPedidoCreate(
+                tipo="comprobante_final",
+                ruta_archivo="comprobantes/smoke-final.jpg",
+                nombre_archivo="smoke-final.jpg",
+                mime_type="image/jpeg",
+                usuario="smoke"
+            )
+        )
+        transferencia_completada = actualizar_estado_pedido(
+            db,
+            transferencia["codigo_operacion"],
+            "completado"
+        )
+        _assert(
+            transferencia_completada["estado"] == "completado",
+            "finalizacion: no completo con comprobante final"
+        )
 
         efectivo = crear_pedido_efectivo(
             db,
@@ -295,11 +359,60 @@ def run():
                 paquete_saldo_id=datos["paquete"].id
             )
         )
-        assert_pedido(
+        pedido_saldo = assert_pedido(
             db,
             saldo,
             "saldo",
             "+5312345678"
+        )
+        registrar_archivo_pedido(
+            db,
+            saldo["codigo_operacion"],
+            ArchivoPedidoCreate(
+                tipo="comprobante_cliente",
+                ruta_archivo="comprobantes/smoke-saldo-pago.jpg",
+                nombre_archivo="smoke-saldo-pago.jpg",
+                mime_type="image/jpeg",
+                usuario="smoke"
+            )
+        )
+        actualizar_estado_pedido(
+            db,
+            saldo["codigo_operacion"],
+            "pago_confirmado"
+        )
+        saldo_completado = actualizar_estado_pedido(
+            db,
+            saldo["codigo_operacion"],
+            "completado",
+            finalizar_sin_comprobante=True,
+            motivo_sin_comprobante=(
+                "El proveedor no permitio descargar la confirmacion por problemas de conexion."
+            )
+        )
+        _assert(
+            saldo_completado["estado"] == "completado",
+            "finalizacion: no completo con excepcion justificada"
+        )
+        _assert(
+            "Operacion finalizada sin comprobante:" in (
+                saldo_completado.get("observaciones")
+                or ""
+            ),
+            "finalizacion: no guardo la explicacion en observaciones"
+        )
+        _assert(
+            any(
+                "Operacion finalizada sin comprobante:" in (
+                    item.get("comentario")
+                    or ""
+                )
+                for item in saldo_completado.get(
+                    "historial",
+                    []
+                )
+            ),
+            "finalizacion: no guardo la explicacion en historial"
         )
 
         divisa = crear_pedido_divisa(

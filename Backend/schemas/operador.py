@@ -9,6 +9,20 @@ ROLES_OPERADOR = (
     "operador"
 )
 
+PERMISOS_OPERADOR = (
+    "pedidos:crear",
+    "pedidos:gestionar",
+    "clientes:crear",
+    "clientes:gestionar",
+    "contactos:gestionar",
+    "operadores:ver",
+    "operadores:crear",
+    "operadores:editar",
+    "operadores:desactivar",
+    "configuracion:gestionar",
+    "empresa:control_total"
+)
+
 
 class OperadorCreate(
     BaseModel
@@ -21,6 +35,8 @@ class OperadorCreate(
     password: str | None = None
 
     rol: str = "operador"
+
+    permisos: list[str] | None = None
 
 
 class OperadorUpdate(
@@ -36,6 +52,8 @@ class OperadorUpdate(
     rol: str | None = None
 
     activo: bool | None = None
+
+    permisos: list[str] | None = None
 
 
 class OperadorResponse(
@@ -53,6 +71,8 @@ class OperadorResponse(
     codigo_operador: str
 
     telefono: str | None = None
+
+    foto_url: str | None = None
 
     rol: str
 

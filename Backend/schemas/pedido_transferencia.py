@@ -22,6 +22,8 @@ class PedidoTransferenciaCreate(
 
     tipo_pago_id: int
 
+    cuenta_pago_id: int | None = None
+
     operador_id: int
 
     cliente_id: int | None = None

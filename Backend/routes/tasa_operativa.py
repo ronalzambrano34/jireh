@@ -8,6 +8,8 @@ from Backend.database import get_db
 from Backend.services.auth_service import require_any_permission
 from Backend.services.oferta_service import listar_ofertas
 from Backend.services.paquete_saldo_service import listar_paquetes_saldo
+from Backend.services.promocion_service import listar_promociones_vigentes
+from Backend.services.oferta_sync_control import obtener_estado_sync_ofertas
 
 router = APIRouter(
     prefix="/tasas-operativas",
@@ -44,6 +46,84 @@ def _paquete_dict(paquete):
     }
 
 
+def _origen_prioridad(item):
+    origen = (getattr(item, "origen", "manual") or "manual").strip().lower()
+    return 0 if origen != "google_sheet" else 1
+
+
+def _key_float(value, precision=4):
+    return round(float(value or 0), precision)
+
+
+def _preferir_item(candidato, actual):
+    prioridad_candidato = _origen_prioridad(candidato)
+    prioridad_actual = _origen_prioridad(actual)
+    if prioridad_candidato != prioridad_actual:
+        return prioridad_candidato < prioridad_actual
+    return (getattr(candidato, "id", 0) or 0) > (getattr(actual, "id", 0) or 0)
+
+
+def _deduplicar_ofertas(ofertas):
+    seleccionadas = {}
+    orden = []
+
+    for oferta in ofertas:
+        key = (
+            oferta.servicio,
+            (oferta.moneda_pago or "BRL").upper(),
+            _key_float(oferta.minimo_pago),
+        )
+        if key not in seleccionadas:
+            seleccionadas[key] = oferta
+            orden.append(key)
+            continue
+
+        if _preferir_item(oferta, seleccionadas[key]):
+            seleccionadas[key] = oferta
+
+    return [
+        seleccionadas[key]
+        for key in orden
+    ]
+
+
+def _deduplicar_paquetes(paquetes):
+    seleccionados = {}
+    orden = []
+
+    for paquete in paquetes:
+        key = (
+            (paquete.moneda_pago or "BRL").upper(),
+            _key_float(paquete.monto_pago, precision=2),
+        )
+        if key not in seleccionados:
+            seleccionados[key] = paquete
+            orden.append(key)
+            continue
+
+        if _preferir_item(paquete, seleccionados[key]):
+            seleccionados[key] = paquete
+
+    return [
+        seleccionados[key]
+        for key in orden
+    ]
+
+
+def _promocion_dict(promocion):
+    return {
+        "id": promocion.id,
+        "imagen_url": promocion.imagen_url,
+        "descripcion": promocion.descripcion,
+        "fecha_desde": promocion.fecha_desde,
+        "fecha_hasta": promocion.fecha_hasta,
+        "activa": promocion.activa,
+        "vigente": promocion.vigente,
+        "created_at": promocion.created_at,
+        "updated_at": promocion.updated_at,
+    }
+
+
 @router.get(
     "/"
 )
@@ -71,6 +151,17 @@ def obtener_tasas_operativas(
         incluir_inactivos=False,
         limit=300
     )
+    promociones = listar_promociones_vigentes(
+        db,
+        limit=20
+    )
+
+    ofertas = _deduplicar_ofertas(
+        ofertas
+    )
+    paquetes_saldo = _deduplicar_paquetes(
+        paquetes_saldo
+    )
 
     ofertas_dashboard = [
         oferta
@@ -97,4 +188,11 @@ def obtener_tasas_operativas(
             _paquete_dict(paquete)
             for paquete in paquetes_saldo
         ],
+        "promociones": [
+            _promocion_dict(promocion)
+            for promocion in promociones
+        ],
+        "sync": obtener_estado_sync_ofertas(
+            db
+        ),
     }

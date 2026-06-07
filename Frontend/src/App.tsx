@@ -1,23 +1,33 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, CircleDot, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos } from './api/client';
-import type { Operador, PedidoResumen } from './types/api';
+import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirArchivo, subirMiFotoPerfil } from './api/client';
+import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
 import { DivisaForm } from './pages/DivisaForm';
 import { EfectivoForm } from './pages/EfectivoForm';
 import { SaldoForm } from './pages/SaldoForm';
+import { OtrosForm } from './pages/OtrosForm';
 import { TransferenciaForm } from './pages/TransferenciaForm';
 import { ReportesPage } from './pages/ReportesPage';
 import { AdminCatalogosPage } from './pages/AdminCatalogosPage';
 import { InicioPage } from './pages/InicioPage';
+import { PageLoader } from './components/PageLoader';
+import { Modal } from './components/Modal';
+import { PasswordField } from './components/PasswordField';
+import { FloatingSelect } from './components/FloatingSelect';
+import { DismissibleNotice } from './components/DismissibleNotice';
+import { formatearNumeroTarjeta } from './utils/tarjetas';
+import { copiarAlPortapapeles } from './utils/clipboard';
+import {
+  abrirWhatsAppUrl,
+} from './utils/whatsapp';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const estados = [
   { value: '', label: 'Estado' },
   { value: 'pendiente_pago', label: 'Pendiente pago' },
   { value: 'pago_confirmado', label: 'Pago confirmado' },
-  { value: 'en_operacion', label: 'En operacion' },
   { value: 'completado', label: 'Completado' },
   { value: 'cancelado', label: 'Cancelado' },
 ];
@@ -28,6 +38,7 @@ const servicios = [
   { value: 'efectivo', label: 'Efectivo' },
   { value: 'saldo', label: 'Saldo' },
   { value: 'divisa', label: 'Divisa' },
+  { value: 'otros', label: 'Otros' },
 ];
 
 type CrearPedidoDraft = {
@@ -38,20 +49,31 @@ type CrearPedidoDraft = {
   tipo_tarjeta?: string;
 };
 
-type ProfileSection = 'datos' | 'editar' | 'permisos' | 'password' | 'sesion' | 'ayuda' | null;
-type AppTheme = 'light' | 'dark' | 'dark-deep' | 'dark-sidebar';
+type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
+type AppTheme = 'light' | 'dark-deep' | 'dark-sidebar';
+type AlcancePedidos = 'mis' | 'todas';
+type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
+type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
+type AppToastKind = 'success' | 'error';
 
 const THEME_KEY = 'jireh.theme';
 const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
   { value: 'dark-sidebar', label: 'Oscuro menu' },
   { value: 'dark-deep', label: 'Oscuro profundo' },
-  { value: 'dark', label: 'Oscuro tecnico' },
 ];
 
 const estadosBandeja = estados.filter((item) => item.value);
+const INFO_TOAST_DURATION_MS = 3800;
+const PROFILE_TOAST_DURATION_MS = 5600;
+const ERROR_TOAST_DURATION_MS = 5200;
 
 function estadoLabel(value: string) {
+  if (value === 'en_operacion') return 'Pago confirmado';
   return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
+}
+
+function estadoFaseUno(value: string) {
+  return value === 'en_operacion' ? 'pago_confirmado' : value;
 }
 
 function servicioIcon(value: string, size = 18) {
@@ -59,6 +81,7 @@ function servicioIcon(value: string, size = 18) {
   if (value === 'efectivo') return <Banknote size={size} />;
   if (value === 'saldo') return <Smartphone size={size} />;
   if (value === 'divisa') return <WalletCards size={size} />;
+  if (value === 'otros') return <BriefcaseBusiness size={size} />;
   return <BriefcaseBusiness size={size} />;
 }
 
@@ -72,10 +95,46 @@ function WhatsAppIcon() {
   );
 }
 
+
+function inicialesOperador(operador: Operador) {
+  return operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+}
+
+function OperadorAvatar({ operador, className }: { operador: Operador; className: string }) {
+  if (operador.foto_url) {
+    return <img className={`${className} avatar-photo`} src={apiAssetUrl(operador.foto_url)} alt="" />;
+  }
+
+  return <span className={className}>{inicialesOperador(operador)}</span>;
+}
+
+function AppToast({ kind, message, onClose }: { kind: AppToastKind; message: string; onClose: () => void }) {
+  return (
+    <div className={`app-toast ${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
+      <span>{message}</span>
+      <button type="button" onClick={onClose} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 function detalleValor(pedido: PedidoResumen, key: string) {
   const value = pedido.detalle?.[key];
   if (value === null || value === undefined || value === '') return null;
+  if (key === 'numero_tarjeta') return formatearNumeroTarjeta(String(value));
   return String(value);
+}
+
+function monedaEntregaPedido(pedido: PedidoResumen) {
+  if (pedido.servicio === 'divisa') return detalleValor(pedido, 'tipo_tarjeta') ?? 'DIVISA';
+  if (pedido.servicio === 'otros') return pedido.moneda_pago;
+  return 'CUP';
+}
+
+function tasaAplicadaPedido(pedido: PedidoResumen) {
+  if (pedido.servicio === 'saldo') return pedido.monto_pago;
+  return pedido.tasa_final;
 }
 
 function camposTarjetaPedido(pedido: PedidoResumen) {
@@ -90,7 +149,7 @@ function camposTarjetaPedido(pedido: PedidoResumen) {
   if (pedido.servicio === 'efectivo') {
     return [
       { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Documento', value: detalleValor(pedido, 'documento_identidad_url') },
+      { label: 'Foto documento', value: detalleValor(pedido, 'documento_identidad_url') },
       { label: 'Monto CUP', value: detalleValor(pedido, 'monto_cup') ?? String(pedido.monto_resultado) },
     ];
   }
@@ -107,7 +166,14 @@ function camposTarjetaPedido(pedido: PedidoResumen) {
       { label: 'Tipo', value: detalleValor(pedido, 'tipo_tarjeta') },
       { label: 'Tarjeta', value: detalleValor(pedido, 'numero_tarjeta') },
       { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Monto divisa', value: detalleValor(pedido, 'monto_divisa') ?? String(pedido.monto_resultado) },
+      { label: 'Monto divisa', value: `${detalleValor(pedido, 'monto_divisa') ?? pedido.monto_resultado} ${monedaEntregaPedido(pedido)}` },
+    ];
+  }
+
+  if (pedido.servicio === 'otros') {
+    return [
+      { label: 'Info', value: pedido.observaciones },
+      { label: 'Pago', value: `${pedido.monto_pago} ${pedido.moneda_pago}` },
     ];
   }
 
@@ -122,12 +188,12 @@ function resumenPedido(pedido: PedidoResumen) {
     .slice(0, 2);
 }
 
-function tiempoRelativo(value?: string) {
+function tiempoRelativo(value?: string, nowMs = Date.now()) {
   if (!value) return null;
   const fecha = new Date(value);
   if (Number.isNaN(fecha.getTime())) return null;
 
-  const diffMs = Date.now() - fecha.getTime();
+  const diffMs = nowMs - fecha.getTime();
   const diffMin = Math.max(0, Math.floor(diffMs / 60000));
   if (diffMin < 1) return 'hace instantes';
   if (diffMin < 60) return `hace ${diffMin} min`;
@@ -139,30 +205,65 @@ function tiempoRelativo(value?: string) {
   return `hace ${diffDias} d`;
 }
 
+function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
+  if (periodo === 'todos') return {};
+
+  const ahora = new Date();
+  const hasta = new Date(ahora);
+  hasta.setHours(24, 0, 0, 0);
+
+  const desde = new Date(ahora);
+  desde.setHours(0, 0, 0, 0);
+  if (periodo === '7_dias') {
+    desde.setDate(desde.getDate() - 6);
+  } else if (periodo === 'mes') {
+    desde.setDate(1);
+  }
+
+  return {
+    fecha_desde: desde.toISOString(),
+    fecha_hasta: hasta.toISOString(),
+  };
+}
+
 export function App() {
   const [theme, setTheme] = useState<AppTheme>(() => {
     if (typeof localStorage === 'undefined') return 'light';
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === 'dark' || saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    if (saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    if (saved === 'dark' || saved === 'dark-vscode' || saved === 'dark-pro') return 'dark-sidebar';
     return 'light';
   });
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
+  const [pedidoPagoModal, setPedidoPagoModal] = useState<PedidoDetalle | null>(null);
+  const [whatsappGrupoPendiente, setWhatsappGrupoPendiente] = useState<{
+    codigo: string;
+    url: string;
+    mensaje: string;
+  } | null>(null);
+  const [alcanceConteos, setAlcanceConteos] = useState({ mis: 0, todas: 0 });
   const [estado, setEstado] = useState('');
   const [servicio, setServicio] = useState('');
+  const [alcancePedidos, setAlcancePedidos] = useState<AlcancePedidos>('mis');
+  const [periodoPedidos, setPeriodoPedidos] = useState<PeriodoPedidos>('hoy');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
-  const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('lista');
-  const [servicioCrear, setServicioCrear] = useState<'transferencia' | 'efectivo' | 'saldo' | 'divisa'>('transferencia');
+  const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
+  const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [pedidosClock, setPedidosClock] = useState(() => Date.now());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [servicioSheetOpen, setServicioSheetOpen] = useState(false);
-  const [estadoSheetOpen, setEstadoSheetOpen] = useState(false);
-  const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set());
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const lastScrollYRef = useRef(0);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCreateHidden, setQuickCreateHidden] = useState(false);
+  const [pedidosEstadosColapsados, setPedidosEstadosColapsados] = useState<Set<string>>(() => new Set(['completado', 'cancelado']));
   const [profileSection, setProfileSection] = useState<ProfileSection>(null);
   const [profileNombre, setProfileNombre] = useState('');
   const [profilePassword, setProfilePassword] = useState({
@@ -171,8 +272,16 @@ export function App() {
     confirmar: '',
   });
   const [profileSaving, setProfileSaving] = useState(false);
+  const [profilePhotoSaving, setProfilePhotoSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [confirmandoPagoCreado, setConfirmandoPagoCreado] = useState(false);
+  const copyToastTimeoutRef = useRef<number | null>(null);
+  const comprobantePedidoCreadoInputRef = useRef<HTMLInputElement | null>(null);
+  const profileMessageTimeoutRef = useRef<number | null>(null);
+  const errorTimeoutRef = useRef<number | null>(null);
+  const profileErrorTimeoutRef = useRef<number | null>(null);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -184,16 +293,26 @@ export function App() {
     [operador],
   );
 
+  const puedeVerTodasLasOrdenes = useMemo(
+    () => operador?.rol === 'admin' || operador?.rol === 'supervisor' || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    [operador],
+  );
+
   const puedeAdmin = useMemo(
     () => operador?.permisos.includes('empresa:control_total'),
     [operador],
+  );
+
+  const puedeSincronizarTasas = useMemo(
+    () => operador?.rol !== 'cliente' && (puedeCrear || puedeReportes || puedeAdmin),
+    [operador, puedeAdmin, puedeCrear, puedeReportes],
   );
 
   const pedidosFiltrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
 
     return pedidos.filter((pedido) => {
-      if (estado && pedido.estado !== estado) return false;
+      if (estado && estadoFaseUno(pedido.estado) !== estado) return false;
       if (servicio && pedido.servicio !== servicio) return false;
       if (!term) return true;
 
@@ -208,13 +327,77 @@ export function App() {
     });
   }, [busqueda, estado, pedidos, servicio]);
 
+  const pedidosConteoPorEstado = useMemo(() => {
+    const term = busqueda.trim().toLowerCase();
+    const counts = new Map<string, number>(estadosBandeja.map((item) => [item.value, 0] as const));
+
+    for (const pedido of pedidos) {
+      if (servicio && pedido.servicio !== servicio) continue;
+      if (term) {
+        const detalle = pedido.detalle ? Object.values(pedido.detalle).join(' ') : '';
+        const searchable = [
+          pedido.codigo_operacion,
+          pedido.servicio,
+          pedido.estado,
+          pedido.moneda_pago,
+          detalle,
+        ].join(' ').toLowerCase();
+        if (!searchable.includes(term)) continue;
+      }
+      const estadoVisible = estadoFaseUno(pedido.estado);
+      counts.set(estadoVisible, (counts.get(estadoVisible) ?? 0) + 1);
+    }
+
+    return counts;
+  }, [busqueda, pedidos, servicio]);
+
+  const totalPedidosConteo = useMemo(() => {
+    return Array.from(pedidosConteoPorEstado.values()).reduce((total, count) => total + count, 0);
+  }, [pedidosConteoPorEstado]);
+
+  function pedidoPerteneceAMi(pedido: PedidoResumen) {
+    return Boolean(
+      operador
+      && (
+        pedido.operador_id === operador.id
+        || pedido.operador_asignado_id === operador.id
+        || pedido.redirigido_a_operador_id === operador.id
+      )
+    );
+  }
+
+  const misPedidosConteo = alcanceConteos.mis;
+  const todasPedidosConteo = alcanceConteos.todas;
+  const pedidoSeleccionadoInicial = useMemo(
+    () => pedidos.find((pedido) => pedido.codigo_operacion === seleccionado) ?? null,
+    [pedidos, seleccionado],
+  );
+
+  function pedidoTomadoPorMi(pedido: PedidoResumen) {
+    return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id === operador.id);
+  }
+
+  function pedidoBloqueadoPorOtro(pedido: PedidoResumen) {
+    return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operador.id);
+  }
+
+  function disponibilidadPedidoClass(pedido: PedidoResumen, base: string, selected: boolean, delayed: boolean) {
+    return [
+      selected ? `${base} selected` : base,
+      delayed ? 'order-delayed' : '',
+      pedidoTomadoPorMi(pedido) ? 'order-owned-by-me' : '',
+      pedidoBloqueadoPorOtro(pedido) ? 'order-blocked-by-other' : '',
+      !pedido.lock_activo ? 'order-available' : '',
+    ].filter(Boolean).join(' ');
+  }
+
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
       .filter((item) => !estado || item.value === estado)
       .map((item, index) => ({
         ...item,
         orden: index,
-        pedidos: pedidosFiltrados.filter((pedido) => pedido.estado === item.value),
+        pedidos: pedidosFiltrados.filter((pedido) => estadoFaseUno(pedido.estado) === item.value),
       }))
       .filter((grupo) => grupo.pedidos.length > 0 || Boolean(estado));
   }, [estado, pedidosFiltrados]);
@@ -227,8 +410,9 @@ export function App() {
     if (nextVista !== 'crear') setCrearDraft({});
     setVista(nextVista);
     setMobileMenuOpen(false);
-    setServicioSheetOpen(false);
-    setEstadoSheetOpen(false);
+    setUserMenuOpen(false);
+    setQuickCreateOpen(false);
+    setQuickCreateHidden(false);
     setProfileSection(null);
     setProfileMessage(null);
     setProfileError(null);
@@ -249,26 +433,198 @@ export function App() {
     });
   }
 
-  function abrirCrear(servicio: 'transferencia' | 'efectivo' | 'saldo' | 'divisa', draft: CrearPedidoDraft = {}) {
+  function abrirCrear(servicio: ServicioCrear, draft: CrearPedidoDraft = {}) {
     setServicioCrear(servicio);
     setCrearDraft(draft);
     setVista('crear');
     setMobileMenuOpen(false);
-    setServicioSheetOpen(false);
-    setEstadoSheetOpen(false);
+    setUserMenuOpen(false);
+    setQuickCreateOpen(false);
   }
 
-  async function cargarPedidos() {
+  function rastrearPedido(codigo: string) {
+    const codigoNormalizado = codigo.trim().toUpperCase();
+    if (!codigoNormalizado) return;
+    setCrearDraft({});
+    setBusqueda(codigoNormalizado);
+    setEstado('');
+    setServicio('');
+    setSeleccionado(codigoNormalizado);
+    setVista('bandeja');
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+    setQuickCreateOpen(false);
+    setProfileSection(null);
+    setError(null);
+    void cargarPedidos();
+  }
+
+  function abrirPerfilDesdeMenu(section: Exclude<ProfileSection, null>) {
+    setVista('perfil');
+    setProfileSection(section);
+    setProfileMessage(null);
+    setProfileError(null);
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+  }
+
+  function navegarDesdeMenuUsuario(nextVista: typeof vista) {
+    setUserMenuOpen(false);
+    navegar(nextVista);
+  }
+
+  function cerrarSesion() {
+    clearToken();
+    setOperador(null);
+    setMobileMenuOpen(false);
+    setUserMenuOpen(false);
+    setQuickCreateOpen(false);
+  }
+
+  function finalizarCreacionPedido(pedido: PedidoDetalle) {
+    setPedidoPagoModal(pedido);
+    setSeleccionado(null);
+    setAlcancePedidos('mis');
+    setVista('bandeja');
+    void cargarPedidos();
+  }
+
+  async function copiarPago(value?: string | null) {
+    if (!value) return;
+    const copiado = await copiarAlPortapapeles(value);
+    if (copiado) {
+      setCopyToast('Copiado');
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
+    } else {
+      setError('No se pudo copiar. Selecciona el texto y copialo manualmente.');
+    }
+  }
+
+  function cerrarCopyToast() {
+    if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+    copyToastTimeoutRef.current = null;
+    setCopyToast(null);
+  }
+
+  function cerrarProfileMessage() {
+    if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+    profileMessageTimeoutRef.current = null;
+    setProfileMessage(null);
+  }
+
+  function cerrarError() {
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+    errorTimeoutRef.current = null;
+    setError(null);
+  }
+
+  function cerrarProfileError() {
+    if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+    profileErrorTimeoutRef.current = null;
+    setProfileError(null);
+  }
+
+  function abrirUrlPago(url?: string | null) {
+    abrirWhatsAppUrl(url);
+  }
+
+  function abrirMensajeGrupoPedido() {
+    abrirUrlPago(pedidoPagoModal?.whatsapp_grupo_pedidos_url);
+  }
+
+  async function confirmarPagoPedidoCreado(file: File) {
+    if (!pedidoPagoModal || confirmandoPagoCreado) return;
+    setConfirmandoPagoCreado(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set('tipo', 'comprobante_cliente');
+      form.set('archivo', file);
+      await subirArchivo(pedidoPagoModal.codigo_operacion, form);
+      const actualizado = await actualizarEstado(
+        pedidoPagoModal.codigo_operacion,
+        'pago_confirmado',
+        'Pago confirmado al crear el pedido con comprobante cargado.',
+      );
+      if (actualizado.whatsapp_grupo_pedidos_url) {
+        setWhatsappGrupoPendiente({
+          codigo: actualizado.codigo_operacion,
+          url: actualizado.whatsapp_grupo_pedidos_url,
+          mensaje: actualizado.mensaje_grupo_pedidos ?? '',
+        });
+      }
+      setPedidoPagoModal(null);
+      await cargarPedidos();
+      setCopyToast('Pago confirmado');
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago');
+    } finally {
+      setConfirmandoPagoCreado(false);
+    }
+  }
+
+  function seleccionarComprobantePedidoCreado() {
+    if (confirmandoPagoCreado) return;
+    comprobantePedidoCreadoInputRef.current?.click();
+  }
+
+  function handleComprobantePedidoCreado(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    void confirmarPagoPedidoCreado(file);
+  }
+
+  const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[]) => {
+    const misPedidos = data.filter((pedido) => pedidoPerteneceAMi(pedido));
+    setAlcanceConteos({ mis: misPedidos.length, todas: data.length });
+    setPedidos(alcancePedidos === 'mis' ? misPedidos : data);
+  }, [alcancePedidos, operador]);
+
+  const cargarPedidos = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setPedidos(await listarPedidos({ limit: 200 }));
+      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+      const data = await listarPedidos({
+        limit: 200,
+        alcance: alcanceCarga,
+        ...rangoPeriodoPedidos(periodoPedidos),
+      });
+      if (puedeVerTodasLasOrdenes) {
+        aplicarPedidosPorAlcance(data);
+      } else {
+        setAlcanceConteos({ mis: data.length, todas: data.length });
+        setPedidos(data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar los pedidos');
     } finally {
       setLoading(false);
     }
-  }
+  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos]);
+
+  const refrescarPedidosSilencioso = useCallback(async () => {
+    try {
+      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+      const data = await listarPedidos({
+        limit: 200,
+        alcance: alcanceCarga,
+        ...rangoPeriodoPedidos(periodoPedidos),
+      });
+      if (puedeVerTodasLasOrdenes) {
+        aplicarPedidosPorAlcance(data);
+      } else {
+        setAlcanceConteos({ mis: data.length, todas: data.length });
+        setPedidos(data);
+      }
+    } catch {
+      // El refresco silencioso no debe interrumpir al operador si falla una vuelta.
+    }
+  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos]);
 
 
   useEffect(() => {
@@ -280,21 +636,103 @@ export function App() {
     if (!getToken()) return;
     getMe()
       .then(setOperador)
-      .catch(() => {
-        clearToken();
+      .catch((err) => {
+        const message = err instanceof Error ? err.message.toLowerCase() : '';
+        if (message.includes('401') || message.includes('token')) {
+          clearToken();
+        }
         setOperador(null);
       });
   }, []);
 
   useEffect(() => {
     if (operador) void cargarPedidos();
-  }, [operador]);
+  }, [cargarPedidos, operador]);
+
+  useEffect(() => {
+    if (!operador || vista !== 'bandeja' || !online) return undefined;
+    const interval = window.setInterval(() => {
+      void refrescarPedidosSilencioso();
+    }, 12000);
+    return () => window.clearInterval(interval);
+  }, [online, operador, refrescarPedidosSilencioso, vista]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setPedidosClock(Date.now()), 60000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (vista !== 'inicio' && vista !== 'bandeja') {
+      setQuickCreateHidden(false);
+      return undefined;
+    }
+
+    lastScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+
+    function handleQuickCreateScroll() {
+      if (window.innerWidth > 920) {
+        setQuickCreateHidden(false);
+        lastScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+        return;
+      }
+
+      const currentY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+      const delta = currentY - lastScrollYRef.current;
+      if (Math.abs(delta) < 10) return;
+
+      if (quickCreateOpen) {
+        setQuickCreateOpen(false);
+        lastScrollYRef.current = currentY;
+        return;
+      }
+
+      setQuickCreateHidden(currentY > 120 && delta > 0);
+      lastScrollYRef.current = currentY;
+    }
+
+    window.addEventListener('scroll', handleQuickCreateScroll, { passive: true });
+    window.addEventListener('resize', handleQuickCreateScroll);
+    return () => {
+      window.removeEventListener('scroll', handleQuickCreateScroll);
+      window.removeEventListener('resize', handleQuickCreateScroll);
+    };
+  }, [quickCreateOpen, vista]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+
+    function closeUserMenuOnScroll() {
+      setUserMenuOpen(false);
+    }
+
+    window.addEventListener('scroll', closeUserMenuOnScroll, true);
+    window.addEventListener('resize', closeUserMenuOnScroll);
+    return () => {
+      window.removeEventListener('scroll', closeUserMenuOnScroll, true);
+      window.removeEventListener('resize', closeUserMenuOnScroll);
+    };
+  }, [userMenuOpen]);
 
 
   useEffect(() => {
     if (!operador) return;
     setProfileNombre(operador.nombre);
   }, [operador]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    function closeUserMenuOutside(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (userMenuRef.current?.contains(target)) return;
+      setUserMenuOpen(false);
+    }
+
+    document.addEventListener('pointerdown', closeUserMenuOutside, true);
+    return () => document.removeEventListener('pointerdown', closeUserMenuOutside, true);
+  }, [userMenuOpen]);
 
   useEffect(() => {
     function syncOnline() {
@@ -308,6 +746,66 @@ export function App() {
       window.removeEventListener('offline', syncOnline);
     };
   }, []);
+
+  useEffect(() => {
+    if (!profileMessage) return undefined;
+    if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+    profileMessageTimeoutRef.current = window.setTimeout(() => setProfileMessage(null), PROFILE_TOAST_DURATION_MS);
+    return () => {
+      if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+    };
+  }, [profileMessage]);
+
+  useEffect(() => {
+    if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+    if (!error) return undefined;
+    errorTimeoutRef.current = window.setTimeout(() => {
+      setError(null);
+      errorTimeoutRef.current = null;
+    }, ERROR_TOAST_DURATION_MS);
+    return () => {
+      if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = null;
+    };
+  }, [error]);
+
+  useEffect(() => {
+    if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+    if (!profileError) return undefined;
+    profileErrorTimeoutRef.current = window.setTimeout(() => {
+      setProfileError(null);
+      profileErrorTimeoutRef.current = null;
+    }, ERROR_TOAST_DURATION_MS);
+    return () => {
+      if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+      profileErrorTimeoutRef.current = null;
+    };
+  }, [profileError]);
+
+  useEffect(() => {
+    return () => {
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
+      if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
+      if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+    };
+  }, []);
+
+
+  async function subirFotoPerfil(file: File) {
+    setProfilePhotoSaving(true);
+    setProfileError(null);
+    setProfileMessage(null);
+    try {
+      const actualizado = await subirMiFotoPerfil(file);
+      setOperador(actualizado);
+      setProfileMessage('Foto de perfil actualizada');
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : 'No se pudo subir la foto');
+    } finally {
+      setProfilePhotoSaving(false);
+    }
+  }
 
   async function guardarPerfil(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -334,7 +832,7 @@ export function App() {
   async function guardarPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (profilePassword.nueva !== profilePassword.confirmar) {
-      setProfileError('La confirmacion no coincide con la nueva contrasena');
+      setProfileError('La confirmacion no coincide con la nueva contraseña');
       return;
     }
 
@@ -347,9 +845,9 @@ export function App() {
         password_nueva: profilePassword.nueva,
       });
       setProfilePassword({ actual: '', nueva: '', confirmar: '' });
-      setProfileMessage('Contrasena actualizada correctamente');
+      setProfileMessage('contraseña actualizada correctamente');
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : 'No se pudo cambiar la contrasena');
+      setProfileError(err instanceof Error ? err.message : 'No se pudo cambiar la contraseña');
     } finally {
       setProfileSaving(false);
     }
@@ -359,8 +857,22 @@ export function App() {
     return <LoginPage onLogin={setOperador} />;
   }
 
+  const appShellClassName = [
+    'app-shell',
+    vista === 'bandeja' ? 'orders-view-shell' : '',
+    vista === 'bandeja' && seleccionado ? 'order-detail-view-shell' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className="app-shell">
+    <div className={appShellClassName}>
+      {(copyToast || error || profileMessage || profileError) && (
+        <div className="app-toast-stack" aria-live="polite">
+          {copyToast && <AppToast kind="success" message={copyToast} onClose={cerrarCopyToast} />}
+          {profileMessage && <AppToast kind="success" message={profileMessage} onClose={cerrarProfileMessage} />}
+          {error && <AppToast kind="error" message={error} onClose={cerrarError} />}
+          {profileError && <AppToast kind="error" message={profileError} onClose={cerrarProfileError} />}
+        </div>
+      )}
       <aside className={mobileMenuOpen ? 'sidebar mobile-open' : 'sidebar'}>
         <div>
           <div className="mobile-sidebar-head">
@@ -381,7 +893,7 @@ export function App() {
           <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
           <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
-        <button className="ghost-button" onClick={() => { clearToken(); setOperador(null); setMobileMenuOpen(false); }}>
+        <button className="ghost-button" onClick={cerrarSesion}>
           <LogOut size={18} /> Salir
         </button>
       </aside>
@@ -395,6 +907,9 @@ export function App() {
           </div>
         )}
         <header className="toolbar">
+          <button className="icon-button mobile-header-menu" onClick={() => setMobileMenuOpen(true)} title="Abrir menu" aria-label="Abrir menu">
+            <Menu size={20} />
+          </button>
           <button className="header-brand" onClick={() => navegar('inicio')} title="Ir al dashboard">
             <img src={logoJireh} alt="El Jireh"/>
             <span>EL JIREH</span>
@@ -404,13 +919,62 @@ export function App() {
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
-            <button className="operator-chip" type="button" onClick={() => navegar('perfil')} title="Ver perfil">
-              <span className="operator-chip-avatar">{operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span>
-              <span className="operator-chip-text">
-                <strong>{operador.nombre}</strong>
-                <small>{operador.rol}</small>
-              </span>
-            </button>
+            {userMenuOpen && <button className="floating-create-backdrop user-floating-backdrop" type="button" aria-label="Cerrar opciones de usuario" onClick={() => setUserMenuOpen(false)} />}
+            <div ref={userMenuRef} className={userMenuOpen ? 'user-floating-wrap open' : 'user-floating-wrap'}>
+              {userMenuOpen && (
+                <div className="floating-create-menu user-floating-menu" role="menu" aria-label="Opciones de usuario" onClick={(event) => event.stopPropagation()}>
+                  <div className="user-menu-summary">
+                    <OperadorAvatar operador={operador} className="operator-chip-avatar" />
+                    <span><strong>{operador.nombre}</strong><small>{operador.codigo_operador}</small></span>
+                  </div>
+                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('editar')}>
+                    <Edit3 size={18} /> Modificar usuario
+                  </button>
+                  <div className="user-menu-theme-row" role="menuitem">
+                    <button className="user-menu-theme-link" type="button" onClick={() => navegarDesdeMenuUsuario('perfil')}>
+                      <Palette size={18} />
+                      <span><strong>Apariencia</strong><small>{theme === 'light' ? 'Tema claro' : DARK_THEME_OPTIONS.find((item) => item.value === theme)?.label}</small></span>
+                    </button>
+                    <label className="theme-switch user-menu-theme-switch" onClick={(event) => event.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={theme !== 'light'}
+                        onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}
+                        aria-label="Activar tema oscuro"
+                      />
+                      <span>Oscuro</span>
+                    </label>
+                  </div>
+                  {puedeAdmin && (
+                    <button type="button" role="menuitem" onClick={() => navegarDesdeMenuUsuario('admin')}>
+                      <Settings size={18} /> Configuracion Admin
+                    </button>
+                  )}
+                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('ayuda')}>
+                    <HelpCircle size={18} /> Soporte
+                  </button>
+                  <button className="danger" type="button" role="menuitem" onClick={cerrarSesion}>
+                    <LogOut size={18} /> Salir
+                  </button>
+                </div>
+              )}
+              <button
+                className={userMenuOpen ? 'operator-chip user-floating-trigger active' : 'operator-chip user-floating-trigger'}
+                type="button"
+                onClick={() => setUserMenuOpen((current) => !current)}
+                title={userMenuOpen ? 'Cerrar opciones' : 'Opciones de usuario'}
+                aria-label={userMenuOpen ? 'Cerrar opciones de usuario' : 'Opciones de usuario'}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+              >
+                <OperadorAvatar operador={operador} className="operator-chip-avatar" />
+                <span className="operator-chip-text">
+                  <strong>{operador.nombre}</strong>
+                  <small>{operador.rol}</small>
+                </span>
+                {userMenuOpen ? <X className="user-menu-chevron open" size={16} /> : <ChevronDown className="user-menu-chevron" size={16} />}
+              </button>
+            </div>
             <button className="icon-button mobile-menu-button" onClick={() => setMobileMenuOpen(true)} title="Abrir menu">
               <Menu size={20} />
             </button>
@@ -418,7 +982,7 @@ export function App() {
         </header>
 
         {vista === 'inicio' ? (
-          <InicioPage canSyncTasas={puedeAdmin} onCreate={abrirCrear} />
+          <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
         ) : vista === 'reportes' ? (
@@ -427,7 +991,13 @@ export function App() {
           <section className="profile-page">
             <div className="profile-hero-card">
               <div className="profile-hero-main">
-                <div className="profile-avatar initials">{operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</div>
+                <div className="profile-avatar-wrap">
+                  <OperadorAvatar operador={operador} className="profile-avatar initials" />
+                  <label className="profile-photo-upload" title="Cambiar foto">
+                    {profilePhotoSaving ? 'Subiendo...' : 'Cambiar foto'}
+                    <input type="file" accept="image/*" disabled={profilePhotoSaving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void subirFotoPerfil(file); event.currentTarget.value = ''; }} />
+                  </label>
+                </div>
                 <div>
                   <h2>{operador.nombre}</h2>
                   <p>{operador.telefono}</p>
@@ -436,28 +1006,12 @@ export function App() {
               <div className="profile-hero-meta">
                 <span>Codigo: <strong>{operador.codigo_operador}</strong></span>
                 <span>Rol: <strong>{operador.rol}</strong></span>
-                <button className="icon-button" onClick={() => navigator.clipboard.writeText(operador.codigo_operador)} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
+                <button className="icon-button" onClick={() => void copiarPago(operador.codigo_operador)} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
               </div>
             </div>
 
-            {(profileMessage || profileError) && (
-              <div className={profileError ? 'profile-feedback error' : 'profile-feedback success'}>
-                {profileError || profileMessage}
-              </div>
-            )}
-
             <div className="profile-section">
               <h3>Mi cuenta</h3>
-              <button className={profileSection === 'datos' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('datos')} aria-expanded={profileSection === 'datos'}><UserCircle size={22} /><span>Mis datos</span><ChevronDown className={profileSection === 'datos' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'datos' && (
-                <div className="profile-inline-panel profile-data-grid">
-                  <div><small>Nombre</small><strong>{operador.nombre}</strong></div>
-                  <div><small>Telefono</small><strong>{operador.telefono}</strong></div>
-                  <div><small>Codigo</small><strong>{operador.codigo_operador}</strong></div>
-                  <div><small>Estado</small><strong>{operador.activo ? 'Activo' : 'Inactivo'}</strong></div>
-                </div>
-              )}
-
               <button className={profileSection === 'editar' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('editar')} aria-expanded={profileSection === 'editar'}><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown className={profileSection === 'editar' ? 'chevron-open' : ''} size={18} /></button>
               {profileSection === 'editar' && (
                 <form className="profile-inline-panel profile-form" onSubmit={guardarPerfil}>
@@ -521,33 +1075,25 @@ export function App() {
 
             <div className="profile-section">
               <h3>Seguridad</h3>
-              <button className={profileSection === 'password' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('password')} aria-expanded={profileSection === 'password'}><KeyRound size={22} /><span>Cambiar contrasena</span><ChevronDown className={profileSection === 'password' ? 'chevron-open' : ''} size={18} /></button>
+              <button className={profileSection === 'password' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('password')} aria-expanded={profileSection === 'password'}><KeyRound size={22} /><span>Cambiar contraseña</span><ChevronDown className={profileSection === 'password' ? 'chevron-open' : ''} size={18} /></button>
               {profileSection === 'password' && (
                 <form className="profile-inline-panel profile-form" onSubmit={guardarPassword}>
                   <label>
-                    <span>Contrasena actual</span>
-                    <input type="password" value={profilePassword.actual} onChange={(event) => setProfilePassword((current) => ({ ...current, actual: event.target.value }))} autoComplete="current-password" />
+                    <span>contraseña actual</span>
+                    <PasswordField value={profilePassword.actual} onChange={(event) => setProfilePassword((current) => ({ ...current, actual: event.target.value }))} autoComplete="current-password" />
                   </label>
                   <label>
-                    <span>Nueva contrasena</span>
-                    <input type="password" value={profilePassword.nueva} onChange={(event) => setProfilePassword((current) => ({ ...current, nueva: event.target.value }))} autoComplete="new-password" />
+                    <span>Nueva contraseña</span>
+                    <PasswordField value={profilePassword.nueva} onChange={(event) => setProfilePassword((current) => ({ ...current, nueva: event.target.value }))} autoComplete="new-password" />
                   </label>
                   <label>
                     <span>Confirmar nueva</span>
-                    <input type="password" value={profilePassword.confirmar} onChange={(event) => setProfilePassword((current) => ({ ...current, confirmar: event.target.value }))} autoComplete="new-password" />
+                    <PasswordField value={profilePassword.confirmar} onChange={(event) => setProfilePassword((current) => ({ ...current, confirmar: event.target.value }))} autoComplete="new-password" />
                   </label>
-                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Actualizando...' : 'Cambiar contrasena'}</button>
+                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Actualizando...' : 'Cambiar contraseña'}</button>
                 </form>
               )}
 
-              <button className={profileSection === 'sesion' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('sesion')} aria-expanded={profileSection === 'sesion'}><ShieldCheck size={22} /><span>Sesion y acceso</span><ChevronDown className={profileSection === 'sesion' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'sesion' && (
-                <div className="profile-inline-panel profile-session-panel">
-                  <div><small>Sesion</small><strong>Activa</strong></div>
-                  <div><small>Identificador</small><strong>{operador.codigo_operador}</strong></div>
-                  <button className="secondary-action" type="button" onClick={() => { clearToken(); setOperador(null); }}>Cerrar sesion</button>
-                </div>
-              )}
             </div>
 
             <div className="profile-section">
@@ -565,14 +1111,14 @@ export function App() {
               {profileSection === 'ayuda' && (
                 <div className="profile-support-options">
                   <div className="profile-support-panel">
-                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Brasil</strong>
                         <small>+55 48 9123-3191</small>
                       </span>
                     </a>
-                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Uruguay</strong>
@@ -581,14 +1127,14 @@ export function App() {
                     </a>
                   </div>
                   <div className="profile-support-panel profile-support-panel-list">
-                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Soporte Brasil</strong>
                         <small>+55 48 9123-3191</small>
                       </span>
                     </a>
-                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" target="_blank" rel="noreferrer">
+                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer">
                       <WhatsAppIcon />
                       <span>
                         <strong>Soporte Uruguay</strong>
@@ -598,7 +1144,7 @@ export function App() {
                   </div>
                 </div>
               )}
-              <button className="profile-option danger" type="button" onClick={() => { clearToken(); setOperador(null); }}><LogOut size={22} /><span>Salir</span><ChevronDown size={18} /></button>
+              <button className="profile-option danger profile-logout-option" type="button" onClick={cerrarSesion}><LogOut size={22} /><span>Salir</span></button>
             </div>
           </section>
         ) : vista === 'crear' ? (
@@ -632,22 +1178,41 @@ export function App() {
               >
                 Divisa
               </button>
+              <button
+                type="button"
+                className={servicioCrear === 'otros' ? 'active' : ''}
+                onClick={() => { setServicioCrear('otros'); setCrearDraft({}); }}
+              >
+                Otros
+              </button>
             </div>
             {servicioCrear === 'transferencia' && (
-              <TransferenciaForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <TransferenciaForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
             )}
             {servicioCrear === 'efectivo' && (
-              <EfectivoForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <EfectivoForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
             )}
             {servicioCrear === 'saldo' && (
-              <SaldoForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <SaldoForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
             )}
             {servicioCrear === 'divisa' && (
-              <DivisaForm operadorId={operador.id} initialData={crearDraft} onCreated={(codigo) => { setSeleccionado(codigo); setVista('bandeja'); void cargarPedidos(); }} />
+              <DivisaForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
+            )}
+            {servicioCrear === 'otros' && (
+              <OtrosForm operadorId={operador.id} onCreated={finalizarCreacionPedido} />
             )}
           </section>
         ) : (
           <>
+            {seleccionado ? (
+              <PedidoDetallePanel
+                codigo={seleccionado}
+                pedidoInicial={pedidoSeleccionadoInicial}
+                operadorId={operador.id}
+                onChanged={cargarPedidos}
+                onClose={() => setSeleccionado(null)}
+              />
+            ) : (
             <section className="content-grid orders-content-grid">
               <div className="list-panel orders-list-panel">
                 <div className="filters orders-toolbar-row">
@@ -656,63 +1221,97 @@ export function App() {
                     <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
                   </label>
                 </div>
-                <div className="orders-filter-grid" aria-label="Filtros de pedidos">
-                  <div className="order-filter-field">
-                    <span className="order-filter-icon">{servicioIcon(servicio, 17)}</span>
-                    <button
-                      type="button"
-                      className="order-filter-button"
-                      onClick={() => setServicioSheetOpen(true)}
-                      aria-haspopup="dialog"
-                      aria-expanded={servicioSheetOpen}
-                    >
-                      <span>{servicio ? servicios.find((item) => item.value === servicio)?.label : 'Servicio'}</span>
-                      <ChevronDown className="order-filter-caret" size={17} />
+                <div className="status-filters orders-scope-chips" aria-label="Alcance de ordenes">
+                  <button type="button" className={alcancePedidos === 'mis' ? 'active scope-my-orders' : 'scope-my-orders'} onClick={() => setAlcancePedidos('mis')}>
+                    <UserCircle size={16} />
+                    <span>Mis pedidos</span>
+                    <strong>{misPedidosConteo}</strong>
+                  </button>
+                  {puedeVerTodasLasOrdenes && (
+                    <button type="button" className={alcancePedidos === 'todas' ? 'active' : ''} onClick={() => setAlcancePedidos('todas')}>
+                      <ClipboardList size={16} />
+                      <span>Todas</span>
+                      <strong>{todasPedidosConteo}</strong>
                     </button>
-                  </div>
-                  <div className="order-filter-field">
-                    <CircleDot className="order-filter-icon" size={17} />
+                  )}
+                  <div className="orders-top-actions">
+                    <div className="order-filter-field order-filter-floating orders-period-action">
+                      <FloatingSelect
+                        value={periodoPedidos}
+                        onChange={(value) => setPeriodoPedidos(value as PeriodoPedidos)}
+                        options={[
+                          { value: 'hoy', label: 'Hoy' },
+                          { value: '7_dias', label: '7 dias' },
+                          { value: 'mes', label: 'Este mes' },
+                          { value: 'todos', label: 'Todos' },
+                        ]}
+                        ariaLabel="Filtrar pedidos por fecha"
+                        align="left"
+                        buttonClassName="order-filter-button"
+                      />
+                    </div>
+                    <div className="order-filter-field order-filter-floating orders-service-action">
+                      <FloatingSelect
+                        value={servicio}
+                        onChange={setServicio}
+                        options={servicios.map((item) => ({
+                          value: item.value,
+                          label: item.value ? item.label : 'Todos los servicios',
+                          icon: servicioIcon(item.value, 17),
+                        }))}
+                        ariaLabel="Filtrar por servicio"
+                        align="right"
+                        buttonClassName="order-filter-button"
+                      />
+                    </div>
                     <button
                       type="button"
-                      className="order-filter-button"
-                      onClick={() => setEstadoSheetOpen(true)}
-                      aria-haspopup="dialog"
-                      aria-expanded={estadoSheetOpen}
+                      className="view-toggle single-view-toggle"
+                      onClick={() => setVistaPedidos((current) => current === 'lista' ? 'kanban' : 'lista')}
+                      title={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
+                      aria-label={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
                     >
-                      <span>{estado ? estadoLabel(estado) : 'Estado'}</span>
-                      <ChevronDown className="order-filter-caret" size={17} />
+                      {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
+                    </button>
+                    <button className="icon-button orders-refresh-button" onClick={cargarPedidos} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={loading}>
+                      <RefreshCw size={18} />
                     </button>
                   </div>
                 </div>
-                {error && <div className="notice error">{error}</div>}
-                {loading && <div className="notice">Cargando pedidos...</div>}
-                {pedidosFiltrados.length === 0 && !loading && <div className="notice">No hay pedidos para estos filtros</div>}
-                <div className="orders-view-mode-row">
-                  <button
-                    type="button"
-                    className="view-toggle single-view-toggle"
-                    onClick={() => setVistaPedidos((current) => current === 'lista' ? 'kanban' : 'lista')}
-                    title={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
-                    aria-label={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
-                  >
-                    {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
+                <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
+                  <button type="button" className={!estado ? 'active' : ''} onClick={() => setEstado('')}>
+                    <span>Todos</span>
+                    <strong>{totalPedidosConteo}</strong>
                   </button>
-                  <button className="icon-button orders-refresh-button" onClick={cargarPedidos} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={loading}>
-                    <RefreshCw size={18} />
-                  </button>
+                  {estadosBandeja.map((item) => (
+                    <button
+                      type="button"
+                      key={item.value}
+                      className={estado === item.value ? `active ${item.value}` : item.value}
+                      onClick={() => setEstado(item.value)}
+                    >
+                      <span>{item.label}</span>
+                      <strong>{pedidosConteoPorEstado.get(item.value) ?? 0}</strong>
+                    </button>
+                  ))}
                 </div>
+                {loading && <PageLoader label="Cargando pedidos" inline />}
+                {pedidosFiltrados.length === 0 && !loading && <DismissibleNotice className="notice">No hay pedidos para estos filtros</DismissibleNotice>}
                 {vistaPedidos === 'lista' ? (
                   <div className="chat-order-list">
-                    {pedidosListaOrdenada.map((pedido) => (
+                    {pedidosListaOrdenada.map((pedido) => {
+                      const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
+                      return (
                       <button
                         key={pedido.codigo_operacion}
-                        className={seleccionado === pedido.codigo_operacion ? 'chat-order-card selected' : 'chat-order-card'}
-                        onClick={() => setSeleccionado(pedido.codigo_operacion)}
+                        className={disponibilidadPedidoClass(pedido, 'chat-order-card', seleccionado === pedido.codigo_operacion, false)}
+                        onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
+                        disabled={bloqueadoPorOtro}
                       >
                         <span className="chat-card-main">
                           <span className="pedido-card-head">
                             <strong>{pedido.servicio}</strong>
-                            <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
+                            <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
                           </span>
                           <span className="pedido-card-fields compact">
                             {resumenPedido(pedido).map((field) => (
@@ -725,12 +1324,15 @@ export function App() {
                         </span>
                         <span className="chat-card-side">
                           <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
-                          {pedido.lock_activo && <small className="order-taken-chip">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
+                          {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own' : 'order-redirect-chip'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
+                          {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned">Lo tienes tu</small>}
+                          {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                           <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
-                          <small>Recibe {pedido.monto_resultado}</small>
+                          <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
                         </span>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="pedido-board">
@@ -746,17 +1348,22 @@ export function App() {
                           <strong>{grupo.pedidos.length}</strong>
                         </header>
                         {!colapsado && <div className="pedido-list">
-                          {grupo.pedidos.map((pedido) => (
+                          {grupo.pedidos.map((pedido) => {
+                            const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
+                            return (
                             <button
                               key={pedido.codigo_operacion}
-                              className={seleccionado === pedido.codigo_operacion ? 'pedido-row selected' : 'pedido-row'}
-                              onClick={() => setSeleccionado(pedido.codigo_operacion)}
+                              className={disponibilidadPedidoClass(pedido, 'pedido-row', seleccionado === pedido.codigo_operacion, false)}
+                              onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
+                              disabled={bloqueadoPorOtro}
                             >
                               <span className="kanban-card-top">
                                 <span className="pedido-card-head">
                                   <strong>{pedido.servicio}</strong>
-                                  <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at) ? `- ${tiempoRelativo(pedido.created_at)}` : ''}</small>
-                                  {pedido.lock_activo && <small className="order-taken-chip inline">Tomada por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
+                                  <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
+                                  {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
+                                  {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned inline">Lo tienes tu</small>}
+                                  {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked inline">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
                                 </span>
                                 <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
                               </span>
@@ -769,11 +1376,12 @@ export function App() {
                                 ))}
                               </span>
                               <span className="pedido-card-pay compact-pay">
-                                <small>Recibe {pedido.monto_resultado}</small>
-                                <small>Tasa {pedido.tasa_final}</small>
+                                <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
+                                <small>Tasa {tasaAplicadaPedido(pedido)}</small>
                               </span>
                             </button>
-                          ))}
+                            );
+                          })}
                         </div>}
                       </section>
                       );
@@ -782,66 +1390,138 @@ export function App() {
                 )}
               </div>
             </section>
-            <PedidoDetallePanel codigo={seleccionado} operadorId={operador.id} onChanged={cargarPedidos} onClose={() => setSeleccionado(null)} />
+            )}
           </>
         )}
       </main>
-      {estadoSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de estado" onClick={() => setEstadoSheetOpen(false)} />
-          <section className="bottom-sheet-panel state-filter-sheet" role="dialog" aria-modal="true" aria-label="Filtrar pedidos por estado">
-            <header className="bottom-sheet-header">
-              <strong>Estado</strong>
-              <button className="icon-button" type="button" onClick={() => setEstadoSheetOpen(false)} title="Cerrar" aria-label="Cerrar">
-                <X size={18} />
-              </button>
-            </header>
-            <div className="bottom-sheet-options">
-              {estados.map((item) => (
-                <button
-                  key={item.value || 'todos-estados'}
-                  type="button"
-                  className={estado === item.value ? 'active' : ''}
-                  onClick={() => { setEstado(item.value); setEstadoSheetOpen(false); }}
-                >
-                  <CircleDot size={18} />
-                  <span>{item.value ? item.label : 'Todos'}</span>
-                </button>
-              ))}
+      {puedeCrear && (vista === 'inicio' || (vista === 'bandeja' && !seleccionado)) && (
+        <div className={[quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap', quickCreateHidden && !quickCreateOpen ? 'hide-on-scroll' : ''].filter(Boolean).join(' ')}>
+          {quickCreateOpen && <button className="floating-create-backdrop" aria-label="Cerrar menu de creacion" onClick={() => setQuickCreateOpen(false)} />}
+          {quickCreateOpen && (
+            <div className="floating-create-menu" role="menu" aria-label="Crear pedido">
+              <button type="button" role="menuitem" onClick={() => abrirCrear('transferencia')}><WalletCards size={18} /> Transferencia</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('efectivo')}><Banknote size={18} /> Efectivo</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('saldo')}><Smartphone size={18} /> Saldo</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('divisa')}><WalletCards size={18} /> Divisa</button>
+              <button type="button" role="menuitem" onClick={() => abrirCrear('otros')}><BriefcaseBusiness size={18} /> Otros</button>
             </div>
-          </section>
+          )}
+          <button
+            className="floating-create"
+            type="button"
+            onClick={() => setQuickCreateOpen((current) => !current)}
+            title={quickCreateOpen ? 'Cerrar opciones' : 'Nuevo pedido'}
+            aria-label={quickCreateOpen ? 'Cerrar opciones de nuevo pedido' : 'Nuevo pedido'}
+            aria-expanded={quickCreateOpen}
+          >
+            {quickCreateOpen ? <X size={24} /> : <Plus size={24} />}
+          </button>
         </div>
       )}
-      {servicioSheetOpen && (
-        <div className="bottom-sheet-layer" role="presentation">
-          <button className="bottom-sheet-backdrop" aria-label="Cerrar filtro de servicio" onClick={() => setServicioSheetOpen(false)} />
-          <section className="bottom-sheet-panel service-filter-sheet" role="dialog" aria-modal="true" aria-label="Filtrar pedidos por servicio">
-            <header className="bottom-sheet-header">
-              <strong>Servicio</strong>
-              <button className="icon-button" type="button" onClick={() => setServicioSheetOpen(false)} title="Cerrar" aria-label="Cerrar">
-                <X size={18} />
-              </button>
-            </header>
-            <div className="bottom-sheet-options">
-              {servicios.map((item) => (
-                <button
-                  key={item.value || 'todos-servicios'}
-                  type="button"
-                  className={servicio === item.value ? 'active' : ''}
-                  onClick={() => { setServicio(item.value); setServicioSheetOpen(false); }}
-                >
-                  {servicioIcon(item.value, 18)}
-                  <span>{item.value ? item.label : 'Todos'}</span>
+
+      {pedidoPagoModal && (
+        <Modal title="Pedido creado" subtitle={`${pedidoPagoModal.codigo_operacion} · pendiente de pago`} onClose={() => setPedidoPagoModal(null)}>
+          <div className="payment-instructions-modal">
+            <section className="payment-instructions-summary">
+              <span className="status pendiente_pago">Pendiente pago</span>
+              <strong>{pedidoPagoModal.monto_pago} {pedidoPagoModal.moneda_pago}</strong>
+              <small>El pedido ya fue creado. Se confirmara el pago cuando se suba el comprobante.</small>
+            </section>
+            {pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') && (
+              <section className="payment-qr-placeholder" aria-label="QR Pix pendiente">
+                <strong>QR Pix</strong>
+                <small>Aun sin definir</small>
+              </section>
+            )}
+            <div className="payment-data-grid">
+              <div>
+                <span>Metodo</span>
+                <strong>{pedidoPagoModal.datos_pago?.metodo_pago ?? 'Por confirmar'}</strong>
+              </div>
+              <div>
+                <span>{pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') ? 'Llave Pix' : 'Cuenta'}</span>
+                <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.cuenta_pago)}>
+                  <strong>{pedidoPagoModal.datos_pago?.cuenta_pago ?? 'Por confirmar'}</strong>
+                  <Copy size={16} />
                 </button>
-              ))}
+              </div>
+              <div>
+                <span>Titular</span>
+                <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.titular_pago)}>
+                  <strong>{pedidoPagoModal.datos_pago?.titular_pago ?? 'El Jireh'}</strong>
+                  <Copy size={16} />
+                </button>
+              </div>
             </div>
-          </section>
-        </div>
+            <section className="payment-already-paid">
+              <div>
+                <strong>Si el cliente ya pago</strong>
+                <small>Sube el comprobante y confirma el pago sin salir de esta vista.</small>
+              </div>
+              <button className="primary-button" type="button" onClick={seleccionarComprobantePedidoCreado} disabled={confirmandoPagoCreado}>
+                {confirmandoPagoCreado ? <RefreshCw className="button-spinner" size={16} /> : <Upload size={16} />} {confirmandoPagoCreado ? 'Subiendo...' : 'Subir comprobante y confirmar'}
+              </button>
+              <input
+                ref={comprobantePedidoCreadoInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="visually-hidden-file"
+                onChange={handleComprobantePedidoCreado}
+              />
+            </section>
+            <div className="message-actions payment-modal-actions">
+              <button className="ghost-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.mensaje_pago_cliente)}>
+                <Copy size={16} /> Copiar mensaje
+              </button>
+              <button className="primary-button" type="button" onClick={() => abrirUrlPago(pedidoPagoModal.whatsapp_pago_url)} disabled={!pedidoPagoModal.whatsapp_pago_url}>
+                Enviar al cliente
+              </button>
+              <button className="primary-button" type="button" onClick={abrirMensajeGrupoPedido} disabled={!pedidoPagoModal.whatsapp_grupo_pedidos_url}>
+                Enviar al grupo
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
-      {puedeCrear && (vista === 'inicio' || vista === 'bandeja') && (
-        <button className="floating-create" onClick={() => abrirCrear('transferencia')} title="Nuevo pedido">
-          <Plus size={24} />
-        </button>
+      {whatsappGrupoPendiente && (
+        <Modal
+          title="Pago confirmado"
+          subtitle={`${whatsappGrupoPendiente.codigo} · mensaje listo para Operaciones`}
+          onClose={() => setWhatsappGrupoPendiente(null)}
+          className="payment-confirmed-modal"
+        >
+          <div className="whatsapp-message-preview">
+            <label htmlFor="whatsapp-grupo-pendiente">Mensaje que se enviara</label>
+            <textarea
+              id="whatsapp-grupo-pendiente"
+              value={whatsappGrupoPendiente.mensaje}
+              rows={8}
+              readOnly
+            />
+          </div>
+          <div className="message-actions payment-modal-actions">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => void copiarPago(whatsappGrupoPendiente.mensaje)}
+            >
+              <Copy size={16} /> Copiar mensaje
+            </button>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => {
+                abrirWhatsAppUrl(whatsappGrupoPendiente.url);
+                setWhatsappGrupoPendiente(null);
+              }}
+            >
+              Enviar al grupo por WhatsApp
+            </button>
+            <button className="ghost-button" type="button" onClick={() => setWhatsappGrupoPendiente(null)}>
+              Enviar despues
+            </button>
+          </div>
+        </Modal>
       )}
       <nav className="bottom-nav" aria-label="Navegacion principal">
         <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={20} /> Inicio</button>

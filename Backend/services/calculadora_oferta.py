@@ -168,6 +168,19 @@ def calcular_saldo(
         "paquete_id":
         paquete.id,
 
+        "tasa":
+        float(
+            paquete.monto_pago
+        ),
+
+        "bonificacion":
+        0,
+
+        "tasa_final":
+        float(
+            paquete.monto_pago
+        ),
+
         "saldo_cup":
         paquete.saldo_cup,
 
@@ -182,6 +195,54 @@ def calcular_saldo(
                 0
             ) or 0
         )
+    }
+
+
+def calcular_divisa(
+    db: Session,
+    servicio: str,
+    moneda_pago: str,
+    monto_pago: float
+):
+
+    oferta = buscar_oferta(
+        db=db,
+        servicio=servicio,
+        moneda_pago=moneda_pago,
+        monto_pago=monto_pago
+    )
+
+    tasa = float(oferta.tasa)
+
+    if tasa <= 0:
+        raise Exception(
+            "La tasa de la oferta debe ser mayor que cero"
+        )
+
+    monto_resultado = round(
+        monto_pago / tasa,
+        2
+    )
+
+    return {
+
+        "oferta_id":
+        oferta.id,
+
+        "tasa":
+        tasa,
+
+        "bonificacion":
+        0,
+
+        "tasa_final":
+        tasa,
+
+        "monto_resultado":
+        monto_resultado,
+
+        "ganancia":
+        0
     }
 
 
@@ -221,7 +282,19 @@ def calcular_operacion(
             monto_pago=monto_pago
         )
 
+    if servicio in [
+        "mlc",
+        "usd",
+        "clasica"
+    ]:
+
+        return calcular_divisa(
+            db=db,
+            servicio=servicio,
+            moneda_pago=moneda_pago,
+            monto_pago=monto_pago
+        )
+
     raise Exception(
         "Servicio no soportado"
     )
-

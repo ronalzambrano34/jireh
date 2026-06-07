@@ -139,6 +139,9 @@ def crear_pedido_saldo(
         "tipo_pago_id":
         data.tipo_pago_id,
 
+        "cuenta_pago_id":
+        getattr(data, "cuenta_pago_id", None),
+
         "telefono_destinatario":
         getattr(
             data,

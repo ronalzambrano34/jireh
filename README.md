@@ -46,17 +46,17 @@ cd ..
 
 ## Frontend
 
-`Frontend/` contiene el primer scaffold de la app web interna con React, TypeScript y Vite.
+`Frontend/` contiene la app web interna con React, TypeScript y Vite.
 
 Incluye:
 
 - Login de operador con token Bearer.
-- Bandeja de pedidos por estado.
-- Detalle operativo de pedido con bloqueo, cambio de estado, datos copiables, mensaje WhatsApp, evidencias e historial.
-- Creacion inicial de transferencia.
-- Cambio de estado.
-- Upload de comprobante.
-- Copiado del mensaje de WhatsApp.
+- Inicio con tasas operativas, paquetes de saldo y accesos rapidos para crear pedidos.
+- Creacion de pedidos de transferencia, efectivo, saldo movil, divisa y otros.
+- Bandeja de pedidos por estado con vista lista/cuadricula, alcance por operador y bloqueo operativo.
+- Detalle operativo con datos copiables, evidencias, historial, redireccion entre operadores y cambio de estado.
+- Mensajes WhatsApp para instrucciones de pago, grupo operativo y grupo de finalizados segun el estado.
+- Reportes operativos, perfil del operador, cambio de contraseña, foto de perfil y administracion de catalogos/personas.
 
 Antes de ejecutarlo hay que instalar Node.js/npm. Luego:
 
