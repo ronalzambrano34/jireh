@@ -105,3 +105,55 @@ npm run preview
 ```
 
 Nunca subir `Backend/.env`, `Frontend/.env.local`, `credentials.json`, bases locales ni archivos dentro de `storage/`. Ya estan ignorados por `.gitignore`.
+
+## Publicacion del backend en Vercel
+
+El repositorio incluye `api/index.py`, `requirements.txt` y `vercel.json` para
+publicar FastAPI como una funcion Python de Vercel.
+
+1. Importar en Vercel el mismo repositorio de GitHub.
+2. Dejar `Root Directory` en la raiz del repositorio.
+3. No configurar `Build Command`, `Output Directory` ni `Install Command`.
+4. Agregar estas variables en `Settings > Environment Variables`:
+
+```text
+DATABASE_URL
+AUTH_SECRET
+OPERADOR_ADMIN_NOMBRE
+OPERADOR_ADMIN_TELEFONO
+OPERADOR_ADMIN_PASSWORD
+FRONTEND_ORIGINS
+RUN_DB_BOOTSTRAP=false
+RUN_DB_MAINTENANCE=false
+OFERTAS_AUTO_SYNC_ENABLED=false
+```
+
+`FRONTEND_ORIGINS` debe contener la URL exacta de GitHub Pages, por ejemplo:
+
+```text
+https://ronalzambrano34.github.io
+```
+
+Usar para `DATABASE_URL` la URL del pooler de Supabase apta para conexiones
+serverless. La base debe tener sus tablas creadas previamente; el despliegue no
+ejecuta semillas ni cambios de esquema en cada cold start. Luego de desplegar,
+comprobar:
+
+```text
+https://TU-PROYECTO.vercel.app/health
+https://TU-PROYECTO.vercel.app/docs
+```
+
+Finalmente, configurar en GitHub
+`Settings > Secrets and variables > Actions > Variables`:
+
+```text
+VITE_API_URL=https://TU-PROYECTO.vercel.app
+```
+
+y volver a ejecutar el workflow de GitHub Pages.
+
+Vercel no ofrece disco persistente para las funciones. Los endpoints que suben
+fotos, comprobantes o promociones a `storage/` requieren migrar esos archivos a
+Supabase Storage, Vercel Blob u otro almacenamiento externo antes de usarlos en
+produccion.

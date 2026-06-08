@@ -5,6 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from Backend.routes.webhook import router as webhook_router
 
 from Backend.config import FRONTEND_ORIGINS
+from Backend.config import IS_VERCEL
+from Backend.config import RUN_DB_BOOTSTRAP
 from Backend.config import RUN_DB_MAINTENANCE
 
 from Backend.database import Base
@@ -76,33 +78,34 @@ app.add_middleware(
 )
 
 
-Base.metadata.create_all(
-    bind=engine
-)
+if RUN_DB_BOOTSTRAP:
+    Base.metadata.create_all(
+        bind=engine
+    )
 
-_db = SessionLocal()
-try:
-    if RUN_DB_MAINTENANCE:
-        ensure_runtime_columns(
+    _db = SessionLocal()
+    try:
+        if RUN_DB_MAINTENANCE:
+            ensure_runtime_columns(
+                _db
+            )
+        seed_cliente_generico(
             _db
         )
-    seed_cliente_generico(
-        _db
-    )
-    seed_admin_operador(
-        _db
-    )
-    seed_test_admin_operador(
-        _db
-    )
-    seed_metodos_pago(
-        _db
-    )
-    seed_provincias_servicio(
-        _db
-    )
-finally:
-    _db.close()
+        seed_admin_operador(
+            _db
+        )
+        seed_test_admin_operador(
+            _db
+        )
+        seed_metodos_pago(
+            _db
+        )
+        seed_provincias_servicio(
+            _db
+        )
+    finally:
+        _db.close()
 
 app.include_router(pedido_router)
 app.include_router(operador_router)
@@ -130,6 +133,9 @@ app.include_router(tasa_operativa_router)
 
 @app.on_event("startup")
 def startup_ofertas_sync():
+    if IS_VERCEL:
+        return
+
     iniciar_scheduler_sync_ofertas(
         SessionLocal
     )
@@ -145,5 +151,13 @@ def shutdown_ofertas_sync():
 def home():
 
     return {
-        "message": "Jireh API"
+        "message": "Jireh API",
+        "environment": "vercel" if IS_VERCEL else "server"
+    }
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok"
     }

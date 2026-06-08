@@ -4,9 +4,14 @@ from sqlalchemy.orm import sessionmaker
 
 from Backend.config import DATABASE_URL
 
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL no esta configurada. Agregala en las variables de entorno."
+    )
 
 engine = create_engine(
-    DATABASE_URL
+    DATABASE_URL,
+    pool_pre_ping=True
 )
 
 SessionLocal = sessionmaker(

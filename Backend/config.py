@@ -6,6 +6,8 @@ import os
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
+IS_VERCEL = bool(os.getenv("VERCEL"))
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL"
 )
@@ -95,7 +97,7 @@ UPLOAD_ALLOWED_MIME_TYPES = {
 
 OFERTAS_AUTO_SYNC_ENABLED = os.getenv(
     "OFERTAS_AUTO_SYNC_ENABLED",
-    "true"
+    "false" if IS_VERCEL else "true"
 ).strip().lower() in {
     "1",
     "true",
@@ -120,6 +122,16 @@ OFERTAS_SYNC_START_DELAY_SECONDS = int(
 RUN_DB_MAINTENANCE = os.getenv(
     "RUN_DB_MAINTENANCE",
     "true"
+).strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "si"
+}
+
+RUN_DB_BOOTSTRAP = os.getenv(
+    "RUN_DB_BOOTSTRAP",
+    "false" if IS_VERCEL else "true"
 ).strip().lower() in {
     "1",
     "true",
