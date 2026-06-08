@@ -1,20 +1,12 @@
-import { type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
-import { PedidoDetallePanel } from './pages/PedidoDetallePanel';
-import { DivisaForm } from './pages/DivisaForm';
-import { EfectivoForm } from './pages/EfectivoForm';
-import { SaldoForm } from './pages/SaldoForm';
-import { OtrosForm } from './pages/OtrosForm';
-import { TransferenciaForm } from './pages/TransferenciaForm';
-import { ReportesPage } from './pages/ReportesPage';
-import { AdminCatalogosPage } from './pages/AdminCatalogosPage';
-import { InicioPage } from './pages/InicioPage';
 import { PageLoader } from './components/PageLoader';
 import { Modal } from './components/Modal';
 import { PasswordField } from './components/PasswordField';
+import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { FloatingSelect } from './components/FloatingSelect';
 import { DismissibleNotice } from './components/DismissibleNotice';
 import { formatearNumeroTarjeta } from './utils/tarjetas';
@@ -23,6 +15,16 @@ import {
   abrirWhatsAppUrl,
 } from './utils/whatsapp';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
+
+const PedidoDetallePanel = lazy(() => import('./pages/PedidoDetallePanel').then((module) => ({ default: module.PedidoDetallePanel })));
+const DivisaForm = lazy(() => import('./pages/DivisaForm').then((module) => ({ default: module.DivisaForm })));
+const EfectivoForm = lazy(() => import('./pages/EfectivoForm').then((module) => ({ default: module.EfectivoForm })));
+const SaldoForm = lazy(() => import('./pages/SaldoForm').then((module) => ({ default: module.SaldoForm })));
+const OtrosForm = lazy(() => import('./pages/OtrosForm').then((module) => ({ default: module.OtrosForm })));
+const TransferenciaForm = lazy(() => import('./pages/TransferenciaForm').then((module) => ({ default: module.TransferenciaForm })));
+const ReportesPage = lazy(() => import('./pages/ReportesPage').then((module) => ({ default: module.ReportesPage })));
+const AdminCatalogosPage = lazy(() => import('./pages/AdminCatalogosPage').then((module) => ({ default: module.AdminCatalogosPage })));
+const InicioPage = lazy(() => import('./pages/InicioPage').then((module) => ({ default: module.InicioPage })));
 
 const estados = [
   { value: '', label: 'Estado' },
@@ -66,6 +68,17 @@ const estadosBandeja = estados.filter((item) => item.value);
 const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
 const ERROR_TOAST_DURATION_MS = 5200;
+
+function intervaloRefrescoPedidos() {
+  const connection = (navigator as Navigator & {
+    connection?: { effectiveType?: string; saveData?: boolean };
+  }).connection;
+
+  if (connection?.saveData || connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g') {
+    return 60000;
+  }
+  return 30000;
+}
 
 function estadoLabel(value: string) {
   if (value === 'en_operacion') return 'Pago confirmado';
@@ -652,8 +665,9 @@ export function App() {
   useEffect(() => {
     if (!operador || vista !== 'bandeja' || !online) return undefined;
     const interval = window.setInterval(() => {
+      if (document.hidden) return;
       void refrescarPedidosSilencioso();
-    }, 12000);
+    }, intervaloRefrescoPedidos());
     return () => window.clearInterval(interval);
   }, [online, operador, refrescarPedidosSilencioso, vista]);
 
@@ -873,6 +887,7 @@ export function App() {
           {profileError && <AppToast kind="error" message={profileError} onClose={cerrarProfileError} />}
         </div>
       )}
+      <PwaInstallPrompt />
       <aside className={mobileMenuOpen ? 'sidebar mobile-open' : 'sidebar'}>
         <div>
           <div className="mobile-sidebar-head">

@@ -15973,6 +15973,56 @@ body {
     transform: rotate(360deg);
   }
 }
+
+.pwa-install-prompt {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--border, #dde3ea);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 16px 44px rgb(15 23 42 / 22%);
+}
+
+.pwa-install-prompt div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pwa-install-prompt span {
+  color: var(--muted, #64748b);
+  font-size: 13px;
+}
+
+.pwa-install-prompt .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .pwa-install-prompt {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+  }
+
+  .pwa-install-prompt div {
+    flex: 1;
+  }
+
+  .pwa-install-prompt span {
+    display: none;
+  }
+}
 .report-chart {
   background: var(--surface, #fff);
   border: 1px solid var(--border, #dde3ea);

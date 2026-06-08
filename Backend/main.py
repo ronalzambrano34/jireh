@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from Backend.routes.webhook import router as webhook_router
@@ -69,6 +70,7 @@ app = FastAPI()
 
 app.mount("/storage", StaticFiles(directory="storage", check_dir=False), name="storage")
 
+app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_ORIGINS,
