@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, MinusCircle, Smartphone, UserRound, WalletCards } from 'lucide-react';
-import { crearExtraccionCuenta, descargarOperacionesExcel, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
+import { crearExtraccionCuenta, descargarOperacionesExcel, descargarReporteCsv, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
 import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, ReporteGrupo, SaldoCuenta } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
@@ -288,6 +288,21 @@ export function ReportesPage() {
     }
   }
 
+  async function exportarCsv() {
+    setError(null);
+    try {
+      const blob = await descargarReporteCsv(filters);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reporte_resumen_${filters.fecha_desde || 'inicio'}_${filters.fecha_hasta || 'hoy'}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo exportar el CSV');
+    }
+  }
+
   return (
     <section className="reports-page">
       <div className="filters report-filters">
@@ -394,6 +409,9 @@ export function ReportesPage() {
           />
         </div>
         <div className="report-filter-actions">
+          <button type="button" className="ghost-button" onClick={exportarCsv} disabled={loading}>
+            <Download size={18} /> CSV resumen
+          </button>
           <button type="button" className="ghost-button" onClick={exportarExcel} disabled={loading}>
             <Download size={18} /> Excel de operaciones
           </button>
