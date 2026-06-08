@@ -1,4 +1,4 @@
-import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, type DragEvent, FormEvent, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Banknote, CalendarClock, ChevronDown, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
@@ -149,6 +149,10 @@ function tituloTema(tema: AdminTema | null) {
   return 'Catalogos';
 }
 
+function resumenCarga(cargado: boolean, resumen: string) {
+  return cargado ? resumen : 'Se carga al abrir';
+}
+
 function servicioLabel(value: string) {
   return value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase());
 }
@@ -262,14 +266,19 @@ export function AdminCatalogosPage() {
   const [metodoEditSaving, setMetodoEditSaving] = useState(false);
   const [cuentaMetodoSaving, setCuentaMetodoSaving] = useState(false);
   const [promoUploading, setPromoUploading] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [estadoVista, setEstadoVista] = useState<AdminEstadoVista>('activos');
   const [temaActivo, setTemaActivo] = useState<AdminTema | null>(null);
+  const [temasCargados, setTemasCargados] = useState<Set<AdminTema>>(() => new Set());
+  const [temasCargando, setTemasCargando] = useState<Set<AdminTema>>(() => new Set());
   const [crearModalTema, setCrearModalTema] = useState<AdminTema | null>(null);
+  const temaActivoRef = useRef<AdminTema | null>(null);
+  const temasCargadosRef = useRef<Set<AdminTema>>(new Set());
+  const temasCargandoRef = useRef<Set<AdminTema>>(new Set());
   const configTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const templateTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const loading = temaActivo ? temasCargando.has(temaActivo) : false;
 
   const mostrarActivos = estadoVista === 'activos';
   const metodosVisibles = useMemo(() => metodos.filter((metodo) => metodo.activo === mostrarActivos), [metodos, mostrarActivos]);
@@ -315,58 +324,88 @@ export function AdminCatalogosPage() {
     [templateForm.clave]
   );
 
-  async function cargar() {
-    setLoading(true);
+  function marcarTemasCargados(...temas: AdminTema[]) {
+    temas.forEach((tema) => temasCargadosRef.current.add(tema));
+    setTemasCargados(new Set(temasCargadosRef.current));
+  }
+
+  async function cargarTema(tema: AdminTema, force = false) {
+    if ((!force && temasCargadosRef.current.has(tema)) || temasCargandoRef.current.has(tema)) return;
+
+    temasCargandoRef.current.add(tema);
+    setTemasCargando(new Set(temasCargandoRef.current));
     setError(null);
     try {
-      const [metodosData, puntosData, provinciasData, ofertasData, paquetesData, promocionesData, configuracionesData, templatesData, clientesData, contactosData, operadoresData] = await Promise.all([
-        listarMetodosPago(undefined, true),
-        listarPuntosRecogida(true),
-        listarProvinciasServicio(true),
-        listarOfertas(true),
-        listarPaquetesSaldo(undefined, true),
-        listarPromociones(true),
-        listarConfiguraciones(),
-        listarTemplates(),
-        listarClientes(undefined, true),
-        listarContactos(undefined, true),
-        listarOperadores(true),
-      ]);
-      setMetodos(metodosData);
-      setPuntos(puntosData);
-      setProvincias(provinciasData);
-      setOfertas(ofertasData);
-      setPaquetes(paquetesData);
-      setPromociones(promocionesData);
-      setConfiguraciones(configuracionesData);
-      setTemplates(templatesData);
-      setClientes(clientesData);
-      setContactos(contactosData);
-      setOperadores(operadoresData);
-      if (templatesData.length) {
-        setTemplateForm((current) => {
-          const selected = templatesData.find((item) => item.clave === current.clave) ?? templatesData[0];
-          return { clave: selected.clave, valor: selected.valor };
-        });
+      if (tema === 'metodos') setMetodos(await listarMetodosPago(undefined, true));
+      if (tema === 'provincias') setProvincias(await listarProvinciasServicio(true));
+      if (tema === 'ofertas') setOfertas(await listarOfertas(true));
+      if (tema === 'paquetes') setPaquetes(await listarPaquetesSaldo(undefined, true));
+      if (tema === 'promociones') setPromociones(await listarPromociones(true));
+      if (tema === 'clientes') setClientes(await listarClientes(undefined, true));
+      if (tema === 'operadores') setOperadores(await listarOperadores(true));
+      if (tema === 'configuracion') setConfiguraciones(await listarConfiguraciones());
+
+      if (tema === 'puntos') {
+        const [puntosData, provinciasData] = await Promise.all([
+          listarPuntosRecogida(true),
+          temasCargadosRef.current.has('provincias') ? Promise.resolve(null) : listarProvinciasServicio(true),
+        ]);
+        setPuntos(puntosData);
+        if (provinciasData) {
+          setProvincias(provinciasData);
+          marcarTemasCargados('provincias');
+        }
       }
+
+      if (tema === 'contactos') {
+        const [contactosData, clientesData] = await Promise.all([
+          listarContactos(undefined, true),
+          temasCargadosRef.current.has('clientes') ? Promise.resolve(null) : listarClientes(undefined, true),
+        ]);
+        setContactos(contactosData);
+        if (clientesData) {
+          setClientes(clientesData);
+          marcarTemasCargados('clientes');
+        }
+      }
+
+      if (tema === 'templates') {
+        const templatesData = await listarTemplates();
+        setTemplates(templatesData);
+        if (templatesData.length) {
+          setTemplateForm((current) => {
+            const selected = templatesData.find((item) => item.clave === current.clave) ?? templatesData[0];
+            return { clave: selected.clave, valor: selected.valor };
+          });
+        }
+      }
+
+      marcarTemasCargados(tema);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos');
+      if (temaActivoRef.current === tema) {
+        setError(err instanceof Error ? err.message : `No se pudo cargar ${tituloTema(tema).toLowerCase()}`);
+      }
     } finally {
-      setLoading(false);
+      temasCargandoRef.current.delete(tema);
+      setTemasCargando(new Set(temasCargandoRef.current));
     }
   }
 
-  useEffect(() => {
-    void cargar();
-  }, []);
+  async function cargar() {
+    if (temaActivo) await cargarTema(temaActivo, true);
+  }
 
   function abrirTema(tema: AdminTema) {
+    temaActivoRef.current = tema;
     setTemaActivo(tema);
+    setEstadoVista('activos');
     setError(null);
     setNotice(null);
+    void cargarTema(tema);
   }
 
   function volverMenu() {
+    temaActivoRef.current = null;
     setTemaActivo(null);
     setError(null);
     setNotice(null);
@@ -1023,15 +1062,19 @@ export function AdminCatalogosPage() {
             <h2>{tituloTema(temaActivo)}</h2>
             <p>{loading ? 'Actualizando...' : temaActivo ? `Administracion / ${tituloTema(temaActivo)}` : 'Administracion'}</p>
           </div>
-          <button className="icon-button" onClick={cargar} disabled={loading} title="Actualizar catalogos" aria-label="Actualizar catalogos">
-            <RefreshCw size={18} />
-          </button>
+          {temaActivo && (
+            <button className="icon-button" type="button" onClick={() => void cargar()} disabled={loading} title={`Actualizar ${tituloTema(temaActivo).toLowerCase()}`} aria-label={`Actualizar ${tituloTema(temaActivo).toLowerCase()}`}>
+              <RefreshCw size={18} />
+            </button>
+          )}
         </div>
       </div>
 
       {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {notice && <DismissibleNotice className="notice">{notice}</DismissibleNotice>}
-      {loading && !temaActivo && metodos.length === 0 && <PageLoader label="Cargando administracion" inline />}
+      {loading && temaActivo && !temasCargados.has(temaActivo) && (
+        <PageLoader label={`Cargando ${tituloTema(temaActivo).toLowerCase()}`} inline />
+      )}
 
       {!temaActivo && (
         <>
@@ -1039,32 +1082,32 @@ export function AdminCatalogosPage() {
             <h3>Catalogos operativos</h3>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('metodos')}>
               <Banknote size={22} />
-              <span><strong>Metodos de pago</strong><small>{metodos.filter((item) => item.activo).length} activos · {metodos.filter((item) => !item.activo).length} inactivos</small></span>
+              <span><strong>Metodos de pago</strong><small>{resumenCarga(temasCargados.has('metodos'), `${metodos.filter((item) => item.activo).length} activos · ${metodos.filter((item) => !item.activo).length} inactivos`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('provincias')}>
               <MapPin size={22} />
-              <span><strong>Provincias de servicio</strong><small>{provincias.filter((item) => item.activo).length} activas · {provincias.filter((item) => !item.activo).length} inactivas</small></span>
+              <span><strong>Provincias de servicio</strong><small>{resumenCarga(temasCargados.has('provincias'), `${provincias.filter((item) => item.activo).length} activas · ${provincias.filter((item) => !item.activo).length} inactivas`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('puntos')}>
               <MapPin size={22} />
-              <span><strong>Puntos de recogida</strong><small>{puntos.filter((item) => item.activo).length} activos · {puntos.filter((item) => !item.activo).length} inactivos</small></span>
+              <span><strong>Puntos de recogida</strong><small>{resumenCarga(temasCargados.has('puntos'), `${puntos.filter((item) => item.activo).length} activos · ${puntos.filter((item) => !item.activo).length} inactivos`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('ofertas')}>
               <Tags size={22} />
-              <span><strong>Ofertas</strong><small>{ofertas.filter((item) => item.activa).length} activas · {ofertas.filter((item) => !item.activa).length} inactivas</small></span>
+              <span><strong>Ofertas</strong><small>{resumenCarga(temasCargados.has('ofertas'), `${ofertas.filter((item) => item.activa).length} activas · ${ofertas.filter((item) => !item.activa).length} inactivas`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('paquetes')}>
               <Package size={22} />
-              <span><strong>Paquetes de saldo</strong><small>{paquetes.filter((item) => item.activo).length} activos · {paquetes.filter((item) => !item.activo).length} inactivos</small></span>
+              <span><strong>Paquetes de saldo</strong><small>{resumenCarga(temasCargados.has('paquetes'), `${paquetes.filter((item) => item.activo).length} activos · ${paquetes.filter((item) => !item.activo).length} inactivos`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('promociones')}>
               <Megaphone size={22} />
-              <span><strong>Promociones</strong><small>{promociones.filter((item) => item.activa).length} activas · {promociones.filter((item) => !item.activa).length} inactivas</small></span>
+              <span><strong>Promociones</strong><small>{resumenCarga(temasCargados.has('promociones'), `${promociones.filter((item) => item.activa).length} activas · ${promociones.filter((item) => !item.activa).length} inactivas`)}</small></span>
               <ChevronDown size={18} />
             </button>
           </div>
@@ -1073,17 +1116,17 @@ export function AdminCatalogosPage() {
             <h3>Personas</h3>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('clientes')}>
               <UsersRound size={22} />
-              <span><strong>Clientes</strong><small>{clientes.filter((item) => item.activo).length} activos · {clientes.filter((item) => !item.activo).length} inactivos</small></span>
+              <span><strong>Clientes</strong><small>{resumenCarga(temasCargados.has('clientes'), `${clientes.filter((item) => item.activo).length} activos · ${clientes.filter((item) => !item.activo).length} inactivos`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('contactos')}>
               <UserRound size={22} />
-              <span><strong>Contactos</strong><small>{contactos.filter((item) => item.activo).length} activos · {contactos.filter((item) => !item.activo).length} inactivos</small></span>
+              <span><strong>Contactos</strong><small>{resumenCarga(temasCargados.has('contactos'), `${contactos.filter((item) => item.activo).length} activos · ${contactos.filter((item) => !item.activo).length} inactivos`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('operadores')}>
               <UsersRound size={22} />
-              <span><strong>Operadores</strong><small>{operadores.filter((item) => item.activo).length} activos · {operadores.filter((item) => !item.activo).length} inactivos</small></span>
+              <span><strong>Operadores</strong><small>{resumenCarga(temasCargados.has('operadores'), `${operadores.filter((item) => item.activo).length} activos · ${operadores.filter((item) => !item.activo).length} inactivos`)}</small></span>
               <ChevronDown size={18} />
             </button>
           </div>
@@ -1092,19 +1135,19 @@ export function AdminCatalogosPage() {
             <h3>Sistema</h3>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('configuracion')}>
               <Settings2 size={22} />
-              <span><strong>Configuracion</strong><small>{configuracionesSistemaTotal} claves</small></span>
+              <span><strong>Configuracion</strong><small>{resumenCarga(temasCargados.has('configuracion'), `${configuracionesSistemaTotal} claves`)}</small></span>
               <ChevronDown size={18} />
             </button>
             <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('templates')}>
               <FileText size={22} />
-              <span><strong>Templates</strong><small>{templates.length} plantillas</small></span>
+              <span><strong>Templates</strong><small>{resumenCarga(temasCargados.has('templates'), `${templates.length} plantillas`)}</small></span>
               <ChevronDown size={18} />
             </button>
           </div>
         </>
       )}
 
-      {temaActivo === 'metodos' && (
+      {temaActivo === 'metodos' && temasCargados.has('metodos') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><Banknote size={22} /></span>
@@ -1139,7 +1182,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'provincias' && (
+      {temaActivo === 'provincias' && temasCargados.has('provincias') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><MapPin size={22} /></span>
@@ -1159,7 +1202,7 @@ export function AdminCatalogosPage() {
             {provinciasVisibles.length === 0 && <div className="admin-empty-row">Sin provincias {estadoVista}</div>}
             {provinciasVisibles.map((provincia) => (
               <div className="catalog-row" key={provincia.id}>
-                <span><strong>{provincia.nombre}</strong><small>{puntos.filter((punto) => punto.provincia_id === provincia.id).length} punto(s) asociado(s)</small></span>
+                <span><strong>{provincia.nombre}</strong><small>{provincia.activo ? 'Disponible para puntos de recogida' : 'No disponible para nuevos puntos'}</small></span>
                 <span className={provincia.activo ? 'status completado' : 'status cancelado'}>{provincia.activo ? 'habilitada' : 'deshabilitada'}</span>
                 <button className="ghost-button catalog-toggle-action" onClick={() => toggleProvincia(provincia)}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
               </div>
@@ -1168,7 +1211,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'puntos' && (
+      {temaActivo === 'puntos' && temasCargados.has('puntos') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><MapPin size={22} /></span>
@@ -1197,7 +1240,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'ofertas' && (
+      {temaActivo === 'ofertas' && temasCargados.has('ofertas') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><Tags size={22} /></span>
@@ -1238,7 +1281,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'paquetes' && (
+      {temaActivo === 'paquetes' && temasCargados.has('paquetes') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><Package size={22} /></span>
@@ -1268,7 +1311,7 @@ export function AdminCatalogosPage() {
       )}
 
 
-      {temaActivo === 'promociones' && (
+      {temaActivo === 'promociones' && temasCargados.has('promociones') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><Megaphone size={22} /></span>
@@ -1306,7 +1349,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'clientes' && (
+      {temaActivo === 'clientes' && temasCargados.has('clientes') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><UsersRound size={22} /></span>
@@ -1335,7 +1378,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'contactos' && (
+      {temaActivo === 'contactos' && temasCargados.has('contactos') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><UserRound size={22} /></span>
@@ -1364,7 +1407,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'operadores' && (
+      {temaActivo === 'operadores' && temasCargados.has('operadores') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><UsersRound size={22} /></span>
@@ -1396,7 +1439,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'configuracion' && (
+      {temaActivo === 'configuracion' && temasCargados.has('configuracion') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><Settings2 size={22} /></span>
@@ -1429,7 +1472,7 @@ export function AdminCatalogosPage() {
         </section>
       )}
 
-      {temaActivo === 'templates' && (
+      {temaActivo === 'templates' && temasCargados.has('templates') && (
         <section className="admin-section admin-detail-section">
           <header className="admin-section-header">
             <span className="admin-section-icon"><FileText size={22} /></span>
