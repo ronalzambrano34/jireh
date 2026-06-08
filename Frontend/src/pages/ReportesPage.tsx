@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, MinusCircle, Smartphone, UserRound, WalletCards } from 'lucide-react';
-import { crearExtraccionCuenta, descargarReporteCsv, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
+import { crearExtraccionCuenta, descargarOperacionesExcel, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
 import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, ReporteGrupo, SaldoCuenta } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
@@ -113,6 +113,31 @@ function ReportTable({ title, rows }: { title: string; rows: ReporteGrupo[] }) {
             <span>{row.cantidad}</span>
             <span>{money(row.monto_pago)}</span>
             <span>{money(row.ganancia)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ReportBarChart({ title, rows }: { title: string; rows: ReporteGrupo[] }) {
+  const maxValue = Math.max(...rows.map((row) => row.cantidad), 1);
+
+  return (
+    <section className="report-chart">
+      <h2>{title}</h2>
+      {rows.length === 0 && <div className="empty-row">Sin datos para los filtros seleccionados</div>}
+      <div className="report-chart-bars">
+        {rows.map((row) => (
+          <div className="report-chart-row" key={`${title}-${row.clave ?? 'sin-clave'}`}>
+            <span className="report-chart-label">{row.clave ?? 'Sin dato'}</span>
+            <div className="report-chart-track" aria-label={`${row.clave}: ${row.cantidad} pedidos`}>
+              <div
+                className="report-chart-fill"
+                style={{ width: `${Math.max((row.cantidad / maxValue) * 100, 3)}%` }}
+              />
+            </div>
+            <strong>{row.cantidad}</strong>
           </div>
         ))}
       </div>
@@ -248,18 +273,18 @@ export function ReportesPage() {
     }
   }
 
-  async function exportarCsv() {
+  async function exportarExcel() {
     setError(null);
     try {
-      const blob = await descargarReporteCsv(filters);
+      const blob = await descargarOperacionesExcel(filters);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'reporte_resumen.csv';
+      link.download = `operaciones_${filters.fecha_desde || 'inicio'}_${filters.fecha_hasta || 'hoy'}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo exportar el CSV');
+      setError(err instanceof Error ? err.message : 'No se pudo exportar el Excel');
     }
   }
 
@@ -369,8 +394,8 @@ export function ReportesPage() {
           />
         </div>
         <div className="report-filter-actions">
-          <button type="button" className="ghost-button" onClick={exportarCsv} disabled={loading}>
-            <Download size={18} /> CSV
+          <button type="button" className="ghost-button" onClick={exportarExcel} disabled={loading}>
+            <Download size={18} /> Excel de operaciones
           </button>
         </div>
       </div>
@@ -466,9 +491,9 @@ export function ReportesPage() {
           </section>
 
           <div className="report-grid">
-            <ReportTable title="Por dias" rows={reporte.por_dia} />
-            <ReportTable title="Por estado" rows={reporte.por_estado} />
-            <ReportTable title="Por servicio" rows={reporte.por_servicio} />
+            <ReportBarChart title="Pedidos por dia" rows={reporte.por_dia} />
+            <ReportBarChart title="Pedidos por estado" rows={reporte.por_estado} />
+            <ReportBarChart title="Pedidos por tipo" rows={reporte.por_servicio} />
             <ReportTable title="Por moneda" rows={reporte.por_moneda} />
             <ReportTable title="Por metodo de pago" rows={reporte.por_metodo_pago} />
             <ReportTable title="Por cuenta de pago" rows={reporte.por_cuenta_pago} />

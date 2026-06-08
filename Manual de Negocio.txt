@@ -588,7 +588,11 @@ Estado implementado:
 
 - Existe GET /reportes/resumen con filtros por fecha tipo date, estado, servicio, moneda_pago y operador_id.
 - Existe GET /reportes/resumen.csv para exportar el resumen operativo en CSV.
+- Existe GET /reportes/operaciones.xlsx para descargar el historico detallado, una fila por pedido, respetando los filtros activos.
 - El reporte agrupa por dia, estado, servicio, moneda, metodo de pago y operador.
+- Las cantidades por dia, estado y tipo de pedido se muestran como graficas; los desgloses financieros se mantienen como tablas.
+- El Excel detallado incluye fecha de finalizacion, codigo, gestor, banco/cuenta, moneda, monto pagado, tasa, resultado distribuido por tipo de servicio, ganancia, estado y observaciones.
+- El formato usa una columna Moneda para permitir unificar operaciones BRL y UYU en el mismo historico.
 - El frontend de reportes usa filtros operativos por periodo, estado, servicio, moneda y operador. Estos filtros se presentan como hojas inferiores tipo modal, con opcion Todos dentro del modal. Si se selecciona periodo Personalizado, aparecen los campos Desde y Hasta.
 - El frontend muestra resumen de Pedidos, Monto pago, Monto resultado y Ganancia en tarjetas compactas y exporta CSV desde la pantalla.
 

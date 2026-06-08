@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 
 from Backend.models.metodo_pago import MetodoPago
 from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
+from Backend.models.operador import Operador
 from Backend.models.pedido import Pedido
+from Backend.models.pedido_divisa import PedidoDivisa
 
 
 def _filtros_reporte(
@@ -19,18 +21,20 @@ def _filtros_reporte(
     moneda_pago: str | None = None,
     operador_id: int | None = None,
     metodo_pago_id: int | None = None,
-    cuenta_pago_id: int | None = None
+    cuenta_pago_id: int | None = None,
+    campo_fecha=None
 ):
     filtros = []
+    campo_fecha = campo_fecha if campo_fecha is not None else Pedido.created_at
 
     if fecha_desde:
         filtros.append(
-            Pedido.created_at >= fecha_desde
+            campo_fecha >= fecha_desde
         )
 
     if fecha_hasta:
         filtros.append(
-            Pedido.created_at <= fecha_hasta
+            campo_fecha <= fecha_hasta
         )
 
     if estado:
@@ -64,6 +68,116 @@ def _filtros_reporte(
         )
 
     return filtros
+
+
+def historial_operaciones(
+    db: Session,
+    fecha_desde=None,
+    fecha_hasta=None,
+    estado: str | None = None,
+    servicio: str | None = None,
+    moneda_pago: str | None = None,
+    operador_id: int | None = None,
+    metodo_pago_id: int | None = None,
+    cuenta_pago_id: int | None = None
+):
+    fecha_operacion = func.coalesce(
+        Pedido.fecha_completado,
+        Pedido.created_at
+    )
+    filtros = _filtros_reporte(
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        estado=estado,
+        servicio=servicio,
+        moneda_pago=moneda_pago,
+        operador_id=operador_id,
+        metodo_pago_id=metodo_pago_id,
+        cuenta_pago_id=cuenta_pago_id,
+        campo_fecha=fecha_operacion
+    )
+
+    filas = (
+        db.query(
+            Pedido,
+            Operador.nombre.label("operador_nombre"),
+            MetodoPago.nombre.label("metodo_pago_nombre"),
+            MetodoPagoCuenta.alias.label("cuenta_alias"),
+            PedidoDivisa.tipo_tarjeta.label("tipo_divisa")
+        )
+        .outerjoin(
+            Operador,
+            Pedido.operador_id == Operador.id
+        )
+        .outerjoin(
+            MetodoPago,
+            Pedido.tipo_pago_id == MetodoPago.id
+        )
+        .outerjoin(
+            MetodoPagoCuenta,
+            Pedido.cuenta_pago_id == MetodoPagoCuenta.id
+        )
+        .outerjoin(
+            PedidoDivisa,
+            PedidoDivisa.pedido_id == Pedido.id
+        )
+        .filter(
+            *filtros
+        )
+        .order_by(
+            fecha_operacion.asc(),
+            Pedido.id.asc()
+        )
+        .all()
+    )
+
+    resultado = []
+    for pedido, operador, metodo, cuenta, tipo_divisa in filas:
+        fecha = pedido.fecha_completado or pedido.created_at
+        servicio_actual = (pedido.servicio or "").strip().lower()
+        tipo_divisa_actual = (tipo_divisa or "").strip().lower()
+        montos = {
+            "transferencia_cup": None,
+            "usd": None,
+            "efectivo_cup": None,
+            "mlc": None,
+            "recarga": None,
+            "otros": None,
+        }
+
+        if servicio_actual == "transferencia":
+            montos["transferencia_cup"] = pedido.monto_resultado
+        elif servicio_actual == "efectivo":
+            montos["efectivo_cup"] = pedido.monto_resultado
+        elif servicio_actual == "saldo":
+            montos["recarga"] = pedido.monto_resultado
+        elif servicio_actual == "divisa":
+            if "mlc" in tipo_divisa_actual:
+                montos["mlc"] = pedido.monto_resultado
+            else:
+                montos["usd"] = pedido.monto_resultado
+        else:
+            montos["otros"] = pedido.monto_resultado
+
+        resultado.append({
+            "fecha": fecha,
+            "codigo": pedido.codigo_operacion,
+            "gestor": operador or "Sin operador",
+            "banco": " - ".join(
+                valor
+                for valor in [metodo, cuenta]
+                if valor
+            ) or "Sin metodo",
+            "moneda": pedido.moneda_pago,
+            "monto_pago": float(pedido.monto_pago or 0),
+            "tasa": float(pedido.tasa_final or 0),
+            **montos,
+            "ganancia": float(pedido.ganancia or 0),
+            "estado": pedido.estado,
+            "observaciones": pedido.observaciones,
+        })
+
+    return resultado
 
 
 def _consulta_agregada(

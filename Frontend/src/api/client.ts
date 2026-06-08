@@ -353,12 +353,12 @@ export function obtenerReporte(params: { fecha_desde?: string; fecha_hasta?: str
 }
 
 
-export function descargarReporteCsv(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string; metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
+export function descargarOperacionesExcel(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string; metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) query.set(key, value);
   });
-  return requestBlob(`/reportes/resumen.csv?${query.toString()}`);
+  return requestBlob(`/reportes/operaciones.xlsx?${query.toString()}`);
 }
 
 export function listarSaldosCuenta(params: { metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {

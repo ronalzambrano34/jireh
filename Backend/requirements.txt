@@ -15,6 +15,7 @@ gspread==6.2.1
 h11==0.16.0
 idna==3.15
 oauthlib==3.3.1
+openpyxl==3.1.5
 psycopg2-binary==2.9.12
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
