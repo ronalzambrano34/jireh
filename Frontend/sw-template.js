@@ -1,4 +1,5 @@
 const CACHE_NAME = '__CACHE_NAME__';
+const APP_BASE = '__APP_BASE__';
 const PRECACHE_URLS = __PRECACHE_URLS__;
 
 self.addEventListener('install', (event) => {
@@ -24,7 +25,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname === '/sw.js') return;
+  if (url.origin !== self.location.origin || url.pathname === `${APP_BASE}sw.js`) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -32,11 +33,11 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
-            void caches.open(CACHE_NAME).then((cache) => cache.put('/', copy));
+            void caches.open(CACHE_NAME).then((cache) => cache.put(`${APP_BASE}index.html`, copy));
           }
           return response;
         })
-        .catch(() => caches.match('/index.html')),
+        .catch(() => caches.match(`${APP_BASE}index.html`)),
     );
     return;
   }
