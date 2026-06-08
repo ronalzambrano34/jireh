@@ -34,6 +34,8 @@ def generar_codigo_referido():
     return f"JH-{letras}{numeros}"
 
 
+
+
 def seed_cliente_generico(
     db: Session
 ):
