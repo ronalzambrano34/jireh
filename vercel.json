@@ -1,14 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ],
+  "framework": "fastapi",
   "functions": {
-    "api/index.py": {
+    "index.py": {
       "excludeFiles": "{Frontend/**,Backend/venv/**,.git/**,storage/**}"
     }
   }
