@@ -126,7 +126,16 @@ FRONTEND_ORIGINS
 RUN_DB_BOOTSTRAP=false
 RUN_DB_MAINTENANCE=false
 OFERTAS_AUTO_SYNC_ENABLED=false
+GOOGLE_CREDENTIALS_JSON
+GOOGLE_SHEET_ID
 ```
+
+`GOOGLE_CREDENTIALS_JSON` debe contener el contenido completo del archivo JSON
+de la cuenta de servicio de Google, pegado como una sola variable de entorno.
+Como alternativa, puede usarse `GOOGLE_CREDENTIALS_BASE64` con ese mismo
+contenido codificado en Base64. Después de agregar o cambiar el secreto hay que
+volver a desplegar el proyecto en Vercel. El archivo `credentials.json` no debe
+subirse al repositorio.
 
 `FRONTEND_ORIGINS` debe contener la URL exacta de GitHub Pages, por ejemplo:
 

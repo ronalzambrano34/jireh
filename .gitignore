@@ -32,6 +32,7 @@ prueba_*.py
 Backend/.env
 Backend/.env.*
 Backend/credentials.json
+Backend/credentials*.json
 Backend/credentials_expider.json
 Backend/jireh-brasil-*.json
 Backend/venv/

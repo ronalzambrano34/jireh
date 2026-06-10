@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 from datetime import datetime
 from pathlib import Path
+import base64
 import json
 import re
 from time import perf_counter
@@ -17,6 +18,7 @@ from sqlalchemy.orm import Session
 from Backend.models.oferta import Oferta
 from Backend.models.paquete_saldo import PaqueteSaldo
 from Backend.config import (
+    GOOGLE_CREDENTIALS_BASE64,
     GOOGLE_CREDENTIALS_JSON,
     GOOGLE_SHEET_ID,
     GOOGLE_SHEET_RANGE,
@@ -63,13 +65,32 @@ def sheet_id_configurado() -> str:
 
 
 def credentials_data() -> dict:
-    if GOOGLE_CREDENTIALS_JSON:
-        data = json.loads(GOOGLE_CREDENTIALS_JSON)
-        if data.get("private_key"):
-            data["private_key"] = data["private_key"].replace("\\n", "\n")
-        return data
+    raw_credentials = GOOGLE_CREDENTIALS_JSON
+    if not raw_credentials and GOOGLE_CREDENTIALS_BASE64:
+        raw_credentials = base64.b64decode(
+            GOOGLE_CREDENTIALS_BASE64,
+            validate=True
+        ).decode("utf-8")
 
-    return json.loads(CREDENTIALS_FILE.read_text())
+    if raw_credentials:
+        data = json.loads(raw_credentials)
+        if isinstance(data, str):
+            data = json.loads(data)
+    elif CREDENTIALS_FILE.is_file():
+        data = json.loads(CREDENTIALS_FILE.read_text())
+    else:
+        raise RuntimeError(
+            "Credenciales de Google no configuradas. En el servidor define "
+            "GOOGLE_CREDENTIALS_JSON con el contenido completo de credentials.json "
+            "o GOOGLE_CREDENTIALS_BASE64 con ese JSON codificado en Base64."
+        )
+
+    if not isinstance(data, dict):
+        raise ValueError("Las credenciales de Google deben contener un objeto JSON.")
+
+    if data.get("private_key"):
+        data["private_key"] = data["private_key"].replace("\\n", "\n")
+    return data
 
 
 def credentials_client_email() -> str:
