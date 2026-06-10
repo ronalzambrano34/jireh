@@ -1,9 +1,1 @@
 //todo cambiar el login para que Inicio sea la pantalla principal. Para realizar una operacion se deberia pedir login en un modal con el formulario actual.
-
-
-//todo En reportes y vista admin, el tema oscuro no sé aplica en muchos componentes, haz una revisión general de todos los componentes del proyecto para ver cuales aún no se adaptan al tema oscuro (ejemplo: los spiners circulares con los números en los cardos de pedidos, el panes de administración, en los reportes "pedidos por dia/...por estado/...por tipo",...
-
-//todo andar sincronizar a la oferta me está apareciendo este error: No se pudieron sincronizar las ofertas desde Google Sheets. Detalle tecnico: FileNotFoundError: [Errno 2] No such file or directory: '/var/task/Backend/credentials.json'
-
-
-//todo crea una vista de testeo para probar y ajustar el tema oscuro. Crea 2 columnas con todos los componentes, columna 1  componente base que se está usando en todo el proyect. columna 2: componente que se usa en la calculadora. Que sucede, el tema oscuro se implementó después que el proyecto estaba avanzado y he votado que muchos componentes antiguos (los que se crearon antes del tema oscuro),...no se adaptan al tema oscuro, pero los componentes que se crean nuevos, si se adaptan y tienen otra vista, además tenemos un tercer componente q es el de la calculadora, que es un componente que copiamos y agregamos el código ya elaborado y aunque no tiene los temas css originales del proyecto, se ve bien. eEn reaumen, componente antiguos ejemplo los imputs y card del login, se ven mal en tema, los de la calculadora se ven bien y los que se están creando nuevos se ven bien. debo decirte todos los que se ven mal o eres capaz de comparar cuáles se ven mal y hacer un estilo general q aplique para todos los componentes.

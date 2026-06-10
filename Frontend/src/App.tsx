@@ -25,6 +25,7 @@ const TransferenciaForm = lazy(() => import('./pages/TransferenciaForm').then((m
 const ReportesPage = lazy(() => import('./pages/ReportesPage').then((module) => ({ default: module.ReportesPage })));
 const AdminCatalogosPage = lazy(() => import('./pages/AdminCatalogosPage').then((module) => ({ default: module.AdminCatalogosPage })));
 const InicioPage = lazy(() => import('./pages/InicioPage').then((module) => ({ default: module.InicioPage })));
+const ThemeTestPage = lazy(() => import('./pages/ThemeTestPage').then((module) => ({ default: module.ThemeTestPage })));
 
 const estados = [
   { value: '', label: 'Estado' },
@@ -262,7 +263,7 @@ export function App() {
   const [periodoPedidos, setPeriodoPedidos] = useState<PeriodoPedidos>('hoy');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
-  const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'perfil'>('inicio');
+  const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'tema' | 'perfil'>('inicio');
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
   const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
@@ -906,6 +907,7 @@ export function App() {
           <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
           <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
           <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
+          {puedeAdmin && <button className={vista === 'tema' ? 'active' : ''} onClick={() => navegar('tema')}><Palette size={18} /> Tema UI</button>}
           <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
         <button className="ghost-button" onClick={cerrarSesion}>
@@ -930,8 +932,8 @@ export function App() {
             <span>EL JIREH</span>
           </button>
           <div className="toolbar-title">
-            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
-            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
+            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'tema' ? 'Tema UI' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
+            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'tema' ? 'Comparacion visual de componentes' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
             {userMenuOpen && <button className="floating-create-backdrop user-floating-backdrop" type="button" aria-label="Cerrar opciones de usuario" onClick={() => setUserMenuOpen(false)} />}
@@ -1000,6 +1002,8 @@ export function App() {
           <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
+        ) : vista === 'tema' ? (
+          <ThemeTestPage />
         ) : vista === 'reportes' ? (
           <ReportesPage />
         ) : vista === 'perfil' ? (

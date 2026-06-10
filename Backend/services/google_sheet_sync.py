@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from Backend.models.oferta import Oferta
 from Backend.models.paquete_saldo import PaqueteSaldo
 from Backend.config import (
+    GOOGLE_CREDENTIALS_JSON,
     GOOGLE_SHEET_ID,
     GOOGLE_SHEET_RANGE,
     GOOGLE_SHEET_WORKSHEET
@@ -61,11 +62,19 @@ def sheet_id_configurado() -> str:
     )
 
 
+def credentials_data() -> dict:
+    if GOOGLE_CREDENTIALS_JSON:
+        data = json.loads(GOOGLE_CREDENTIALS_JSON)
+        if data.get("private_key"):
+            data["private_key"] = data["private_key"].replace("\\n", "\n")
+        return data
+
+    return json.loads(CREDENTIALS_FILE.read_text())
+
+
 def credentials_client_email() -> str:
     try:
-        data = json.loads(
-            CREDENTIALS_FILE.read_text()
-        )
+        data = credentials_data()
     except Exception:
         return ""
 
@@ -432,9 +441,7 @@ def construir_resultado(secciones):
 
 
 def obtener_rows_sheet():
-    gc = gspread.service_account(
-        filename=str(CREDENTIALS_FILE)
-    )
+    gc = gspread.service_account_from_dict(credentials_data())
     sheet = gc.open_by_key(sheet_id_configurado())
     try:
         worksheet = sheet.worksheet(WORKSHEET_TITLE)

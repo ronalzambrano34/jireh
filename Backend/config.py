@@ -144,6 +144,10 @@ GOOGLE_SHEET_ID = os.getenv(
     "GOOGLE_SHEET_ID"
 )
 
+GOOGLE_CREDENTIALS_JSON = os.getenv(
+    "GOOGLE_CREDENTIALS_JSON"
+)
+
 GOOGLE_SHEET_WORKSHEET = os.getenv(
     "GOOGLE_SHEET_WORKSHEET",
     "Calcular Oferta"
