@@ -15,6 +15,7 @@ from Backend.models.pedido_saldo import (
 from Backend.models.pedido_divisa import (
     PedidoDivisa
 )
+from Backend.models.pedido_otros import PedidoOtros
 
 from Backend.models.operador import (
     Operador
@@ -422,6 +423,13 @@ def _validar_datos_servicio(
                 "numero_tarjeta es requerido"
             )
 
+        normalizar_telefono_destinatario(
+            data.get(
+                "telefono_destinatario"
+            )
+        )
+
+    elif servicio == "otros":
         normalizar_telefono_destinatario(
             data.get(
                 "telefono_destinatario"
@@ -894,6 +902,28 @@ def crear_pedido(
                 calculo[
                     "monto_resultado"
                 ]
+            )
+        )
+
+        db.add(
+            detalle
+        )
+
+    elif (
+        data["servicio"]
+        ==
+        "otros"
+    ):
+
+        detalle = PedidoOtros(
+            pedido_id=pedido.id,
+            numero_tarjeta=data.get("numero_tarjeta") or None,
+            telefono_destinatario=normalizar_telefono_destinatario(
+                data.get("telefono_destinatario")
+            ),
+            punto_recogida_id=data.get("punto_recogida_id") or None,
+            documento_identidad_url=(
+                data.get("documento_identidad_url") or None
             )
         )
 

@@ -251,6 +251,10 @@ export type CrearOtrosPayload = {
   cliente_id?: number | null;
   nombre_cliente?: string;
   numero_telefono_cliente?: string;
+  numero_tarjeta?: string;
+  telefono_destinatario?: string;
+  documento_identidad_url?: string;
+  punto_recogida_id?: number | null;
   observaciones: string;
 };
 
@@ -418,6 +422,15 @@ export type Configuracion = {
 export type TemplateConfig = {
   clave: string;
   valor: string;
+};
+
+export type ConfiguracionInicialEstado = {
+  completada: boolean;
+  metodos: number;
+  cuentas: number;
+  ofertas: number;
+  puntos: number;
+  paquetes: number;
 };
 
 

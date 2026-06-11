@@ -23,6 +23,7 @@ from Backend.models.pedido_saldo import (
 from Backend.models.pedido_divisa import (
     PedidoDivisa
 )
+from Backend.models.pedido_otros import PedidoOtros
 
 from Backend.models.cliente import (
     Cliente
@@ -69,6 +70,10 @@ DEFAULT_TEMPLATES = {
     "template_otros": (
         "*Otros*\n"
         "*Cliente:* {{cliente_nombre}}\n"
+        "*Tarjeta:* {{numero_tarjeta}}\n"
+        "*Telefono destinatario:* {{telefono_destinatario}}\n"
+        "*Foto documento:* {{documento_identidad_url}}\n"
+        "*Punto de recogida:* {{punto_recogida_id}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}\n"
         "*Info:* {{observaciones}}"
@@ -321,11 +326,32 @@ def generar_mensaje_operacion(
 
     elif pedido.servicio == "otros":
 
+        detalle = (
+            db.query(PedidoOtros)
+            .filter(PedidoOtros.pedido_id == pedido.id)
+            .first()
+        )
+
         variables.update({
 
             "observaciones":
             pedido.observaciones
-            or ""
+            or "",
+
+            "numero_tarjeta":
+            (detalle.numero_tarjeta if detalle else "") or "",
+
+            "telefono_destinatario":
+            (detalle.telefono_destinatario if detalle else "") or "",
+
+            "telefono":
+            (detalle.telefono_destinatario if detalle else "") or "",
+
+            "documento_identidad_url":
+            (detalle.documento_identidad_url if detalle else "") or "",
+
+            "punto_recogida_id":
+            (detalle.punto_recogida_id if detalle else "") or ""
         })
 
         template_key = (

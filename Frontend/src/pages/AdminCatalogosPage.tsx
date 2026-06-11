@@ -210,12 +210,20 @@ const templateVariablesPorClave: Record<string, string[]> = {
   template_efectivo: ['telefono_destinatario', 'telefono', 'documento_identidad_url'],
   template_saldo: ['telefono_destinatario', 'telefono', 'numero_telefono', 'saldo_cup'],
   template_divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'telefono', 'monto_divisa'],
-  template_otros: ['observaciones'],
+  template_otros: [
+    'numero_tarjeta',
+    'telefono_destinatario',
+    'telefono',
+    'documento_identidad_url',
+    'punto_recogida_id',
+    'observaciones',
+  ],
 };
 
 const configuracionesDestacadas = new Set([
   'whatsapp_grupo_pedidos_url',
   'whatsapp_grupo_finalizados_url',
+  'setup_inicial_completado',
 ]);
 
 const todasLasVariablesTemplate = Array.from(new Set([

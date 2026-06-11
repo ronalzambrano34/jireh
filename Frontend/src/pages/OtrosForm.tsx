@@ -1,13 +1,24 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { crearOtros, listarMetodosPago } from '../api/client';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ImagePlus, MapPin } from 'lucide-react';
+import { crearOtros, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
+import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
+import { ContactosRecientes } from '../components/ContactosRecientes';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PageLoader } from '../components/PageLoader';
-import type { MetodoPago, PedidoDetalle } from '../types/api';
-import { banderaMoneda } from '../utils/monedas';
+import { PhoneInput } from '../components/PhoneInput';
+import type { Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
+import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
+
+const TELEFONO_CUBA_DEFAULT = '+53';
+const DOCUMENTO_ADJUNTO_LABEL = 'Documento adjunto en evidencias';
+
+function telefonoCubaCompleto(value: string) {
+  return value.replace(/\D/g, '').length > 2;
+}
 
 export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void }) {
   const [form, setForm] = useState({
@@ -18,12 +29,19 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
     cliente_id: '',
     nombre_cliente: '',
     numero_telefono_cliente: '',
+    numero_tarjeta: '',
+    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
+    documento_identidad_url: '',
+    punto_recogida_id: '',
     observaciones: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
+  const [puntos, setPuntos] = useState<PuntoRecogida[]>([]);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
+  const [documentoFile, setDocumentoFile] = useState<File | null>(null);
+  const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -32,9 +50,10 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
 
   useEffect(() => {
     setCargandoMetodos(true);
-    listarMetodosPago()
-      .then((data) => {
+    Promise.all([listarMetodosPago(), listarPuntosRecogida()])
+      .then(([data, puntosData]) => {
         setMetodosPago(data);
+        setPuntos(puntosData);
         const metodoSeleccionado = form.moneda_pago === 'BRL'
           ? data.find((metodo) => metodo.moneda === 'BRL' && metodo.nombre.toLowerCase() === 'pix')
           : data.find((metodo) => metodo.moneda === form.moneda_pago);
@@ -61,8 +80,34 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
+  useEffect(() => {
+    if (!documentoFile || !documentoFile.type.startsWith('image/')) {
+      setDocumentoPreview(null);
+      return undefined;
+    }
+
+    const url = URL.createObjectURL(documentoFile);
+    setDocumentoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [documentoFile]);
+
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function aplicarContacto(contacto: Contacto) {
+    setForm((current) => ({
+      ...current,
+      numero_tarjeta: contacto.numero_tarjeta ?? current.numero_tarjeta,
+      telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
+      documento_identidad_url: contacto.documento_identidad_url ?? current.documento_identidad_url,
+    }));
+  }
+
+  function handleDocumentoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setDocumentoFile(file);
+    if (file) update('documento_identidad_url', DOCUMENTO_ADJUNTO_LABEL);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -97,8 +142,24 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+        numero_tarjeta: form.numero_tarjeta.trim() || undefined,
+        telefono_destinatario: telefonoCubaCompleto(form.telefono_destinatario)
+          ? form.telefono_destinatario
+          : undefined,
+        documento_identidad_url: documentoFile
+          ? DOCUMENTO_ADJUNTO_LABEL
+          : form.documento_identidad_url || undefined,
+        punto_recogida_id: form.punto_recogida_id
+          ? Number(form.punto_recogida_id)
+          : null,
         observaciones: form.observaciones.trim(),
       });
+      if (documentoFile) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'documento_identidad');
+        uploadForm.set('archivo', documentoFile);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
       onCreated(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
@@ -136,14 +197,68 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
           <header className="form-section-header">
             <span className="form-step-number">2</span>
             <div>
-              <h3>Informacion de la operacion</h3>
-              <p>Texto libre para pedidos especiales o casos no clasificados.</p>
+              <h3>Datos de la operacion</h3>
+              <p>Completa solamente los campos que necesite este pedido.</p>
             </div>
           </header>
-          <label>
-            Detalle
-            <textarea value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} rows={7} placeholder="Ej: pago manual, gestion puntual, nota para el operador o cualquier dato necesario" required />
-          </label>
+          <div className="form-grid">
+            <label>
+              Telefono destinatario Cuba
+              <PhoneInput
+                value={form.telefono_destinatario}
+                onChange={(value) => update('telefono_destinatario', value)}
+                defaultCode="+53"
+                codeLocked
+                pasteTitle="Pegar telefono destinatario"
+              />
+            </label>
+            <label>
+              Tarjeta destinatario
+              <CardNumberInput
+                value={form.numero_tarjeta}
+                onChange={(value) => update('numero_tarjeta', value)}
+                pasteTitle="Pegar tarjeta destinatario"
+              />
+            </label>
+            <label>
+              Foto o documento
+              <span className="document-upload-field">
+                <span className={documentoPreview ? 'document-preview has-image' : 'document-preview'}>
+                  {documentoPreview ? <img src={documentoPreview} alt="" /> : <ImagePlus size={24} />}
+                </span>
+                <span>
+                  <strong>{documentoFile?.name ?? (form.documento_identidad_url || 'Seleccionar imagen')}</strong>
+                  <small>Opcional para efectivo u otra evidencia</small>
+                </span>
+                <input type="file" accept="image/*" onChange={handleDocumentoChange} />
+              </span>
+            </label>
+            <label>
+              Punto de recogida
+              <FloatingSelect
+                value={form.punto_recogida_id}
+                onChange={(value) => update('punto_recogida_id', value)}
+                disabled={cargandoMetodos}
+                placeholder="Sin punto de recogida"
+                ariaLabel="Punto de recogida"
+                options={[
+                  { value: '', label: 'Sin punto de recogida', icon: <MapPin size={17} /> },
+                  ...puntos.map((punto) => ({
+                    value: String(punto.id),
+                    label: punto.nombre,
+                    description: punto.provincia_nombre ?? undefined,
+                    icon: <MapPin size={17} />,
+                  })),
+                ]}
+                align="left"
+              />
+            </label>
+            <label className="wide">
+              Descripcion
+              <textarea value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} rows={5} placeholder="Detalles exclusivos de esta operacion" required />
+            </label>
+          </div>
+          <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />
         </section>
 
         <section className="form-section-card payment-section-card">
@@ -159,7 +274,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
               />
             </label>
           </header>

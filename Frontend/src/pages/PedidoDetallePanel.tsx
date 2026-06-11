@@ -24,7 +24,7 @@ const detalleOrden: Record<string, string[]> = {
   efectivo: ['documento_identidad_url', 'telefono_destinatario', 'monto_cup', 'punto_recogida_id'],
   saldo: ['telefono_destinatario', 'saldo_cup'],
   divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'monto_divisa'],
-  otros: ['informacion_operacion'],
+  otros: ['documento_identidad_url', 'numero_tarjeta', 'telefono_destinatario', 'punto_recogida_id', 'informacion_operacion'],
 };
 
 const detalleMontoKeys = ['monto_cup', 'monto_divisa', 'saldo_cup'];

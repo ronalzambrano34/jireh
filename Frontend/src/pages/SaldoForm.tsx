@@ -10,7 +10,7 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
-import { banderaMoneda } from '../utils/monedas';
+import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -235,7 +235,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
+                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
               />
             </label>
           </header>
