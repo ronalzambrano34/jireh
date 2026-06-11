@@ -40,8 +40,8 @@ function normalizeLocalByCountry(code: string, local: string) {
     }
   }
 
-  if (code === '+598' && next.startsWith('0')) {
-    next = next.slice(1);
+  if (code === '+598' && next.length > 8) {
+    next = next.slice(-8);
   }
 
   return next;
@@ -74,7 +74,13 @@ export function separarTelefono(value: string, defaultCode = '+55', codeLocked =
   const selected = codeLocked ? defaultCode : match?.code ?? defaultCode;
   const local = match ? normalized.slice(match.code.length) : normalized.replace(/^\+/, '');
 
-  return { selected, local: digitsOnly(local) };
+  const localDigits = digitsOnly(local);
+  return {
+    selected,
+    local: selected === '+598'
+      ? normalizeLocalByCountry(selected, localDigits)
+      : localDigits,
+  };
 }
 
 export function telefonoClienteCompleto(value?: string | null) {

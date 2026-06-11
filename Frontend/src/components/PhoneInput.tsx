@@ -23,6 +23,10 @@ function joinPhone(code: string, local: string) {
 
 export function PhoneInput({ value, inputId, onChange, defaultCode = '+53', required = false, pasteTitle = 'Pegar telefono', autoComplete = 'tel', actions, codeLocked = false, showPaste = true }: PhoneInputProps) {
   const { selected, local } = useMemo(() => separarTelefono(value, defaultCode, codeLocked), [codeLocked, defaultCode, value]);
+  const updateLocal = (code: string, nextLocal: string) => {
+    const joined = joinPhone(code, nextLocal);
+    onChange(code === '+598' ? normalizarTelefono(joined, code, true) : joined);
+  };
   const className = [
     'phone-input-row',
     actions ? 'phone-input-row-with-actions' : '',
@@ -34,13 +38,13 @@ export function PhoneInput({ value, inputId, onChange, defaultCode = '+53', requ
       <FloatingSelect
         className="phone-code-select-floating"
         value={selected}
-        onChange={(next) => onChange(joinPhone(next, local))}
+        onChange={(next) => updateLocal(next, local)}
         disabled={codeLocked}
         ariaLabel="Codigo de pais"
         options={COUNTRY_PHONE_CODES.map((item) => ({ value: item.code, label: item.code, description: item.label, icon: item.flag }))}
         align="left"
       />
-      <input id={inputId} value={local} onChange={(event) => onChange(joinPhone(selected, event.target.value))} required={required} inputMode="tel" autoComplete={autoComplete} />
+      <input id={inputId} value={local} onChange={(event) => updateLocal(selected, event.target.value)} required={required} inputMode="tel" autoComplete={autoComplete} />
       {showPaste && <PasteButton onPaste={(pasted) => onChange(normalizarTelefono(pasted, selected, codeLocked))} title={pasteTitle} />}
       {actions}
     </span>
