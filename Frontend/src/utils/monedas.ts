@@ -8,3 +8,14 @@ export function banderaMoneda(moneda?: string | null) {
   };
   return banderas[normalizada] || '💱';
 }
+
+export function nombreMoneda(moneda?: string | null) {
+  const normalizada = (moneda || '').trim().toUpperCase();
+  const nombres: Record<string, string> = {
+    BRL: 'Real brasileno',
+    UYU: 'Peso uruguayo',
+    USD: 'Dolar estadounidense',
+    EUR: 'Euro',
+  };
+  return nombres[normalizada] || normalizada;
+}

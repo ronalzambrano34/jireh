@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
+from Backend.models.pedido_otros import PedidoOtros
 from Backend.models.provincia_servicio import ProvinciaServicio
 
 
@@ -351,6 +352,10 @@ def ensure_runtime_tables(
         checkfirst=True
     )
     ArchivoPedido.__table__.create(
+        bind=db.get_bind(),
+        checkfirst=True
+    )
+    PedidoOtros.__table__.create(
         bind=db.get_bind(),
         checkfirst=True
     )

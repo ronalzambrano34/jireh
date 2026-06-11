@@ -7,6 +7,7 @@ from Backend.models.pedido_divisa import PedidoDivisa
 from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.pedido_saldo import PedidoSaldo
 from Backend.models.pedido_transferencia import PedidoTransferencia
+from Backend.models.pedido_otros import PedidoOtros
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.operador import Operador
 
@@ -493,8 +494,24 @@ def detalle_otros(
     if not pedido:
         return None
 
+    detalle = (
+        db.query(PedidoOtros)
+        .filter(PedidoOtros.pedido_id == pedido_id)
+        .first()
+    )
+
     return {
         "informacion_operacion": pedido.observaciones,
+        "numero_tarjeta": detalle.numero_tarjeta if detalle else None,
+        "telefono_destinatario": (
+            detalle.telefono_destinatario if detalle else None
+        ),
+        "punto_recogida_id": (
+            detalle.punto_recogida_id if detalle else None
+        ),
+        "documento_identidad_url": (
+            detalle.documento_identidad_url if detalle else None
+        ),
     }
 
 
@@ -563,18 +580,49 @@ def _detalles_por_pedido_map(
     ids_por_servicio: dict[str, list[int]] = {}
 
     for pedido in pedidos:
-        if pedido.servicio == "otros":
-            detalles[pedido.id] = {
-                "informacion_operacion": pedido.observaciones,
-            }
-            continue
-
         ids_por_servicio.setdefault(
             pedido.servicio,
             []
         ).append(
             pedido.id
         )
+
+    otros_ids = ids_por_servicio.get(
+        "otros",
+        []
+    )
+    if otros_ids:
+        detalles_otros = {
+            detalle.pedido_id: detalle
+            for detalle in (
+                db.query(PedidoOtros)
+                .filter(PedidoOtros.pedido_id.in_(otros_ids))
+                .all()
+            )
+        }
+        pedidos_por_id = {
+            pedido.id: pedido
+            for pedido in pedidos
+            if pedido.id in otros_ids
+        }
+        for pedido_id in otros_ids:
+            detalle = detalles_otros.get(pedido_id)
+            pedido = pedidos_por_id[pedido_id]
+            detalles[pedido_id] = {
+                "informacion_operacion": pedido.observaciones,
+                "numero_tarjeta": (
+                    detalle.numero_tarjeta if detalle else None
+                ),
+                "telefono_destinatario": (
+                    detalle.telefono_destinatario if detalle else None
+                ),
+                "punto_recogida_id": (
+                    detalle.punto_recogida_id if detalle else None
+                ),
+                "documento_identidad_url": (
+                    detalle.documento_identidad_url if detalle else None
+                ),
+            }
 
     transferencia_ids = ids_por_servicio.get(
         "transferencia",

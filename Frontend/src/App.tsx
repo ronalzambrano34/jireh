@@ -1,6 +1,6 @@
 import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, subirArchivo, subirMiFotoPerfil } from './api/client';
+import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { PageLoader } from './components/PageLoader';
@@ -26,6 +26,7 @@ const ReportesPage = lazy(() => import('./pages/ReportesPage').then((module) => 
 const AdminCatalogosPage = lazy(() => import('./pages/AdminCatalogosPage').then((module) => ({ default: module.AdminCatalogosPage })));
 const InicioPage = lazy(() => import('./pages/InicioPage').then((module) => ({ default: module.InicioPage })));
 const ThemeTestPage = lazy(() => import('./pages/ThemeTestPage').then((module) => ({ default: module.ThemeTestPage })));
+const SetupInicialPage = lazy(() => import('./pages/SetupInicialPage').then((module) => ({ default: module.SetupInicialPage })));
 
 const estados = [
   { value: '', label: 'Estado' },
@@ -186,6 +187,8 @@ function camposTarjetaPedido(pedido: PedidoResumen) {
 
   if (pedido.servicio === 'otros') {
     return [
+      { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
+      { label: 'Tarjeta', value: detalleValor(pedido, 'numero_tarjeta') },
       { label: 'Info', value: pedido.observaciones },
       { label: 'Pago', value: `${pedido.monto_pago} ${pedido.moneda_pago}` },
     ];
@@ -263,7 +266,7 @@ export function App() {
   const [periodoPedidos, setPeriodoPedidos] = useState<PeriodoPedidos>('hoy');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
-  const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'tema' | 'perfil'>('inicio');
+  const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'tema' | 'perfil'>('inicio');
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
   const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
@@ -289,6 +292,7 @@ export function App() {
   const [profilePhotoSaving, setProfilePhotoSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [setupRevisado, setSetupRevisado] = useState(false);
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const [confirmandoPagoCreado, setConfirmandoPagoCreado] = useState(false);
   const copyToastTimeoutRef = useRef<number | null>(null);
@@ -490,6 +494,7 @@ export function App() {
   function cerrarSesion() {
     clearToken();
     setOperador(null);
+    setSetupRevisado(false);
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
     setQuickCreateOpen(false);
@@ -662,6 +667,18 @@ export function App() {
   useEffect(() => {
     if (operador) void cargarPedidos();
   }, [cargarPedidos, operador]);
+
+  useEffect(() => {
+    if (!operador || !puedeAdmin || setupRevisado) return;
+    setSetupRevisado(true);
+    obtenerEstadoConfiguracionInicial()
+      .then((estadoSetup) => {
+        if (!estadoSetup.completada) setVista('setup');
+      })
+      .catch(() => {
+        // La configuracion inicial no debe impedir entrar a una instalacion existente.
+      });
+  }, [operador, puedeAdmin, setupRevisado]);
 
   useEffect(() => {
     if (!operador || vista !== 'bandeja' || !online) return undefined;
@@ -907,6 +924,7 @@ export function App() {
           <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
           <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
           <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
+          {puedeAdmin && <button className={vista === 'setup' ? 'active' : ''} onClick={() => navegar('setup')}><ShieldCheck size={18} /> Configurar</button>}
           {puedeAdmin && <button className={vista === 'tema' ? 'active' : ''} onClick={() => navegar('tema')}><Palette size={18} /> Tema UI</button>}
           <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
@@ -932,8 +950,8 @@ export function App() {
             <span>EL JIREH</span>
           </button>
           <div className="toolbar-title">
-            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'tema' ? 'Tema UI' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
-            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'tema' ? 'Comparacion visual de componentes' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
+            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'setup' ? 'Configuracion inicial' : vista === 'tema' ? 'Tema UI' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
+            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'tema' ? 'Comparacion visual de componentes' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
             {userMenuOpen && <button className="floating-create-backdrop user-floating-backdrop" type="button" aria-label="Cerrar opciones de usuario" onClick={() => setUserMenuOpen(false)} />}
@@ -1000,6 +1018,8 @@ export function App() {
 
         {vista === 'inicio' ? (
           <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+        ) : vista === 'setup' ? (
+          <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
         ) : vista === 'tema' ? (

@@ -32,6 +32,7 @@ from Backend.models.pedido_transferencia import (PedidoTransferencia)
 from Backend.models.pedido_saldo import (PedidoSaldo)
 from Backend.models.pedido_efectivo import (PedidoEfectivo)
 from Backend.models.pedido_divisa import (PedidoDivisa)
+from Backend.models.pedido_otros import PedidoOtros
 
 from Backend.routes.pedido import (router as pedido_router)
 from Backend.routes.operador import (router as operador_router)

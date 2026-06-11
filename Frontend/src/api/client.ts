@@ -4,6 +4,7 @@ import type {
   CalculoOperacionResponse,
   Cliente,
   Configuracion,
+  ConfiguracionInicialEstado,
   Contacto,
   CrearDivisaPayload,
   CrearEfectivoPayload,
@@ -581,6 +582,36 @@ export function guardarConfiguracion(payload: { clave: string; valor: string }) 
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function obtenerEstadoConfiguracionInicial(): Promise<ConfiguracionInicialEstado> {
+  const [configuraciones, metodos, ofertas, puntos, paquetes] = await Promise.all([
+    listarConfiguraciones(),
+    listarMetodosPago(undefined, true),
+    listarOfertas(true),
+    listarPuntosRecogida(true),
+    listarPaquetesSaldo(undefined, true),
+  ]);
+  const cuentas = (
+    await Promise.all(
+      metodos
+        .filter((metodo) => metodo.activo)
+        .map((metodo) => listarCuentasMetodoPago(metodo.id, false)),
+    )
+  ).flat();
+  const marcada = configuraciones.some(
+    (item) => item.clave === 'setup_inicial_completado' && item.valor === 'true',
+  );
+  const instalacionExistente = cuentas.length > 0 && ofertas.some((item) => item.activa);
+
+  return {
+    completada: marcada || instalacionExistente,
+    metodos: metodos.filter((item) => item.activo).length,
+    cuentas: cuentas.length,
+    ofertas: ofertas.filter((item) => item.activa).length,
+    puntos: puntos.filter((item) => item.activo).length,
+    paquetes: paquetes.filter((item) => item.activo).length,
+  };
 }
 
 export function listarTemplates() {

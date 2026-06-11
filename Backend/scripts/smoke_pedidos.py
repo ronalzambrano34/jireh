@@ -40,6 +40,7 @@ from Backend.services.archivo_pedido_service import (
 )
 from Backend.services.pedido_divisa_service import crear_pedido_divisa
 from Backend.services.pedido_efectivo_service import crear_pedido_efectivo
+from Backend.services.pedido_creator import crear_pedido
 from Backend.services.pedido_saldo_service import crear_pedido_saldo
 from Backend.services.pedido_service import (
     actualizar_estado_pedido,
@@ -443,6 +444,75 @@ def run():
         _assert(
             pedido_divisa["detalle"].get("numero_tarjeta") == "9222000011112222",
             "divisa: no copio numero_tarjeta desde contacto"
+        )
+
+        otros = crear_pedido(
+            db,
+            {
+                "servicio": "otros",
+                "monto_pago": 80,
+                "moneda_pago": "BRL",
+                "tipo_pago_id": datos["metodo"].id,
+                "operador_id": datos["operador"].id,
+                "cliente_id": datos["cliente"].id,
+                "numero_tarjeta": "9222000011112222",
+                "telefono_destinatario": "12345678",
+                "documento_identidad_url": "documento-otros.jpg",
+                "punto_recogida_id": datos["punto"].id,
+                "observaciones": "Entrega de USD en efectivo",
+            }
+        )
+        pedido_otros = assert_pedido(
+            db,
+            otros,
+            "otros",
+            "+5312345678"
+        )
+        _assert(
+            pedido_otros["detalle"].get("numero_tarjeta")
+            == "9222000011112222",
+            "otros: no guardo numero_tarjeta"
+        )
+        _assert(
+            pedido_otros["detalle"].get("documento_identidad_url")
+            == "documento-otros.jpg",
+            "otros: no guardo documento_identidad_url"
+        )
+        _assert(
+            pedido_otros["detalle"].get("punto_recogida_id")
+            == datos["punto"].id,
+            "otros: no guardo punto_recogida_id"
+        )
+
+        otros_minimo = crear_pedido(
+            db,
+            {
+                "servicio": "otros",
+                "monto_pago": 50,
+                "moneda_pago": "BRL",
+                "tipo_pago_id": datos["metodo"].id,
+                "operador_id": datos["operador"].id,
+                "cliente_id": datos["cliente"].id,
+                "observaciones": "Operacion especial sin datos de destino",
+            }
+        )
+        pedido_otros_minimo = assert_pedido(
+            db,
+            otros_minimo,
+            "otros"
+        )
+        _assert(
+            pedido_otros_minimo["detalle"].get("numero_tarjeta") is None
+            and pedido_otros_minimo["detalle"].get(
+                "telefono_destinatario"
+            ) is None
+            and pedido_otros_minimo["detalle"].get(
+                "documento_identidad_url"
+            ) is None
+            and pedido_otros_minimo["detalle"].get(
+                "punto_recogida_id"
+            ) is None,
+            "otros: los campos operativos opcionales recibieron valores"
         )
 
         print(
