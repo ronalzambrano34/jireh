@@ -86,8 +86,8 @@ def _normalizar_local_por_pais(codigo: str, local: str) -> str:
         ):
             local = f"{ddd}9{abonado}"
 
-    if codigo == "+598" and local.startswith("0"):
-        local = local[1:]
+    if codigo == "+598" and len(local) > 8:
+        local = local[-8:]
 
     return local
 
