@@ -233,6 +233,10 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           </header>
           <div className="form-grid payment-grid">
             <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
+            </label>
+            <label>
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
@@ -243,10 +247,6 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
                 disabled={cargandoMetodos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
-            </label>
-            <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
             <label>
               Cupon o bono

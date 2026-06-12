@@ -1163,22 +1163,6 @@ export function App() {
                       </span>
                     </a>
                   </div>
-                  <div className="profile-support-panel profile-support-panel-list">
-                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer">
-                      <WhatsAppIcon />
-                      <span>
-                        <strong>Soporte Brasil</strong>
-                        <small>+55 48 9123-3191</small>
-                      </span>
-                    </a>
-                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer">
-                      <WhatsAppIcon />
-                      <span>
-                        <strong>Soporte Uruguay</strong>
-                        <small>+598 94 207 862</small>
-                      </span>
-                    </a>
-                  </div>
                 </div>
               )}
               <button className="profile-option danger profile-logout-option" type="button" onClick={cerrarSesion}><LogOut size={22} /><span>Salir</span></button>

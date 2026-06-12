@@ -279,6 +279,10 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
           </header>
           <div className="form-grid payment-grid">
             <label>
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
+            </label>
+            <label>
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
@@ -289,10 +293,6 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
                 disabled={cargandoMetodos || metodosFiltrados.length === 0}
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
-            </label>
-            <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
             </label>
           </div>
         </section>
