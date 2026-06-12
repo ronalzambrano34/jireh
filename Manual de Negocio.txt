@@ -1263,6 +1263,9 @@ Actualizacion de interfaz aplicada:
 - Los metodos de pago muestran imagen automaticamente segun el nombre del banco o metodo cuando existe asset local; no requiere campo nuevo en configuracion por ahora.
 - En Administracion > Personas, Operadores permite listar activos/inactivos, crear operadores, editar nombre/telefono/rol/contraseña/estado y desactivar o reactivar accesos.
 - En Perfil > Mi cuenta, Apariencia ya no es acordeon: es una fila fija con el switch en la misma linea del titulo para activar/desactivar modo oscuro.
+- El tema predeterminado del sistema es Oscuro Jireh. Su paleta base usa fondo azul profundo #08111F, superficies #0F1B2D y #16243A, borde #263A55, texto #F4F7FB y texto secundario #A9B7C9.
+- Los colores de accion y estado tienen funciones fijas: azul #2F6FDB para acciones e interaccion, verde #2FA66F para exito, dorado #E3B341 para advertencia y rojo #DC5A63 para error o accion destructiva.
+- No deben agregarse colores decorativos por componente. El contraste visual se construye con niveles de superficie, borde, tipografia y espaciado. Tema UI es la referencia de componentes antes de extender cambios al resto del sistema.
 - El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
 - Todos los campos editables de telefono usan selector de codigo de pais y guardan el numero completo con prefijo internacional.
 - Los telefonos se normalizan en frontend y backend: se limpian espacios/separadores, se evita duplicar el codigo internacional, Brasil agrega el 9 movil despues del DDD cuando llega el formato viejo de WhatsApp y Uruguay elimina el 0 local despues de +598.
