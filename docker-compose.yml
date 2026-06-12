@@ -13,7 +13,10 @@ services:
       - "8000:8000"
     volumes:
       - ./Backend:/app/Backend
+      - ./Backend/credentials.json:/app/Backend/credentials.json:ro
     restart: always
+    env_file:
+      - Backend/.env
 
   frontend:
     build: ./Frontend
