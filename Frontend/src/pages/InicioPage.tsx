@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { MouseEvent, ReactNode, TouchEvent } from 'react';
-import { ArrowRight, Banknote, Calculator, CheckCircle2, ChevronDown, ClipboardList, Clock3, Flame, RefreshCw, Search, Smartphone, WalletCards } from 'lucide-react';
+import { ArrowRight, Banknote, Calculator, CheckCircle2, ClipboardList, Clock3, Flame, RefreshCw, Search, Smartphone, WalletCards } from 'lucide-react';
 import { apiAssetUrl, obtenerPedido, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoDetalle, TasaOperativaResponse } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
 
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
@@ -147,15 +148,6 @@ function nombreMoneda(moneda: string) {
     USD: 'USD (Dolar)',
   };
   return etiquetas[moneda] || moneda;
-}
-
-function banderaMoneda(moneda: string) {
-  const banderas: Record<string, string> = {
-    BRL: '🇧🇷',
-    UYU: '🇺🇾',
-    USD: '🇺🇸',
-  };
-  return banderas[moneda] || '💱';
 }
 
 function ordenMoneda(moneda: string) {
@@ -609,7 +601,6 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [monedaSeleccionada, setMonedaSeleccionada] = useState('BRL');
-  const [monedaMenuOpen, setMonedaMenuOpen] = useState(false);
 
   async function cargarTasas(options: { silent?: boolean } = {}) {
     const silent = Boolean(options.silent);
@@ -697,7 +688,6 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
     if (gruposMoneda.length === 0) return;
     if (!gruposMoneda.some((grupo) => grupo.moneda === monedaSeleccionada)) {
       setMonedaSeleccionada(gruposMoneda[0].moneda);
-      setMonedaMenuOpen(false);
     }
   }, [gruposMoneda, monedaSeleccionada]);
 
@@ -728,37 +718,11 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
                 <h3>Moneda de Recepcion:</h3>
                 <p>{etiquetaMoneda(grupoActivo.moneda)}</p>
               </div>
-              <div className={monedaMenuOpen ? 'currency-picker-wrap open' : 'currency-picker-wrap'}>
-                {monedaMenuOpen && <button className="currency-picker-backdrop" type="button" aria-label="Cerrar selector de moneda" onClick={() => setMonedaMenuOpen(false)} />}
-                <button
-                  className="currency-picker currency-picker-button"
-                  type="button"
-                  onClick={() => setMonedaMenuOpen((current) => !current)}
-                  aria-haspopup="menu"
-                  aria-expanded={monedaMenuOpen}
-                >
-                  <span className="currency-picker-flag" aria-hidden="true">{banderaMoneda(monedaSeleccionada)}</span>
-                  <strong>{nombreMoneda(monedaSeleccionada)}</strong>
-                  <ChevronDown size={16} />
-                </button>
-                {monedaMenuOpen && (
-                  <div className="currency-picker-menu" role="menu" aria-label="Tipo de moneda">
-                    {gruposMoneda.map((grupo) => (
-                      <button
-                        key={grupo.moneda}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={monedaSeleccionada === grupo.moneda}
-                        className={monedaSeleccionada === grupo.moneda ? 'active' : ''}
-                        onClick={() => { setMonedaSeleccionada(grupo.moneda); setMonedaMenuOpen(false); }}
-                      >
-                        <span className="currency-picker-flag" aria-hidden="true">{banderaMoneda(grupo.moneda)}</span>
-                        <span><strong>{nombreMoneda(grupo.moneda)}</strong><small>{etiquetaMoneda(grupo.moneda)}</small></span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CurrencySelect
+                value={monedaSeleccionada}
+                currencies={gruposMoneda.map((grupo) => grupo.moneda)}
+                onChange={setMonedaSeleccionada}
+              />
             </header>
 
             <CotizadorVivo grupo={grupoActivo} />

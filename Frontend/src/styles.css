@@ -6949,16 +6949,8 @@ body {
 }
 
 .payment-currency-picker {
-  min-height: 40px;
-  display: inline-grid;
-  align-items: center;
-  gap: 7px;
   justify-self: end;
-  border: 1px solid rgba(34, 116, 184, 0.28);
-  border-radius: 999px;
-  padding: 4px 7px 4px 8px;
-  background: #eef6ff;
-  color: #173c67;
+  min-width: min(224px, 54vw);
 }
 
 .payment-currency-picker select {
@@ -7002,20 +6994,6 @@ body {
 :root[data-theme="dark-deep"] .pedido-column-toggle svg ,
 :root[data-theme="dark-sidebar"] .pedido-column-toggle svg {
   color: #aebccd;
-}
-
-:root[data-theme="dark"] .payment-currency-picker ,
-:root[data-theme="dark-deep"] .payment-currency-picker ,
-:root[data-theme="dark-sidebar"] .payment-currency-picker {
-  border-color: var(--jireh-line);
-  background: #132030;
-  color: #8ff0c7;
-}
-
-:root[data-theme="dark"] .payment-currency-picker select ,
-:root[data-theme="dark-deep"] .payment-currency-picker select ,
-:root[data-theme="dark-sidebar"] .payment-currency-picker select {
-  color: #f2f6fb;
 }
 
 
@@ -12612,14 +12590,46 @@ body {
   font-weight: 750;
 }
 
-.payment-currency-picker .floating-select-button,
 .currency-picker-button.floating-select-button {
   min-height: 38px;
-  border-radius: inherit;
-  border: 0;
+}
+
+.currency-reception-select .currency-picker {
+  min-height: 44px;
+  min-width: min(224px, 54vw);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  padding: 8px 11px;
+  border: 1px solid rgba(23, 107, 93, 0.34);
+  border-radius: 11px;
+  background: linear-gradient(180deg, #e8f4ef 0%, #d4eadf 100%);
+  color: #176b5d;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52), 0 8px 18px rgba(23, 107, 93, 0.1);
+}
+
+.currency-reception-select .floating-select-current {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.currency-reception-select .currency-picker-flag {
+  width: 24px;
+  height: 18px;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 3px;
   background: transparent;
-  padding: 0;
-  box-shadow: none;
+  font-size: 16px;
+}
+
+:root[data-theme="dark"] .currency-reception-select .currency-picker,
+:root[data-theme="dark-deep"] .currency-reception-select .currency-picker,
+:root[data-theme="dark-sidebar"] .currency-reception-select .currency-picker,
+:root[data-theme="dark-vscode"] .currency-reception-select .currency-picker {
+  border-color: rgba(49, 209, 154, 0.26);
+  background: linear-gradient(180deg, rgba(49, 209, 154, 0.12) 0%, rgba(49, 209, 154, 0.07) 100%);
+  color: #dffcf1;
+  box-shadow: inset 0 0 0 1px rgba(49, 209, 154, 0.08), 0 8px 18px rgba(0, 0, 0, 0.24);
 }
 
 .phone-code-select-floating .floating-select-button {
@@ -13819,7 +13829,7 @@ body {
   --menu-bg-soft: #0f172a;
   --menu-card: #172033;
   --menu-card-2: #1e293b;
-  --menu-row: #070a12;
+  --menu-row: #111a2c;
   --menu-line: #273242;
   --menu-line-strong: #35435a;
   --menu-text: #f3f4f6;
@@ -16766,4 +16776,94 @@ body {
   border-color: color-mix(in srgb, currentColor 38%, transparent);
   background: color-mix(in srgb, currentColor 14%, var(--dark-ui-surface-soft));
   color: inherit;
+}
+
+/* Shared select geometry and dark surface hierarchy */
+.floating-select-button {
+  grid-template-columns: auto minmax(0, 1fr) 18px;
+  padding: 9px 11px;
+}
+
+.floating-select-chevron {
+  grid-column: 3;
+  justify-self: end;
+  flex: 0 0 auto;
+}
+
+.floating-select-icon {
+  grid-column: 1;
+}
+
+.floating-select-current {
+  grid-column: 2;
+}
+
+.payment-currency-picker,
+.payment-currency-picker .currency-reception-select,
+.payment-currency-picker .currency-picker {
+  width: 100%;
+}
+
+.payment-currency-picker {
+  min-width: min(224px, 54vw);
+}
+
+.payment-currency-picker .currency-picker {
+  padding: 9px 12px;
+}
+
+@media (max-width: 560px) {
+  .payment-currency-picker {
+    width: min(100%, 280px);
+    min-width: 0;
+  }
+}
+
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  :is(.form-section-card, .client-section, .recent-contact-card, .report-filters, .report-table,
+      .report-chart, .admin-section, .admin-menu-section, .modal-panel) {
+  border-color: var(--dark-ui-border);
+  background: linear-gradient(180deg, var(--dark-ui-surface) 0%, var(--dark-ui-surface-raised) 100%);
+}
+
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  :is(input, textarea, .password-field, .phone-input-row, .input-action-row, .floating-select-button,
+      .ghost-button, .icon-button, .order-filter-button, .filter-modal-button) {
+  border-color: var(--dark-ui-border);
+  background: var(--dark-ui-surface-soft);
+  color: var(--dark-ui-text);
+}
+
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  .currency-reception-select .currency-picker {
+  border-color: color-mix(in srgb, var(--dark-ui-accent) 32%, var(--dark-ui-border));
+  background: color-mix(in srgb, var(--dark-ui-accent) 11%, var(--dark-ui-surface-raised));
+  color: var(--dark-ui-text);
+}
+
+/* Carousel offer buttons use the same service colors as the calculator. */
+.live-rate-result.blue,
+.hero-rate-pill.blue {
+  border-color: rgba(59, 130, 246, 0.34);
+  background: linear-gradient(145deg, rgba(30, 64, 175, 0.24), rgba(15, 23, 42, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.06);
+}
+
+.live-rate-result.green,
+.hero-rate-pill.green {
+  border-color: rgba(16, 185, 129, 0.34);
+  background: linear-gradient(145deg, rgba(5, 150, 105, 0.22), rgba(15, 23, 42, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(134, 239, 172, 0.06);
+}
+
+.hero-rate-pill.blue:hover,
+.hero-rate-pill.blue:focus-visible {
+  border-color: rgba(96, 165, 250, 0.58);
+  background: linear-gradient(145deg, rgba(30, 64, 175, 0.36), rgba(15, 23, 42, 0.96));
+}
+
+.hero-rate-pill.green:hover,
+.hero-rate-pill.green:focus-visible {
+  border-color: rgba(52, 211, 153, 0.58);
+  background: linear-gradient(145deg, rgba(5, 150, 105, 0.34), rgba(15, 23, 42, 0.96));
 }

@@ -4,13 +4,12 @@ import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { CurrencySelect } from '../components/CurrencySelect';
 import { DismissibleNotice } from '../components/DismissibleNotice';
-import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import { PageLoader } from '../components/PageLoader';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
-import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -223,15 +222,14 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
               <h3>Pago de la operacion</h3>
               <p>Cantidad y metodo usado para pagar.</p>
             </div>
-            <label className="payment-currency-picker" title="Moneda de pago">
-              <FloatingSelect
-                className="payment-currency-select"
+            <div className="payment-currency-picker" title="Moneda de pago">
+              <CurrencySelect
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                options={['BRL', 'USD', 'EUR', 'UYU'].map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: <span className="currency-flag" aria-hidden="true">{banderaMoneda(moneda)}</span> }))}
+                currencies={['BRL', 'USD', 'EUR', 'UYU']}
               />
-            </label>
+            </div>
           </header>
           <div className="form-grid payment-grid">
             <label>
