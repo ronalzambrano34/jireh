@@ -1,5 +1,5 @@
 import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, CalendarRange, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -59,8 +59,11 @@ type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 type AppToastKind = 'success' | 'error';
+type AppView = 'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'tema' | 'perfil';
 
 const THEME_KEY = 'jireh.theme';
+const VIEW_KEY = 'jireh.view';
+const APP_VIEWS = new Set<AppView>(['inicio', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'tema', 'perfil']);
 const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
   { value: 'dark-sidebar', label: 'Oscuro menu' },
   { value: 'dark-deep', label: 'Oscuro profundo' },
@@ -70,6 +73,12 @@ const estadosBandeja = estados.filter((item) => item.value);
 const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
 const ERROR_TOAST_DURATION_MS = 5200;
+
+function vistaGuardada(): AppView {
+  if (typeof sessionStorage === 'undefined') return 'inicio';
+  const saved = sessionStorage.getItem(VIEW_KEY) as AppView | null;
+  return saved && APP_VIEWS.has(saved) ? saved : 'inicio';
+}
 
 function intervaloRefrescoPedidos() {
   const connection = (navigator as Navigator & {
@@ -266,7 +275,7 @@ export function App() {
   const [periodoPedidos, setPeriodoPedidos] = useState<PeriodoPedidos>('hoy');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
-  const [vista, setVista] = useState<'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'tema' | 'perfil'>('inicio');
+  const [vista, setVista] = useState<AppView>(vistaGuardada);
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
   const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
@@ -493,7 +502,10 @@ export function App() {
 
   function cerrarSesion() {
     clearToken();
+    sessionStorage.removeItem(VIEW_KEY);
+    sessionStorage.removeItem('jireh.adminTema');
     setOperador(null);
+    setVista('inicio');
     setSetupRevisado(false);
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
@@ -650,6 +662,10 @@ export function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    sessionStorage.setItem(VIEW_KEY, vista);
+  }, [vista]);
 
   useEffect(() => {
     if (!getToken()) return;
@@ -1279,10 +1295,10 @@ export function App() {
                         value={periodoPedidos}
                         onChange={(value) => setPeriodoPedidos(value as PeriodoPedidos)}
                         options={[
-                          { value: 'hoy', label: 'Hoy' },
-                          { value: '7_dias', label: '7 dias' },
-                          { value: 'mes', label: 'Este mes' },
-                          { value: 'todos', label: 'Todos' },
+                          { value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> },
+                          { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> },
+                          { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> },
+                          { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> },
                         ]}
                         ariaLabel="Filtrar pedidos por fecha"
                         align="left"

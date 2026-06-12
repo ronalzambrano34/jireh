@@ -1,4 +1,4 @@
-import { createElement, type DragEvent, FormEvent, useMemo, useRef, useState } from 'react';
+import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Banknote, CalendarClock, ChevronDown, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
@@ -137,6 +137,14 @@ function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChan
 
 type AdminEstadoVista = 'activos' | 'inactivos';
 type AdminTema = 'metodos' | 'provincias' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'configuracion' | 'templates';
+const ADMIN_THEME_KEY = 'jireh.adminTema';
+const ADMIN_THEMES = new Set<AdminTema>(['metodos', 'provincias', 'puntos', 'ofertas', 'paquetes', 'promociones', 'clientes', 'contactos', 'operadores', 'configuracion', 'templates']);
+
+function temaAdminGuardado(): AdminTema | null {
+  if (typeof sessionStorage === 'undefined') return null;
+  const saved = sessionStorage.getItem(ADMIN_THEME_KEY) as AdminTema | null;
+  return saved && ADMIN_THEMES.has(saved) ? saved : null;
+}
 
 function tituloTema(tema: AdminTema | null) {
   if (tema === 'metodos') return 'Metodos de pago';
@@ -281,11 +289,11 @@ export function AdminCatalogosPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [estadoVista, setEstadoVista] = useState<AdminEstadoVista>('activos');
-  const [temaActivo, setTemaActivo] = useState<AdminTema | null>(null);
+  const [temaActivo, setTemaActivo] = useState<AdminTema | null>(temaAdminGuardado);
   const [temasCargados, setTemasCargados] = useState<Set<AdminTema>>(() => new Set());
   const [temasCargando, setTemasCargando] = useState<Set<AdminTema>>(() => new Set());
   const [crearModalTema, setCrearModalTema] = useState<AdminTema | null>(null);
-  const temaActivoRef = useRef<AdminTema | null>(null);
+  const temaActivoRef = useRef<AdminTema | null>(temaActivo);
   const temasCargadosRef = useRef<Set<AdminTema>>(new Set());
   const temasCargandoRef = useRef<Set<AdminTema>>(new Set());
   const configTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -407,8 +415,13 @@ export function AdminCatalogosPage() {
     if (temaActivo) await cargarTema(temaActivo, true);
   }
 
+  useEffect(() => {
+    if (temaActivo) void cargarTema(temaActivo);
+  }, []);
+
   function abrirTema(tema: AdminTema) {
     temaActivoRef.current = tema;
+    sessionStorage.setItem(ADMIN_THEME_KEY, tema);
     setTemaActivo(tema);
     setEstadoVista('activos');
     setError(null);
@@ -418,6 +431,7 @@ export function AdminCatalogosPage() {
 
   function volverMenu() {
     temaActivoRef.current = null;
+    sessionStorage.removeItem(ADMIN_THEME_KEY);
     setTemaActivo(null);
     setError(null);
     setNotice(null);
