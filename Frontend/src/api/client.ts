@@ -30,6 +30,7 @@ import type {
   TasaOperativaResponse,
   SyncOfertasResponse,
 } from '../types/api';
+import { compressImage, compressImagesInFormData } from '../utils/imageCompression';
 
 const DEFAULT_API_URL = typeof window !== 'undefined' ? window.location.protocol + '//' + window.location.hostname + ':8000' : 'http://127.0.0.1:8000';
 const CONFIGURED_API_URL = import.meta.env.VITE_API_URL || '';
@@ -149,9 +150,9 @@ export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
   }).then((data) => data.operador);
 }
 
-export function subirMiFotoPerfil(file: File) {
+export async function subirMiFotoPerfil(file: File) {
   const formData = new FormData();
-  formData.append('archivo', file);
+  formData.append('archivo', await compressImage(file));
 
   return request<AuthMeResponse>('/auth/me/foto', {
     method: 'POST',
@@ -337,10 +338,10 @@ export function actualizarEstado(
   });
 }
 
-export function subirArchivo(codigo: string, formData: FormData) {
+export async function subirArchivo(codigo: string, formData: FormData) {
   return request(`/pedido/${codigo}/upload`, {
     method: 'POST',
-    body: formData,
+    body: await compressImagesInFormData(formData),
   });
 }
 
@@ -438,9 +439,9 @@ export function eliminarMetodoPago(id: number) {
   });
 }
 
-export function subirImagenMetodoPago(id: number, file: File) {
+export async function subirImagenMetodoPago(id: number, file: File) {
   const formData = new FormData();
-  formData.append('archivo', file);
+  formData.append('archivo', await compressImage(file));
 
   return request<MetodoPago>(`/metodos-pago/${id}/imagen`, {
     method: 'POST',
@@ -563,9 +564,9 @@ export function eliminarPromocion(id: number) {
   });
 }
 
-export function subirImagenPromocion(id: number, file: File) {
+export async function subirImagenPromocion(id: number, file: File) {
   const formData = new FormData();
-  formData.append('archivo', file);
+  formData.append('archivo', await compressImage(file));
 
   return request<Promocion>(`/promociones/${id}/imagen`, {
     method: 'POST',

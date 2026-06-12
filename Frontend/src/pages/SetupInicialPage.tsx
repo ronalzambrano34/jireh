@@ -19,6 +19,10 @@ import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 
+function esMetodoEfectivo(nombre: string) {
+  return nombre.trim().toLowerCase() === 'efectivo';
+}
+
 export function SetupInicialPage({
   onComplete,
   onOpenAdmin,
@@ -94,8 +98,11 @@ export function SetupInicialPage({
     { titulo: 'Saldo', detalle: 'Paquete de recarga', icon: Package, listo: Boolean(estado?.paquetes) },
   ], [estado]);
 
+  const metodoSeleccionado = metodos.find((item) => String(item.id) === pago.metodo_id);
+  const pagoEnEfectivo = esMetodoEfectivo(metodoSeleccionado?.nombre ?? pago.nombre_metodo);
+
   async function guardarCobro() {
-    if (!pago.cuenta.trim() || !pago.titular.trim()) {
+    if (!pagoEnEfectivo && (!pago.cuenta.trim() || !pago.titular.trim())) {
       setError('Completa la cuenta y el titular');
       return;
     }
@@ -110,15 +117,17 @@ export function SetupInicialPage({
         });
         metodoId = metodo.id;
       }
-      await crearCuentaMetodoPago(metodoId, {
-        alias: pago.alias.trim() || 'Cuenta principal',
-        cuenta: pago.cuenta.trim(),
-        titular: pago.titular.trim(),
-        predeterminada: true,
-        activa: true,
-      });
+      if (!pagoEnEfectivo) {
+        await crearCuentaMetodoPago(metodoId, {
+          alias: pago.alias.trim() || 'Cuenta principal',
+          cuenta: pago.cuenta.trim(),
+          titular: pago.titular.trim(),
+          predeterminada: true,
+          activa: true,
+        });
+      }
       await cargar();
-      setNotice('Cuenta de cobro guardada');
+      setNotice(pagoEnEfectivo ? 'Metodo de pago en efectivo guardado' : 'Cuenta de cobro guardada');
       setPaso(1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
@@ -261,9 +270,13 @@ export function SetupInicialPage({
                     <label>Moneda<FloatingSelect value={pago.moneda} onChange={(value) => setPago((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: banderaMoneda(moneda) }))} align="left" /></label>
                   </>
                 )}
-                <label>Alias<input value={pago.alias} onChange={(event) => setPago((current) => ({ ...current, alias: event.target.value }))} placeholder="Cuenta principal" /></label>
-                <label>Cuenta o llave<input value={pago.cuenta} onChange={(event) => setPago((current) => ({ ...current, cuenta: event.target.value }))} placeholder="Numero, email o llave Pix" /></label>
-                <label className="wide">Titular<input value={pago.titular} onChange={(event) => setPago((current) => ({ ...current, titular: event.target.value }))} placeholder="Nombre del titular" /></label>
+                {!pagoEnEfectivo && (
+                  <>
+                    <label>Alias<input value={pago.alias} onChange={(event) => setPago((current) => ({ ...current, alias: event.target.value }))} placeholder="Cuenta principal" /></label>
+                    <label>Cuenta o llave<input value={pago.cuenta} onChange={(event) => setPago((current) => ({ ...current, cuenta: event.target.value }))} placeholder="Numero, email o llave Pix" /></label>
+                    <label className="wide">Titular<input value={pago.titular} onChange={(event) => setPago((current) => ({ ...current, titular: event.target.value }))} placeholder="Nombre del titular" /></label>
+                  </>
+                )}
               </div>
               <button className="primary-button" type="button" onClick={() => void guardarCobro()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar y continuar'}</button>
             </>

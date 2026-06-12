@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
 from Backend.config import UPLOAD_MAX_BYTES
+from Backend.config import STORAGE_DIR
 from Backend.models.promocion import Promocion
 
 
@@ -160,9 +161,10 @@ def guardar_imagen_promocion(db: Session, promocion_id: int, archivo: UploadFile
 
     extension = Path(archivo.filename).suffix.lower() or ".img"
     nombre_seguro = str(uuid4()) + extension
-    carpeta = Path("storage") / "promociones"
+    ruta_relativa = Path("promociones") / nombre_seguro
+    carpeta = STORAGE_DIR / "promociones"
     carpeta.mkdir(parents=True, exist_ok=True)
-    destino = carpeta / nombre_seguro
+    destino = STORAGE_DIR / ruta_relativa
 
     total_bytes = 0
     try:
@@ -182,7 +184,7 @@ def guardar_imagen_promocion(db: Session, promocion_id: int, archivo: UploadFile
             destino.unlink()
         raise
 
-    promocion.imagen_url = "/" + str(destino).replace("\\", "/")
+    promocion.imagen_url = "/" + str(Path("storage") / ruta_relativa).replace("\\", "/")
     promocion.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(promocion)

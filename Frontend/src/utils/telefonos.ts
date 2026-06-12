@@ -1,9 +1,9 @@
 export const COUNTRY_PHONE_CODES = [
-  { code: '+53', flag: '🇨🇺', label: 'Cuba' },
-  { code: '+55', flag: '🇧🇷', label: 'Brasil' },
-  { code: '+598', flag: '🇺🇾', label: 'Uruguay' },
-  { code: '+1', flag: '🇺🇸', label: 'EE.UU.' },
-  { code: '+34', flag: '🇪🇸', label: 'España' },
+  { code: '+53', flag: '🇨🇺', label: 'Cuba', localDigits: 8 },
+  { code: '+55', flag: '🇧🇷', label: 'Brasil', localDigits: 10 },
+  { code: '+598', flag: '🇺🇾', label: 'Uruguay', localDigits: 8 },
+  { code: '+1', flag: '🇺🇸', label: 'EE.UU.', localDigits: 10 },
+  { code: '+34', flag: '🇪🇸', label: 'España', localDigits: 9 },
 ];
 
 function digitsOnly(value: string) {
@@ -17,7 +17,10 @@ function codeDigits(code: string) {
 function findCodeByDigits(digits: string) {
   return [...COUNTRY_PHONE_CODES]
     .sort((a, b) => b.code.length - a.code.length)
-    .find((item) => digits.startsWith(codeDigits(item.code)));
+    .find((item) => (
+      digits.startsWith(codeDigits(item.code))
+      && digits.length - codeDigits(item.code).length >= item.localDigits
+    ));
 }
 
 function stripRepeatedCode(digits: string, code: string) {

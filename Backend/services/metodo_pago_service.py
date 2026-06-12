@@ -2,6 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
+from Backend.config import STORAGE_DIR
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
 from Backend.config import UPLOAD_MAX_BYTES
 from sqlalchemy import or_
@@ -280,14 +281,13 @@ def guardar_imagen_metodo_pago(
         )
         + extension
     )
-    carpeta = Path(
-        "storage"
-    ) / "metodos-pago"
+    ruta_relativa = Path("metodos-pago") / nombre_seguro
+    carpeta = STORAGE_DIR / "metodos-pago"
     carpeta.mkdir(
         parents=True,
         exist_ok=True
     )
-    destino = carpeta / nombre_seguro
+    destino = STORAGE_DIR / ruta_relativa
 
     total_bytes = 0
     try:
@@ -318,7 +318,7 @@ def guardar_imagen_metodo_pago(
         raise
 
     metodo.imagen_url = "/" + str(
-        destino
+        Path("storage") / ruta_relativa
     ).replace("\\", "/")
     db.commit()
     db.refresh(

@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import { ImagePlus, MapPin, MessageCircle } from 'lucide-react';
+import { Camera, ImagePlus, MapPin, MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
@@ -282,19 +282,24 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                 )}
               />
             </label>
-            <label>
-              Foto del documento
-              <span className="document-upload-field">
+            <div className="document-input-group">
+              <span className="document-field-label">Foto del documento</span>
+              <label className="document-upload-field">
                 <span className={documentoPreview ? 'document-preview has-image' : 'document-preview'}>
                   {documentoPreview ? <img src={documentoPreview} alt="" /> : <ImagePlus size={24} />}
                 </span>
                 <span>
-                  <strong>{documentoFile?.name ?? (form.documento_identidad_url || 'Seleccionar imagen')}</strong>
-                  <small>Imagen del documento del destinatario</small>
+                  <strong>{documentoFile?.name ?? (form.documento_identidad_url || 'Elegir de la galeria')}</strong>
+                  <small>Seleccionar una imagen guardada</small>
                 </span>
-                <input type="file" accept="image/*" onChange={handleDocumentoChange} required={!form.documento_identidad_url} />
-              </span>
-            </label>
+                <input type="file" accept="image/*" onChange={handleDocumentoChange} />
+              </label>
+              <label className="document-camera-button">
+                <Camera size={18} />
+                Tomar foto
+                <input type="file" accept="image/*" capture="environment" onChange={handleDocumentoChange} />
+              </label>
+            </div>
             <label className="wide">
               Punto de recogida
               <FloatingSelect
