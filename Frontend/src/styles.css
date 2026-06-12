@@ -16867,3 +16867,31 @@ body {
   border-color: rgba(52, 211, 153, 0.58);
   background: linear-gradient(145deg, rgba(5, 150, 105, 0.34), rgba(15, 23, 42, 0.96));
 }
+
+/* Login fields: layered slate surfaces instead of disconnected black blocks. */
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  .login-panel .login-field {
+  border-color: color-mix(in srgb, var(--dark-ui-border) 76%, #64748b);
+  background: color-mix(in srgb, var(--dark-ui-surface-raised) 78%, #334155);
+  color: var(--dark-ui-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  :is(.login-panel .phone-input-row, .login-panel .password-field) {
+  border-color: color-mix(in srgb, var(--dark-ui-border) 72%, #64748b);
+  background: color-mix(in srgb, var(--dark-ui-surface-soft) 82%, #334155);
+  color: var(--dark-ui-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  :is(.login-panel .phone-input-row > input, .login-panel .password-field input, .login-panel .phone-input-row .floating-select-button) {
+  background: transparent;
+  color: var(--dark-ui-text);
+}
+
+:root:is([data-theme="dark"], [data-theme="dark-deep"], [data-theme="dark-sidebar"], [data-theme="dark-vscode"])
+  .login-panel .phone-input-row > input {
+  border-left-color: color-mix(in srgb, var(--dark-ui-border) 72%, #64748b);
+}
