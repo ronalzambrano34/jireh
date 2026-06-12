@@ -1,1 +1,7 @@
 //todo cambiar el login para que Inicio sea la pantalla principal. Para realizar una operacion se deberia pedir login en un modal con el formulario actual.
+
+
+//todo método de pago en efectivo. cuando se va a crear uno nuevo, me pide datos como si fuera en vez de pagar dinero físico, como si fuera tarjeta, incluso me obliga a poner cuenta o clave.
+
+
+//todo operación en efectivo me está dando un error con la imagen "reas only filé systen 'storage'". también recuerda comprimir todas las imágenes por el tema de red de baja conectividad a Internet 
