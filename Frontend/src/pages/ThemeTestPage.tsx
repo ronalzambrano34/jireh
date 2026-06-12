@@ -23,8 +23,8 @@ const palette = [
   { name: 'Fondo', token: 'Canvas', value: '#08111F', className: 'canvas' },
   { name: 'Superficie', token: 'Surface', value: '#0F1B2D', className: 'surface' },
   { name: 'Elevada', token: 'Raised', value: '#16243A', className: 'raised' },
-  { name: 'Azul Jireh', token: 'Primary', value: '#2F6FDB', className: 'primary' },
-  { name: 'Verde', token: 'Success', value: '#2FA66F', className: 'success' },
+  { name: 'Verde Jireh', token: 'Primary', value: '#2FA66F', className: 'primary' },
+  { name: 'Azul', token: 'Info', value: '#2F6FDB', className: 'info' },
   { name: 'Dorado', token: 'Warning', value: '#E3B341', className: 'warning' },
   { name: 'Rojo', token: 'Danger', value: '#DC5A63', className: 'danger' },
   { name: 'Texto', token: 'Text', value: '#F4F7FB', className: 'text' },
@@ -57,7 +57,7 @@ export function ThemeTestPage() {
       <section className="theme-lab-section">
         <div className="theme-lab-heading">
           <div><span>01</span><h2>Paleta</h2></div>
-          <p>Azul para accion, verde para exito, dorado para atencion y rojo para error.</p>
+          <p>Verde para accion y confirmacion, azul para informacion, dorado para atencion y rojo para error.</p>
         </div>
         <div className="theme-palette-grid">
           {palette.map((color) => (
