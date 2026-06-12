@@ -1266,7 +1266,7 @@ Actualizacion de interfaz aplicada:
 - El tema predeterminado del sistema es Oscuro Jireh. Su paleta base usa fondo azul profundo #08111F, superficies #0F1B2D y #16243A, borde #263A55, texto #F4F7FB y texto secundario #A9B7C9.
 - Los colores de accion y estado tienen funciones fijas: Verde Jireh #2FA66F para acciones, seleccion, foco y confirmacion; azul #2F6FDB para informacion; dorado #E3B341 para advertencia y rojo #DC5A63 para error o accion destructiva.
 - No deben agregarse colores decorativos por componente. El contraste visual se construye con niveles de superficie, borde, tipografia y espaciado. Tema UI es la referencia de componentes antes de extender cambios al resto del sistema.
-- El tema predeterminado del sistema vuelve a ser Claro. Si el operador activa Oscuro, puede elegir entre Oscuro menu, Oscuro profundo y Oscuro tecnico en tres opciones compactas; la preferencia se guarda solo en el dispositivo.
+- El tema predeterminado del sistema es Oscuro Jireh. El operador puede alternar entre Oscuro Jireh y Claro desde Apariencia; la preferencia se guarda solo en el dispositivo.
 - Todos los campos editables de telefono usan selector de codigo de pais y guardan el numero completo con prefijo internacional.
 - Los telefonos se normalizan en frontend y backend: se limpian espacios/separadores, se evita duplicar el codigo internacional, Brasil agrega el 9 movil despues del DDD cuando llega el formato viejo de WhatsApp y Uruguay elimina el 0 local despues de +598.
 - Los numeros de tarjeta se normalizan al escribir, pegar y guardar: visualmente se muestran agrupados como xxxx-xxxx-xxxx-xxxx, pero frontend y backend guardan solo digitos.
@@ -1283,6 +1283,36 @@ Actualizacion de interfaz aplicada:
 - Para finalizar un pedido se exige un comprobante de exito de la operacion. Como excepcion, el operador puede activar Finalizar sin comprobante cuando la conexion o el proveedor impiden obtenerlo; debe escribir una explicacion, que queda registrada en observaciones e historial y se refleja en el aviso al cliente.
 - Los enlaces de invitacion de grupos de WhatsApp abren el selector de compartir con el mensaje preparado, porque WhatsApp no permite precargar texto directamente en un link chat.whatsapp.com. Al crear el pedido se muestran acciones separadas para enviar instrucciones al cliente y enviar la orden al grupo.
 - El switch Finalizar sin comprobante completa automaticamente una explicacion desde el template configurable template_finalizacion_sin_comprobante. El valor predeterminado informa que la operacion fue exitosa pero, por factores ajenos a la empresa, no es posible enviar el comprobante; el operador puede editarlo antes de confirmar.
+
+Fase 2 de interfaz:
+- La primera migracion de pantallas aplica el sistema visual aprobado a Login, estructura global, menu lateral, header, menu de usuario, navegacion movil e Inicio.
+- Login elimina contenedores negros anidados: las credenciales usan una sola superficie elevada, borde visible y foco Verde Jireh.
+- La navegacion usa superficies neutrales; Verde Jireh identifica seleccion y acciones, mientras rojo queda reservado para Salir.
+- Los botones Verde Jireh usan texto azul profundo para mantener contraste accesible; no deben forzarse a texto blanco.
+- Inicio unifica carrusel, calculadora, selector de moneda, ofertas y rastreador con la misma escala de superficies y bordes.
+- Los servicios ya no usan fondos decorativos completos. Transferencia conserva azul informativo, las acciones usan Verde Jireh y divisa puede usar dorado solo como advertencia o distincion funcional.
+- Saldo deja de usar morado como identidad visual; sus importes y estados activos usan la paleta Verde Jireh.
+- La segunda migracion aplica el sistema visual a Pedidos y Nuevo pedido.
+- Pedidos usa superficies neutrales para filtros, Lista, Kanban y tarjetas. El estado se comunica con una etiqueta y una linea lateral semantica, sin colorear toda la tarjeta.
+- Mis pedidos, Todas, periodo, servicio, cambio de vista y actualizar comparten altura, padding, borde y radio. Los selectores mantienen el icono a la izquierda y el arrow fijo a la derecha.
+- Nuevo pedido usa una barra de servicios unificada y tres etapas visuales consistentes: cliente, destino y pago.
+- Todos los formularios usan los mismos campos, focos, menus flotantes, contactos recientes, adjuntos y preview de calculo.
+- En transferencia, efectivo, divisa y otros, Monto pago aparece antes que Metodo de pago. En saldo, Paquete de saldo aparece antes que Metodo de pago.
+- La tercera migracion aplica el sistema visual a Detalle del pedido y Reportes.
+- El detalle funciona como una consola operativa: control del pedido, liquidacion, datos de operacion, transferencia a operador, mensajes, evidencias e historial usan una jerarquia comun de superficies.
+- Los colores de estado quedan limitados al punto, etiqueta, aviso o accion correspondiente. Los datos y archivos no cambian el fondo completo segun el estado.
+- En la liquidacion, Envia y Entrega se leen como valores principales; la tasa se presenta como informacion y Entrega usa Verde Jireh como resultado positivo.
+- Las acciones fijas del detalle separan Cancelar como accion destructiva y el avance de estado como accion principal.
+- Reportes usa una superficie unica de filtros con icono a la izquierda y arrow fijo a la derecha en todos los selectores.
+- Las metricas, tablas, saldos, extracciones y graficos usan superficies neutrales. Verde Jireh se reserva para resultados positivos y barras de datos; dorado identifica la extraccion como movimiento de atencion.
+- Las tablas de Reportes permiten desplazamiento horizontal en pantallas estrechas sin comprimir ni ocultar columnas.
+- La cuarta migracion aplica el sistema visual a Administracion, Configuracion inicial y Perfil.
+- Administracion usa una cabecera fija, menu por categorias, selector Activos/Inactivos y tarjetas de catalogo con las mismas superficies neutrales del resto del sistema.
+- Los formularios y modales administrativos comparten campos, menus flotantes, switches, permisos, carga de imagenes y botones del sistema base.
+- Los registros activos usan Verde Jireh y los inactivos rojo solo en etiquetas y switches; no se colorea el fondo completo de los catalogos.
+- Configuracion inicial mantiene cuatro pasos visibles, con completados y seleccion actual en Verde Jireh. En movil los pasos se desplazan horizontalmente para conservar sus nombres.
+- Perfil unifica cabecera, edicion, permisos, apariencia, seguridad y soporte. Los campos desplegados usan una superficie secundaria dentro de la seccion.
+- Perfil muestra un solo bloque de contactos de soporte para Brasil y Uruguay; no deben repetirse los mismos accesos.
 
 
 Pendiente:

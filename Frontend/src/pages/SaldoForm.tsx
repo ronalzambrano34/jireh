@@ -240,18 +240,6 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           </header>
           <div className="form-grid payment-grid">
             <label>
-              Metodo de pago
-              <MetodoPagoSelect
-                value={form.tipo_pago_id}
-                metodos={metodosFiltrados}
-                onChange={(value) => update('tipo_pago_id', value)}
-                cuentaValue={form.cuenta_pago_id}
-                onCuentaChange={(value) => update('cuenta_pago_id', value)}
-                disabled={cargandoCatalogos || metodosFiltrados.length === 0}
-                emptyLabel={`Sin metodos para ${form.moneda_pago}`}
-              />
-            </label>
-            <label>
               Paquete de saldo
               <FloatingSelect
                 value={form.paquete_saldo_id}
@@ -261,6 +249,18 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 ariaLabel="Paquete de saldo"
                 options={paquetesFiltrados.length === 0 ? [{ value: '', label: `Sin paquetes para ${form.moneda_pago}`, disabled: true, icon: <Smartphone size={17} /> }] : paquetesFiltrados.map((paquete) => ({ value: String(paquete.id), label: paquete.nombre, description: `${paquete.monto_pago} ${paquete.moneda_pago} · ${paquete.saldo_cup} CUP`, icon: <Smartphone size={17} /> }))}
                 align="left"
+              />
+            </label>
+            <label>
+              Metodo de pago
+              <MetodoPagoSelect
+                value={form.tipo_pago_id}
+                metodos={metodosFiltrados}
+                onChange={(value) => update('tipo_pago_id', value)}
+                cuentaValue={form.cuenta_pago_id}
+                onCuentaChange={(value) => update('cuenta_pago_id', value)}
+                disabled={cargandoCatalogos || metodosFiltrados.length === 0}
+                emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
             </label>
             <label>

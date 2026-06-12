@@ -2,3 +2,5 @@
 
 
 /todo en Pedidos los componentes Mis pedidos, todos y el boton de cambiar tisual lista, no se adaptan al estilo visual 
+
+/todo cuando se instala la aplicacion en el navegador Chrome del telefono el icono del programa es redondo pero el logo aparece cuadrado, no se esta adaptando el logo al circulo del icono 
