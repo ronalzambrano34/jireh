@@ -9,6 +9,7 @@ export function PageLoader({ label = 'Cargando', inline = false }: PageLoaderPro
   return (
     <div className={inline ? 'logo-bounce-loader inline-loader' : 'logo-bounce-loader'} aria-label={label} role="status">
       <img src={logoJireh} alt="" />
+      <span>{label}</span>
     </div>
   );
 }

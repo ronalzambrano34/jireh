@@ -14,14 +14,11 @@ const LOGIN_PHONE_KEY = 'jireh.login.telefono';
 
 const LOGIN_PROGRESS_MESSAGES = [
   'Comprobando la conexion...',
-  'Validando telefono y contraseña...',
-  'Enviando credenciales de forma segura...',
+  'Validando las credenciales...',
+  'Protegiendo la comunicacion...',
   'Esperando respuesta del servidor...',
-  'Despertando al servidor...',
-  'Comprobando el acceso del operador...',
-  'Pensando en las musarañas...',
+  'Preparando el espacio de trabajo...',
   'Verificando permisos de la cuenta...',
-  'Acomodando los cables imaginarios...',
   'Confirmando la sesion...',
 ];
 

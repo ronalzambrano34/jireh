@@ -1313,6 +1313,18 @@ Fase 2 de interfaz:
 - Configuracion inicial mantiene cuatro pasos visibles, con completados y seleccion actual en Verde Jireh. En movil los pasos se desplazan horizontalmente para conservar sus nombres.
 - Perfil unifica cabecera, edicion, permisos, apariencia, seguridad y soporte. Los campos desplegados usan una superficie secundaria dentro de la seccion.
 - Perfil muestra un solo bloque de contactos de soporte para Brasil y Uruguay; no deben repetirse los mismos accesos.
+- La quinta migracion cierra la fase 2 sobre los componentes transversales del sistema.
+- Modales, confirmaciones de pago, avisos, errores, estados vacios, skeletons, toasts y estados sin conexion usan la misma escala de superficies, bordes y colores semanticos.
+- Los cargadores dentro de una seccion permanecen contenidos en ella; solo los procesos que bloquean toda la interfaz, como el acceso, pueden usar un overlay de pantalla completa.
+- Los menus flotantes, el menu movil y el aviso de instalacion PWA usan las superficies elevadas y sombras del sistema base. Los selectores comunes no oscurecen el resto de la pantalla.
+- En movil, los modales aprovechan el ancho disponible y pasan a pantalla completa en telefonos estrechos, respetando las areas seguras del dispositivo.
+- El sistema conserva un foco de teclado visible y reduce animaciones cuando el dispositivo solicita movimiento reducido.
+- Fase 2 completada: Tema UI y los tokens Oscuro Jireh son la referencia visual para todas las pantallas y componentes existentes.
+
+Fase 3 de interfaz:
+- Consolidar las reglas visuales migradas, eliminar estilos oscuros heredados que hayan quedado reemplazados y separar los estilos por familias de componentes para reducir conflictos.
+- Ejecutar una revision visual completa en escritorio y movil sobre los flujos principales: acceso, inicio, pedidos, creacion, detalle, reportes, administracion, configuracion y perfil.
+- Verificar contraste, navegacion por teclado, tamanos tactiles, estados de carga/error/vacio y comportamiento responsive antes de declarar estable el nuevo sistema visual.
 
 
 Pendiente:
