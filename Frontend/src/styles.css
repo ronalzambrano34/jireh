@@ -20749,3 +20749,423 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Phase 2 close: global feedback, overlays and PWA */
+
+:root[data-theme="dark-sidebar"] .modal-backdrop {
+  padding: 20px;
+  background: rgba(2, 8, 18, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+:root[data-theme="dark-sidebar"] .modal-panel {
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: 0 28px 90px rgba(1, 6, 15, 0.62);
+}
+
+:root[data-theme="dark-sidebar"] .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 15px 16px;
+  background: color-mix(in srgb, var(--ui-surface) 96%, transparent);
+  border-bottom: 1px solid var(--ui-border);
+  backdrop-filter: blur(14px);
+}
+
+:root[data-theme="dark-sidebar"] .modal-header h2 {
+  color: var(--ui-text);
+  font-size: 1.12rem;
+  letter-spacing: -0.015em;
+}
+
+:root[data-theme="dark-sidebar"] .modal-header p {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .modal-header .icon-button {
+  width: 40px;
+  height: 40px;
+}
+
+:root[data-theme="dark-sidebar"] .modal-body {
+  padding: 16px;
+  scrollbar-color: var(--ui-border-strong) transparent;
+}
+
+:root[data-theme="dark-sidebar"] .modal-form {
+  gap: 12px;
+}
+
+:root[data-theme="dark-sidebar"] .modal-form > button[type="submit"],
+:root[data-theme="dark-sidebar"] .modal-form > .primary-button {
+  min-height: 46px;
+}
+
+:root[data-theme="dark-sidebar"] .payment-instructions-summary,
+:root[data-theme="dark-sidebar"] .payment-data-grid > div,
+:root[data-theme="dark-sidebar"] .payment-qr-placeholder,
+:root[data-theme="dark-sidebar"] .payment-already-paid {
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .payment-instructions-summary strong,
+:root[data-theme="dark-sidebar"] .payment-data-grid strong,
+:root[data-theme="dark-sidebar"] .payment-already-paid strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .payment-instructions-summary small,
+:root[data-theme="dark-sidebar"] .payment-data-grid span,
+:root[data-theme="dark-sidebar"] .payment-qr-placeholder small,
+:root[data-theme="dark-sidebar"] .payment-already-paid small {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .payment-already-paid {
+  background: rgba(47, 166, 111, 0.09);
+  border-color: rgba(47, 166, 111, 0.3);
+}
+
+:root[data-theme="dark-sidebar"] .payment-qr-placeholder {
+  border-style: dashed;
+}
+
+:root[data-theme="dark-sidebar"] .notice {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 10px 12px;
+  color: #b9d0f7;
+  background: color-mix(in srgb, var(--ui-info) 10%, var(--ui-surface));
+  border: 1px solid color-mix(in srgb, var(--ui-info) 32%, var(--ui-border));
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+:root[data-theme="dark-sidebar"] .notice.success {
+  color: #9de0bc;
+  background: color-mix(in srgb, var(--ui-success) 11%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-success) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .notice.warning {
+  color: #f4d889;
+  background: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-warning) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .notice.error {
+  color: #f5b0b5;
+  background: color-mix(in srgb, var(--ui-danger) 10%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-danger) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .notice.redirected {
+  color: #a9c5ff;
+  background: color-mix(in srgb, var(--ui-info) 10%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-info) 34%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .notice.redirected.own {
+  color: #9de0bc;
+  background: color-mix(in srgb, var(--ui-primary) 11%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-primary) 36%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .dismissible-notice-content {
+  line-height: 1.4;
+}
+
+:root[data-theme="dark-sidebar"] .dismissible-notice button,
+:root[data-theme="dark-sidebar"] .app-toast button,
+:root[data-theme="dark-sidebar"] .copy-toast button {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+:root[data-theme="dark-sidebar"] .dismissible-notice button:hover,
+:root[data-theme="dark-sidebar"] .app-toast button:hover,
+:root[data-theme="dark-sidebar"] .copy-toast button:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+:root[data-theme="dark-sidebar"] .offline-banner,
+:root[data-theme="dark-sidebar"] .login-network-status.offline {
+  min-height: 42px;
+  color: #f4d889;
+  background: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-surface));
+  border: 1px solid color-mix(in srgb, var(--ui-warning) 38%, var(--ui-border));
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .app-toast-stack {
+  top: calc(88px + env(safe-area-inset-top));
+  gap: 8px;
+}
+
+:root[data-theme="dark-sidebar"] .app-toast,
+:root[data-theme="dark-sidebar"] .copy-toast {
+  color: #9de0bc;
+  background: color-mix(in srgb, var(--ui-primary) 13%, var(--ui-surface));
+  border: 1px solid color-mix(in srgb, var(--ui-primary) 38%, var(--ui-border));
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-lg);
+  backdrop-filter: blur(16px);
+}
+
+:root[data-theme="dark-sidebar"] .app-toast.error {
+  color: #f5b0b5;
+  background: color-mix(in srgb, var(--ui-danger) 13%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-danger) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] :is(
+  .empty-row,
+  .admin-empty-row,
+  .order-empty-line,
+  .rate-empty-state,
+  .recent-contacts-empty,
+  .detail-panel.empty
+) {
+  min-height: 54px;
+  color: var(--ui-text-muted);
+  background: var(--ui-canvas-soft);
+  border: 1px dashed var(--ui-border-strong);
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .logo-bounce-loader {
+  gap: 18px;
+  color: var(--ui-text-muted);
+  background: rgba(8, 17, 31, 0.76);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-theme="dark-sidebar"] .logo-bounce-loader img {
+  padding: 2px;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 18px 42px rgba(1, 6, 15, 0.48);
+}
+
+:root[data-theme="dark-sidebar"] .logo-bounce-loader > span {
+  max-width: min(86vw, 360px);
+  color: var(--ui-text-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+:root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: 100%;
+  min-height: 112px;
+  padding: 16px;
+  background: var(--ui-canvas-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  backdrop-filter: none;
+}
+
+:root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader img {
+  width: 52px;
+  height: 52px;
+}
+
+:root[data-theme="dark-sidebar"] .login-progress {
+  display: grid;
+  place-items: center;
+  background: rgba(8, 17, 31, 0.86);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-theme="dark-sidebar"] .login-progress .logo-bounce-loader.inline-loader {
+  position: relative;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+:root[data-theme="dark-sidebar"] .login-progress .logo-bounce-loader > span {
+  display: none;
+}
+
+:root[data-theme="dark-sidebar"] .login-progress .login-progress-text {
+  color: var(--ui-text);
+  text-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] :is(
+  .report-summary-loading strong,
+  .report-summary-loading span,
+  .report-table-skeleton h2,
+  .report-table-skeleton .data-row span,
+  .rate-card-skeleton,
+  .rates-carousel-loading .skeleton-card
+) {
+  background: linear-gradient(
+    90deg,
+    var(--ui-surface-raised),
+    color-mix(in srgb, var(--ui-primary) 16%, var(--ui-surface-hover)),
+    var(--ui-surface-raised)
+  );
+  background-size: 220% 100%;
+}
+
+:root[data-theme="dark-sidebar"] .floating-create-backdrop,
+:root[data-theme="dark-sidebar"] .mobile-menu-backdrop {
+  background: rgba(2, 8, 18, 0.48);
+  backdrop-filter: blur(2px);
+}
+
+:root[data-theme="dark-sidebar"] .floating-select-portal-backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+:root[data-theme="dark-sidebar"] .floating-create-menu {
+  width: min(248px, calc(100vw - 28px));
+  gap: 5px;
+  padding: 7px;
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-lg);
+}
+
+:root[data-theme="dark-sidebar"] .floating-create-menu button {
+  min-height: 44px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  padding: 8px 10px;
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
+}
+
+:root[data-theme="dark-sidebar"] .floating-create-menu button:hover,
+:root[data-theme="dark-sidebar"] .floating-create-menu button:focus-visible {
+  color: var(--ui-text);
+  background: var(--ui-surface-hover);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .floating-create-menu svg {
+  color: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .floating-create-wrap.open .floating-create {
+  color: var(--ui-on-primary);
+  background: var(--ui-primary-pressed);
+  border-color: var(--ui-primary-pressed);
+  box-shadow: 0 14px 32px rgba(47, 166, 111, 0.28);
+}
+
+:root[data-theme="dark-sidebar"] .pwa-install-prompt {
+  color: var(--ui-text);
+  background: color-mix(in srgb, var(--ui-surface) 96%, transparent);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-lg);
+  backdrop-filter: blur(16px);
+}
+
+:root[data-theme="dark-sidebar"] .pwa-install-prompt strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .pwa-install-prompt span {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .pwa-install-prompt .primary-button {
+  color: var(--ui-on-primary);
+}
+
+:root[data-theme="dark-sidebar"] :is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--ui-primary-hover);
+  outline-offset: 2px;
+}
+
+@media (max-width: 920px) {
+  :root[data-theme="dark-sidebar"] .modal-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  :root[data-theme="dark-sidebar"] .modal-panel,
+  :root[data-theme="dark-sidebar"] .modal-panel.wide-modal {
+    width: 100%;
+    height: auto;
+    max-height: calc(100dvh - 20px);
+    border-radius: var(--ui-radius-lg);
+  }
+}
+
+@media (max-width: 560px) {
+  :root[data-theme="dark-sidebar"] .modal-backdrop {
+    padding: 0;
+  }
+
+  :root[data-theme="dark-sidebar"] .modal-panel,
+  :root[data-theme="dark-sidebar"] .modal-panel.wide-modal,
+  :root[data-theme="dark-sidebar"] .modal-panel.payment-confirmed-modal {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-width: 0;
+    border-radius: 0;
+  }
+
+  :root[data-theme="dark-sidebar"] .modal-header {
+    padding-top: calc(13px + env(safe-area-inset-top));
+  }
+
+  :root[data-theme="dark-sidebar"] .modal-body {
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+
+  :root[data-theme="dark-sidebar"] .app-toast-stack {
+    top: calc(70px + env(safe-area-inset-top));
+    right: 10px;
+    width: calc(100vw - 20px);
+  }
+
+  :root[data-theme="dark-sidebar"] .pwa-install-prompt {
+    right: 10px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    left: 10px;
+    border-radius: var(--ui-radius-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-bounce-loader img,
+  .button-spinner,
+  .report-summary-loading strong,
+  .report-summary-loading span,
+  .report-table-skeleton h2,
+  .report-table-skeleton .data-row span,
+  .rate-card-skeleton,
+  .rates-carousel-loading .skeleton-card {
+    animation: none !important;
+  }
+}
