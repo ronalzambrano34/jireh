@@ -5,8 +5,8 @@ from Backend.models.punto_recogida import PuntoRecogida
 
 PROVINCIAS_INICIALES = (
     ("Santiago de Cuba", True),
-    ("La Habana", False),
-    ("Las Tunas", False),
+    ("La Habana", True),
+    ("Las Tunas", True),
 )
 
 

@@ -437,6 +437,43 @@ input, select, textarea {
   cursor: pointer;
 }
 
+.document-input-group {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.document-field-label {
+  font-weight: 800;
+}
+
+.form-grid .document-camera-button {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #b8c6d6;
+  background: #ffffff;
+  color: #176b5d;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.document-camera-button:hover,
+.document-camera-button:focus-within {
+  border-color: #176b5d;
+  background: #f1faf6;
+}
+
+.document-camera-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .document-upload-field:hover,
 .document-upload-field:focus-within {
   border-color: #176b5d;

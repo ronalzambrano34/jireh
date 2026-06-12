@@ -5,6 +5,7 @@ from fastapi import UploadFile
 
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
 from Backend.config import UPLOAD_MAX_BYTES
+from Backend.config import STORAGE_DIR
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
@@ -211,14 +212,13 @@ def guardar_upload_pedido(
         +
         extension
     )
-    carpeta = Path(
-        "storage"
-    ) / "pedidos" / codigo_operacion
+    ruta_relativa = Path("pedidos") / codigo_operacion / nombre_seguro
+    carpeta = STORAGE_DIR / "pedidos" / codigo_operacion
     carpeta.mkdir(
         parents=True,
         exist_ok=True
     )
-    destino = carpeta / nombre_seguro
+    destino = STORAGE_DIR / ruta_relativa
 
     total_bytes = 0
     try:
@@ -250,9 +250,7 @@ def guardar_upload_pedido(
 
     data = ArchivoPedidoCreate(
         tipo=tipo,
-        ruta_archivo=str(
-            destino
-        ),
+        ruta_archivo="/" + str(Path("storage") / ruta_relativa).replace("\\", "/"),
         nombre_archivo=archivo.filename,
         mime_type=content_type,
         notas=notas,

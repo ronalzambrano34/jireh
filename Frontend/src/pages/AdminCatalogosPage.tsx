@@ -53,6 +53,10 @@ const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 const servicios = ['transferencia', 'efectivo', 'saldo', 'mlc', 'usd', 'clasica', 'divisa'];
 const rolesOperador = ['operador', 'supervisor', 'admin'];
 
+function esMetodoEfectivo(nombre: string) {
+  return nombre.trim().toLowerCase() === 'efectivo';
+}
+
 const permisosOperador = [
   { value: 'pedidos:crear', label: 'Crear pedidos', group: 'Pedidos' },
   { value: 'pedidos:gestionar', label: 'Gestionar pedidos', group: 'Pedidos' },
@@ -1550,7 +1554,7 @@ export function AdminCatalogosPage() {
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL o /storage/metodos-pago/archivo.webp" />
           </form>
 
-          <section className="payment-accounts-panel">
+          {!esMetodoEfectivo(metodoForm.nombre) && <section className="payment-accounts-panel">
             <header className="payment-accounts-header">
               <div>
                 <strong>Cuentas de pago</strong>
@@ -1584,7 +1588,7 @@ export function AdminCatalogosPage() {
               </label>
               <button className="primary-button" disabled={cuentaMetodoSaving}><SavingLabel saving={cuentaMetodoSaving} idle="Agregar cuenta" busy="Agregando..." /></button>
             </form>
-          </section>
+          </section>}
         </Modal>
       )}
 

@@ -10,6 +10,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from Backend.database import get_db
+from Backend.config import STORAGE_DIR
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
 from Backend.config import UPLOAD_MAX_BYTES
 
@@ -158,14 +159,13 @@ def subir_foto_me_route(
     extension = Path(
         archivo.filename
     ).suffix.lower() or ".img"
-    carpeta = Path(
-        "storage"
-    ) / "operadores"
+    ruta_relativa = Path("operadores") / f"{operador.id}-{uuid4()}{extension}"
+    carpeta = STORAGE_DIR / "operadores"
     carpeta.mkdir(
         parents=True,
         exist_ok=True
     )
-    destino = carpeta / f"{operador.id}-{uuid4()}{extension}"
+    destino = STORAGE_DIR / ruta_relativa
 
     total_bytes = 0
     try:
@@ -195,7 +195,7 @@ def subir_foto_me_route(
         raise
 
     operador.foto_url = "/" + str(
-        destino
+        Path("storage") / ruta_relativa
     ).replace("\\", "/")
     db.commit()
     db.refresh(

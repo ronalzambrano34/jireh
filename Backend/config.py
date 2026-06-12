@@ -8,6 +8,13 @@ load_dotenv(BASE_DIR / ".env")
 
 IS_VERCEL = bool(os.getenv("VERCEL"))
 
+STORAGE_DIR = Path(
+    os.getenv(
+        "STORAGE_DIR",
+        "/tmp/storage" if IS_VERCEL else "storage"
+    )
+)
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL"
 )

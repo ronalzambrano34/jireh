@@ -9,6 +9,7 @@ from Backend.config import FRONTEND_ORIGINS
 from Backend.config import IS_VERCEL
 from Backend.config import RUN_DB_BOOTSTRAP
 from Backend.config import RUN_DB_MAINTENANCE
+from Backend.config import STORAGE_DIR
 
 from Backend.database import Base
 from Backend.database import engine
@@ -69,7 +70,8 @@ from Backend.routes.template import (router as template_router)
 
 app = FastAPI()
 
-app.mount("/storage", StaticFiles(directory="storage", check_dir=False), name="storage")
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/storage", StaticFiles(directory=STORAGE_DIR), name="storage")
 
 app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 app.add_middleware(
