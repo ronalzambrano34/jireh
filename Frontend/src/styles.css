@@ -17714,6 +17714,8 @@ body {
 
 :root[data-theme="dark-sidebar"] .login-panel {
   width: min(100%, 440px);
+  max-width: 440px;
+  min-width: 0;
   padding: clamp(24px, 4vw, 34px);
   gap: 18px;
   color: var(--ui-text);
@@ -17746,19 +17748,23 @@ body {
   border-radius: var(--ui-radius-md);
 }
 
-:root[data-theme="dark-sidebar"] .login-title {
+:root[data-theme="dark-sidebar"] .login-title h1 {
   margin: 0 0 2px;
   color: var(--ui-text);
   font-size: clamp(1.75rem, 5vw, 2.12rem);
   line-height: 1.08;
   letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
 }
 
-:root[data-theme="dark-sidebar"] .login-subtitle {
+:root[data-theme="dark-sidebar"] .login-title p {
   color: var(--ui-text-muted);
 }
 
 :root[data-theme="dark-sidebar"] .login-field {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0;
   gap: 7px;
   background: transparent;
@@ -17777,11 +17783,20 @@ body {
 :root[data-theme="dark-sidebar"] .login-field .phone-input,
 :root[data-theme="dark-sidebar"] .login-field .password-field,
 :root[data-theme="dark-sidebar"] .login-field input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 46px;
   color: var(--ui-text);
   background: var(--ui-surface-raised);
   border-color: var(--ui-border-strong);
   border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .login-field .phone-input-row > *,
+:root[data-theme="dark-sidebar"] .login-field .password-field > input {
+  min-width: 0;
+  max-width: 100%;
 }
 
 :root[data-theme="dark-sidebar"] .login-field .phone-input:focus-within,
