@@ -1,132 +1,169 @@
 import { useState } from 'react';
-import { Calculator, CheckCircle2, Info, Palette, TriangleAlert } from 'lucide-react';
+import {
+  AlertTriangle,
+  Banknote,
+  CalendarRange,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Info,
+  Palette,
+  Search,
+  ShieldCheck,
+  UserRound,
+  WalletCards,
+} from 'lucide-react';
+import { CardNumberInput } from '../components/CardNumberInput';
+import { CurrencySelect } from '../components/CurrencySelect';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PasswordField } from '../components/PasswordField';
+import { PhoneInput } from '../components/PhoneInput';
 
-const selectOptions = [
-  { value: 'transferencia', label: 'Transferencia', description: 'Deposito en tarjeta' },
-  { value: 'efectivo', label: 'Efectivo', description: 'Entrega a domicilio' },
-  { value: 'saldo', label: 'Saldo movil', description: 'Recarga Cubacel' },
+const palette = [
+  { name: 'Fondo', token: 'Canvas', value: '#08111F', className: 'canvas' },
+  { name: 'Superficie', token: 'Surface', value: '#0F1B2D', className: 'surface' },
+  { name: 'Elevada', token: 'Raised', value: '#16243A', className: 'raised' },
+  { name: 'Azul Jireh', token: 'Primary', value: '#2F6FDB', className: 'primary' },
+  { name: 'Verde', token: 'Success', value: '#2FA66F', className: 'success' },
+  { name: 'Dorado', token: 'Warning', value: '#E3B341', className: 'warning' },
+  { name: 'Rojo', token: 'Danger', value: '#DC5A63', className: 'danger' },
+  { name: 'Texto', token: 'Text', value: '#F4F7FB', className: 'text' },
 ];
 
-function ComponentSet({ calculator = false }: { calculator?: boolean }) {
-  const [password, setPassword] = useState('jireh-demo');
-  const [service, setService] = useState('transferencia');
-  const prefix = calculator ? 'calculator-demo' : 'base-demo';
-
-  return (
-    <div className={calculator ? 'theme-component-set calculator-set' : 'theme-component-set base-set'}>
-      <article className="theme-test-card">
-        <header>
-          <span className="theme-test-card-icon">{calculator ? <Calculator size={19} /> : <Palette size={19} />}</span>
-          <div>
-            <h3>Tarjeta de contenido</h3>
-            <p>Superficie, borde, sombra y jerarquia de texto.</p>
-          </div>
-        </header>
-        <div className="theme-test-metric">
-          <span>Monto estimado</span>
-          <strong>48.250 <small>CUP</small></strong>
-        </div>
-      </article>
-
-      <article className="theme-test-card">
-        <h3>Campos de formulario</h3>
-        <label htmlFor={`${prefix}-text`}>
-          Nombre del cliente
-          <input id={`${prefix}-text`} defaultValue="Maria Rodriguez" />
-        </label>
-        <label htmlFor={`${prefix}-amount`}>
-          Monto
-          <div className={calculator ? 'theme-calculator-input' : undefined}>
-            <input id={`${prefix}-amount`} type="number" defaultValue="200" />
-            {calculator && <strong>BRL</strong>}
-          </div>
-        </label>
-        <label htmlFor={`${prefix}-password`}>
-          Contraseña
-          <PasswordField id={`${prefix}-password`} value={password} onChange={(event) => setPassword(event.target.value)} />
-        </label>
-        <label htmlFor={`${prefix}-select`}>
-          Selector nativo
-          <select id={`${prefix}-select`} defaultValue="transferencia">
-            <option value="transferencia">Transferencia</option>
-            <option value="efectivo">Efectivo</option>
-          </select>
-        </label>
-        <label>
-          Selector flotante
-          <FloatingSelect value={service} options={selectOptions} onChange={setService} align="left" />
-        </label>
-        <label htmlFor={`${prefix}-notes`}>
-          Observaciones
-          <textarea id={`${prefix}-notes`} rows={3} placeholder="Escribe una nota para la operacion" />
-        </label>
-        <label htmlFor={`${prefix}-disabled`}>
-          Campo deshabilitado
-          <input id={`${prefix}-disabled`} value="No editable" disabled readOnly />
-        </label>
-      </article>
-
-      <article className="theme-test-card">
-        <h3>Acciones y estados</h3>
-        <div className="theme-test-actions">
-          <button className="primary-button" type="button">Accion principal</button>
-          <button className="ghost-button" type="button">Secundaria</button>
-          <button className="primary-button" type="button" disabled>Deshabilitada</button>
-        </div>
-        <div className="notice success"><CheckCircle2 size={17} /> Operacion guardada correctamente.</div>
-        <div className="notice warning"><TriangleAlert size={17} /> Revisa la tasa antes de continuar.</div>
-        <div className="notice error"><Info size={17} /> No se pudo completar la prueba.</div>
-      </article>
-
-      <article className="theme-test-card">
-        <h3>Datos tabulares</h3>
-        <div className="theme-test-table-wrap">
-          <table className="theme-test-table">
-            <thead><tr><th>Servicio</th><th>Estado</th><th>Monto</th></tr></thead>
-            <tbody>
-              <tr><td>Transferencia</td><td><span className="theme-status active">Activa</span></td><td>200 BRL</td></tr>
-              <tr><td>Efectivo</td><td><span className="theme-status pending">Pendiente</span></td><td>150 USD</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </article>
-    </div>
-  );
-}
+const services = [
+  { value: 'transferencia', label: 'Transferencia', description: 'Deposito en tarjeta', icon: <WalletCards size={18} /> },
+  { value: 'efectivo', label: 'Efectivo', description: 'Entrega fisica', icon: <Banknote size={18} /> },
+  { value: 'saldo', label: 'Saldo movil', description: 'Recarga Cubacel', icon: <CreditCard size={18} /> },
+];
 
 export function ThemeTestPage() {
+  const [service, setService] = useState('transferencia');
+  const [currency, setCurrency] = useState('BRL');
+  const [phone, setPhone] = useState('+5548991233191');
+  const [password, setPassword] = useState('jireh-demo');
+  const [card, setCard] = useState('9205123456789012');
+
   return (
     <section className="theme-test-page">
-      <div className="theme-test-intro">
+      <header className="theme-test-intro">
         <div>
-          <span className="theme-test-kicker">Laboratorio visual</span>
-          <h2>Comparador de tema</h2>
-          <p>Cambia el tema desde el menu de usuario y compara los mismos estados en ambas familias de componentes.</p>
+          <span className="theme-test-kicker">Sistema visual Jireh</span>
+          <h2>Oscuro profesional, claro y operativo</h2>
+          <p>Una sola jerarquia de superficies y cuatro colores con funcion definida.</p>
         </div>
-        <span className="theme-test-theme-hint"><Palette size={17} /> Usa claro y oscuro</span>
-      </div>
+        <span className="theme-test-theme-hint"><ShieldCheck size={18} /> Fuente de verdad UI</span>
+      </header>
 
-      <div className="theme-test-columns">
-        <section className="theme-test-column">
-          <header className="theme-test-column-header">
-            <span>Columna 1</span>
-            <h2>Componentes base</h2>
-            <p>Controles y tarjetas usados en formularios, login y administracion.</p>
-          </header>
-          <ComponentSet />
-        </section>
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>01</span><h2>Paleta</h2></div>
+          <p>Azul para accion, verde para exito, dorado para atencion y rojo para error.</p>
+        </div>
+        <div className="theme-palette-grid">
+          {palette.map((color) => (
+            <article className="theme-swatch" key={color.token}>
+              <span className={`theme-swatch-color ${color.className}`} />
+              <strong>{color.name}</strong>
+              <small>{color.token} · {color.value}</small>
+            </article>
+          ))}
+        </div>
+      </section>
 
-        <section className="theme-test-column calculator-column">
-          <header className="theme-test-column-header">
-            <span>Columna 2</span>
-            <h2>Estilo calculadora</h2>
-            <p>La referencia visual de los componentes nuevos que ya responden bien al tema.</p>
-          </header>
-          <ComponentSet calculator />
-        </section>
-      </div>
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>02</span><h2>Tipografia y acciones</h2></div>
+          <p>El peso crea jerarquia; el color no reemplaza la estructura.</p>
+        </div>
+        <div className="theme-lab-grid two">
+          <article className="theme-test-card theme-type-card">
+            <span className="theme-test-kicker">Operacion diaria</span>
+            <h1>48.250 CUP</h1>
+            <h2>Nuevo pedido</h2>
+            <h3>Pago de la operacion</h3>
+            <p>Texto secundario para orientar sin competir con el dato principal.</p>
+            <small>Informacion auxiliar y metadatos</small>
+          </article>
+          <article className="theme-test-card">
+            <h3>Botones</h3>
+            <div className="theme-test-actions">
+              <button className="primary-button" type="button">Accion principal</button>
+              <button className="ghost-button" type="button">Secundaria</button>
+              <button className="danger-button" type="button">Cancelar</button>
+              <button className="primary-button" type="button" disabled>Deshabilitada</button>
+            </div>
+            <div className="theme-icon-actions">
+              <button className="icon-button" type="button" aria-label="Buscar"><Search size={18} /></button>
+              <button className="icon-button" type="button" aria-label="Calendario"><CalendarRange size={18} /></button>
+              <button className="icon-button" type="button" aria-label="Usuario"><UserRound size={18} /></button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>03</span><h2>Formularios</h2></div>
+          <p>Todos los controles comparten altura, radio, fondo, borde y foco.</p>
+        </div>
+        <div className="theme-lab-grid two">
+          <article className="theme-test-card theme-form-card">
+            <label>Nombre del cliente<input defaultValue="Maria Rodriguez" /></label>
+            <label>Telefono<PhoneInput value={phone} onChange={setPhone} defaultCode="+55" showPaste={false} /></label>
+            <label>Contraseña<PasswordField value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+            <label>Numero de tarjeta<CardNumberInput value={card} onChange={setCard} /></label>
+          </article>
+          <article className="theme-test-card theme-form-card">
+            <label>Servicio<FloatingSelect value={service} options={services} onChange={setService} align="left" /></label>
+            <label>Moneda de recepcion<CurrencySelect value={currency} currencies={['BRL', 'UYU', 'USD', 'EUR']} onChange={setCurrency} /></label>
+            <label>Observaciones<textarea rows={3} placeholder="Escribe una nota operativa" /></label>
+            <label>Campo deshabilitado<input value="No editable" disabled readOnly /></label>
+          </article>
+        </div>
+      </section>
+
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>04</span><h2>Estados y datos</h2></div>
+          <p>El color aparece cuando aporta significado operativo.</p>
+        </div>
+        <div className="theme-lab-grid two">
+          <article className="theme-test-card">
+            <div className="notice success"><CheckCircle2 size={18} /> Operacion guardada correctamente.</div>
+            <div className="notice warning"><AlertTriangle size={18} /> Revisa la tasa antes de continuar.</div>
+            <div className="notice error"><Info size={18} /> No se pudo completar la operacion.</div>
+            <div className="theme-status-row">
+              <span className="theme-status active">Completado</span>
+              <span className="theme-status pending">Pendiente</span>
+              <span className="theme-status neutral"><Clock3 size={13} /> En proceso</span>
+            </div>
+          </article>
+          <article className="theme-test-card">
+            <div className="theme-test-metric"><span>Pedidos del mes</span><strong>128</strong></div>
+            <div className="theme-test-table-wrap">
+              <table className="theme-test-table">
+                <thead><tr><th>Servicio</th><th>Estado</th><th>Monto</th></tr></thead>
+                <tbody>
+                  <tr><td>Transferencia</td><td><span className="theme-status active">Activa</span></td><td>200 BRL</td></tr>
+                  <tr><td>Efectivo</td><td><span className="theme-status pending">Pendiente</span></td><td>150 USD</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>05</span><h2>Superficies</h2></div>
+          <p>El contraste se construye por niveles, no con negro contra negro.</p>
+        </div>
+        <div className="theme-surface-demo">
+          <article><Palette size={20} /><span><strong>Canvas</strong><small>Fondo general</small></span></article>
+          <article><WalletCards size={20} /><span><strong>Surface</strong><small>Paneles y secciones</small></span></article>
+          <article><Banknote size={20} /><span><strong>Raised</strong><small>Tarjetas y controles</small></span></article>
+        </div>
+      </section>
     </section>
   );
 }

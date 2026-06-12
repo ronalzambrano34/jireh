@@ -54,7 +54,7 @@ type CrearPedidoDraft = {
 };
 
 type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
-type AppTheme = 'light' | 'dark-deep' | 'dark-sidebar';
+type AppTheme = 'light' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
@@ -64,11 +64,6 @@ type AppView = 'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' |
 const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
 const APP_VIEWS = new Set<AppView>(['inicio', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'tema', 'perfil']);
-const DARK_THEME_OPTIONS: Array<{ value: Exclude<AppTheme, 'light'>; label: string }> = [
-  { value: 'dark-sidebar', label: 'Oscuro menu' },
-  { value: 'dark-deep', label: 'Oscuro profundo' },
-];
-
 const estadosBandeja = estados.filter((item) => item.value);
 const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
@@ -254,11 +249,12 @@ function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
 
 export function App() {
   const [theme, setTheme] = useState<AppTheme>(() => {
-    if (typeof localStorage === 'undefined') return 'light';
+    if (typeof localStorage === 'undefined') return 'dark-sidebar';
     const saved = localStorage.getItem(THEME_KEY);
-    if (saved === 'dark-deep' || saved === 'dark-sidebar') return saved;
+    if (saved === 'light') return 'light';
+    if (saved === 'dark-deep' || saved === 'dark-sidebar') return 'dark-sidebar';
     if (saved === 'dark' || saved === 'dark-vscode' || saved === 'dark-pro') return 'dark-sidebar';
-    return 'light';
+    return 'dark-sidebar';
   });
   const [operador, setOperador] = useState<Operador | null>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
@@ -984,7 +980,7 @@ export function App() {
                   <div className="user-menu-theme-row" role="menuitem">
                     <button className="user-menu-theme-link" type="button" onClick={() => navegarDesdeMenuUsuario('perfil')}>
                       <Palette size={18} />
-                      <span><strong>Apariencia</strong><small>{theme === 'light' ? 'Tema claro' : DARK_THEME_OPTIONS.find((item) => item.value === theme)?.label}</small></span>
+                      <span><strong>Apariencia</strong><small>{theme === 'light' ? 'Tema claro' : 'Oscuro Jireh'}</small></span>
                     </button>
                     <label className="theme-switch user-menu-theme-switch" onClick={(event) => event.stopPropagation()}>
                       <input
@@ -1109,23 +1105,9 @@ export function App() {
                       <span>Oscuro</span>
                     </label>
                   </div>
-                  <small>{theme === 'light' ? 'Tema claro predeterminado' : DARK_THEME_OPTIONS.find((item) => item.value === theme)?.label}</small>
+                  <small>{theme === 'light' ? 'Tema claro' : 'Oscuro Jireh predeterminado'}</small>
                 </div>
               </div>
-              {theme !== 'light' && (
-                <div className="theme-variant-row" aria-label="Variante de tema oscuro">
-                  {DARK_THEME_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={theme === option.value ? 'active' : ''}
-                      onClick={() => setTheme(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="profile-section">

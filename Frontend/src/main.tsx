@@ -4,6 +4,9 @@ import { App } from './App';
 import { PageLoader } from './components/PageLoader';
 import './styles.css';
 
+const savedTheme = localStorage.getItem('jireh.theme');
+document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark-sidebar';
+
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, {
