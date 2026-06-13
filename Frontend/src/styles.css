@@ -21385,14 +21385,33 @@ pre {
 /* Canonical refactored login */
 .login-screen,
 :root[data-theme="dark-sidebar"] .login-screen {
+  --ui-canvas: #08111f;
+  --ui-canvas-soft: #0b1627;
+  --ui-surface: #0f1b2d;
+  --ui-surface-raised: #16243a;
+  --ui-surface-hover: #1b2d47;
+  --ui-border: #263a55;
+  --ui-border-strong: #365273;
+  --ui-text: #f4f7fb;
+  --ui-text-muted: #a9b7c9;
+  --ui-text-subtle: #72849b;
+  --ui-primary: #2fa66f;
+  --ui-primary-hover: #38b77c;
+  --ui-danger: #dc5a63;
+  --ui-focus: rgba(47, 166, 111, 0.28);
+  --ui-shadow: rgba(1, 6, 15, 0.34);
   width: 100%;
   height: 100vh;
   height: 100dvh;
   min-height: 0;
+  display: grid;
+  place-items: center;
   padding: clamp(14px, 4vw, 24px);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: var(--ui-canvas);
+  color: var(--ui-text);
 }
 
 .login-panel,
@@ -21402,6 +21421,89 @@ pre {
   margin: auto;
   padding: clamp(20px, 5vw, 32px);
   gap: 16px;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px var(--ui-shadow);
+  backdrop-filter: none;
+}
+
+.login-panel::before,
+.login-screen::before,
+.login-bg-logo,
+.login-mark {
+  display: none;
+}
+
+.login-header {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.login-brand,
+:root[data-theme="dark-sidebar"] .login-brand {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  justify-content: initial;
+  gap: 14px;
+}
+
+.login-brand img,
+:root[data-theme="dark-sidebar"] .login-brand img {
+  width: 58px;
+  height: 58px;
+  padding: 2px;
+  object-fit: contain;
+  background: #ffffff;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.login-title {
+  min-width: 0;
+  gap: 3px;
+}
+
+.login-title .theme-test-kicker {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.login-title h1,
+:root[data-theme="dark-sidebar"] .login-title h1 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: clamp(1.45rem, 6vw, 1.9rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.login-title p,
+:root[data-theme="dark-sidebar"] .login-title p {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 0.82rem;
+}
+
+.login-security-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  color: #b7ebcf;
+  background: color-mix(in srgb, var(--ui-primary) 12%, var(--ui-surface-raised));
+  border: 1px solid color-mix(in srgb, var(--ui-primary) 34%, var(--ui-border));
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .login-field,
@@ -21421,6 +21523,9 @@ pre {
 :root[data-theme="dark-sidebar"] .login-field > label {
   margin: 0;
   padding: 0 2px;
+  color: var(--ui-text-muted);
+  font-size: 0.8rem;
+  font-weight: 750;
   line-height: 1.3;
 }
 
@@ -21507,6 +21612,24 @@ pre {
   width: 100%;
   min-height: 48px;
   margin: 0;
+  color: #ffffff;
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(47, 166, 111, 0.24);
+}
+
+.login-panel > .primary-button:hover:not(:disabled),
+:root[data-theme="dark-sidebar"] .login-panel > .primary-button:hover:not(:disabled) {
+  background: var(--ui-primary-hover);
+  border-color: var(--ui-primary-hover);
+}
+
+.login-network-status,
+:root[data-theme="dark-sidebar"] .login-network-status.offline,
+.login-panel .notice {
+  margin: 0;
+  border-radius: 10px;
 }
 
 @media (max-width: 920px) {
@@ -21583,6 +21706,22 @@ pre {
   :root[data-theme="dark-sidebar"] .login-panel {
     width: 100%;
     padding: 20px 16px;
-    border-radius: var(--ui-radius-lg, 16px);
+    border-radius: 16px;
+  }
+
+  .login-header {
+    gap: 13px;
+  }
+
+  .login-brand,
+  :root[data-theme="dark-sidebar"] .login-brand {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .login-brand img,
+  :root[data-theme="dark-sidebar"] .login-brand img {
+    width: 52px;
+    height: 52px;
   }
 }

@@ -100,16 +100,18 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
 
   return (
     <main className="login-screen">
-      <img className="login-bg-logo" src={logoJireh} alt="" aria-hidden="true" />
-      <form className="login-panel" onSubmit={handleSubmit}>
-        <div className="login-brand">
-          <img src={logoJireh} alt="El Jireh" />
-          <span className="login-mark"><LockKeyhole size={22} /></span>
-        </div>
-        <div className="login-title">
-          <h1>Jireh Operaciones</h1>
-          <p>Panel interno de pedidos y tasas</p>
-        </div>
+      <form className="login-panel theme-test-card theme-form-card" onSubmit={handleSubmit}>
+        <header className="login-header">
+          <div className="login-brand">
+            <img src={logoJireh} alt="El Jireh" />
+            <div className="login-title">
+              <span className="theme-test-kicker">Acceso seguro</span>
+              <h1>Jireh Operaciones</h1>
+              <p>Panel interno de pedidos y tasas</p>
+            </div>
+          </div>
+          <span className="login-security-badge"><LockKeyhole size={16} /> Operaciones</span>
+        </header>
         {!online && (
           <div className="login-network-status offline">
             <WifiOff size={16} /> Sin conexion. Conservamos tus datos en pantalla.
