@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode, TouchEvent } from 'react';
-import { ArrowRight, Banknote, Calculator, Flame, MousePointerClick, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
+import { ArrowRight, Banknote, Calculator, ChevronDown, MousePointerClick, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
 import { apiAssetUrl, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
@@ -35,9 +35,10 @@ type InicioPageProps = {
 type ServiceCard = InicioServiceCard;
 
 type RateTier = {
-  kind: 'base' | 'wholesale' | 'single';
+  kind: 'single' | 'tier' | 'top';
   oferta: OfertaOperativa;
   label: string;
+  nextMinimum: number | null;
 };
 
 type CotizacionOferta = {
@@ -163,8 +164,6 @@ function ofertasServicio(ofertas: OfertaOperativa[], servicio: ServicioCrear) {
   return ordenarOfertas(ofertas.filter((oferta) => oferta.servicio === servicio));
 }
 
-const MINIMO_MAYORISTA = 1000;
-
 function minimoOferta(oferta: OfertaOperativa) {
   const minimo = Number(oferta.minimo_pago ?? 0);
   return Number.isFinite(minimo) ? minimo : 0;
@@ -179,26 +178,23 @@ function rangosOferta(ofertas: OfertaOperativa[]): RateTier[] {
   const ordenadas = ordenarOfertas(ofertas);
   if (ordenadas.length === 0) return [];
 
-  const estandarCandidatas = ordenadas.filter((oferta) => minimoOferta(oferta) < MINIMO_MAYORISTA);
-  const estandar = estandarCandidatas[estandarCandidatas.length - 1] ?? ordenadas[0];
-  const mayorista = ordenadas.find((oferta) => minimoOferta(oferta) >= MINIMO_MAYORISTA);
-
-  if (!mayorista || mayorista.id === estandar.id) {
-    return [{ kind: 'single', oferta: estandar, label: 'Tasa vigente' }];
-  }
-
-  return [
-    { kind: 'base', oferta: estandar, label: `Tasa estandar (<${formatNumber(minimoOferta(mayorista))})` },
-    { kind: 'wholesale', oferta: mayorista, label: 'Mayorista (>1000)' },
-  ];
+  return ordenadas.map((oferta, index) => {
+    const nextMinimum = ordenadas[index + 1] ? minimoOferta(ordenadas[index + 1]) : null;
+    return {
+      kind: ordenadas.length === 1 ? 'single' : nextMinimum === null ? 'top' : 'tier',
+      oferta,
+      nextMinimum,
+      label: nextMinimum === null
+        ? `Desde ${formatNumber(minimoOferta(oferta))}`
+        : `${formatNumber(minimoOferta(oferta))} a menos de ${formatNumber(nextMinimum)}`,
+    };
+  });
 }
 
 function seleccionarRangoPorMonto(ofertas: OfertaOperativa[], monto: number) {
   const rangos = rangosOferta(ofertas);
   if (rangos.length === 0) return null;
-  const mayorista = rangos.find((rango) => rango.kind === 'wholesale');
-  if (mayorista && monto >= minimoOferta(mayorista.oferta)) return mayorista;
-  return rangos[0];
+  return [...rangos].reverse().find((rango) => monto >= minimoOferta(rango.oferta)) ?? rangos[0];
 }
 
 function cotizarOferta(ofertas: OfertaOperativa[], monto: number): CotizacionOferta {
@@ -266,7 +262,7 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
   const moneda = monedaPago(grupo.moneda);
   const transferencia = cotizarOferta(ofertasServicio(grupo.ofertas, 'transferencia'), montoNumerico);
   const efectivo = cotizarOferta(ofertasServicio(grupo.ofertas, 'efectivo'), montoNumerico);
-  const mayoristaActivo = [transferencia, efectivo].find((cotizacion) => cotizacion?.rango.kind === 'wholesale');
+  const rangoActivo = transferencia?.rango ?? efectivo?.rango;
 
   return (
     <section className="live-rate-panel" aria-label="Cotizador en vivo">
@@ -298,9 +294,9 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
         <CotizadorResultado label="Transferencia Cuba" tone="blue" cotizacion={transferencia} moneda={moneda} />
         <CotizadorResultado label="Efectivo" tone="green" cotizacion={efectivo} moneda={moneda} />
       </div>
-      {mayoristaActivo && (
+      {rangoActivo && (
         <div className="wholesale-live-badge">
-          <Flame size={15} /> Monto de {formatNumber(minimoOferta(mayoristaActivo.rango.oferta))}+ aplica tasa mayorista
+          <ArrowRight size={15} /> Tramo aplicado: {rangoActivo.label} {moneda}
         </div>
       )}
     </section>
@@ -310,7 +306,7 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
 function tasaDestacada(grupo: GrupoMoneda | undefined, servicio: ServicioCrear) {
   if (!grupo) return null;
   const oferta = ofertasServicio(grupo.ofertas, servicio)[0];
-  return oferta ? { kind: 'base' as const, oferta, label: 'Tasa vigente' } : null;
+  return oferta ? { kind: 'single' as const, oferta, label: 'Tasa vigente', nextMinimum: null } : null;
 }
 
 function HeroCarousel({ grupo, generatedAt, loading, syncing, canSyncTasas, onRefresh, onCreate, promos = PROMO_BANNERS }: { grupo?: GrupoMoneda; generatedAt?: string; loading: boolean; syncing: boolean; canSyncTasas: boolean; onRefresh: () => void; onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void; promos?: PromoBanner[] }) {
@@ -476,26 +472,37 @@ function HeroCarousel({ grupo, generatedAt, loading, syncing, canSyncTasas, onRe
 
 function RateTierRows({ ofertas, moneda, servicio, onCreate }: { ofertas: OfertaOperativa[]; moneda: string; servicio: ServicioCrear; onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void }) {
   const rangos = rangosOferta(ofertas);
+  const [expanded, setExpanded] = useState(false);
+  const visibles = expanded ? rangos : rangos.slice(0, 4);
 
   return (
     <div className="rate-lines operation-tier-lines">
-      {rangos.map((rango) => (
+      <div className="rate-tier-table-head" aria-hidden="true">
+        <span>Monto ({moneda})</span>
+        <span>Tasa</span>
+        <span>Recibe</span>
+      </div>
+      {visibles.map((rango) => (
         <button
           type="button"
           className={`rate-line rate-tier-row ${rango.kind}`}
-          key={`${servicio}-${rango.kind}-${rango.oferta.id}`}
+          key={`${servicio}-${rango.oferta.id}`}
           onClick={() => onCreate(servicio, { monto_pago: String(minimoOferta(rango.oferta) || ''), moneda_pago: moneda })}
         >
-          <span className={`rate-tier-icon ${rango.kind}`}>
-            {rango.kind === 'wholesale' ? <Flame size={16} /> : <ArrowRight size={16} />}
-          </span>
           <span className="rate-tier-copy">
             <span className="rate-tier-label">{rango.label}</span>
-            <small>Desde {formatNumber(minimoOferta(rango.oferta))} {moneda}</small>
+            <small>Seleccionar este tramo</small>
           </span>
-          <strong className="rate-tier-price"><small>1 {moneda} =</small> <b>{formatNumber(rango.oferta.tasa)} CUP</b></strong>
+          <strong className="rate-tier-price"><b>{formatNumber(rango.oferta.tasa)}</b></strong>
+          <span className="rate-tier-receives">{formatNumber(minimoOferta(rango.oferta) * tasaOferta(rango.oferta))} CUP</span>
         </button>
       ))}
+      {rangos.length > 4 && (
+        <button className="rate-tier-toggle" type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
+          {expanded ? 'Ver menos' : `Ver los ${rangos.length} tramos`}
+          <ChevronDown size={16} className={expanded ? 'expanded' : ''} />
+        </button>
+      )}
     </div>
   );
 }

@@ -1,4 +1,2 @@
-REVISION DE VISTAS Y ESTILOS
+PENDIENTES:
 
-Sin refactorizacion de nivel 3 inmediata
-- LoginPage: ya tiene un bloque de estilos canonico refactorizado.

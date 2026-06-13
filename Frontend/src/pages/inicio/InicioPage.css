@@ -78,6 +78,102 @@
   align-items: stretch;
 }
 
+.rate-pair-label {
+  width: max-content;
+  display: inline-flex;
+  margin-top: 5px;
+  padding: 3px 7px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.operation-tier-lines {
+  gap: 6px !important;
+}
+
+.rate-tier-table-head,
+.operation-rate-card .rate-tier-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) minmax(64px, 0.55fr) minmax(92px, 0.8fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.rate-tier-table-head {
+  padding: 0 12px 5px;
+  color: var(--ui-text-subtle);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.rate-tier-table-head span:nth-child(n + 2) {
+  text-align: right;
+}
+
+.operation-rate-card .rate-tier-row {
+  min-height: 48px;
+  padding: 9px 12px;
+}
+
+.operation-rate-card .rate-tier-copy {
+  min-width: 0;
+}
+
+.operation-rate-card .rate-tier-label {
+  color: var(--ui-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.operation-rate-card .rate-tier-copy small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ui-text-subtle);
+  font-size: 10px;
+}
+
+.operation-rate-card .rate-tier-price {
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.operation-rate-card .rate-tier-price b {
+  font-size: 15px;
+}
+
+.rate-tier-receives {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.rate-tier-toggle {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px dashed var(--ui-border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ui-text-muted);
+  font-weight: 800;
+}
+
+.rate-tier-toggle svg {
+  transition: transform 160ms ease;
+}
+
+.rate-tier-toggle svg.expanded {
+  transform: rotate(180deg);
+}
+
 .operation-rate-card {
   content-visibility: auto;
   contain-intrinsic-size: auto 320px;
@@ -101,6 +197,25 @@
     width: 100%;
     justify-content: center;
     margin-left: 0;
+  }
+
+  .rate-tier-table-head,
+  .operation-rate-card .rate-tier-row {
+    grid-template-columns: minmax(105px, 1.25fr) minmax(52px, 0.5fr) minmax(76px, 0.75fr);
+    gap: 6px;
+  }
+
+  .rate-tier-table-head {
+    padding-inline: 8px;
+  }
+
+  .operation-rate-card .rate-tier-row {
+    padding-inline: 8px;
+  }
+
+  .operation-rate-card .rate-tier-label,
+  .rate-tier-receives {
+    font-size: 11px;
   }
 }
 
