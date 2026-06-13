@@ -1,2 +1,5 @@
 PENDIENTES:
 
+crud para los puntos de recogida, es mejor editar un punto de recogida que deshabilitarlo y crear otro.
+
+mismo caso para provincias

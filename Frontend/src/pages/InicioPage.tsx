@@ -186,9 +186,32 @@ function rangosOferta(ofertas: OfertaOperativa[]): RateTier[] {
       nextMinimum,
       label: nextMinimum === null
         ? `Desde ${formatNumber(minimoOferta(oferta))}`
-        : `${formatNumber(minimoOferta(oferta))} a menos de ${formatNumber(nextMinimum)}`,
+        : `Menos de ${formatNumber(nextMinimum)}`,
     };
   });
+}
+
+function agruparOpcionesPorTasa(rangos: RateTier[]) {
+  const agrupados: RateTier[] = [];
+
+  for (const rango of rangos) {
+    const anterior = agrupados[agrupados.length - 1];
+    if (anterior && keyFloat(tasaOferta(anterior.oferta)) === keyFloat(tasaOferta(rango.oferta))) {
+      anterior.nextMinimum = rango.nextMinimum;
+      anterior.kind = rango.kind;
+      anterior.label = rango.nextMinimum === null
+        ? `Desde ${formatNumber(minimoOferta(anterior.oferta))}`
+        : `Menos de ${formatNumber(rango.nextMinimum)}`;
+      continue;
+    }
+    agrupados.push({ ...rango });
+  }
+
+  return agrupados;
+}
+
+function keyFloat(value: number) {
+  return Math.round(value * 10000) / 10000;
 }
 
 function seleccionarRangoPorMonto(ofertas: OfertaOperativa[], monto: number) {
@@ -296,7 +319,7 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
       </div>
       {rangoActivo && (
         <div className="wholesale-live-badge">
-          <ArrowRight size={15} /> Tramo aplicado: {rangoActivo.label} {moneda}
+          <ArrowRight size={15} /> Opcion aplicada: {rangoActivo.label} {moneda}
         </div>
       )}
     </section>
@@ -472,11 +495,27 @@ function HeroCarousel({ grupo, generatedAt, loading, syncing, canSyncTasas, onRe
 
 function RateTierRows({ ofertas, moneda, servicio, onCreate }: { ofertas: OfertaOperativa[]; moneda: string; servicio: ServicioCrear; onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void }) {
   const rangos = rangosOferta(ofertas);
+  const [showRepeated, setShowRepeated] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const visibles = expanded ? rangos : rangos.slice(0, 4);
+  const opciones = showRepeated ? rangos : agruparOpcionesPorTasa(rangos);
+  const visibles = expanded ? opciones : opciones.slice(0, 4);
 
   return (
     <div className="rate-lines operation-tier-lines">
+      <div className="rate-options-toolbar">
+        <span>{opciones.length} {opciones.length === 1 ? 'opcion' : 'opciones'}</span>
+        <label className="rate-repeat-switch">
+          <span>Mostrar tasas repetidas</span>
+          <input
+            type="checkbox"
+            checked={showRepeated}
+            onChange={(event) => {
+              setShowRepeated(event.target.checked);
+              setExpanded(false);
+            }}
+          />
+        </label>
+      </div>
       <div className="rate-tier-table-head" aria-hidden="true">
         <span>Monto ({moneda})</span>
         <span>Tasa</span>
@@ -491,15 +530,15 @@ function RateTierRows({ ofertas, moneda, servicio, onCreate }: { ofertas: Oferta
         >
           <span className="rate-tier-copy">
             <span className="rate-tier-label">{rango.label}</span>
-            <small>Seleccionar este tramo</small>
+            <small>Seleccionar esta opcion</small>
           </span>
           <strong className="rate-tier-price"><b>{formatNumber(rango.oferta.tasa)}</b></strong>
           <span className="rate-tier-receives">{formatNumber(minimoOferta(rango.oferta) * tasaOferta(rango.oferta))} CUP</span>
         </button>
       ))}
-      {rangos.length > 4 && (
+      {opciones.length > 4 && (
         <button className="rate-tier-toggle" type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded}>
-          {expanded ? 'Ver menos' : `Ver los ${rangos.length} tramos`}
+          {expanded ? 'Ver menos' : `Ver las ${opciones.length} opciones`}
           <ChevronDown size={16} className={expanded ? 'expanded' : ''} />
         </button>
       )}
