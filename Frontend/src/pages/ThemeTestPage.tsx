@@ -21,6 +21,7 @@ import { CurrencySelect } from '../components/CurrencySelect';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PasswordField } from '../components/PasswordField';
 import { PhoneInput } from '../components/PhoneInput';
+import logoJireh from '../assets/brand/logo-jireh.jpeg';
 
 const palette = [
   { name: 'Fondo', token: 'Canvas', value: '#08111F', className: 'canvas' },
@@ -184,6 +185,27 @@ export function ThemeTestPage() {
             <button className="ui-nav-item" type="button"><ClipboardList size={18} /><span>Pedidos</span></button>
             <button className="ui-nav-item" type="button"><Settings size={18} /><span>Configuracion</span></button>
           </nav>
+        </div>
+      </section>
+
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>07</span><h2>Efectos visuales</h2></div>
+          <p>Glass, transparencia y carga forman parte del sistema visual y deben reutilizarse sin cajas opacas.</p>
+        </div>
+        <div className="theme-effects-grid">
+          <article className="theme-test-card ui-glass-surface">
+            <span className="theme-test-kicker">Glass surface</span>
+            <h3>Profundidad sin perder contexto</h3>
+            <p>Superficie translucida para acceso, modales y paneles destacados sobre fondos con imagen.</p>
+          </article>
+          <article className="theme-loader-preview" aria-label="Ejemplo del indicador de carga">
+            <div className="ui-loader-mark">
+              <img src={logoJireh} alt="" />
+              <span>Cargando informacion</span>
+            </div>
+            <small>Loading transparente, amplio y sin contenedor rectangular.</small>
+          </article>
         </div>
       </section>
     </section>
