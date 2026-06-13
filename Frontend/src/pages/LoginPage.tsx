@@ -102,7 +102,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
   return (
     <main className="login-screen">
       <img className="login-bg-logo" src={bannerJireh} alt="" aria-hidden="true" />
-      <form className="login-panel theme-test-card theme-form-card" onSubmit={handleSubmit}>
+      <form className="auth-panel theme-test-card theme-form-card" onSubmit={handleSubmit}>
         <header className="login-header">
           <div className="login-brand">
             <img src={logoJireh} alt="El Jireh" />
@@ -134,7 +134,9 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
             <div className="login-progress-text">{progressLabel}</div>
           </div>
         )}
-        <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
+        <div className="theme-test-actions">
+          <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
+        </div>
       </form>
     </main>
   );
