@@ -21192,53 +21192,111 @@ body {
   #root,
   .app-shell {
     width: 100%;
+    min-width: 0;
     max-width: 100%;
-    overflow-x: clip;
   }
 
-  .app-shell,
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .workspace,
   .workspace > *,
   .content-grid,
   .content-grid > *,
+  .list-panel,
+  .detail-panel,
+  .form-panel,
+  .create-stack,
   .form-flow,
   .form-flow > *,
+  .form-section-card,
   .form-grid,
   .form-grid > *,
+  .client-section,
   .reports-page,
+  .report-filters,
+  .report-summary,
+  .report-grid,
+  .report-table,
   .admin-page,
+  .admin-surface,
+  .admin-hero-card,
+  .admin-section,
   .setup-page,
+  .setup-layout,
+  .setup-card,
   .profile-page,
+  .profile-hero-card,
+  .profile-section,
   .home-page,
-  .order-detail-page {
+  .rates-hero,
+  .rates-currency-sections,
+  .rates-currency-section,
+  .operation-currency-header,
+  .live-rate-panel,
+  .home-services-section,
+  .operational-rates-grid,
+  .home-tracking-section,
+  .track-order-panel,
+  .order-detail-page,
+  .order-detail-page-body,
+  .order-detail-surface,
+  .order-detail-section {
+    width: 100%;
     min-width: 0;
     max-width: 100%;
   }
 
   .workspace {
-    width: 100%;
     padding-top: 0;
   }
 
   .toolbar,
   :root[data-theme="dark-sidebar"] .toolbar {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     top: 0;
     margin-top: 0;
+    margin-right: 0;
+    margin-left: 0;
   }
 
-  .list-panel,
-  .detail-panel,
-  .form-panel,
-  .form-section-card,
-  .profile-inline-panel,
-  .admin-surface,
-  .admin-section,
-  .report-filters,
-  .report-summary,
-  .report-grid,
-  .track-order-panel,
-  .live-rate-panel {
-    width: 100%;
+  :is(
+    .toolbar,
+    .toolbar-actions,
+    .filters,
+    .state-row,
+    .orders-scope-chips,
+    .orders-top-actions,
+    .form-grid,
+    .client-lookup,
+    .lookup-row,
+    .payment-section-header,
+    .operation-currency-header,
+    .report-filters,
+    .report-summary,
+    .report-grid,
+    .admin-hero-main,
+    .admin-section-header,
+    .setup-layout,
+    .profile-hero-main,
+    .order-detail-page-header,
+    .order-detail-fields,
+    .payment-data-grid
+  ) > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .orders-scope-chips > button {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .orders-scope-chips .orders-top-actions {
+    flex: 1 0 100%;
     min-width: 0;
     max-width: 100%;
   }
@@ -21246,11 +21304,22 @@ body {
   input,
   select,
   textarea,
-  button,
   .floating-select-button,
   .phone-input,
   .password-field,
   .input-action-row {
+    min-width: 0;
     max-width: 100%;
+  }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
   }
 }
