@@ -5,10 +5,13 @@ import {
   CalendarRange,
   CheckCircle2,
   Clock3,
+  ClipboardList,
   CreditCard,
+  Home,
   Info,
   Palette,
   Search,
+  Settings,
   ShieldCheck,
   UserRound,
   WalletCards,
@@ -162,6 +165,25 @@ export function ThemeTestPage() {
           <article><Palette size={20} /><span><strong>Canvas</strong><small>Fondo general</small></span></article>
           <article><WalletCards size={20} /><span><strong>Surface</strong><small>Paneles y secciones</small></span></article>
           <article><Banknote size={20} /><span><strong>Raised</strong><small>Tarjetas y controles</small></span></article>
+        </div>
+      </section>
+
+      <section className="theme-lab-section">
+        <div className="theme-lab-heading">
+          <div><span>06</span><h2>Acentos y seleccion</h2></div>
+          <p>El borde izquierdo identifica superficies importantes y conserva el contexto de navegacion.</p>
+        </div>
+        <div className="theme-lab-grid two">
+          <article className="theme-test-card ui-accent-card">
+            <span className="theme-test-kicker">Superficie principal</span>
+            <h3>Card con acento</h3>
+            <p>Patron oficial para formularios, paneles operativos, reportes y detalles.</p>
+          </article>
+          <nav className="theme-nav-demo" aria-label="Ejemplo de navegacion">
+            <button className="ui-nav-item active" type="button"><Home size={18} /><span>Inicio</span></button>
+            <button className="ui-nav-item" type="button"><ClipboardList size={18} /><span>Pedidos</span></button>
+            <button className="ui-nav-item" type="button"><Settings size={18} /><span>Configuracion</span></button>
+          </nav>
         </div>
       </section>
     </section>

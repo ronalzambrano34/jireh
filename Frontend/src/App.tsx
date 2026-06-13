@@ -932,13 +932,13 @@ export function App() {
           <div className="operator">{operador.nombre}</div>
         </div>
         <nav className="nav-stack">
-          <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={18} /> Inicio</button>
-          <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
-          <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
-          <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
-          {puedeAdmin && <button className={vista === 'setup' ? 'active' : ''} onClick={() => navegar('setup')}><ShieldCheck size={18} /> Configurar</button>}
-          {puedeAdmin && <button className={vista === 'tema' ? 'active' : ''} onClick={() => navegar('tema')}><Palette size={18} /> Tema UI</button>}
-          <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
+          <button className={`ui-nav-item ${vista === 'inicio' ? 'active' : ''}`} onClick={() => navegar('inicio')}><Home size={18} /> Inicio</button>
+          <button className={`ui-nav-item ${vista === 'bandeja' ? 'active' : ''}`} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
+          <button className={`ui-nav-item ${vista === 'reportes' ? 'active' : ''}`} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
+          <button className={`ui-nav-item ${vista === 'admin' ? 'active' : ''}`} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
+          {puedeAdmin && <button className={`ui-nav-item ${vista === 'setup' ? 'active' : ''}`} onClick={() => navegar('setup')}><ShieldCheck size={18} /> Configurar</button>}
+          {puedeAdmin && <button className={`ui-nav-item ${vista === 'tema' ? 'active' : ''}`} onClick={() => navegar('tema')}><Palette size={18} /> Tema UI</button>}
+          <button className={`ui-nav-item ${vista === 'perfil' ? 'active' : ''}`} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
         <button className="ghost-button" onClick={cerrarSesion}>
           <LogOut size={18} /> Salir
