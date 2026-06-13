@@ -300,7 +300,7 @@ def leer_items_seccion(rows, fila_servicio, fila_encabezado, servicio, moneda):
     encabezado = rows[fila_encabezado]
     monto_col = buscar_columna(
         encabezado,
-        ["real", "monto reales", "brl recibido"],
+        [moneda, "monto pago", "monto recibido", "real", "monto reales", "brl recibido"],
         default=3,
     )
     oferta_cup_col = buscar_columna(
@@ -402,22 +402,23 @@ def parsear_secciones(rows):
 
 
 def seleccionar_secciones_vigentes(secciones):
-    fecha_vigente_por_servicio = {}
+    fecha_vigente_por_servicio_moneda = {}
 
     for seccion in secciones:
+        key = (seccion.servicio, seccion.moneda)
         fecha = seccion.fecha or date.min
-        actual = fecha_vigente_por_servicio.get(seccion.servicio, date.min)
+        actual = fecha_vigente_por_servicio_moneda.get(key, date.min)
         if fecha > actual:
-            fecha_vigente_por_servicio[seccion.servicio] = fecha
+            fecha_vigente_por_servicio_moneda[key] = fecha
 
     vigentes = {}
 
     for seccion in secciones:
+        key = (seccion.servicio, seccion.moneda)
         fecha = seccion.fecha or date.min
-        if fecha < fecha_vigente_por_servicio.get(seccion.servicio, date.min):
+        if fecha < fecha_vigente_por_servicio_moneda.get(key, date.min):
             continue
 
-        key = (seccion.servicio, seccion.moneda)
         actual = vigentes.get(key)
         if not actual:
             vigentes[key] = seccion
