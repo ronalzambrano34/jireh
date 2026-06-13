@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, TouchEvent, WheelEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Copy, ExternalLink, FileText, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Upload, X } from 'lucide-react';
 import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
@@ -218,12 +218,16 @@ export function PedidoDetallePanel({
   operadorId,
   onChanged,
   onClose,
+  codigosNavegacion,
+  onNavigate,
 }: {
   codigo: string | null;
   pedidoInicial?: PedidoResumen | null;
   operadorId: number;
   onChanged: () => void;
   onClose: () => void;
+  codigosNavegacion?: string[];
+  onNavigate?: (codigo: string) => void;
 }) {
   const [pedido, setPedido] = useState<PedidoDetalle | null>(
     pedidoInicial as PedidoDetalle | null,
@@ -261,9 +265,23 @@ export function PedidoDetallePanel({
   const comprobanteFinalInputRef = useRef<HTMLInputElement | null>(null);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const lastHorizontalNavigationRef = useRef(0);
 
   const bloqueoPropio = Boolean(pedido?.lock_activo && pedido.operador_asignado_id === operadorId);
   const bloqueadoPorOtro = Boolean(pedido?.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operadorId);
+  const indiceNavegacion = codigo ? (codigosNavegacion ?? []).indexOf(codigo) : -1;
+  const puedeNavegarPedidos = Boolean(
+    bloqueoPropio
+    && onNavigate
+    && indiceNavegacion >= 0
+    && (codigosNavegacion?.length ?? 0) > 1
+    && !confirmarPagoAbierto
+    && !finalizacionAbierta
+    && !whatsappPendiente
+    && !cancelacionAbierta
+    && !redireccionAbierta
+  );
   const detalle = useMemo(() => (pedido ? detalleEntries(pedido) : []), [pedido]);
   const evidenciaPrincipal = useMemo(() => {
     const archivos = pedido?.archivos ?? [];
@@ -326,6 +344,9 @@ export function PedidoDetallePanel({
         const tomado = await tomarOperacion(codigo);
         if (!active) return;
         setPedido(tomado);
+        if (!pedidoInicial?.lock_activo || pedidoInicial.operador_asignado_id !== operadorId) {
+          onChanged();
+        }
       })
       .catch(async (err) => {
         if (!active) return;
@@ -348,6 +369,46 @@ export function PedidoDetallePanel({
       active = false;
     };
   }, [codigo]);
+
+  function navegarPedidoTomado(direccion: -1 | 1) {
+    if (!puedeNavegarPedidos || !codigosNavegacion || !onNavigate) return;
+    const siguienteIndice = indiceNavegacion + direccion;
+    const siguienteCodigo = codigosNavegacion[siguienteIndice];
+    if (!siguienteCodigo) return;
+    lastHorizontalNavigationRef.current = Date.now();
+    onNavigate(siguienteCodigo);
+  }
+
+  function iniciarDeslizamiento(event: TouchEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (!puedeNavegarPedidos || target.closest('button, a, input, textarea, select, label')) {
+      swipeStartRef.current = null;
+      return;
+    }
+    const touch = event.touches[0];
+    swipeStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+
+  function finalizarDeslizamiento(event: TouchEvent<HTMLElement>) {
+    const inicio = swipeStartRef.current;
+    swipeStartRef.current = null;
+    const touch = event.changedTouches[0];
+    if (!inicio || !touch || Date.now() - lastHorizontalNavigationRef.current < 550) return;
+    const deltaX = touch.clientX - inicio.x;
+    const deltaY = touch.clientY - inicio.y;
+    if (Math.abs(deltaX) < 70 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+    navegarPedidoTomado(deltaX < 0 ? 1 : -1);
+  }
+
+  function desplazarHorizontalmente(event: WheelEvent<HTMLElement>) {
+    if (
+      !puedeNavegarPedidos
+      || Math.abs(event.deltaX) < 45
+      || Math.abs(event.deltaX) <= Math.abs(event.deltaY)
+      || Date.now() - lastHorizontalNavigationRef.current < 700
+    ) return;
+    navegarPedidoTomado(event.deltaX > 0 ? 1 : -1);
+  }
 
   useEffect(() => {
     setOperadorDestino(pedido?.redirigido_a_operador_id ? String(pedido.redirigido_a_operador_id) : '');
@@ -709,7 +770,13 @@ export function PedidoDetallePanel({
   if (!codigo) return null;
 
   return (
-    <section className="order-detail-page" aria-label="Detalle de pedido">
+    <section
+      className="order-detail-page"
+      aria-label="Detalle de pedido"
+      onTouchStart={iniciarDeslizamiento}
+      onTouchEnd={finalizarDeslizamiento}
+      onWheel={desplazarHorizontalmente}
+    >
       {error && (
         <div className="app-toast-stack" aria-live="polite">
           <div className="app-toast error" role="alert">
@@ -726,6 +793,12 @@ export function PedidoDetallePanel({
         moneda={pedido?.moneda_pago}
         onClose={cerrarDetalle}
       />
+      {puedeNavegarPedidos && (
+        <div className="order-swipe-navigation" role="status">
+          <span>{indiceNavegacion + 1} de {codigosNavegacion?.length}</span>
+          <small>Desliza horizontalmente para ver tus otros pedidos tomados</small>
+        </div>
+      )}
       <div className="order-detail-page-body">
         {loading && <PageLoader label="Cargando detalle" inline />}
         {!loading && !pedido && <div className="detail-panel empty">Sin detalle disponible</div>}
@@ -750,7 +823,7 @@ export function PedidoDetallePanel({
             </div>
           )}
           {bloqueoPropio && !ownLockNoticeHidden && (
-            <div className="notice success compact-notice dismissible-notice">
+            <div className="notice warning own-lock-notice compact-notice dismissible-notice">
               <Lock size={17} />
               <span>Has tomado este pedido. Seguirá bloqueado para los demás hasta que lo liberes o lo completes.</span>
               <button type="button" onClick={() => setOwnLockNoticeHidden(true)} title="Cerrar notificacion" aria-label="Cerrar notificacion">

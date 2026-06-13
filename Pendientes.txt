@@ -1,5 +1,7 @@
 PENDIENTES:
 
-crud para los puntos de recogida, es mejor editar un punto de recogida que deshabilitarlo y crear otro.
+EFECTOS VISUALES:
+ En el header, el boton menu usuario esta mal centrado la info que tiene dentro.
+en la vista pedidos, en los contenedores de los pedidos hay un circulo con un indicador de cantidad de pedidos que en la vista oscura no se ve bien, tiene el estilo antigo.
 
-mismo caso para provincias
+

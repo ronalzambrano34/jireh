@@ -1,5 +1,5 @@
 import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CalendarClock, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { Banknote, CalendarClock, Edit3, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
@@ -263,7 +263,7 @@ export function AdminCatalogosPage() {
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [metodoForm, setMetodoForm] = useState({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
-  const [puntoForm, setPuntoForm] = useState({ nombre: '', direccion: '', telefono: '', provincia_id: '' });
+  const [puntoForm, setPuntoForm] = useState({ nombre: '', direccion: '', telefono: '', provincia_id: '', activo: true });
   const [provinciaForm, setProvinciaForm] = useState({ nombre: '', activo: false });
   const [ofertaForm, setOfertaForm] = useState({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
   const [paqueteForm, setPaqueteForm] = useState({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
@@ -278,6 +278,8 @@ export function AdminCatalogosPage() {
   const [contactoForm, setContactoForm] = useState({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
   const [operadorForm, setOperadorForm] = useState<OperadorFormState>({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
   const [operadorEditando, setOperadorEditando] = useState<Operador | null>(null);
+  const [puntoEditando, setPuntoEditando] = useState<PuntoRecogida | null>(null);
+  const [provinciaEditando, setProvinciaEditando] = useState<ProvinciaServicio | null>(null);
   const [metodoEditando, setMetodoEditando] = useState<MetodoPago | null>(null);
   const [cuentasMetodo, setCuentasMetodo] = useState<MetodoPagoCuenta[]>([]);
   const [cuentaMetodoForm, setCuentaMetodoForm] = useState({ alias: '', cuenta: '', titular: '', qr_url: '', predeterminada: true, activa: true });
@@ -440,8 +442,14 @@ export function AdminCatalogosPage() {
 
   function abrirCrearModal(tema: AdminTema) {
     if (tema === 'metodos') setMetodoForm({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
-    if (tema === 'puntos') setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: provincias.find((provincia) => provincia.activo)?.id ? String(provincias.find((provincia) => provincia.activo)?.id) : '' });
-    if (tema === 'provincias') setProvinciaForm({ nombre: '', activo: false });
+    if (tema === 'puntos') {
+      setPuntoEditando(null);
+      setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: provincias.find((provincia) => provincia.activo)?.id ? String(provincias.find((provincia) => provincia.activo)?.id) : '', activo: true });
+    }
+    if (tema === 'provincias') {
+      setProvinciaEditando(null);
+      setProvinciaForm({ nombre: '', activo: false });
+    }
     if (tema === 'ofertas') setOfertaForm({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
     if (tema === 'paquetes') setPaqueteForm({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
     if (tema === 'promociones') { setPromoForm({ descripcion: '', imagen_url: '', fecha_desde: datetimeLocalValue(), fecha_hasta: datetimeLocalPlusDays(7), activa: true }); setPromoFile(null); setPromoFilePreview(''); }
@@ -482,14 +490,20 @@ export function AdminCatalogosPage() {
     setError(null);
     setNotice(null);
     try {
-      await crearPuntoRecogida({
+      const payload = {
         nombre: puntoForm.nombre,
         direccion: puntoForm.direccion,
         telefono: puntoForm.telefono || undefined,
         provincia_id: puntoForm.provincia_id ? Number(puntoForm.provincia_id) : null,
-      });
-      setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: '' });
-      setNotice('Punto de recogida creado');
+      };
+      if (puntoEditando) {
+        await actualizarPuntoRecogida(puntoEditando.id, { ...payload, activo: puntoForm.activo });
+      } else {
+        await crearPuntoRecogida(payload);
+      }
+      setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: '', activo: true });
+      setNotice(puntoEditando ? 'Punto de recogida actualizado' : 'Punto de recogida creado');
+      setPuntoEditando(null);
       setCrearModalTema(null);
       setEstadoVista('activos');
       await cargar();
@@ -504,12 +518,14 @@ export function AdminCatalogosPage() {
     setError(null);
     setNotice(null);
     try {
-      await crearProvinciaServicio({
-        nombre: provinciaForm.nombre,
-        activo: provinciaForm.activo,
-      });
+      if (provinciaEditando) {
+        await actualizarProvinciaServicio(provinciaEditando.id, provinciaForm);
+      } else {
+        await crearProvinciaServicio(provinciaForm);
+      }
       setProvinciaForm({ nombre: '', activo: false });
-      setNotice('Provincia de servicio creada');
+      setNotice(provinciaEditando ? 'Provincia de servicio actualizada' : 'Provincia de servicio creada');
+      setProvinciaEditando(null);
       setCrearModalTema(null);
       setEstadoVista(provinciaForm.activo ? 'activos' : 'inactivos');
       await cargar();
@@ -1051,6 +1067,38 @@ export function AdminCatalogosPage() {
     }
   }
 
+  function abrirEditarProvincia(provincia: ProvinciaServicio) {
+    setProvinciaEditando(provincia);
+    setProvinciaForm({ nombre: provincia.nombre, activo: provincia.activo });
+    setError(null);
+    setNotice(null);
+    setCrearModalTema('provincias');
+  }
+
+  function abrirEditarPunto(punto: PuntoRecogida) {
+    setPuntoEditando(punto);
+    setPuntoForm({
+      nombre: punto.nombre,
+      direccion: punto.direccion,
+      telefono: punto.telefono ?? '',
+      provincia_id: punto.provincia_id ? String(punto.provincia_id) : '',
+      activo: punto.activo,
+    });
+    setError(null);
+    setNotice(null);
+    setCrearModalTema('puntos');
+  }
+
+  function cerrarModalProvincia() {
+    setCrearModalTema(null);
+    setProvinciaEditando(null);
+  }
+
+  function cerrarModalPunto() {
+    setCrearModalTema(null);
+    setPuntoEditando(null);
+  }
+
 
   async function toggleOferta(oferta: Oferta) {
     setError(null);
@@ -1152,8 +1200,11 @@ export function AdminCatalogosPage() {
             {provinciasVisibles.map((provincia) => (
               <div className="catalog-row" key={provincia.id}>
                 <span><strong>{provincia.nombre}</strong><small>{provincia.activo ? 'Disponible para puntos de recogida' : 'No disponible para nuevos puntos'}</small></span>
-                <span className={provincia.activo ? 'status completado' : 'status cancelado'}>{provincia.activo ? 'habilitada' : 'deshabilitada'}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => toggleProvincia(provincia)}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
+                <div className="catalog-offer-actions">
+                  <span className={provincia.activo ? 'status completado' : 'status cancelado'}>{provincia.activo ? 'habilitada' : 'deshabilitada'}</span>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => abrirEditarProvincia(provincia)}><Edit3 size={18} /> Editar</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleProvincia(provincia)}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
+                </div>
               </div>
             ))}
           </div>
@@ -1168,8 +1219,11 @@ export function AdminCatalogosPage() {
             {puntosVisibles.map((punto) => (
               <div className="catalog-row" key={punto.id}>
                 <span><strong>{punto.nombre}</strong><small>{[punto.provincia_nombre, punto.direccion].filter(Boolean).join(' · ')}</small></span>
-                <span className={punto.activo ? 'status completado' : 'status cancelado'}>{punto.activo ? 'activo' : 'inactivo'}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => togglePunto(punto)}><Power size={18} /> {punto.activo ? 'Desactivar' : 'Activar'}</button>
+                <div className="catalog-offer-actions">
+                  <span className={punto.activo ? 'status completado' : 'status cancelado'}>{punto.activo ? 'activo' : 'inactivo'}</span>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => abrirEditarPunto(punto)}><Edit3 size={18} /> Editar</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => togglePunto(punto)}><Power size={18} /> {punto.activo ? 'Desactivar' : 'Activar'}</button>
+                </div>
               </div>
             ))}
           </div>
@@ -1419,26 +1473,32 @@ export function AdminCatalogosPage() {
       )}
 
       {crearModalTema === 'provincias' && (
-        <Modal title="Crear provincia de servicio" subtitle="Administracion / Provincias de servicio" onClose={() => setCrearModalTema(null)}>
+        <Modal title={provinciaEditando ? 'Editar provincia de servicio' : 'Crear provincia de servicio'} subtitle="Administracion / Provincias de servicio" onClose={cerrarModalProvincia}>
           <form className="stack-form modal-form" onSubmit={guardarProvincia}>
             <input value={provinciaForm.nombre} onChange={(event) => setProvinciaForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Provincia" required />
             <label className="permission-switch-row">
               <span>Habilitada<small>Disponible para entrega de efectivo</small></span>
               <input type="checkbox" checked={provinciaForm.activo} onChange={(event) => setProvinciaForm((current) => ({ ...current, activo: event.target.checked }))} />
             </label>
-            <button className="primary-button"><Save size={18} /> Crear provincia</button>
+            <button className="primary-button"><Save size={18} /> {provinciaEditando ? 'Guardar cambios' : 'Crear provincia'}</button>
           </form>
         </Modal>
       )}
 
       {crearModalTema === 'puntos' && (
-        <Modal title="Crear punto de recogida" subtitle="Administracion / Puntos de recogida" onClose={() => setCrearModalTema(null)}>
+        <Modal title={puntoEditando ? 'Editar punto de recogida' : 'Crear punto de recogida'} subtitle="Administracion / Puntos de recogida" onClose={cerrarModalPunto}>
           <form className="stack-form modal-form" onSubmit={guardarPunto}>
             <input value={puntoForm.nombre} onChange={(event) => setPuntoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <input value={puntoForm.direccion} onChange={(event) => setPuntoForm((current) => ({ ...current, direccion: event.target.value }))} placeholder="Direccion" required />
             <FloatingSelect value={puntoForm.provincia_id} onChange={(value) => setPuntoForm((current) => ({ ...current, provincia_id: value }))} options={provincias.map((provincia) => ({ value: String(provincia.id), label: provincia.nombre, description: provincia.activo ? 'Habilitada' : 'Deshabilitada' }))} ariaLabel="Provincia" align="left" />
             <PhoneInput value={puntoForm.telefono} onChange={(value) => setPuntoForm((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono" />
-            <button className="primary-button"><Save size={18} /> Crear punto</button>
+            {puntoEditando && (
+              <label className="permission-switch-row">
+                <span>Activo<small>Disponible para seleccionar en pedidos de efectivo.</small></span>
+                <input type="checkbox" checked={puntoForm.activo} onChange={(event) => setPuntoForm((current) => ({ ...current, activo: event.target.checked }))} />
+              </label>
+            )}
+            <button className="primary-button"><Save size={18} /> {puntoEditando ? 'Guardar cambios' : 'Crear punto'}</button>
           </form>
         </Modal>
       )}

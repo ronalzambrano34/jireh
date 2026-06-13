@@ -264,6 +264,12 @@ export function App() {
     () => pedidos.find((pedido) => pedido.codigo_operacion === seleccionado) ?? null,
     [pedidos, seleccionado],
   );
+  const codigosPedidosTomadosPorMi = useMemo(
+    () => pedidos
+      .filter((pedido) => Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id === operador.id))
+      .map((pedido) => pedido.codigo_operacion),
+    [operador, pedidos],
+  );
 
   function pedidoTomadoPorMi(pedido: PedidoResumen) {
     return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id === operador.id);
@@ -991,6 +997,8 @@ export function App() {
                 operadorId={operador.id}
                 onChanged={cargarPedidos}
                 onClose={() => setSeleccionado(null)}
+                codigosNavegacion={codigosPedidosTomadosPorMi}
+                onNavigate={setSeleccionado}
               />
             ) : (
               <OrdersPage
