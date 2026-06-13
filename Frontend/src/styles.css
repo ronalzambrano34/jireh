@@ -21445,11 +21445,13 @@ pre {
   top: 50%;
   left: 50%;
   display: block;
-  width: min(76vw, 720px);
+  width: min(92vw, 1080px);
   max-width: none;
-  height: auto;
-  opacity: 0.075;
-  filter: grayscale(1) contrast(0.86);
+  height: min(72vh, 620px);
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.1;
+  filter: grayscale(0.7) contrast(0.86);
   transform: translate(-50%, -50%);
   pointer-events: none;
   user-select: none;
@@ -21470,7 +21472,7 @@ pre {
   align-items: center;
   justify-content: initial;
   gap: 14px;
-  padding-right: 108px;
+  padding-top: 18px;
 }
 
 .login-brand img,
@@ -21526,7 +21528,7 @@ pre {
 
 .login-security-badge {
   position: absolute;
-  top: 0;
+  top: -10px;
   right: 0;
   width: fit-content;
   display: inline-flex;
@@ -21753,7 +21755,7 @@ pre {
   :root[data-theme="dark-sidebar"] .login-brand {
     grid-template-columns: 52px minmax(0, 1fr);
     gap: 12px;
-    padding-right: 38px;
+    padding-top: 14px;
   }
 
   .login-brand img,
@@ -21763,6 +21765,7 @@ pre {
   }
 
   .login-security-badge {
+    top: -8px;
     width: 32px;
     height: 32px;
     justify-content: center;
@@ -21778,8 +21781,9 @@ pre {
   }
 
   .login-bg-logo {
-    width: min(118vw, 620px);
-    opacity: 0.065;
+    width: 128vw;
+    height: 76vh;
+    opacity: 0.08;
   }
 }
 

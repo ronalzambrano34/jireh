@@ -7,6 +7,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import { PasswordField } from '../components/PasswordField';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
+import bannerJireh from '../assets/brand/banner-jireh.webp';
 
 const DEV_LOGIN_TELEFONO = import.meta.env.VITE_TEST_LOGIN_TELEFONO || (import.meta.env.DEV ? '+1234567890' : '');
 const DEV_LOGIN_PASSWORD = import.meta.env.VITE_TEST_LOGIN_PASSWORD || (import.meta.env.DEV ? 'admin' : '');
@@ -100,7 +101,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
 
   return (
     <main className="login-screen">
-      <img className="login-bg-logo" src={logoJireh} alt="" aria-hidden="true" />
+      <img className="login-bg-logo" src={bannerJireh} alt="" aria-hidden="true" />
       <form className="login-panel theme-test-card theme-form-card" onSubmit={handleSubmit}>
         <header className="login-header">
           <div className="login-brand">
@@ -108,7 +109,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
             <div className="login-title">
               <span className="theme-test-kicker">Acceso seguro</span>
               <h1>Jireh Operaciones</h1>
-              <p>Panel interno de pedidos y tasas</p>
+              <p>Gestion de pedidos y tasas</p>
             </div>
           </div>
           <span className="login-security-badge"><LockKeyhole size={16} /> Operaciones</span>
@@ -133,7 +134,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
             <div className="login-progress-text">{progressLabel}</div>
           </div>
         )}
-        <button className="primary-button" disabled={loading || !online} aria-busy={loading}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
+        <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
       </form>
     </main>
   );
