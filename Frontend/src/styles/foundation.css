@@ -657,7 +657,7 @@ input, select, textarea {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px max(18px, calc((100vw - 1240px) / 2));
+  padding: 12px max(18px, calc((100vw - 1240px) / 2 + 18px));
   border-bottom: 1px solid var(--ui-border);
   background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
   backdrop-filter: blur(14px);
@@ -689,11 +689,11 @@ input, select, textarea {
 
 @media (max-width: 640px) {
   .public-home-header {
-    padding: 10px 14px;
+    padding: 10px 12px;
   }
 
   .public-home-content {
-    padding: 14px 10px 32px;
+    padding: 14px 12px 32px;
   }
 
   .login-modal-form {
