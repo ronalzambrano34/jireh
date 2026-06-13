@@ -21184,3 +21184,73 @@ body {
     animation: none !important;
   }
 }
+
+/* Mobile layout guardrails */
+@media (max-width: 920px) {
+  html,
+  body,
+  #root,
+  .app-shell {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .app-shell,
+  .workspace,
+  .workspace > *,
+  .content-grid,
+  .content-grid > *,
+  .form-flow,
+  .form-flow > *,
+  .form-grid,
+  .form-grid > *,
+  .reports-page,
+  .admin-page,
+  .setup-page,
+  .profile-page,
+  .home-page,
+  .order-detail-page {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workspace {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .toolbar,
+  :root[data-theme="dark-sidebar"] .toolbar {
+    top: 0;
+    margin-top: 0;
+  }
+
+  .list-panel,
+  .detail-panel,
+  .form-panel,
+  .form-section-card,
+  .profile-inline-panel,
+  .admin-surface,
+  .admin-section,
+  .report-filters,
+  .report-summary,
+  .report-grid,
+  .track-order-panel,
+  .live-rate-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button,
+  .floating-select-button,
+  .phone-input,
+  .password-field,
+  .input-action-row {
+    max-width: 100%;
+  }
+}

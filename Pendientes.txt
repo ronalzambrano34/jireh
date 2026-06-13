@@ -1,11 +1,11 @@
 //todo cambiar el login para que Inicio sea la pantalla principal. Para realizar una operacion se deberia pedir login en un modal con el formulario actual.
 
 
-/todo haz una revisión general en todo el proyecto ya que después que se hizo la refactorización los componentes se han salido de los contenedores, también noté que se ha agregado un margen top en todas las pistas y también. todos estos errores son en la vista móvil, recuerda que este sistema está pensado principalmente para trabajarse en teléfonos y la vista móvil va a ser la que más se va a utilizar por ende es la que más renderizada debe estar.
-
 /todo cuando se instala la aplicacion en el navegador Chrome del telefono el icono del programa es redondo pero el logo aparece cuadrado, no se esta adaptando el logo al circulo del icono 
 
+/todo en Pedidos los componentes Mis pedidos, todos y el boton de cambiar tisual lista, no se adaptan al estilo visual 
 
+/todo cuando se instala la aplicacion en el navegador Chrome del telefono el icono del programa es redondo pero el logo aparece cuadrado, no se esta adaptando el logo al circulo del icono 
 
 
 
