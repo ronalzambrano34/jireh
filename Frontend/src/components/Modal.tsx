@@ -8,9 +8,10 @@ type ModalProps = {
   onClose: () => void;
   wide?: boolean;
   className?: string;
+  backdropClassName?: string;
 };
 
-export function Modal({ title, subtitle, children, onClose, wide = false, className = '' }: ModalProps) {
+export function Modal({ title, subtitle, children, onClose, wide = false, className = '', backdropClassName = '' }: ModalProps) {
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
@@ -26,7 +27,7 @@ export function Modal({ title, subtitle, children, onClose, wide = false, classN
   }, [onClose]);
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className={['modal-backdrop', backdropClassName].filter(Boolean).join(' ')} role="presentation" onMouseDown={onClose}>
       <section
         className={['modal-panel', wide ? 'wide-modal' : '', className].filter(Boolean).join(' ')}
         role="dialog"

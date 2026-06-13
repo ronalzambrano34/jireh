@@ -818,6 +818,7 @@ export function App() {
               setPendingAuthAction(null);
             }}
             className="login-modal"
+            backdropClassName="login-popover-backdrop"
           >
             <LoginPage embedded onLogin={completarLogin} />
           </Modal>

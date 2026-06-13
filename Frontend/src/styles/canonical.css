@@ -4775,3 +4775,57 @@ pre {
     padding: 5px 9px 5px 6px;
   }
 }
+
+/* Public login behaves like a floating menu below the top bar. */
+.modal-backdrop.login-popover-backdrop,
+:root[data-theme="dark-sidebar"] .modal-backdrop.login-popover-backdrop {
+  place-items: start end;
+  padding: 72px max(18px, calc((100vw - 1240px) / 2));
+  background: rgba(2, 8, 18, 0.28);
+  backdrop-filter: blur(3px);
+}
+
+.login-popover-backdrop .login-modal,
+:root[data-theme="dark-sidebar"] .login-popover-backdrop .login-modal {
+  width: min(480px, calc(100vw - 36px));
+  height: auto;
+  max-height: calc(100dvh - 88px);
+  margin: 0;
+  border-width: 1px;
+  border-radius: var(--ui-radius-lg, 14px);
+  box-shadow: 0 20px 54px rgba(1, 6, 15, 0.42);
+  animation: login-popover-enter 160ms ease-out both;
+}
+
+@keyframes login-popover-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-backdrop.login-popover-backdrop,
+  :root[data-theme="dark-sidebar"] .modal-backdrop.login-popover-backdrop {
+    place-items: start center;
+    padding: 64px 10px 10px;
+  }
+
+  .login-popover-backdrop .login-modal,
+  :root[data-theme="dark-sidebar"] .login-popover-backdrop .login-modal {
+    width: 100%;
+    max-height: calc(100dvh - 74px);
+    border-width: 1px;
+    border-radius: var(--ui-radius-lg, 14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-popover-backdrop .login-modal {
+    animation: none;
+  }
+}
