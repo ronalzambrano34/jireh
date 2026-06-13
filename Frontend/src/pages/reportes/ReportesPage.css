@@ -1,4 +1,6 @@
 .reports-page {
+  width: 100%;
+  margin: 0;
   container-type: inline-size;
 }
 
@@ -29,10 +31,20 @@
   }
 }
 
+@media (max-width: 920px) {
+  .workspace > .reports-page,
+  :root[data-theme="light"] .workspace > .reports-page,
+  :root[data-theme="dark-vscode"] .workspace > .reports-page,
+  :root[data-theme="dark-sidebar"] .workspace > .reports-page {
+    width: auto;
+    margin: 0 12px;
+    padding: 0 0 calc(12px + env(safe-area-inset-bottom));
+    background: transparent;
+  }
+}
+
 @media (max-width: 700px) {
   .reports-page {
-    width: calc(100% - 24px);
-    margin-inline: 12px;
     overflow: hidden;
   }
 
