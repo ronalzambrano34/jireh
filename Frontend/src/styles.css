@@ -681,9 +681,63 @@ input, select, textarea {
 .auth-panel .password-field > input {
   position: relative;
   z-index: 2;
+  color: var(--ui-text);
+  caret-color: var(--ui-primary-hover);
+  -webkit-text-fill-color: var(--ui-text);
+  outline: 0;
+  box-shadow: none;
   user-select: text;
   -webkit-user-select: text;
   touch-action: manipulation;
+}
+
+.auth-panel :is(
+  .phone-input-row > input,
+  .password-field > input,
+  .floating-select-button,
+  .password-toggle
+):focus,
+.auth-panel :is(
+  .phone-input-row > input,
+  .password-field > input,
+  .floating-select-button,
+  .password-toggle
+):focus-visible {
+  outline: 0;
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+.auth-panel :is(.phone-input-row, .password-field):focus-within {
+  border-color: var(--ui-primary-hover);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+.auth-panel :is(.phone-input-row > input, .password-field > input)::placeholder {
+  color: var(--ui-text-subtle);
+  -webkit-text-fill-color: var(--ui-text-subtle);
+  opacity: 1;
+}
+
+.auth-panel :is(
+  .phone-input-row > input,
+  .password-field > input
+):-webkit-autofill,
+.auth-panel :is(
+  .phone-input-row > input,
+  .password-field > input
+):-webkit-autofill:hover,
+.auth-panel :is(
+  .phone-input-row > input,
+  .password-field > input
+):-webkit-autofill:focus {
+  color: var(--ui-text);
+  caret-color: var(--ui-primary-hover);
+  -webkit-text-fill-color: var(--ui-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--ui-surface-raised) inset;
+  box-shadow: 0 0 0 1000px var(--ui-surface-raised) inset;
+  transition: background-color 9999s ease-out 0s;
 }
 
 .reports-page {
@@ -22091,8 +22145,8 @@ pre {
 }
 
 .ui-loader-mark img {
-  width: 92px;
-  height: 92px;
+  width: 68px;
+  height: 68px;
   padding: 3px;
   object-fit: cover;
   background: rgba(255, 255, 255, 0.92);
@@ -22134,8 +22188,8 @@ pre {
 :root[data-theme="dark-sidebar"] .logo-bounce-loader img,
 .logo-bounce-loader.inline-loader img,
 :root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader img {
-  width: clamp(88px, 24vw, 116px);
-  height: clamp(88px, 24vw, 116px);
+  width: clamp(64px, 18vw, 82px);
+  height: clamp(64px, 18vw, 82px);
   padding: 3px;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.72);
