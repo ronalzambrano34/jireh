@@ -22153,7 +22153,7 @@ pre {
 }
 
 .auth-panel .login-actions {
-  width: min(100%, 320px);
+  width: 50%;
   margin: 4px auto 0;
   display: flex;
   justify-content: center;
