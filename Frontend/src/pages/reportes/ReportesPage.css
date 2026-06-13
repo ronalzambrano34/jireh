@@ -50,19 +50,19 @@
 
   .reports-page .report-filters,
   :root[data-theme="dark-sidebar"] .reports-page .report-filters {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 10px;
   }
 
-  .reports-page .report-filter-field-wide,
-  .reports-page .report-filter-actions {
-    grid-column: 1;
+  .reports-page .report-filter-field-wide {
+    grid-column: auto;
   }
 
   .reports-page .report-filter-actions,
   :root[data-theme="dark-sidebar"] .reports-page .report-filter-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .reports-page .report-filter-actions button {
@@ -153,6 +153,13 @@
 }
 
 @media (max-width: 380px) {
+  .reports-page .report-filters,
+  :root[data-theme="dark-sidebar"] .reports-page .report-filters,
+  .reports-page .report-filter-actions,
+  :root[data-theme="dark-sidebar"] .reports-page .report-filter-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .reports-page .report-summary,
   :root[data-theme="dark-sidebar"] .reports-page .report-summary {
     grid-template-columns: minmax(0, 1fr);
