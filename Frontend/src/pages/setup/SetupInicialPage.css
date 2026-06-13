@@ -1,0 +1,28 @@
+.setup-page {
+  container-type: inline-size;
+}
+
+.setup-card {
+  min-width: 0;
+  isolation: isolate;
+}
+
+.setup-card > header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ui-border, #d7dde5);
+}
+
+.setup-card .form-grid {
+  align-items: start;
+}
+
+.setup-card .phone-input-row {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-steps button,
+  .setup-card {
+    transition: none;
+  }
+}

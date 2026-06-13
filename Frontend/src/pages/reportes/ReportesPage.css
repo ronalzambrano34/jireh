@@ -1,0 +1,23 @@
+.reports-page {
+  container-type: inline-size;
+}
+
+.report-loaded {
+  min-width: 0;
+}
+
+.report-grid {
+  align-items: start;
+}
+
+.report-table,
+.report-chart {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-loaded {
+    transition: none;
+  }
+}

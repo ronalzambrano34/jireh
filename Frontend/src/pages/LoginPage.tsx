@@ -28,7 +28,12 @@ function loginProgressLabel(seconds: number) {
   return LOGIN_PROGRESS_MESSAGES[Math.floor(seconds / 3) % LOGIN_PROGRESS_MESSAGES.length];
 }
 
-export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }) {
+type LoginPageProps = {
+  onLogin: (operador: Operador) => void;
+  embedded?: boolean;
+};
+
+export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
   const [telefono, setTelefono] = useState(() => DEV_LOGIN_TELEFONO || localStorage.getItem(LOGIN_PHONE_KEY) || '');
   const [password, setPassword] = useState(DEV_LOGIN_PASSWORD);
   const [error, setError] = useState<string | null>(null);
@@ -99,40 +104,46 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
     }
   }
 
+  const form = (
+    <form className={embedded ? 'auth-panel login-modal-form' : 'auth-panel theme-test-card theme-form-card ui-accent-card ui-glass-surface'} onSubmit={handleSubmit}>
+      <header className="login-header">
+        <div className="login-brand">
+          <img src={logoJireh} alt="El Jireh" />
+          <div className="login-title">
+            <span className="theme-test-kicker">Acceso seguro</span>
+            <h1>Jireh Operaciones</h1>
+            <p>Gestion de pedidos y tasas</p>
+          </div>
+        </div>
+        <span className="login-security-badge"><LockKeyhole size={16} /> Operaciones</span>
+      </header>
+      {!online && (
+        <div className="login-network-status offline">
+          <WifiOff size={16} /> Sin conexion. Conservamos tus datos en pantalla.
+        </div>
+      )}
+      <label className="login-control" htmlFor="login-telefono">
+        <span>Telefono</span>
+        <PhoneInput inputId="login-telefono" value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
+      </label>
+      <label className="login-control" htmlFor="login-password">
+        <span>Contraseña</span>
+        <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+      </label>
+      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {loading && <PageLoader inline label={progressLabel} />}
+      <div className="theme-test-actions login-actions">
+        <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
+      </div>
+    </form>
+  );
+
+  if (embedded) return form;
+
   return (
     <main className="login-screen">
       <img className="login-bg-logo" src={bannerJireh} alt="" aria-hidden="true" />
-      <form className="auth-panel theme-test-card theme-form-card ui-accent-card ui-glass-surface" onSubmit={handleSubmit}>
-        <header className="login-header">
-          <div className="login-brand">
-            <img src={logoJireh} alt="El Jireh" />
-            <div className="login-title">
-              <span className="theme-test-kicker">Acceso seguro</span>
-              <h1>Jireh Operaciones</h1>
-              <p>Gestion de pedidos y tasas</p>
-            </div>
-          </div>
-          <span className="login-security-badge"><LockKeyhole size={16} /> Operaciones</span>
-        </header>
-        {!online && (
-          <div className="login-network-status offline">
-            <WifiOff size={16} /> Sin conexion. Conservamos tus datos en pantalla.
-          </div>
-        )}
-        <label className="login-control" htmlFor="login-telefono">
-          <span>Telefono</span>
-          <PhoneInput inputId="login-telefono" value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
-        </label>
-        <label className="login-control" htmlFor="login-password">
-          <span>Contraseña</span>
-          <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
-        </label>
-        {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
-        {loading && <PageLoader inline label={progressLabel} />}
-        <div className="theme-test-actions login-actions">
-          <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
-        </div>
-      </form>
+      {form}
     </main>
   );
 }

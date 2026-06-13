@@ -1,5 +1,5 @@
 import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Banknote, CalendarClock, ChevronDown, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, RefreshCw, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { Banknote, CalendarClock, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
@@ -48,6 +48,8 @@ import {
 } from '../api/client';
 import type { Cliente, Configuracion, Contacto, MetodoPago, MetodoPagoCuenta, Oferta, Operador, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
 import { metodoPagoVisual } from '../utils/metodosPago';
+import { AdminEmpty, AdminHero, AdminMenu, AdminSection, AdminStateSwitch, type AdminEstadoVista, type AdminMenuGroup } from './admin/AdminCatalogosLayout';
+import './admin/AdminCatalogosPage.css';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 const servicios = ['transferencia', 'efectivo', 'saldo', 'mlc', 'usd', 'clasica', 'divisa'];
@@ -135,7 +137,6 @@ function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChan
   );
 }
 
-type AdminEstadoVista = 'activos' | 'inactivos';
 type AdminTema = 'metodos' | 'provincias' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'configuracion' | 'templates';
 const ADMIN_THEME_KEY = 'jireh.adminTema';
 const ADMIN_THEMES = new Set<AdminTema>(['metodos', 'provincias', 'puntos', 'ofertas', 'paquetes', 'promociones', 'clientes', 'contactos', 'operadores', 'configuracion', 'templates']);
@@ -1073,28 +1074,45 @@ export function AdminCatalogosPage() {
     }
   }
 
+  const menuGroups: AdminMenuGroup<AdminTema>[] = [
+    {
+      titulo: 'Catalogos operativos',
+      items: [
+        { tema: 'metodos', titulo: 'Metodos de pago', resumen: resumenCarga(temasCargados.has('metodos'), `${metodos.filter((item) => item.activo).length} activos · ${metodos.filter((item) => !item.activo).length} inactivos`), icono: Banknote },
+        { tema: 'provincias', titulo: 'Provincias de servicio', resumen: resumenCarga(temasCargados.has('provincias'), `${provincias.filter((item) => item.activo).length} activas · ${provincias.filter((item) => !item.activo).length} inactivas`), icono: MapPin },
+        { tema: 'puntos', titulo: 'Puntos de recogida', resumen: resumenCarga(temasCargados.has('puntos'), `${puntos.filter((item) => item.activo).length} activos · ${puntos.filter((item) => !item.activo).length} inactivos`), icono: MapPin },
+        { tema: 'ofertas', titulo: 'Ofertas', resumen: resumenCarga(temasCargados.has('ofertas'), `${ofertas.filter((item) => item.activa).length} activas · ${ofertas.filter((item) => !item.activa).length} inactivas`), icono: Tags },
+        { tema: 'paquetes', titulo: 'Paquetes de saldo', resumen: resumenCarga(temasCargados.has('paquetes'), `${paquetes.filter((item) => item.activo).length} activos · ${paquetes.filter((item) => !item.activo).length} inactivos`), icono: Package },
+        { tema: 'promociones', titulo: 'Promociones', resumen: resumenCarga(temasCargados.has('promociones'), `${promociones.filter((item) => item.activa).length} activas · ${promociones.filter((item) => !item.activa).length} inactivas`), icono: Megaphone },
+      ],
+    },
+    {
+      titulo: 'Personas',
+      items: [
+        { tema: 'clientes', titulo: 'Clientes', resumen: resumenCarga(temasCargados.has('clientes'), `${clientes.filter((item) => item.activo).length} activos · ${clientes.filter((item) => !item.activo).length} inactivos`), icono: UsersRound },
+        { tema: 'contactos', titulo: 'Contactos', resumen: resumenCarga(temasCargados.has('contactos'), `${contactos.filter((item) => item.activo).length} activos · ${contactos.filter((item) => !item.activo).length} inactivos`), icono: UserRound },
+        { tema: 'operadores', titulo: 'Operadores', resumen: resumenCarga(temasCargados.has('operadores'), `${operadores.filter((item) => item.activo).length} activos · ${operadores.filter((item) => !item.activo).length} inactivos`), icono: UsersRound },
+      ],
+    },
+    {
+      titulo: 'Sistema',
+      items: [
+        { tema: 'configuracion', titulo: 'Configuracion', resumen: resumenCarga(temasCargados.has('configuracion'), `${configuracionesSistemaTotal} claves`), icono: Settings2 },
+        { tema: 'templates', titulo: 'Templates', resumen: resumenCarga(temasCargados.has('templates'), `${templates.length} plantillas`), icono: FileText },
+      ],
+    },
+  ];
+
   return (
     <section className="admin-page admin-surface">
-      <div className="admin-hero-card">
-        <div className="admin-hero-main">
-          {temaActivo ? (
-            <button className="icon-button" type="button" onClick={volverMenu} title="Volver a administracion" aria-label="Volver a administracion">
-              <ArrowLeft size={18} />
-            </button>
-          ) : (
-            <div className="admin-hero-icon"><Settings2 size={24} /></div>
-          )}
-          <div>
-            <h2>{tituloTema(temaActivo)}</h2>
-            <p>{loading ? 'Actualizando...' : temaActivo ? `Administracion / ${tituloTema(temaActivo)}` : 'Administracion'}</p>
-          </div>
-          {temaActivo && (
-            <button className="icon-button" type="button" onClick={() => void cargar()} disabled={loading} title={`Actualizar ${tituloTema(temaActivo).toLowerCase()}`} aria-label={`Actualizar ${tituloTema(temaActivo).toLowerCase()}`}>
-              <RefreshCw size={18} />
-            </button>
-          )}
-        </div>
-      </div>
+      <AdminHero
+        titulo={tituloTema(temaActivo)}
+        subtitulo={temaActivo ? `Administracion / ${tituloTema(temaActivo)}` : 'Administracion'}
+        loading={loading}
+        detail={Boolean(temaActivo)}
+        onBack={volverMenu}
+        onRefresh={() => void cargar()}
+      />
 
       {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {notice && <DismissibleNotice className="notice">{notice}</DismissibleNotice>}
@@ -1102,95 +1120,13 @@ export function AdminCatalogosPage() {
         <PageLoader label={`Cargando ${tituloTema(temaActivo).toLowerCase()}`} inline />
       )}
 
-      {!temaActivo && (
-        <>
-          <div className="profile-section admin-menu-section">
-            <h3>Catalogos operativos</h3>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('metodos')}>
-              <Banknote size={22} />
-              <span><strong>Metodos de pago</strong><small>{resumenCarga(temasCargados.has('metodos'), `${metodos.filter((item) => item.activo).length} activos · ${metodos.filter((item) => !item.activo).length} inactivos`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('provincias')}>
-              <MapPin size={22} />
-              <span><strong>Provincias de servicio</strong><small>{resumenCarga(temasCargados.has('provincias'), `${provincias.filter((item) => item.activo).length} activas · ${provincias.filter((item) => !item.activo).length} inactivas`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('puntos')}>
-              <MapPin size={22} />
-              <span><strong>Puntos de recogida</strong><small>{resumenCarga(temasCargados.has('puntos'), `${puntos.filter((item) => item.activo).length} activos · ${puntos.filter((item) => !item.activo).length} inactivos`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('ofertas')}>
-              <Tags size={22} />
-              <span><strong>Ofertas</strong><small>{resumenCarga(temasCargados.has('ofertas'), `${ofertas.filter((item) => item.activa).length} activas · ${ofertas.filter((item) => !item.activa).length} inactivas`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('paquetes')}>
-              <Package size={22} />
-              <span><strong>Paquetes de saldo</strong><small>{resumenCarga(temasCargados.has('paquetes'), `${paquetes.filter((item) => item.activo).length} activos · ${paquetes.filter((item) => !item.activo).length} inactivos`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('promociones')}>
-              <Megaphone size={22} />
-              <span><strong>Promociones</strong><small>{resumenCarga(temasCargados.has('promociones'), `${promociones.filter((item) => item.activa).length} activas · ${promociones.filter((item) => !item.activa).length} inactivas`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-          </div>
-
-          <div className="profile-section admin-menu-section">
-            <h3>Personas</h3>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('clientes')}>
-              <UsersRound size={22} />
-              <span><strong>Clientes</strong><small>{resumenCarga(temasCargados.has('clientes'), `${clientes.filter((item) => item.activo).length} activos · ${clientes.filter((item) => !item.activo).length} inactivos`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('contactos')}>
-              <UserRound size={22} />
-              <span><strong>Contactos</strong><small>{resumenCarga(temasCargados.has('contactos'), `${contactos.filter((item) => item.activo).length} activos · ${contactos.filter((item) => !item.activo).length} inactivos`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('operadores')}>
-              <UsersRound size={22} />
-              <span><strong>Operadores</strong><small>{resumenCarga(temasCargados.has('operadores'), `${operadores.filter((item) => item.activo).length} activos · ${operadores.filter((item) => !item.activo).length} inactivos`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-          </div>
-
-          <div className="profile-section admin-menu-section">
-            <h3>Sistema</h3>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('configuracion')}>
-              <Settings2 size={22} />
-              <span><strong>Configuracion</strong><small>{resumenCarga(temasCargados.has('configuracion'), `${configuracionesSistemaTotal} claves`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-            <button className="profile-option admin-topic-option" type="button" onClick={() => abrirTema('templates')}>
-              <FileText size={22} />
-              <span><strong>Templates</strong><small>{resumenCarga(temasCargados.has('templates'), `${templates.length} plantillas`)}</small></span>
-              <ChevronDown size={18} />
-            </button>
-          </div>
-        </>
-      )}
+      {!temaActivo && <AdminMenu groups={menuGroups} onOpen={abrirTema} />}
 
       {temaActivo === 'metodos' && temasCargados.has('metodos') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><Banknote size={22} /></span>
-            <div>
-              <h3>Metodos de pago</h3>
-              <small>{metodosVisibles.length} de {metodos.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('metodos')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de registros">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={Banknote} titulo="Metodos de pago" resumen={`${metodosVisibles.length} de ${metodos.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('metodos')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
           <div className="admin-card-list">
-            {metodosVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {metodosVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {metodosVisibles.map((metodo) => {
               const visual = metodoPagoVisual(metodo);
               return (
@@ -1205,27 +1141,14 @@ export function AdminCatalogosPage() {
               );
             })}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'provincias' && temasCargados.has('provincias') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><MapPin size={22} /></span>
-            <div>
-              <h3>Provincias de servicio</h3>
-              <small>{provinciasVisibles.length} de {provincias.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('provincias')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de provincias">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activas</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivas</button>
-          </div>
+        <AdminSection icono={MapPin} titulo="Provincias de servicio" resumen={`${provinciasVisibles.length} de ${provincias.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('provincias')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} feminine ariaLabel="Vista de provincias" />
           <div className="admin-card-list">
-            {provinciasVisibles.length === 0 && <div className="admin-empty-row">Sin provincias {estadoVista}</div>}
+            {provinciasVisibles.length === 0 && <AdminEmpty>Sin provincias {estadoVista}</AdminEmpty>}
             {provinciasVisibles.map((provincia) => (
               <div className="catalog-row" key={provincia.id}>
                 <span><strong>{provincia.nombre}</strong><small>{provincia.activo ? 'Disponible para puntos de recogida' : 'No disponible para nuevos puntos'}</small></span>
@@ -1234,27 +1157,14 @@ export function AdminCatalogosPage() {
               </div>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'puntos' && temasCargados.has('puntos') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><MapPin size={22} /></span>
-            <div>
-              <h3>Puntos de recogida</h3>
-              <small>{puntosVisibles.length} de {puntos.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('puntos')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de registros">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={MapPin} titulo="Puntos de recogida" resumen={`${puntosVisibles.length} de ${puntos.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('puntos')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
           <div className="admin-card-list">
-            {puntosVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {puntosVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {puntosVisibles.map((punto) => (
               <div className="catalog-row" key={punto.id}>
                 <span><strong>{punto.nombre}</strong><small>{[punto.provincia_nombre, punto.direccion].filter(Boolean).join(' · ')}</small></span>
@@ -1263,27 +1173,14 @@ export function AdminCatalogosPage() {
               </div>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'ofertas' && temasCargados.has('ofertas') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><Tags size={22} /></span>
-            <div>
-              <h3>Ofertas</h3>
-              <small>{ofertasVisibles.length} de {ofertas.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('ofertas')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de registros">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={Tags} titulo="Ofertas" resumen={`${ofertasVisibles.length} de ${ofertas.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('ofertas')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
           <div className="admin-service-groups">
-            {ofertasVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {ofertasVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {ofertasPorServicio.map(([servicio, ofertasGrupo]) => (
               <section className="admin-service-group" key={servicio}>
                 <header className="admin-service-group-header">
@@ -1304,27 +1201,14 @@ export function AdminCatalogosPage() {
               </section>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'paquetes' && temasCargados.has('paquetes') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><Package size={22} /></span>
-            <div>
-              <h3>Paquetes de saldo</h3>
-              <small>{paquetesVisibles.length} de {paquetes.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('paquetes')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de registros">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={Package} titulo="Paquetes de saldo" resumen={`${paquetesVisibles.length} de ${paquetes.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('paquetes')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
           <div className="admin-card-list">
-            {paquetesVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {paquetesVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {paquetesVisibles.map((paquete) => (
               <div className="catalog-row" key={paquete.id}>
                 <span><strong>{paquete.nombre}</strong><small>{paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP · {paquete.origen}</small></span>
@@ -1333,28 +1217,15 @@ export function AdminCatalogosPage() {
               </div>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
 
       {temaActivo === 'promociones' && temasCargados.has('promociones') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><Megaphone size={22} /></span>
-            <div>
-              <h3>Promociones</h3>
-              <small>{promocionesVisibles.length} de {promociones.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('promociones')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de promociones">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activas</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivas</button>
-          </div>
+        <AdminSection icono={Megaphone} titulo="Promociones" resumen={`${promocionesVisibles.length} de ${promociones.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('promociones')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} feminine ariaLabel="Vista de promociones" />
           <div className="admin-card-list promo-admin-list">
-            {promocionesVisibles.length === 0 && <div className="admin-empty-row">Sin promociones {estadoVista}</div>}
+            {promocionesVisibles.length === 0 && <AdminEmpty>Sin promociones {estadoVista}</AdminEmpty>}
             {promocionesVisibles.map((promocion) => (
               <div className="catalog-row promo-admin-row" key={promocion.id}>
                 <button type="button" className="promo-admin-main" onClick={() => abrirEditarPromocion(promocion)}>
@@ -1372,27 +1243,14 @@ export function AdminCatalogosPage() {
               </div>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'clientes' && temasCargados.has('clientes') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><UsersRound size={22} /></span>
-            <div>
-              <h3>Clientes</h3>
-              <small>{clientesVisibles.length} de {clientes.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('clientes')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de registros">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={UsersRound} titulo="Clientes" resumen={`${clientesVisibles.length} de ${clientes.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('clientes')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
           <div className="admin-card-list">
-            {clientesVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {clientesVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {clientesVisibles.map((cliente) => (
               <button type="button" className="config-row admin-config-card" key={cliente.id} onClick={() => setClienteForm({ nombre: cliente.nombre, telefono: cliente.telefono ?? '', email: cliente.email ?? '', pais: cliente.pais ?? 'br', moneda_preferida: cliente.moneda_preferida ?? 'BRL' })}>
                 <strong>{cliente.nombre} #{cliente.id}</strong>
@@ -1401,27 +1259,14 @@ export function AdminCatalogosPage() {
               </button>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'contactos' && temasCargados.has('contactos') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><UserRound size={22} /></span>
-            <div>
-              <h3>Contactos</h3>
-              <small>{contactosVisibles.length} de {contactos.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('contactos')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de registros">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={UserRound} titulo="Contactos" resumen={`${contactosVisibles.length} de ${contactos.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('contactos')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
           <div className="admin-card-list">
-            {contactosVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {contactosVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {contactosVisibles.map((contacto) => (
               <button type="button" className="config-row admin-config-card" key={contacto.id} onClick={() => setContactoForm({ cliente_id: contacto.cliente_id ? String(contacto.cliente_id) : '', nombre: contacto.nombre, telefono: contacto.telefono ?? '', numero_tarjeta: contacto.numero_tarjeta ?? '', tipo_tarjeta: contacto.tipo_tarjeta ?? '', documento_identidad_url: contacto.documento_identidad_url ?? '', pais: contacto.pais ?? 'cu', notas: contacto.notas ?? '' })}>
                 <strong>{contacto.nombre} #{contacto.id}</strong>
@@ -1430,27 +1275,14 @@ export function AdminCatalogosPage() {
               </button>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'operadores' && temasCargados.has('operadores') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><UsersRound size={22} /></span>
-            <div>
-              <h3>Operadores</h3>
-              <small>{operadoresVisibles.length} de {operadores.length}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('operadores')}>
-              Crear
-            </button>
-          </header>
-          <div className="admin-state-switch" role="group" aria-label="Vista de operadores">
-            <button type="button" className={estadoVista === 'activos' ? 'active' : ''} onClick={() => setEstadoVista('activos')}>Activos</button>
-            <button type="button" className={estadoVista === 'inactivos' ? 'active' : ''} onClick={() => setEstadoVista('inactivos')}>Inactivos</button>
-          </div>
+        <AdminSection icono={UsersRound} titulo="Operadores" resumen={`${operadoresVisibles.length} de ${operadores.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('operadores')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} ariaLabel="Vista de operadores" />
           <div className="admin-card-list">
-            {operadoresVisibles.length === 0 && <div className="admin-empty-row">Sin registros {estadoVista}</div>}
+            {operadoresVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {operadoresVisibles.map((item) => (
               <div className="catalog-row operator-admin-row" key={item.id}>
                 <button type="button" className="operator-admin-main" onClick={() => abrirEditarOperador(item)}>
@@ -1462,21 +1294,11 @@ export function AdminCatalogosPage() {
               </div>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'configuracion' && temasCargados.has('configuracion') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><Settings2 size={22} /></span>
-            <div>
-              <h3>Configuracion</h3>
-              <small>{configuracionesSistemaTotal}</small>
-            </div>
-            <button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); setConfigModalOpen(true); }}>
-              Nueva
-            </button>
-          </header>
+        <AdminSection icono={Settings2} titulo="Configuracion" resumen={configuracionesSistemaTotal} action={<button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); setConfigModalOpen(true); }}>Nueva</button>}>
           <div className="config-list whatsapp-config-list">
             {whatsappConfiguraciones.map((item) => (
               <button type="button" className="config-row whatsapp-config-row" key={item.clave} onClick={() => abrirConfig({ id: 0, clave: item.clave, valor: item.valor, editable: true })}>
@@ -1493,23 +1315,13 @@ export function AdminCatalogosPage() {
                 <span>{item.valor}</span>
               </button>
             ))}
-            {configuracionesSistema.length === 0 && <div className="admin-empty-row">Sin configuraciones adicionales</div>}
+            {configuracionesSistema.length === 0 && <AdminEmpty>Sin configuraciones adicionales</AdminEmpty>}
           </div>
-        </section>
+        </AdminSection>
       )}
 
       {temaActivo === 'templates' && temasCargados.has('templates') && (
-        <section className="admin-section admin-detail-section">
-          <header className="admin-section-header">
-            <span className="admin-section-icon"><FileText size={22} /></span>
-            <div>
-              <h3>Templates</h3>
-              <small>{templates.length}</small>
-            </div>
-            <button type="button" className="ghost-button admin-create-button" onClick={() => abrirTemplate(templateForm.clave)} disabled={templates.length === 0}>
-              Editar
-            </button>
-          </header>
+        <AdminSection icono={FileText} titulo="Templates" resumen={templates.length} action={<button type="button" className="ghost-button admin-create-button" onClick={() => abrirTemplate(templateForm.clave)} disabled={templates.length === 0}>Editar</button>}>
           <div className="config-list">
             {templates.map((template) => (
               <button type="button" className="config-row" key={template.clave} onClick={() => abrirTemplate(template.clave)}>
@@ -1518,7 +1330,7 @@ export function AdminCatalogosPage() {
               </button>
             ))}
           </div>
-        </section>
+        </AdminSection>
       )}
 
 

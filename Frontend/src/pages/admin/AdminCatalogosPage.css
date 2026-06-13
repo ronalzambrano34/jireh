@@ -1,0 +1,53 @@
+.admin-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.admin-menu-grid .admin-menu-section {
+  margin: 0;
+}
+
+.admin-detail-section {
+  animation: admin-section-enter 180ms ease-out;
+}
+
+.admin-section-header > div {
+  min-width: 0;
+}
+
+.admin-section-header h3,
+.admin-section-header small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-card-list,
+.admin-service-groups,
+.config-list {
+  container-type: inline-size;
+}
+
+@keyframes admin-section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 980px) {
+  .admin-menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-detail-section {
+    animation: none;
+  }
+}

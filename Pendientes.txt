@@ -1,8 +1,4 @@
-//todo cambiar el login para que Inicio sea la pantalla principal. Para realizar una operacion se deberia pedir login en un modal con el formulario actual.
+REVISION DE VISTAS Y ESTILOS
 
-
-//todo cuando se instala la aplicacion en el navegador Chrome del telefono el icono del programa es redondo pero el logo aparece cuadrado, no se esta adaptando el logo al circulo del icono 
-
-
-
-//todo haz una revision y dime cuales vistas necesitan de una refactorizacion 3 en su vista y estilos
+Sin refactorizacion de nivel 3 inmediata
+- LoginPage: ya tiene un bloque de estilos canonico refactorizado.

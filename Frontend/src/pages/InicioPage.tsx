@@ -1,17 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode, TouchEvent } from 'react';
-import { ArrowRight, Banknote, Calculator, CheckCircle2, ClipboardList, Clock3, Flame, RefreshCw, Search, Smartphone, WalletCards } from 'lucide-react';
-import { apiAssetUrl, obtenerPedido, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
-import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoDetalle, TasaOperativaResponse } from '../types/api';
+import { ArrowRight, Banknote, Calculator, Flame, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
+import { apiAssetUrl, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
+import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
+import { TrackOrderPanel } from './inicio/TrackOrderPanel';
+import { ServicesRatesGrid, type InicioCreateDraft, type InicioServiceCard, type InicioServicio } from './inicio/ServicesRatesGrid';
+import './inicio/InicioPage.css';
 
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import tasasBanner from '../assets/brand/banner-jireh.jpeg';
 
 
-type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa';
+type ServicioCrear = InicioServicio;
 
 type GrupoMoneda = {
   moneda: string;
@@ -20,27 +23,16 @@ type GrupoMoneda = {
   paquetesSaldo: PaqueteSaldoOperativo[];
 };
 
-type OfertaCreateDraft = {
-  monto_pago?: string;
-  moneda_pago?: string;
-  paquete_saldo_id?: string;
-  monto_divisa?: string;
-  tipo_tarjeta?: string;
-};
+type OfertaCreateDraft = InicioCreateDraft;
 
 type InicioPageProps = {
   canSyncTasas?: boolean;
+  canLoadTasas?: boolean;
   onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void;
   onTrackPedido: (codigo: string) => void;
 };
 
-type ServiceCard = {
-  servicio: ServicioCrear;
-  title: string;
-  subtitle: string;
-  tone: string;
-  icon: ReactNode;
-};
+type ServiceCard = InicioServiceCard;
 
 type RateTier = {
   kind: 'base' | 'wholesale' | 'single';
@@ -505,97 +497,7 @@ function RateTierRows({ ofertas, moneda, servicio, onCreate }: { ofertas: Oferta
   );
 }
 
-function trackEstadoLabel(value: string) {
-  const labels: Record<string, string> = {
-    pendiente_pago: 'Pendiente pago',
-    pago_confirmado: 'Pago confirmado',
-    en_operacion: 'Pago confirmado',
-    completado: 'Completado',
-    cancelado: 'Cancelado',
-  };
-  return labels[value] ?? value.replaceAll('_', ' ');
-}
-
-function trackStepIndex(pedido: PedidoDetalle | null) {
-  if (!pedido) return 1;
-  if (pedido.estado === 'completado') return 2;
-  if (pedido.estado === 'pendiente_pago') return 0;
-  return 1;
-}
-
-function trackStepClass(index: number, activeIndex: number, completado: boolean) {
-  if (completado || index < activeIndex) return 'done';
-  if (index === activeIndex) return 'active';
-  return '';
-}
-
-function TrackOrderPanel({ onTrackPedido }: { onTrackPedido: (codigo: string) => void }) {
-  const [codigo, setCodigo] = useState('');
-  const [pedido, setPedido] = useState<PedidoDetalle | null>(null);
-  const [trackingLoading, setTrackingLoading] = useState(false);
-  const [trackingError, setTrackingError] = useState<string | null>(null);
-  const codigoLimpio = codigo.trim().toUpperCase();
-  const activeIndex = trackStepIndex(pedido);
-  const pedidoCompletado = pedido?.estado === 'completado';
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!codigoLimpio) return;
-    setTrackingLoading(true);
-    setTrackingError(null);
-    setPedido(null);
-    try {
-      setPedido(await obtenerPedido(codigoLimpio));
-    } catch (err) {
-      setTrackingError(err instanceof Error ? err.message : 'No se pudo rastrear el pedido');
-    } finally {
-      setTrackingLoading(false);
-    }
-  }
-
-  return (
-    <section className="track-order-panel" aria-label="Rastrear pedido">
-      <div className="track-order-head">
-        <span className="track-order-icon"><ClipboardList size={22} /></span>
-        <span>
-          <h3>Rastrear pedido</h3>
-          <small>Codigo de operacion</small>
-        </span>
-      </div>
-      <form className="track-order-form" onSubmit={handleSubmit}>
-        <label className="track-order-input">
-          <Search size={17} />
-          <input
-            value={codigo}
-            onChange={(event) => setCodigo(event.target.value)}
-            placeholder="Ej. JH-3204-CUBA"
-            autoComplete="off"
-            spellCheck={false}
-            aria-label="Codigo de operacion"
-          />
-        </label>
-        <button className="primary-button" type="submit" disabled={!codigoLimpio || trackingLoading}>{trackingLoading ? 'Buscando...' : 'Rastrear'}</button>
-      </form>
-      {pedido && (
-        <div className="track-order-steps" aria-hidden="true">
-          <span className={trackStepClass(0, activeIndex, pedidoCompletado)}><CheckCircle2 size={16} /><small>Recibido</small></span>
-          <span className={trackStepClass(1, activeIndex, pedidoCompletado)}><Clock3 size={16} /><small>Procesando</small></span>
-          <span className={trackStepClass(2, activeIndex, pedidoCompletado)}><CheckCircle2 size={16} /><small>Completado</small></span>
-        </div>
-      )}
-      {trackingError && <div className="track-order-result error">{trackingError}</div>}
-      {pedido && (
-        <div className={`track-order-result ${pedido.estado}`}>
-          <span><small>Estado</small><strong>{trackEstadoLabel(pedido.estado)}</strong></span>
-          <span><small>Codigo</small><strong>{pedido.codigo_operacion}</strong></span>
-          <button className="ghost-button" type="button" onClick={() => onTrackPedido(pedido.codigo_operacion)}>Abrir detalle</button>
-        </div>
-      )}
-    </section>
-  );
-}
-
-export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: InicioPageProps) {
+export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate, onTrackPedido }: InicioPageProps) {
   const [data, setData] = useState<TasaOperativaResponse | null>(() => leerTasasCache());
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -618,6 +520,8 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
   }
 
   async function actualizarTasas() {
+    if (!canLoadTasas) return;
+
     if (!canSyncTasas) {
       await cargarTasas();
       return;
@@ -638,8 +542,9 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
   }
 
   useEffect(() => {
+    if (!canLoadTasas) return;
     void cargarTasas({ silent: Boolean(data) });
-  }, []);
+  }, [canLoadTasas]);
 
   const gruposMoneda = useMemo(() => {
     const grupos = new Map<string, GrupoMoneda>();
@@ -727,88 +632,23 @@ export function InicioPage({ canSyncTasas = false, onCreate, onTrackPedido }: In
 
             <CotizadorVivo grupo={grupoActivo} />
 
-            <section className="home-services-section" aria-label="Servicios disponibles">
-              <div className="rates-grid operational-rates-grid">
-              {serviceCards.map((card) => {
-                const esSaldo = card.servicio === 'saldo';
-                const esDivisa = card.servicio === 'divisa';
-                const ofertas = esDivisa || esSaldo ? [] : ofertasServicio(grupoActivo.ofertas, card.servicio);
-                const ofertasDivisa = grupoActivo.ofertasDivisa;
-                const paquetesSaldo = grupoActivo.paquetesSaldo;
-                const tieneDatos = esSaldo ? paquetesSaldo.length > 0 : esDivisa ? ofertasDivisa.length > 0 : ofertas.length > 0;
-
-                return (
-                  <article className={`rate-card operation-rate-card ${card.tone} ${card.servicio}`} key={`${grupoActivo.moneda}-${card.servicio}`}>
-                    <header className="rate-card-header operation-rate-card-header">
-                      <span className="rate-icon">{card.icon}</span>
-                      <span>
-                        <h3>{card.title}</h3>
-                        <small>{card.subtitle}</small>
-                      </span>
-                      <strong className={tieneDatos ? 'rate-state active' : 'rate-state'}>{tieneDatos ? 'Activa' : 'Sin tasa'}</strong>
-                    </header>
-
-                    {!tieneDatos ? (
-                      <div className="rate-lines">
-                        <p className="rate-empty-state">Sin ofertas activas para {nombreMoneda(grupoActivo.moneda)}</p>
-                      </div>
-                    ) : esSaldo ? (
-                      <div className="rate-packages">
-                        {paquetesSaldo.slice(0, 3).map((paquete) => (
-                          <button
-                            type="button"
-                            className="rate-package-option"
-                            key={paquete.id}
-                            onClick={() => onCreate('saldo', { moneda_pago: monedaPago(paquete.moneda_pago ?? grupoActivo.moneda), paquete_saldo_id: String(paquete.id) })}
-                          >
-                            <span className="package-balance">
-                              <small>Recibe</small>
-                              <strong>{formatNumber(paquete.saldo_cup)}</strong>
-                              <em>CUP</em>
-                            </span>
-                            <span className="package-price">{formatNumber(paquete.monto_pago)} {monedaPago(paquete.moneda_pago ?? grupoActivo.moneda)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : esDivisa ? (
-                      <div className="rate-packages divisa-rate-packages">
-                        {ofertasDivisa.slice(0, 3).map((oferta) => (
-                          <button
-                            type="button"
-                            className="rate-package-option divisa-package-option"
-                            key={oferta.id}
-                            onClick={() => onCreate('divisa', {
-                              monto_pago: String(oferta.minimo_pago ?? ''),
-                              moneda_pago: monedaPago(oferta.moneda_pago ?? grupoActivo.moneda),
-                              tipo_tarjeta: tipoTarjetaDesdeOferta(oferta),
-                            })}
-                          >
-                            <span className="package-balance">
-                              <small>{etiquetaDivisa(oferta)}</small>
-                              <strong>{formatNumber(oferta.tasa)}</strong>
-                              <em>= {formatNumber(oferta.minimo_pago ?? 0)} {monedaPago(oferta.moneda_pago ?? grupoActivo.moneda)}</em>
-                            </span>
-                            <span className="package-price">Comprar</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <RateTierRows
-                        ofertas={ofertas}
-                        moneda={monedaPago(grupoActivo.moneda)}
-                        servicio={card.servicio}
-                        onCreate={onCreate}
-                      />
-                    )}
-
-                    <button className="primary-button rate-action" onClick={() => onCreate(card.servicio, { moneda_pago: grupoActivo.moneda })} disabled={!tieneDatos}>
-                      Crear {card.servicio}
-                    </button>
-                  </article>
-                );
-              })}
-              </div>
-            </section>
+            <ServicesRatesGrid
+              moneda={grupoActivo.moneda}
+              ofertas={grupoActivo.ofertas}
+              ofertasDivisa={grupoActivo.ofertasDivisa}
+              paquetesSaldo={grupoActivo.paquetesSaldo}
+              cards={serviceCards}
+              onCreate={onCreate}
+              ofertasServicio={ofertasServicio}
+              monedaPago={monedaPago}
+              nombreMoneda={nombreMoneda}
+              formatNumber={formatNumber}
+              etiquetaDivisa={etiquetaDivisa}
+              tipoTarjetaDesdeOferta={tipoTarjetaDesdeOferta}
+              renderRateRows={(ofertas, moneda, servicio) => (
+                <RateTierRows ofertas={ofertas} moneda={moneda} servicio={servicio} onCreate={onCreate} />
+              )}
+            />
           </section>
         </div>
       )}

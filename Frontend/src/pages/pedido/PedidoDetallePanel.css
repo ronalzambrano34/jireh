@@ -1,0 +1,43 @@
+.order-detail-page-body {
+  container-type: inline-size;
+}
+
+.order-detail-surface {
+  isolation: isolate;
+}
+
+.order-detail-section.open {
+  animation: order-section-open 160ms ease-out;
+}
+
+.order-detail-section.collapsed {
+  overflow: hidden;
+}
+
+.order-control-meta,
+.order-control-badges {
+  min-width: 0;
+}
+
+.order-control-meta > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes order-section-open {
+  from {
+    opacity: 0.72;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-detail-section.open {
+    animation: none;
+  }
+}

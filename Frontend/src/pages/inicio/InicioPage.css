@@ -1,0 +1,27 @@
+.home-page {
+  container-type: inline-size;
+}
+
+.home-page > :is(.rates-hero, .rates-currency-sections, .home-tracking-section) {
+  min-width: 0;
+}
+
+.rates-currency-section {
+  isolation: isolate;
+}
+
+.operational-rates-grid {
+  align-items: stretch;
+}
+
+.operation-rate-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-carousel-panel,
+  .operation-rate-card {
+    scroll-behavior: auto;
+  }
+}

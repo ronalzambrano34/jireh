@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Banknote, Check, ChevronRight, MapPin, Package, Percent, Settings2 } from 'lucide-react';
+import { Banknote, MapPin, Package, Percent } from 'lucide-react';
 import {
   crearCuentaMetodoPago,
   crearMetodoPago,
@@ -14,8 +14,11 @@ import {
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
+import { PhoneInput } from '../components/PhoneInput';
 import type { ConfiguracionInicialEstado, MetodoPago, ProvinciaServicio } from '../types/api';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
+import { SetupActions, SetupCardHeader, SetupHero, SetupSteps, type SetupStep } from './setup/SetupLayout';
+import './setup/SetupInicialPage.css';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 
@@ -91,7 +94,7 @@ export function SetupInicialPage({
     cargar().catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revisar la configuracion'));
   }, []);
 
-  const pasos = useMemo(() => [
+  const pasos = useMemo<SetupStep[]>(() => [
     { titulo: 'Cobros', detalle: 'Metodo y cuenta donde paga el cliente', icon: Banknote, listo: Boolean(estado?.cuentas) },
     { titulo: 'Tasas', detalle: 'Transferencia y efectivo', icon: Percent, listo: Boolean(estado?.ofertas) },
     { titulo: 'Efectivo', detalle: 'Punto de recogida', icon: MapPin, listo: Boolean(estado?.puntos) },
@@ -229,28 +232,10 @@ export function SetupInicialPage({
 
   return (
     <section className="setup-page">
-      <header className="setup-hero">
-        <span><Settings2 size={26} /></span>
-        <div>
-          <small>Primer inicio</small>
-          <h2>Preparemos el sistema para recibir pedidos</h2>
-          <p>Completa lo que utiliza tu negocio. Puedes volver y cambiarlo desde Administracion.</p>
-        </div>
-      </header>
+      <SetupHero />
 
       <div className="setup-layout">
-        <nav className="setup-steps" aria-label="Pasos de configuracion">
-          {pasos.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <button key={item.titulo} type="button" className={paso === index ? 'active' : ''} onClick={() => { setPaso(index); setError(null); setNotice(null); }}>
-                <span className={item.listo ? 'setup-step-icon done' : 'setup-step-icon'}>{item.listo ? <Check size={18} /> : <Icon size={18} />}</span>
-                <span><strong>{item.titulo}</strong><small>{item.detalle}</small></span>
-                <ChevronRight size={17} />
-              </button>
-            );
-          })}
-        </nav>
+        <SetupSteps steps={pasos} active={paso} onChange={(index) => { setPaso(index); setError(null); setNotice(null); }} />
 
         <div className="setup-card">
           {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
@@ -258,7 +243,7 @@ export function SetupInicialPage({
 
           {paso === 0 && (
             <>
-              <header><h3>Metodo y cuenta de cobro</h3><p>Estos datos aparecen en las instrucciones de pago enviadas al cliente.</p></header>
+              <SetupCardHeader title="Metodo y cuenta de cobro" description="Estos datos aparecen en las instrucciones de pago enviadas al cliente." />
               <div className="form-grid">
                 {metodos.length > 0 ? (
                   <label className="wide">Metodo existente
@@ -284,40 +269,40 @@ export function SetupInicialPage({
 
           {paso === 1 && (
             <>
-              <header><h3>Tasas iniciales</h3><p>Escribe las tasas de los servicios que ofrecerás. Puedes dejar uno vacío.</p></header>
+              <SetupCardHeader title="Tasas iniciales" description="Escribe las tasas de los servicios que ofreceras. Puedes dejar uno vacio." />
               <div className="form-grid">
                 <label className="wide">Moneda de pago<FloatingSelect value={tasas.moneda} onChange={(value) => setTasas((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: banderaMoneda(moneda) }))} align="left" /></label>
                 <label>Tasa transferencia<input value={tasas.transferencia} onChange={(event) => setTasas((current) => ({ ...current, transferencia: event.target.value }))} inputMode="decimal" placeholder="Ej. 118" /></label>
                 <label>Tasa efectivo<input value={tasas.efectivo} onChange={(event) => setTasas((current) => ({ ...current, efectivo: event.target.value }))} inputMode="decimal" placeholder="Ej. 117" /></label>
                 <label className="wide">Pago minimo<input value={tasas.minimo} onChange={(event) => setTasas((current) => ({ ...current, minimo: event.target.value }))} inputMode="decimal" /></label>
               </div>
-              <div className="setup-actions"><button className="ghost-button" type="button" onClick={() => setPaso(2)}>Configurar despues</button><button className="primary-button" type="button" onClick={() => void guardarTasas()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar tasas'}</button></div>
+              <SetupActions secondary={<button className="ghost-button" type="button" onClick={() => setPaso(2)}>Configurar despues</button>} primary={<button className="primary-button" type="button" onClick={() => void guardarTasas()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar tasas'}</button>} />
             </>
           )}
 
           {paso === 2 && (
             <>
-              <header><h3>Entrega de efectivo</h3><p>Agrega el lugar donde el destinatario recogerá el efectivo.</p></header>
+              <SetupCardHeader title="Entrega de efectivo" description="Agrega el lugar donde el destinatario recogera el efectivo." />
               <div className="form-grid">
                 <label>Nombre<input value={punto.nombre} onChange={(event) => setPunto((current) => ({ ...current, nombre: event.target.value }))} placeholder="Punto Centro" /></label>
                 <label>Provincia<FloatingSelect value={punto.provincia_id} onChange={(value) => setPunto((current) => ({ ...current, provincia_id: value }))} options={[{ value: '', label: 'Sin provincia' }, ...provincias.map((item) => ({ value: String(item.id), label: item.nombre, icon: <MapPin size={18} /> }))]} align="left" /></label>
                 <label className="wide">Direccion<input value={punto.direccion} onChange={(event) => setPunto((current) => ({ ...current, direccion: event.target.value }))} placeholder="Direccion e indicaciones" /></label>
-                <label className="wide">Telefono opcional<input value={punto.telefono} onChange={(event) => setPunto((current) => ({ ...current, telefono: event.target.value }))} inputMode="tel" /></label>
+                <label className="wide">Telefono opcional<PhoneInput value={punto.telefono} onChange={(value) => setPunto((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono del punto" /></label>
               </div>
-              <div className="setup-actions"><button className="ghost-button" type="button" onClick={() => setPaso(3)}>No uso efectivo ahora</button><button className="primary-button" type="button" onClick={() => void guardarPunto()} disabled={saving}>Guardar punto</button></div>
+              <SetupActions secondary={<button className="ghost-button" type="button" onClick={() => setPaso(3)}>No uso efectivo ahora</button>} primary={<button className="primary-button" type="button" onClick={() => void guardarPunto()} disabled={saving}>Guardar punto</button>} />
             </>
           )}
 
           {paso === 3 && (
             <>
-              <header><h3>Paquete de saldo</h3><p>Opcional. Define cuánto paga el cliente y cuánto saldo recibe.</p></header>
+              <SetupCardHeader title="Paquete de saldo" description="Opcional. Define cuanto paga el cliente y cuanto saldo recibe." />
               <div className="form-grid">
                 <label className="wide">Nombre<input value={saldo.nombre} onChange={(event) => setSaldo((current) => ({ ...current, nombre: event.target.value }))} placeholder="Recarga 1000 CUP" /></label>
                 <label>Monto pago<input value={saldo.monto_pago} onChange={(event) => setSaldo((current) => ({ ...current, monto_pago: event.target.value }))} inputMode="decimal" /></label>
                 <label>Moneda<FloatingSelect value={saldo.moneda} onChange={(value) => setSaldo((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: banderaMoneda(moneda) }))} align="left" /></label>
                 <label className="wide">Saldo CUP<input value={saldo.saldo_cup} onChange={(event) => setSaldo((current) => ({ ...current, saldo_cup: event.target.value }))} inputMode="numeric" /></label>
               </div>
-              <div className="setup-actions"><button className="ghost-button" type="button" onClick={() => void finalizar()} disabled={saving}>Finalizar sin saldo</button><button className="primary-button" type="button" onClick={() => void guardarSaldo()} disabled={saving}>Guardar paquete</button></div>
+              <SetupActions secondary={<button className="ghost-button" type="button" onClick={() => void finalizar()} disabled={saving}>Finalizar sin saldo</button>} primary={<button className="primary-button" type="button" onClick={() => void guardarSaldo()} disabled={saving}>Guardar paquete</button>} />
             </>
           )}
         </div>

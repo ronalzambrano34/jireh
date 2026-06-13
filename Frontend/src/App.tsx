@@ -1,32 +1,25 @@
 import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, CalendarRange, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, KeyRound, LayoutGrid, LayoutList, LogOut, Menu, Palette, Percent, Plus, RefreshCw, Search, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, LogOut, Menu, Palette, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
-import { PageLoader } from './components/PageLoader';
 import { Modal } from './components/Modal';
-import { PasswordField } from './components/PasswordField';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
-import { FloatingSelect } from './components/FloatingSelect';
-import { DismissibleNotice } from './components/DismissibleNotice';
-import { formatearNumeroTarjeta } from './utils/tarjetas';
 import { copiarAlPortapapeles } from './utils/clipboard';
+import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
 import {
   abrirWhatsAppUrl,
 } from './utils/whatsapp';
 import logoJireh from './assets/brand/logo-jireh.jpeg';
 
 const PedidoDetallePanel = lazy(() => import('./pages/PedidoDetallePanel').then((module) => ({ default: module.PedidoDetallePanel })));
-const DivisaForm = lazy(() => import('./pages/DivisaForm').then((module) => ({ default: module.DivisaForm })));
-const EfectivoForm = lazy(() => import('./pages/EfectivoForm').then((module) => ({ default: module.EfectivoForm })));
-const SaldoForm = lazy(() => import('./pages/SaldoForm').then((module) => ({ default: module.SaldoForm })));
-const OtrosForm = lazy(() => import('./pages/OtrosForm').then((module) => ({ default: module.OtrosForm })));
-const TransferenciaForm = lazy(() => import('./pages/TransferenciaForm').then((module) => ({ default: module.TransferenciaForm })));
 const ReportesPage = lazy(() => import('./pages/ReportesPage').then((module) => ({ default: module.ReportesPage })));
 const AdminCatalogosPage = lazy(() => import('./pages/AdminCatalogosPage').then((module) => ({ default: module.AdminCatalogosPage })));
 const InicioPage = lazy(() => import('./pages/InicioPage').then((module) => ({ default: module.InicioPage })));
-const ThemeTestPage = lazy(() => import('./pages/ThemeTestPage').then((module) => ({ default: module.ThemeTestPage })));
 const SetupInicialPage = lazy(() => import('./pages/SetupInicialPage').then((module) => ({ default: module.SetupInicialPage })));
+const CreateOrderPage = lazy(() => import('./pages/CreateOrderPage').then((module) => ({ default: module.CreateOrderPage })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
+const OrdersPage = lazy(() => import('./pages/OrdersPage').then((module) => ({ default: module.OrdersPage })));
 
 const estados = [
   { value: '', label: 'Estado' },
@@ -36,34 +29,21 @@ const estados = [
   { value: 'cancelado', label: 'Cancelado' },
 ];
 
-const servicios = [
-  { value: '', label: 'Servicio' },
-  { value: 'transferencia', label: 'Transferencia' },
-  { value: 'efectivo', label: 'Efectivo' },
-  { value: 'saldo', label: 'Saldo' },
-  { value: 'divisa', label: 'Divisa' },
-  { value: 'otros', label: 'Otros' },
-];
-
-type CrearPedidoDraft = {
-  monto_pago?: string;
-  moneda_pago?: string;
-  paquete_saldo_id?: string;
-  monto_divisa?: string;
-  tipo_tarjeta?: string;
-};
-
 type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
 type AppTheme = 'light' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 type AppToastKind = 'success' | 'error';
-type AppView = 'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'tema' | 'perfil';
+type AppView = 'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'perfil';
+type PendingAuthAction =
+  | { type: 'crear'; servicio: ServicioCrear; draft: CrearPedidoDraft }
+  | { type: 'rastrear'; codigo: string }
+  | null;
 
 const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
-const APP_VIEWS = new Set<AppView>(['inicio', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'tema', 'perfil']);
+const APP_VIEWS = new Set<AppView>(['inicio', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'perfil']);
 const estadosBandeja = estados.filter((item) => item.value);
 const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
@@ -86,34 +66,9 @@ function intervaloRefrescoPedidos() {
   return 30000;
 }
 
-function estadoLabel(value: string) {
-  if (value === 'en_operacion') return 'Pago confirmado';
-  return estados.find((item) => item.value === value)?.label ?? value.replaceAll('_', ' ');
-}
-
 function estadoFaseUno(value: string) {
   return value === 'en_operacion' ? 'pago_confirmado' : value;
 }
-
-function servicioIcon(value: string, size = 18) {
-  if (value === 'transferencia') return <WalletCards size={size} />;
-  if (value === 'efectivo') return <Banknote size={size} />;
-  if (value === 'saldo') return <Smartphone size={size} />;
-  if (value === 'divisa') return <WalletCards size={size} />;
-  if (value === 'otros') return <BriefcaseBusiness size={size} />;
-  return <BriefcaseBusiness size={size} />;
-}
-
-function WhatsAppIcon() {
-  return (
-    <span className="whatsapp-icon" aria-hidden="true">
-      <svg viewBox="0 0 32 32" focusable="false">
-        <path d="M16.1 4.2C9.7 4.2 4.5 9.4 4.5 15.8c0 2.1.6 4.2 1.7 6L4.4 28l6.4-1.7c1.6.9 3.4 1.3 5.3 1.3 6.4 0 11.6-5.2 11.6-11.6S22.5 4.2 16.1 4.2Zm0 21.4c-1.7 0-3.3-.4-4.7-1.2l-.3-.2-3.8 1 1-3.7-.2-.4c-1-1.5-1.5-3.3-1.5-5.2 0-5.3 4.3-9.6 9.6-9.6s9.6 4.3 9.6 9.6-4.4 9.7-9.7 9.7Zm5.3-7.2c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.8-.8-1.4-1.7-1.6-2-.2-.3 0-.4.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5s-.7-1.6-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1.1 2.8 1.2 3c.1.2 2.1 3.3 5.2 4.6.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.2-.2-.4-.3-.7-.4Z" />
-      </svg>
-    </span>
-  );
-}
-
 
 function inicialesOperador(operador: Operador) {
   return operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -136,94 +91,6 @@ function AppToast({ kind, message, onClose }: { kind: AppToastKind; message: str
       </button>
     </div>
   );
-}
-
-function detalleValor(pedido: PedidoResumen, key: string) {
-  const value = pedido.detalle?.[key];
-  if (value === null || value === undefined || value === '') return null;
-  if (key === 'numero_tarjeta') return formatearNumeroTarjeta(String(value));
-  return String(value);
-}
-
-function monedaEntregaPedido(pedido: PedidoResumen) {
-  if (pedido.servicio === 'divisa') return detalleValor(pedido, 'tipo_tarjeta') ?? 'DIVISA';
-  if (pedido.servicio === 'otros') return pedido.moneda_pago;
-  return 'CUP';
-}
-
-function tasaAplicadaPedido(pedido: PedidoResumen) {
-  if (pedido.servicio === 'saldo') return pedido.monto_pago;
-  return pedido.tasa_final;
-}
-
-function camposTarjetaPedido(pedido: PedidoResumen) {
-  if (pedido.servicio === 'transferencia') {
-    return [
-      { label: 'Tarjeta', value: detalleValor(pedido, 'numero_tarjeta') },
-      { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Monto CUP', value: detalleValor(pedido, 'monto_cup') ?? String(pedido.monto_resultado) },
-    ];
-  }
-
-  if (pedido.servicio === 'efectivo') {
-    return [
-      { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Foto documento', value: detalleValor(pedido, 'documento_identidad_url') },
-      { label: 'Monto CUP', value: detalleValor(pedido, 'monto_cup') ?? String(pedido.monto_resultado) },
-    ];
-  }
-
-  if (pedido.servicio === 'saldo') {
-    return [
-      { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Saldo', value: `${detalleValor(pedido, 'saldo_cup') ?? pedido.monto_resultado} CUP` },
-    ];
-  }
-
-  if (pedido.servicio === 'divisa') {
-    return [
-      { label: 'Tipo', value: detalleValor(pedido, 'tipo_tarjeta') },
-      { label: 'Tarjeta', value: detalleValor(pedido, 'numero_tarjeta') },
-      { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Monto divisa', value: `${detalleValor(pedido, 'monto_divisa') ?? pedido.monto_resultado} ${monedaEntregaPedido(pedido)}` },
-    ];
-  }
-
-  if (pedido.servicio === 'otros') {
-    return [
-      { label: 'Telefono', value: detalleValor(pedido, 'telefono_destinatario') },
-      { label: 'Tarjeta', value: detalleValor(pedido, 'numero_tarjeta') },
-      { label: 'Info', value: pedido.observaciones },
-      { label: 'Pago', value: `${pedido.monto_pago} ${pedido.moneda_pago}` },
-    ];
-  }
-
-  return [
-    { label: 'Resultado', value: String(pedido.monto_resultado) },
-  ];
-}
-
-function resumenPedido(pedido: PedidoResumen) {
-  return camposTarjetaPedido(pedido)
-    .filter((field) => field.value)
-    .slice(0, 2);
-}
-
-function tiempoRelativo(value?: string, nowMs = Date.now()) {
-  if (!value) return null;
-  const fecha = new Date(value);
-  if (Number.isNaN(fecha.getTime())) return null;
-
-  const diffMs = nowMs - fecha.getTime();
-  const diffMin = Math.max(0, Math.floor(diffMs / 60000));
-  if (diffMin < 1) return 'hace instantes';
-  if (diffMin < 60) return `hace ${diffMin} min`;
-
-  const diffHoras = Math.floor(diffMin / 60);
-  if (diffHoras < 24) return `hace ${diffHoras} h`;
-
-  const diffDias = Math.floor(diffHoras / 24);
-  return `hace ${diffDias} d`;
 }
 
 function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
@@ -257,6 +124,8 @@ export function App() {
     return 'dark-sidebar';
   });
   const [operador, setOperador] = useState<Operador | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [pendingAuthAction, setPendingAuthAction] = useState<PendingAuthAction>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
   const [pedidoPagoModal, setPedidoPagoModal] = useState<PedidoDetalle | null>(null);
   const [whatsappGrupoPendiente, setWhatsappGrupoPendiente] = useState<{
@@ -463,6 +332,31 @@ export function App() {
     setMobileMenuOpen(false);
     setUserMenuOpen(false);
     setQuickCreateOpen(false);
+  }
+
+  function solicitarLogin(action: PendingAuthAction = null) {
+    setPendingAuthAction(action);
+    setLoginOpen(true);
+  }
+
+  function completarLogin(nextOperador: Operador) {
+    setOperador(nextOperador);
+    setLoginOpen(false);
+
+    if (pendingAuthAction?.type === 'crear') {
+      abrirCrear(pendingAuthAction.servicio, pendingAuthAction.draft);
+    } else if (pendingAuthAction?.type === 'rastrear') {
+      const codigo = pendingAuthAction.codigo.trim().toUpperCase();
+      setBusqueda(codigo);
+      setEstado('');
+      setServicio('');
+      setSeleccionado(codigo);
+      setVista('bandeja');
+    } else {
+      setVista('inicio');
+    }
+
+    setPendingAuthAction(null);
   }
 
   function rastrearPedido(codigo: string) {
@@ -898,7 +792,39 @@ export function App() {
   }
 
   if (!operador) {
-    return <LoginPage onLogin={setOperador} />;
+    return (
+      <div className="public-home-shell">
+        <header className="public-home-header">
+          <button className="header-brand" type="button" title="Inicio">
+            <img src={logoJireh} alt="El Jireh" />
+            <span>EL JIREH</span>
+          </button>
+          <button className="primary-button" type="button" onClick={() => solicitarLogin()}>
+            Entrar
+          </button>
+        </header>
+        <main className="public-home-content">
+          <InicioPage
+            canLoadTasas={false}
+            onCreate={(nextServicio, draft) => solicitarLogin({ type: 'crear', servicio: nextServicio, draft: draft ?? {} })}
+            onTrackPedido={(codigo) => solicitarLogin({ type: 'rastrear', codigo })}
+          />
+        </main>
+        {loginOpen && (
+          <Modal
+            title="Iniciar sesion"
+            subtitle="Identificate para continuar con la operacion"
+            onClose={() => {
+              setLoginOpen(false);
+              setPendingAuthAction(null);
+            }}
+            className="login-modal"
+          >
+            <LoginPage embedded onLogin={completarLogin} />
+          </Modal>
+        )}
+      </div>
+    );
   }
 
   const appShellClassName = [
@@ -937,7 +863,6 @@ export function App() {
           <button className={`ui-nav-item ${vista === 'reportes' ? 'active' : ''}`} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
           <button className={`ui-nav-item ${vista === 'admin' ? 'active' : ''}`} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
           {puedeAdmin && <button className={`ui-nav-item ${vista === 'setup' ? 'active' : ''}`} onClick={() => navegar('setup')}><ShieldCheck size={18} /> Configurar</button>}
-          {puedeAdmin && <button className={`ui-nav-item ${vista === 'tema' ? 'active' : ''}`} onClick={() => navegar('tema')}><Palette size={18} /> Tema UI</button>}
           <button className={`ui-nav-item ${vista === 'perfil' ? 'active' : ''}`} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
         <button className="ghost-button" onClick={cerrarSesion}>
@@ -962,8 +887,8 @@ export function App() {
             <span>EL JIREH</span>
           </button>
           <div className="toolbar-title">
-            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'setup' ? 'Configuracion inicial' : vista === 'tema' ? 'Tema UI' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
-            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'tema' ? 'Comparacion visual de componentes' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
+            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'setup' ? 'Configuracion inicial' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
+            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
             {userMenuOpen && <button className="floating-create-backdrop user-floating-backdrop" type="button" aria-label="Cerrar opciones de usuario" onClick={() => setUserMenuOpen(false)} />}
@@ -1034,195 +959,29 @@ export function App() {
           <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
         ) : vista === 'admin' ? (
           <AdminCatalogosPage />
-        ) : vista === 'tema' ? (
-          <ThemeTestPage />
         ) : vista === 'reportes' ? (
           <ReportesPage />
         ) : vista === 'perfil' ? (
-          <section className="profile-page">
-            <div className="profile-hero-card">
-              <div className="profile-hero-main">
-                <div className="profile-avatar-wrap">
-                  <OperadorAvatar operador={operador} className="profile-avatar initials" />
-                  <label className="profile-photo-upload" title="Cambiar foto">
-                    {profilePhotoSaving ? 'Subiendo...' : 'Cambiar foto'}
-                    <input type="file" accept="image/*" disabled={profilePhotoSaving} onChange={(event) => { const file = event.target.files?.[0]; if (file) void subirFotoPerfil(file); event.currentTarget.value = ''; }} />
-                  </label>
-                </div>
-                <div>
-                  <h2>{operador.nombre}</h2>
-                  <p>{operador.telefono}</p>
-                </div>
-              </div>
-              <div className="profile-hero-meta">
-                <span>Codigo: <strong>{operador.codigo_operador}</strong></span>
-                <span>Rol: <strong>{operador.rol}</strong></span>
-                <button className="icon-button" onClick={() => void copiarPago(operador.codigo_operador)} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
-              </div>
-            </div>
-
-            <div className="profile-section">
-              <h3>Mi cuenta</h3>
-              <button className={profileSection === 'editar' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('editar')} aria-expanded={profileSection === 'editar'}><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown className={profileSection === 'editar' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'editar' && (
-                <form className="profile-inline-panel profile-form" onSubmit={guardarPerfil}>
-                  <label>
-                    <span>Nombre visible</span>
-                    <input value={profileNombre} onChange={(event) => setProfileNombre(event.target.value)} autoComplete="name" />
-                  </label>
-                  <label>
-                    <span>Telefono de acceso</span>
-                    <input value={operador.telefono ?? ''} disabled />
-                  </label>
-                  <small>El telefono se mantiene fijo para evitar cambios accidentales en el acceso.</small>
-                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Guardando...' : 'Guardar datos'}</button>
-                </form>
-              )}
-
-              <button className={profileSection === 'permisos' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('permisos')} aria-expanded={profileSection === 'permisos'}><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown className={profileSection === 'permisos' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'permisos' && (
-                <div className="profile-inline-panel">
-                  <div className="profile-role-pill"><ShieldCheck size={18} /> {operador.rol}</div>
-                  <div className="profile-permission-list">
-                    {operador.permisos.length ? operador.permisos.map((permiso) => <span key={permiso}>{permiso}</span>) : <span>Sin permisos especiales</span>}
-                  </div>
-                </div>
-              )}
-
-
-              <div className="profile-appearance-row">
-                <span className="profile-appearance-icon" aria-hidden="true"><Palette size={22} /></span>
-                <div className="profile-appearance-copy">
-                  <div className="profile-appearance-title">
-                    <strong>Apariencia</strong>
-                    <label className="theme-switch">
-                      <input
-                        type="checkbox"
-                        checked={theme !== 'light'}
-                        onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}
-                        aria-label="Activar tema oscuro"
-                      />
-                      <span>Oscuro</span>
-                    </label>
-                  </div>
-                  <small>{theme === 'light' ? 'Tema claro' : 'Oscuro Jireh predeterminado'}</small>
-                </div>
-              </div>
-            </div>
-
-            <div className="profile-section">
-              <h3>Seguridad</h3>
-              <button className={profileSection === 'password' ? 'profile-option active' : 'profile-option'} type="button" onClick={() => abrirPerfilSeccion('password')} aria-expanded={profileSection === 'password'}><KeyRound size={22} /><span>Cambiar contraseña</span><ChevronDown className={profileSection === 'password' ? 'chevron-open' : ''} size={18} /></button>
-              {profileSection === 'password' && (
-                <form className="profile-inline-panel profile-form" onSubmit={guardarPassword}>
-                  <label>
-                    <span>contraseña actual</span>
-                    <PasswordField value={profilePassword.actual} onChange={(event) => setProfilePassword((current) => ({ ...current, actual: event.target.value }))} autoComplete="current-password" />
-                  </label>
-                  <label>
-                    <span>Nueva contraseña</span>
-                    <PasswordField value={profilePassword.nueva} onChange={(event) => setProfilePassword((current) => ({ ...current, nueva: event.target.value }))} autoComplete="new-password" />
-                  </label>
-                  <label>
-                    <span>Confirmar nueva</span>
-                    <PasswordField value={profilePassword.confirmar} onChange={(event) => setProfilePassword((current) => ({ ...current, confirmar: event.target.value }))} autoComplete="new-password" />
-                  </label>
-                  <button className="primary-action" type="submit" disabled={profileSaving}>{profileSaving ? 'Actualizando...' : 'Cambiar contraseña'}</button>
-                </form>
-              )}
-
-            </div>
-
-            <div className="profile-section">
-              <h3>Soporte</h3>
-              <button
-                className={profileSection === 'ayuda' ? 'profile-option active' : 'profile-option'}
-                type="button"
-                onClick={() => abrirPerfilSeccion('ayuda')}
-                aria-expanded={profileSection === 'ayuda'}
-              >
-                <HelpCircle size={22} />
-                <span>Ayuda para operar</span>
-                <ChevronDown className={profileSection === 'ayuda' ? 'chevron-open' : ''} size={18} />
-              </button>
-              {profileSection === 'ayuda' && (
-                <div className="profile-support-options">
-                  <div className="profile-support-panel">
-                    <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer">
-                      <WhatsAppIcon />
-                      <span>
-                        <strong>Brasil</strong>
-                        <small>+55 48 9123-3191</small>
-                      </span>
-                    </a>
-                    <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer">
-                      <WhatsAppIcon />
-                      <span>
-                        <strong>Uruguay</strong>
-                        <small>+598 94 207 862</small>
-                      </span>
-                    </a>
-                  </div>
-                </div>
-              )}
-              <button className="profile-option danger profile-logout-option" type="button" onClick={cerrarSesion}><LogOut size={22} /><span>Salir</span></button>
-            </div>
-          </section>
+          <ProfilePage
+            operador={operador}
+            section={profileSection}
+            nombre={profileNombre}
+            password={profilePassword}
+            theme={theme}
+            saving={profileSaving}
+            photoSaving={profilePhotoSaving}
+            onSectionChange={abrirPerfilSeccion}
+            onNombreChange={setProfileNombre}
+            onPasswordChange={setProfilePassword}
+            onThemeChange={setTheme}
+            onPhoto={(file) => void subirFotoPerfil(file)}
+            onSaveProfile={guardarPerfil}
+            onSavePassword={guardarPassword}
+            onCopyCode={() => void copiarPago(operador.codigo_operador)}
+            onLogout={cerrarSesion}
+          />
         ) : vista === 'crear' ? (
-          <section className="create-stack">
-            <div className="service-tabs">
-              <button
-                type="button"
-                className={servicioCrear === 'transferencia' ? 'active' : ''}
-                onClick={() => { setServicioCrear('transferencia'); setCrearDraft({}); }}
-              >
-                Transferencia
-              </button>
-              <button
-                type="button"
-                className={servicioCrear === 'efectivo' ? 'active' : ''}
-                onClick={() => { setServicioCrear('efectivo'); setCrearDraft({}); }}
-              >
-                Efectivo
-              </button>
-              <button
-                type="button"
-                className={servicioCrear === 'saldo' ? 'active' : ''}
-                onClick={() => { setServicioCrear('saldo'); setCrearDraft({}); }}
-              >
-                Saldo
-              </button>
-              <button
-                type="button"
-                className={servicioCrear === 'divisa' ? 'active' : ''}
-                onClick={() => { setServicioCrear('divisa'); setCrearDraft({}); }}
-              >
-                Divisa
-              </button>
-              <button
-                type="button"
-                className={servicioCrear === 'otros' ? 'active' : ''}
-                onClick={() => { setServicioCrear('otros'); setCrearDraft({}); }}
-              >
-                Otros
-              </button>
-            </div>
-            {servicioCrear === 'transferencia' && (
-              <TransferenciaForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
-            )}
-            {servicioCrear === 'efectivo' && (
-              <EfectivoForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
-            )}
-            {servicioCrear === 'saldo' && (
-              <SaldoForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
-            )}
-            {servicioCrear === 'divisa' && (
-              <DivisaForm operadorId={operador.id} initialData={crearDraft} onCreated={finalizarCreacionPedido} />
-            )}
-            {servicioCrear === 'otros' && (
-              <OtrosForm operadorId={operador.id} onCreated={finalizarCreacionPedido} />
-            )}
-          </section>
+          <CreateOrderPage service={servicioCrear} draft={crearDraft} operadorId={operador.id} onServiceChange={(service) => { setServicioCrear(service); setCrearDraft({}); }} onCreated={finalizarCreacionPedido} />
         ) : (
           <>
             {seleccionado ? (
@@ -1234,183 +993,38 @@ export function App() {
                 onClose={() => setSeleccionado(null)}
               />
             ) : (
-            <section className="content-grid orders-content-grid">
-              <div className="list-panel orders-list-panel">
-                <div className="filters orders-toolbar-row">
-                  <label className="search-box orders-search-box">
-                    <Search size={18} />
-                    <input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" />
-                  </label>
-                </div>
-                <div className="status-filters orders-scope-chips" aria-label="Alcance de ordenes">
-                  <button type="button" className={alcancePedidos === 'mis' ? 'active scope-my-orders' : 'scope-my-orders'} onClick={() => setAlcancePedidos('mis')}>
-                    <UserCircle size={16} />
-                    <span>Mis pedidos</span>
-                    <strong>{misPedidosConteo}</strong>
-                  </button>
-                  {puedeVerTodasLasOrdenes && (
-                    <button type="button" className={alcancePedidos === 'todas' ? 'active' : ''} onClick={() => setAlcancePedidos('todas')}>
-                      <ClipboardList size={16} />
-                      <span>Todas</span>
-                      <strong>{todasPedidosConteo}</strong>
-                    </button>
-                  )}
-                  <div className="orders-top-actions">
-                    <div className="order-filter-field order-filter-floating orders-period-action">
-                      <FloatingSelect
-                        value={periodoPedidos}
-                        onChange={(value) => setPeriodoPedidos(value as PeriodoPedidos)}
-                        options={[
-                          { value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> },
-                          { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> },
-                          { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> },
-                          { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> },
-                        ]}
-                        ariaLabel="Filtrar pedidos por fecha"
-                        align="left"
-                        buttonClassName="order-filter-button"
-                      />
-                    </div>
-                    <div className="order-filter-field order-filter-floating orders-service-action">
-                      <FloatingSelect
-                        value={servicio}
-                        onChange={setServicio}
-                        options={servicios.map((item) => ({
-                          value: item.value,
-                          label: item.value ? item.label : 'Todos los servicios',
-                          icon: servicioIcon(item.value, 17),
-                        }))}
-                        ariaLabel="Filtrar por servicio"
-                        align="right"
-                        buttonClassName="order-filter-button"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="view-toggle single-view-toggle"
-                      onClick={() => setVistaPedidos((current) => current === 'lista' ? 'kanban' : 'lista')}
-                      title={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
-                      aria-label={vistaPedidos === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}
-                    >
-                      {vistaPedidos === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}
-                    </button>
-                    <button className="icon-button orders-refresh-button" onClick={cargarPedidos} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={loading}>
-                      <RefreshCw size={18} />
-                    </button>
-                  </div>
-                </div>
-                <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
-                  <button type="button" className={!estado ? 'active' : ''} onClick={() => setEstado('')}>
-                    <span>Todos</span>
-                    <strong>{totalPedidosConteo}</strong>
-                  </button>
-                  {estadosBandeja.map((item) => (
-                    <button
-                      type="button"
-                      key={item.value}
-                      className={estado === item.value ? `active ${item.value}` : item.value}
-                      onClick={() => setEstado(item.value)}
-                    >
-                      <span>{item.label}</span>
-                      <strong>{pedidosConteoPorEstado.get(item.value) ?? 0}</strong>
-                    </button>
-                  ))}
-                </div>
-                {loading && <PageLoader label="Cargando pedidos" inline />}
-                {pedidosFiltrados.length === 0 && !loading && <DismissibleNotice className="notice">No hay pedidos para estos filtros</DismissibleNotice>}
-                {vistaPedidos === 'lista' ? (
-                  <div className="chat-order-list">
-                    {pedidosListaOrdenada.map((pedido) => {
-                      const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
-                      return (
-                      <button
-                        key={pedido.codigo_operacion}
-                        className={disponibilidadPedidoClass(pedido, 'chat-order-card', seleccionado === pedido.codigo_operacion, false)}
-                        onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
-                        disabled={bloqueadoPorOtro}
-                      >
-                        <span className="chat-card-main">
-                          <span className="pedido-card-head">
-                            <strong>{pedido.servicio}</strong>
-                            <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
-                          </span>
-                          <span className="pedido-card-fields compact">
-                            {resumenPedido(pedido).map((field) => (
-                              <span className="pedido-card-field" key={field.label}>
-                                <small>{field.label}</small>
-                                <strong>{field.value}</strong>
-                              </span>
-                            ))}
-                          </span>
-                        </span>
-                        <span className="chat-card-side">
-                          <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
-                          {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own' : 'order-redirect-chip'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
-                          {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned">Lo tienes tu</small>}
-                          {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
-                          <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
-                          <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
-                        </span>
-                      </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="pedido-board">
-                    {pedidosPorEstado.map((grupo) => {
-                      const colapsado = pedidosEstadosColapsados.has(grupo.value);
-                      return (
-                      <section className={colapsado ? 'pedido-column collapsed' : 'pedido-column'} key={grupo.value} style={{ order: grupo.orden }}>
-                        <header className="pedido-column-header">
-                          <button className="pedido-column-toggle" type="button" onClick={() => toggleEstadoPedido(grupo.value)} aria-expanded={!colapsado}>
-                            <ChevronDown className={colapsado ? 'collapsed' : ''} size={18} />
-                            <span className={`status ${grupo.value}`}>{grupo.label}</span>
-                          </button>
-                          <strong>{grupo.pedidos.length}</strong>
-                        </header>
-                        {!colapsado && <div className="pedido-list">
-                          {grupo.pedidos.map((pedido) => {
-                            const bloqueadoPorOtro = pedidoBloqueadoPorOtro(pedido);
-                            return (
-                            <button
-                              key={pedido.codigo_operacion}
-                              className={disponibilidadPedidoClass(pedido, 'pedido-row', seleccionado === pedido.codigo_operacion, false)}
-                              onClick={() => { if (!bloqueadoPorOtro) setSeleccionado(pedido.codigo_operacion); }}
-                              disabled={bloqueadoPorOtro}
-                            >
-                              <span className="kanban-card-top">
-                                <span className="pedido-card-head">
-                                  <strong>{pedido.servicio}</strong>
-                                  <small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, pedidosClock) ? `- ${tiempoRelativo(pedido.created_at, pedidosClock)}` : ''}</small>
-                                  {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
-                                  {pedidoTomadoPorMi(pedido) && <small className="order-taken-chip owned inline">Lo tienes tu</small>}
-                                  {pedidoBloqueadoPorOtro(pedido) && <small className="order-taken-chip blocked inline">Atendido por {pedido.operador_asignado_nombre ?? 'operador'}</small>}
-                                </span>
-                                <strong>{pedido.monto_pago} {pedido.moneda_pago}</strong>
-                              </span>
-                              <span className="pedido-card-fields compact">
-                                {resumenPedido(pedido).map((field) => (
-                                  <span className="pedido-card-field" key={field.label}>
-                                    <small>{field.label}</small>
-                                    <strong>{field.value}</strong>
-                                  </span>
-                                ))}
-                              </span>
-                              <span className="pedido-card-pay compact-pay">
-                                <small>Recibe {pedido.monto_resultado} {monedaEntregaPedido(pedido)}</small>
-                                <small>Tasa {tasaAplicadaPedido(pedido)}</small>
-                              </span>
-                            </button>
-                            );
-                          })}
-                        </div>}
-                      </section>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </section>
+              <OrdersPage
+                operador={operador}
+                pedidos={pedidosFiltrados}
+                lista={pedidosListaOrdenada}
+                grupos={pedidosPorEstado}
+                counts={pedidosConteoPorEstado}
+                total={totalPedidosConteo}
+                misCount={misPedidosConteo}
+                todasCount={todasPedidosConteo}
+                busqueda={busqueda}
+                estado={estado}
+                servicio={servicio}
+                scope={alcancePedidos}
+                period={periodoPedidos}
+                view={vistaPedidos}
+                loading={loading}
+                clock={pedidosClock}
+                canViewAll={Boolean(puedeVerTodasLasOrdenes)}
+                collapsed={pedidosEstadosColapsados}
+                onBusqueda={setBusqueda}
+                onEstado={setEstado}
+                onServicio={setServicio}
+                onScope={setAlcancePedidos}
+                onPeriod={setPeriodoPedidos}
+                onView={setVistaPedidos}
+                onRefresh={() => void cargarPedidos()}
+                onToggleGroup={toggleEstadoPedido}
+                onSelect={setSeleccionado}
+                classNameFor={(pedido, base) => disponibilidadPedidoClass(pedido, base, false, false)}
+                blockedByOther={pedidoBloqueadoPorOtro}
+                ownedByMe={pedidoTomadoPorMi}
+              />
             )}
           </>
         )}

@@ -4,11 +4,10 @@ import { crearOtros, listarMetodosPago, listarPuntosRecogida, subirArchivo } fro
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { CreateOrderFormShell } from '../components/CreateOrderFormShell';
 import { CurrencySelect } from '../components/CurrencySelect';
-import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
-import { PageLoader } from '../components/PageLoader';
 import { PhoneInput } from '../components/PhoneInput';
 import type { Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -169,8 +168,14 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
-      <div className="form-flow">
+    <CreateOrderFormShell
+      error={error}
+      loading={loading}
+      loadingLabel="Creando pedido"
+      submitLabel="Crear otros"
+      onSubmit={handleSubmit}
+      onDismissError={() => setError(null)}
+    >
         <section className="form-section-card client-step">
           <header className="form-section-header">
             <span className="form-step-number">1</span>
@@ -296,12 +301,6 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
             </label>
           </div>
         </section>
-      </div>
-      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
-      {loading && <PageLoader label="Creando pedido" inline />}
-      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
-        {loading ? 'Creando...' : 'Crear otros'}
-      </button>
-    </form>
+    </CreateOrderFormShell>
   );
 }

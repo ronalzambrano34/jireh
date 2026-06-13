@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, Copy, ExternalLink, FileText, History, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Unlock, Upload, X } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, FileText, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Upload, X } from 'lucide-react';
 import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
@@ -11,6 +11,8 @@ import {
 import { FloatingSelect } from '../components/FloatingSelect';
 import { formatearNumeroTarjeta } from '../utils/tarjetas';
 import { copiarAlPortapapeles } from '../utils/clipboard';
+import { CollapsibleOrderSection, LiquidationCard, OrderControlHead, OrderEvidenceSection, OrderHistorySection, PedidoDetailHeader } from './pedido/PedidoDetalleView';
+import './pedido/PedidoDetallePanel.css';
 
 const estados = [
   { value: 'pendiente_pago', label: 'Pendiente pago' },
@@ -200,10 +202,6 @@ function archivoUrl(archivo: ArchivoPedido) {
 
 function archivoEsImagen(archivo: ArchivoPedido) {
   return archivo.mime_type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(archivo.ruta_archivo);
-}
-
-function archivoEsPdf(archivo: ArchivoPedido) {
-  return archivo.mime_type === 'application/pdf' || /\.pdf$/i.test(archivo.ruta_archivo);
 }
 
 function archivoTipoLabel(tipo: string) {
@@ -722,38 +720,26 @@ export function PedidoDetallePanel({
           </div>
         </div>
       )}
-      <header className="order-detail-page-header">
-        <button type="button" className="ghost-button order-detail-back" onClick={cerrarDetalle}>
-          <X size={18} /> Volver
-        </button>
-        <div>
-          <h2>{pedido?.codigo_operacion ?? codigo}</h2>
-          {pedido && <p>{servicioLabel(pedido.servicio)} · {pedido.moneda_pago}</p>}
-        </div>
-      </header>
+      <PedidoDetailHeader
+        codigo={pedido?.codigo_operacion ?? codigo}
+        servicio={pedido ? servicioLabel(pedido.servicio) : undefined}
+        moneda={pedido?.moneda_pago}
+        onClose={cerrarDetalle}
+      />
       <div className="order-detail-page-body">
         {loading && <PageLoader label="Cargando detalle" inline />}
         {!loading && !pedido && <div className="detail-panel empty">Sin detalle disponible</div>}
         {!loading && pedido && (
           <div className="detail-panel order-detail-surface">
-          <section className="order-control-head">
-            <div className="order-control-meta">
-              <span className={`order-state-dot ${pedido.estado}`} />
-              <span>{servicioLabel(pedido.servicio)} · {pedido.moneda_pago} · {formatoFecha(pedido.created_at) ?? 'sin fecha'}</span>
-            </div>
-            <div className="order-control-badges">
-              <span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>
-              {bloqueoPropio && <span className="lock-chip own"><Lock size={14} /> Tomado por ti</span>}
-              {bloqueadoPorOtro && <span className="lock-chip blocked"><ShieldAlert size={14} /> En uso</span>}
-            </div>
-            {bloqueoPropio && (
-              <div className="order-management-actions" aria-label="Acciones de gestion del pedido">
-                <button className="release-order-button" type="button" onClick={() => void liberarPedidoActual()} disabled={saving}>
-                  <Unlock size={15} /> Liberar pedido
-                </button>
-              </div>
-            )}
-          </section>
+          <OrderControlHead
+            pedido={pedido}
+            estado={estadoLabel(pedido.estado)}
+            fecha={formatoFecha(pedido.created_at) ?? 'sin fecha'}
+            bloqueoPropio={bloqueoPropio}
+            bloqueadoPorOtro={bloqueadoPorOtro}
+            saving={saving}
+            onRelease={() => void liberarPedidoActual()}
+          />
 
           {copyFeedback && (
             <div className="copy-toast" role="status">
@@ -783,27 +769,13 @@ export function PedidoDetallePanel({
             </DismissibleNotice>
           )}
 
-          <section className="liquidation-card" aria-label="Liquidacion de la orden">
-            <div className="liquidation-cell">
-              <span>Envia</span>
-              <button className={copiaActiva('Pagado') ? 'liquidation-copy copied' : 'liquidation-copy'} type="button" onClick={() => copiarCampo(pedido.monto_pago + ' ' + pedido.moneda_pago, 'Pagado')}>
-                <strong>{pedido.monto_pago}</strong>
-                <small>{pedido.moneda_pago}</small>
-              </button>
-            </div>
-            <div className="liquidation-rate">
-              <span>x</span>
-              <strong>{tasaAplicadaPedido(pedido)}</strong>
-            </div>
-            <div className="liquidation-cell output">
-              <span>Entrega</span>
-              <button className={copiaActiva('Entrega') ? 'liquidation-copy copied' : 'liquidation-copy'} type="button" onClick={() => copiarCampo(pedido.monto_resultado + ' ' + monedaEntrega, 'Entrega')}>
-                <strong>{pedido.monto_resultado}</strong>
-                <small>{monedaEntrega}</small>
-                <Copy size={15} />
-              </button>
-            </div>
-          </section>
+          <LiquidationCard
+            pedido={pedido}
+            tasa={tasaAplicadaPedido(pedido)}
+            monedaEntrega={monedaEntrega}
+            copied={copiaActiva}
+            onCopy={copiarCampo}
+          />
 
           {detalle.length > 0 && (
             <section className="order-detail-section operation-detail">
@@ -872,12 +844,7 @@ export function PedidoDetallePanel({
             </section>
           )}
 
-          <section className={redireccionAbierta ? 'order-detail-section order-redirect-section open' : 'order-detail-section order-redirect-section collapsed'}>
-            <button className="secondary-action-toggle" type="button" onClick={() => setRedireccionAbierta((current) => !current)} aria-expanded={redireccionAbierta}>
-              <span><Send size={17} /> Transferir a...</span>
-              <ChevronDown size={17} />
-            </button>
-            {redireccionAbierta && (
+          <CollapsibleOrderSection open={redireccionAbierta} className="order-redirect-section" icon={<Send size={17} />} label="Transferir a..." onToggle={() => setRedireccionAbierta((current) => !current)}>
               <div className="order-redirect-grid">
                 <FloatingSelect
                   value={operadorDestino}
@@ -897,16 +864,10 @@ export function PedidoDetallePanel({
                   {operadorDestino ? 'Marcar' : 'Transferir'}
                 </button>
               </div>
-            )}
-          </section>
+          </CollapsibleOrderSection>
 
           {pedido.mensaje_operacion && (
-            <section className={mensajeAbierto ? 'order-detail-section message-box order-message-box open' : 'order-detail-section message-box order-message-box collapsed'}>
-              <button className="secondary-action-toggle" type="button" onClick={() => setMensajeAbierto((current) => !current)} aria-expanded={mensajeAbierto}>
-                <span><MessageCircle size={17} /> Mensaje operativo</span>
-                <ChevronDown size={17} />
-              </button>
-              {mensajeAbierto && (
+            <CollapsibleOrderSection open={mensajeAbierto} className="message-box order-message-box" icon={<MessageCircle size={17} />} label="Mensaje operativo" onToggle={() => setMensajeAbierto((current) => !current)}>
                 <>
                   <div className="message-actions">
                     <button className="ghost-button" type="button" onClick={() => copiarCampo(pedido.mensaje_operacion ?? '', 'Mensaje')}>
@@ -915,8 +876,7 @@ export function PedidoDetallePanel({
                   </div>
                   <pre>{pedido.mensaje_operacion}</pre>
                 </>
-              )}
-            </section>
+            </CollapsibleOrderSection>
           )}
 
           {confirmarPagoAbierto && (
@@ -1092,64 +1052,26 @@ export function PedidoDetallePanel({
             </Modal>
           )}
 
-          <section className={evidenciasAbiertas ? 'order-detail-section order-evidence-section open' : 'order-detail-section order-evidence-section collapsed'}>
-            <button className="secondary-action-toggle" type="button" onClick={() => setEvidenciasAbiertas((current) => !current)} aria-expanded={evidenciasAbiertas}>
-              <span><Upload size={17} /> Evidencias · {(pedido.archivos ?? []).length}</span>
-              <ChevronDown size={17} />
-            </button>
-            {evidenciasAbiertas && (
-              <>
-                <label className={bloqueadoPorOtro ? 'upload-button disabled-upload' : 'upload-button'}>
-                  <Upload size={16} /> {uploading ? 'Subiendo...' : 'Subir comprobante'}
-                  <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={handleUpload} disabled={bloqueadoPorOtro || uploading} />
-                </label>
-                <div className="archivo-list order-file-list">
-                  {(pedido.archivos ?? []).length === 0 && <div className="order-empty-line">Sin evidencias todavia</div>}
-                  {(pedido.archivos ?? []).map((archivo) => (
-                    <a key={archivo.id} className="archivo-row file-preview-card" href={archivoUrl(archivo)} target="_blank" rel="noreferrer">
-                      <span className="file-preview-media">
-                        {archivoEsImagen(archivo) ? (
-                          <img src={archivoUrl(archivo)} alt="" loading="lazy" decoding="async" />
-                        ) : archivoEsPdf(archivo) ? (
-                          <FileText size={28} />
-                        ) : (
-                          <FileText size={28} />
-                        )}
-                      </span>
-                      <span className="file-preview-copy">
-                        <strong>{archivoTipoLabel(archivo.tipo)}</strong>
-                        <span>{archivo.nombre_archivo ?? 'Archivo adjunto'}</span>
-                        {archivo.created_at && <small>{formatoFecha(archivo.created_at)}</small>}
-                      </span>
-                      <ExternalLink size={16} />
-                    </a>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
+          <OrderEvidenceSection
+            open={evidenciasAbiertas}
+            archivos={pedido.archivos ?? []}
+            uploading={uploading}
+            disabled={bloqueadoPorOtro}
+            onToggle={() => setEvidenciasAbiertas((current) => !current)}
+            onUpload={handleUpload}
+            archivoUrl={archivoUrl}
+            archivoEsImagen={archivoEsImagen}
+            archivoTipoLabel={archivoTipoLabel}
+            formatoFecha={formatoFecha}
+          />
 
-          <section className={historialAbierto ? 'order-detail-section order-history-section open' : 'order-detail-section order-history-section collapsed'}>
-            <button className="secondary-action-toggle" type="button" onClick={() => setHistorialAbierto((current) => !current)} aria-expanded={historialAbierto}>
-              <span><History size={17} /> Historial · {(pedido.historial ?? []).length}</span>
-              <ChevronDown size={17} />
-            </button>
-            {historialAbierto && (
-              <div className="order-history-list">
-                {(pedido.historial ?? []).length === 0 && <div className="order-empty-line">Sin cambios de estado registrados</div>}
-                {(pedido.historial ?? []).map((item) => (
-                  <div key={item.id} className="order-history-row">
-                    <span className={`order-state-dot ${item.estado_nuevo}`} />
-                    <div>
-                      <strong>{estadoLabel(item.estado_nuevo)}</strong>
-                      <small>{item.usuario ?? 'Sistema'} · {formatoFecha(item.created_at) ?? 'sin fecha'}</small>
-                      {item.estado_anterior && <small>Antes: {estadoLabel(item.estado_anterior)}</small>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <OrderHistorySection
+            open={historialAbierto}
+            historial={pedido.historial ?? []}
+            onToggle={() => setHistorialAbierto((current) => !current)}
+            estadoLabel={estadoLabel}
+            formatoFecha={formatoFecha}
+          />
 
           {cancelacionAbierta && (
             <section className="order-cancel-confirm" aria-label="Confirmar cancelacion">

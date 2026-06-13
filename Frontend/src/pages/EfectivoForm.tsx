@@ -3,12 +3,11 @@ import { Camera, ImagePlus, MapPin, MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
+import { CreateOrderFormShell } from '../components/CreateOrderFormShell';
 import { CurrencySelect } from '../components/CurrencySelect';
-import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
-import { PageLoader } from '../components/PageLoader';
 import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -221,8 +220,14 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   }
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={handleSubmit} noValidate>
-      <div className="form-flow">
+    <CreateOrderFormShell
+      error={error}
+      loading={loading}
+      loadingLabel="Creando efectivo"
+      submitLabel="Crear efectivo"
+      onSubmit={handleSubmit}
+      onDismissError={() => setError(null)}
+    >
         <section className="form-section-card client-step">
           <header className="form-section-header">
             <span className="form-step-number">1</span>
@@ -360,12 +365,6 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
             </label>
           </div>
         </section>
-      </div>
-      {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
-      {loading && <PageLoader label="Creando efectivo" inline />}
-      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
-        {loading ? 'Creando...' : 'Crear efectivo'}
-      </button>
-    </form>
+    </CreateOrderFormShell>
   );
 }
