@@ -12,6 +12,68 @@
   isolation: isolate;
 }
 
+.home-page .rates-currency-section,
+:root[data-theme="light"] .home-page .rates-currency-section,
+:root[data-theme="dark-vscode"] .home-page .rates-currency-section,
+:root[data-theme="dark-sidebar"] .home-page .rates-currency-section {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-currency-card {
+  min-width: 0;
+}
+
+.home-currency-card .operation-currency-header {
+  position: relative;
+  top: auto;
+  min-height: 76px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.calculator-interaction-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(49, 209, 154, 0.34);
+  border-radius: 999px;
+  background: rgba(49, 209, 154, 0.12);
+  color: #86efac;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  animation: calculator-callout 2.2s ease-in-out infinite;
+}
+
+.live-rate-input > div {
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+.live-rate-input > div:focus-within {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 10px 18px rgba(49, 209, 154, 0.18));
+}
+
+.live-rate-input input:focus {
+  border-color: var(--ui-primary-hover);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+@keyframes calculator-callout {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(49, 209, 154, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(49, 209, 154, 0.08);
+  }
+}
+
 .operational-rates-grid {
   align-items: stretch;
 }
@@ -23,8 +85,22 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hero-carousel-panel,
-  .operation-rate-card {
+  .operation-rate-card,
+  .calculator-interaction-badge {
     scroll-behavior: auto;
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .live-rate-heading {
+    flex-wrap: wrap;
+  }
+
+  .calculator-interaction-badge {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
   }
 }
 

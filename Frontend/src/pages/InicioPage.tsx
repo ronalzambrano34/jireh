@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode, TouchEvent } from 'react';
-import { ArrowRight, Banknote, Calculator, Flame, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
+import { ArrowRight, Banknote, Calculator, Flame, MousePointerClick, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
 import { apiAssetUrl, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
@@ -274,7 +274,10 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
         <span className="live-rate-heading-icon"><Calculator size={18} /></span>
         <span>
           <h3>Calculadora</h3>
-          <small>Calcula automaticamente segun el rango de la oferta</small>
+          <small>Escribe un monto y compara cuanto recibe el destinatario</small>
+        </span>
+        <span className="calculator-interaction-badge">
+          <MousePointerClick size={15} /> Prueba tu monto
         </span>
       </div>
       <label className="live-rate-input">
@@ -618,17 +621,19 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
       {grupoActivo && (
         <div className="rates-currency-sections">
           <section className="rates-currency-section" key={grupoActivo.moneda}>
-            <header className="rates-currency-header operation-currency-header">
-              <div className="operation-currency-copy">
-                <h3>Moneda de Recepcion:</h3>
-                <p>{etiquetaMoneda(grupoActivo.moneda)}</p>
-              </div>
-              <CurrencySelect
-                value={monedaSeleccionada}
-                currencies={gruposMoneda.map((grupo) => grupo.moneda)}
-                onChange={setMonedaSeleccionada}
-              />
-            </header>
+            <section className="home-currency-card" aria-labelledby="home-currency-title">
+              <header className="rates-currency-header operation-currency-header">
+                <div className="operation-currency-copy">
+                  <h3 id="home-currency-title">Moneda de recepcion</h3>
+                  <p>{etiquetaMoneda(grupoActivo.moneda)}</p>
+                </div>
+                <CurrencySelect
+                  value={monedaSeleccionada}
+                  currencies={gruposMoneda.map((grupo) => grupo.moneda)}
+                  onChange={setMonedaSeleccionada}
+                />
+              </header>
+            </section>
 
             <CotizadorVivo grupo={grupoActivo} />
 
