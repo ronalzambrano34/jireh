@@ -100,6 +100,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
 
   return (
     <main className="login-screen">
+      <img className="login-bg-logo" src={logoJireh} alt="" aria-hidden="true" />
       <form className="login-panel theme-test-card theme-form-card" onSubmit={handleSubmit}>
         <header className="login-header">
           <div className="login-brand">

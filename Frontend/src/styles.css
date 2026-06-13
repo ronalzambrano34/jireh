@@ -21410,7 +21410,11 @@ pre {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--ui-canvas);
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(47, 166, 111, 0.16), transparent 30rem),
+    radial-gradient(circle at 86% 82%, rgba(47, 111, 219, 0.13), transparent 32rem),
+    var(--ui-canvas);
   color: var(--ui-text);
 }
 
@@ -21422,23 +21426,39 @@ pre {
   padding: clamp(20px, 5vw, 32px);
   gap: 16px;
   color: var(--ui-text);
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
+  background: color-mix(in srgb, var(--ui-surface) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-border-strong) 72%, transparent);
   border-radius: 18px;
-  box-shadow: 0 24px 70px var(--ui-shadow);
-  backdrop-filter: none;
+  box-shadow: 0 24px 70px rgba(1, 6, 15, 0.52);
+  backdrop-filter: blur(22px) saturate(1.12);
 }
 
 .login-panel::before,
 .login-screen::before,
-.login-bg-logo,
 .login-mark {
   display: none;
 }
 
+.login-bg-logo {
+  position: fixed;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: min(76vw, 720px);
+  max-width: none;
+  height: auto;
+  opacity: 0.075;
+  filter: grayscale(1) contrast(0.86);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
 .login-header {
+  position: relative;
   display: grid;
-  gap: 16px;
+  gap: 0;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--ui-border);
 }
@@ -21450,6 +21470,7 @@ pre {
   align-items: center;
   justify-content: initial;
   gap: 14px;
+  padding-right: 108px;
 }
 
 .login-brand img,
@@ -21467,32 +21488,46 @@ pre {
 .login-title {
   min-width: 0;
   gap: 3px;
+  overflow: hidden;
 }
 
 .login-title .theme-test-kicker {
+  display: block;
+  overflow: hidden;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.06em;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .login-title h1,
 :root[data-theme="dark-sidebar"] .login-title h1 {
+  overflow: hidden;
   margin: 0;
   color: var(--ui-text);
-  font-size: clamp(1.45rem, 6vw, 1.9rem);
+  font-size: clamp(1.35rem, 5vw, 1.8rem);
   line-height: 1.08;
   letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .login-title p,
 :root[data-theme="dark-sidebar"] .login-title p {
+  overflow: hidden;
   margin: 0;
   color: var(--ui-text-muted);
   font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .login-security-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
   width: fit-content;
   display: inline-flex;
   align-items: center;
@@ -21504,6 +21539,7 @@ pre {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .login-field,
@@ -21710,18 +21746,51 @@ pre {
   }
 
   .login-header {
-    gap: 13px;
+    padding-bottom: 16px;
   }
 
   .login-brand,
   :root[data-theme="dark-sidebar"] .login-brand {
     grid-template-columns: 52px minmax(0, 1fr);
     gap: 12px;
+    padding-right: 38px;
   }
 
   .login-brand img,
   :root[data-theme="dark-sidebar"] .login-brand img {
     width: 52px;
     height: 52px;
+  }
+
+  .login-security-badge {
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .login-security-badge svg {
+    flex: 0 0 auto;
+    color: #b7ebcf;
+  }
+
+  .login-bg-logo {
+    width: min(118vw, 620px);
+    opacity: 0.065;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-title h1,
+  :root[data-theme="dark-sidebar"] .login-title h1 {
+    font-size: 1.18rem;
+  }
+
+  .login-title p,
+  :root[data-theme="dark-sidebar"] .login-title p {
+    font-size: 0.74rem;
   }
 }
