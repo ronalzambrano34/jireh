@@ -1,4 +1,6 @@
 .home-page {
+  width: 100%;
+  margin: 0;
   container-type: inline-size;
 }
 
@@ -23,5 +25,17 @@
   .hero-carousel-panel,
   .operation-rate-card {
     scroll-behavior: auto;
+  }
+}
+
+@media (max-width: 920px) {
+  .workspace > .home-page,
+  :root[data-theme="light"] .workspace > .home-page,
+  :root[data-theme="dark-vscode"] .workspace > .home-page,
+  :root[data-theme="dark-sidebar"] .workspace > .home-page {
+    width: auto;
+    margin: 0 12px;
+    padding: 0 0 calc(12px + env(safe-area-inset-bottom));
+    background: transparent;
   }
 }

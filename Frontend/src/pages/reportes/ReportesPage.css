@@ -6,6 +6,13 @@
   min-width: 0;
 }
 
+.report-loaded,
+.reports-page .data-table,
+.reports-page .data-row,
+.reports-page .withdrawal-form {
+  max-width: 100%;
+}
+
 .report-grid {
   align-items: start;
 }
@@ -19,5 +26,123 @@
 @media (prefers-reduced-motion: reduce) {
   .report-loaded {
     transition: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .reports-page {
+    width: calc(100% - 24px);
+    margin-inline: 12px;
+    overflow: hidden;
+  }
+
+  .reports-page .report-filters,
+  :root[data-theme="dark-sidebar"] .reports-page .report-filters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px;
+  }
+
+  .reports-page .report-filter-field-wide,
+  .reports-page .report-filter-actions {
+    grid-column: 1;
+  }
+
+  .reports-page .report-filter-actions,
+  :root[data-theme="dark-sidebar"] .reports-page .report-filter-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reports-page .report-filter-actions button {
+    width: 100%;
+  }
+
+  .reports-page .report-summary,
+  :root[data-theme="dark-sidebar"] .reports-page .report-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reports-page .report-table,
+  .reports-page .report-chart,
+  :root[data-theme="dark-sidebar"] .reports-page .report-table,
+  :root[data-theme="dark-sidebar"] .reports-page .report-chart {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .reports-page .data-table,
+  :root[data-theme="dark-sidebar"] .reports-page .data-table {
+    overflow: visible;
+    border: 0;
+  }
+
+  .reports-page .data-row.header {
+    display: none;
+  }
+
+  .reports-page .report-table .data-row:not(.header),
+  :root[data-theme="dark-sidebar"] .reports-page .report-table .data-row:not(.header) {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-bottom: 8px;
+    padding: 4px 10px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-sm);
+  }
+
+  .reports-page .report-table .data-row:not(.header):last-child {
+    margin-bottom: 0;
+  }
+
+  .reports-page .data-row:not(.header) > :is(span, strong) {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.45fr) minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid var(--ui-border);
+  }
+
+  .reports-page .data-row:not(.header) > :is(span, strong):last-child {
+    border-bottom: 0;
+  }
+
+  .reports-page .data-row:not(.header) > :is(span, strong)::before {
+    content: attr(data-label);
+    color: var(--ui-text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .reports-page .withdrawal-form,
+  :root[data-theme="dark-sidebar"] .reports-page .withdrawal-form {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px;
+  }
+
+  .reports-page .withdrawal-form > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .reports-page .report-chart-row {
+    grid-template-columns: minmax(72px, 0.7fr) minmax(80px, 1.3fr) auto;
+    gap: 7px;
+  }
+
+  .reports-page .report-chart-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 380px) {
+  .reports-page .report-summary,
+  :root[data-theme="dark-sidebar"] .reports-page .report-summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

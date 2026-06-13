@@ -241,10 +241,10 @@ export function ReportesPage() {
               </div>
               {saldosCuenta.map((saldo) => (
                 <div className="data-row" key={saldo.cuenta_pago_id}>
-                  <span>{saldo.metodo_pago} - {saldo.alias} ({saldo.moneda})</span>
-                  <span>{reportMoney(saldo.ingresos)}</span>
-                  <span>{reportMoney(saldo.extracciones)}</span>
-                  <strong>{reportMoney(saldo.saldo)}</strong>
+                  <span data-label="Cuenta">{saldo.metodo_pago} - {saldo.alias} ({saldo.moneda})</span>
+                  <span data-label="Ingresos">{reportMoney(saldo.ingresos)}</span>
+                  <span data-label="Extracciones">{reportMoney(saldo.extracciones)}</span>
+                  <strong data-label="Saldo">{reportMoney(saldo.saldo)}</strong>
                 </div>
               ))}
             </div>
@@ -294,10 +294,10 @@ export function ReportesPage() {
                 const cuenta = cuentasPago.find((item) => item.id === movimiento.cuenta_pago_id);
                 return (
                   <div className="data-row" key={movimiento.id}>
-                    <span>{new Date(movimiento.created_at).toLocaleString('es-UY')}</span>
-                    <span>{cuenta?.alias ?? `Cuenta ${movimiento.cuenta_pago_id}`}</span>
-                    <span>{reportMoney(movimiento.monto)}</span>
-                    <span>{movimiento.motivo}</span>
+                    <span data-label="Fecha">{new Date(movimiento.created_at).toLocaleString('es-UY')}</span>
+                    <span data-label="Cuenta">{cuenta?.alias ?? `Cuenta ${movimiento.cuenta_pago_id}`}</span>
+                    <span data-label="Monto">{reportMoney(movimiento.monto)}</span>
+                    <span data-label="Motivo">{movimiento.motivo}</span>
                   </div>
                 );
               })}

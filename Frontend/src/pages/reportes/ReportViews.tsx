@@ -26,10 +26,10 @@ export function ReportTable({ title, rows }: { title: string; rows: ReporteGrupo
         {rows.length === 0 && <div className="empty-row">Sin datos para los filtros seleccionados</div>}
         {rows.map((row) => (
           <div className="data-row" key={`${title}-${row.clave ?? 'sin-clave'}`}>
-            <span>{row.clave ?? 'Sin dato'}</span>
-            <span>{row.cantidad}</span>
-            <span>{reportMoney(row.monto_pago)}</span>
-            <span>{reportMoney(row.ganancia)}</span>
+            <span data-label="Clave">{row.clave ?? 'Sin dato'}</span>
+            <span data-label="Cantidad">{row.cantidad}</span>
+            <span data-label="Monto pago">{reportMoney(row.monto_pago)}</span>
+            <span data-label="Ganancia">{reportMoney(row.ganancia)}</span>
           </div>
         ))}
       </div>
