@@ -9,9 +9,17 @@ document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dar
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
+
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, {
       scope: import.meta.env.BASE_URL,
-    });
+      updateViaCache: 'none',
+    }).then((registration) => registration.update());
   });
 }
 

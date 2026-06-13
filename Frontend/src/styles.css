@@ -631,6 +631,61 @@ input, select, textarea {
   }
 }
 
+/* Login controls stay interactive above glass and accent decoration. */
+.login-screen > .auth-panel {
+  pointer-events: auto;
+}
+
+.auth-panel > :not(.login-progress) {
+  position: relative;
+  z-index: 2;
+}
+
+.auth-panel :is(input, button, .phone-input-row, .password-field, .floating-select) {
+  pointer-events: auto;
+}
+
+.auth-panel .phone-input-row {
+  grid-template-columns: 116px minmax(0, 1fr);
+}
+
+.auth-panel .phone-code-select-floating .floating-select-button {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(38px, max-content) auto;
+  justify-content: stretch;
+  gap: 6px;
+  padding: 0 9px;
+}
+
+.auth-panel .phone-code-select-floating :is(
+  .floating-select-icon,
+  .floating-select-current,
+  .floating-select-chevron
+) {
+  display: inline-grid;
+  visibility: visible;
+  opacity: 1;
+}
+
+.auth-panel .phone-code-select-floating .floating-select-current {
+  width: auto;
+  min-width: 38px;
+  overflow: visible;
+  color: var(--ui-text);
+  text-overflow: clip;
+}
+
+.auth-panel .phone-input-row > input,
+.auth-panel .password-field > input {
+  position: relative;
+  z-index: 2;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
 .reports-page {
   display: grid;
   gap: 16px;
@@ -22194,7 +22249,7 @@ pre {
     height: 100%;
     min-height: 0;
     max-height: 100dvh;
-    padding: 0 12px calc(88px + env(safe-area-inset-bottom));
+    padding: 0 0 calc(88px + env(safe-area-inset-bottom));
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
@@ -22202,6 +22257,8 @@ pre {
   }
 
   .workspace > :last-child {
+    width: 100%;
+    max-width: none;
     margin-bottom: 0;
   }
 
