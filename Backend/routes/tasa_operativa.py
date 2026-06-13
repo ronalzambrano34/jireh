@@ -5,7 +5,6 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from Backend.database import get_db
-from Backend.services.auth_service import require_any_permission
 from Backend.services.oferta_service import listar_ofertas
 from Backend.services.paquete_saldo_service import listar_paquetes_saldo
 from Backend.services.promocion_service import listar_promociones_vigentes
@@ -130,15 +129,6 @@ def _promocion_dict(promocion):
 def obtener_tasas_operativas(
     db: Session = Depends(
         get_db
-    ),
-    _operador = Depends(
-        require_any_permission(
-            [
-                "pedidos:crear",
-                "pedidos:gestionar",
-                "empresa:control_total"
-            ]
-        )
     )
 ):
     ofertas = listar_ofertas(

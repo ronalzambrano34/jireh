@@ -805,7 +805,6 @@ export function App() {
         </header>
         <main className="public-home-content">
           <InicioPage
-            canLoadTasas={false}
             onCreate={(nextServicio, draft) => solicitarLogin({ type: 'crear', servicio: nextServicio, draft: draft ?? {} })}
             onTrackPedido={(codigo) => solicitarLogin({ type: 'rastrear', codigo })}
           />
