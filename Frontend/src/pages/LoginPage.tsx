@@ -119,14 +119,14 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
             <WifiOff size={16} /> Sin conexion. Conservamos tus datos en pantalla.
           </div>
         )}
-        <div className="login-field">
-          <label htmlFor="login-telefono">Telefono</label>
+        <label className="login-control" htmlFor="login-telefono">
+          <span>Telefono</span>
           <PhoneInput inputId="login-telefono" value={telefono} onChange={setTelefono} defaultCode="+55" autoComplete="username" showPaste={false} />
-        </div>
-        <div className="login-field">
-          <label htmlFor="login-password">Contraseña</label>
+        </label>
+        <label className="login-control" htmlFor="login-password">
+          <span>Contraseña</span>
           <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
-        </div>
+        </label>
         {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
         {loading && (
           <div className="login-progress" role="status" aria-live="polite">
