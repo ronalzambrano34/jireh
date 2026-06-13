@@ -5,10 +5,4 @@
 
 
 
-//todo el select de codigo de pais solo me esta mostrando el icono el (+) y un solo digito, dime si se puede hacer que el tamano de ese select pueda variar para que siempre pueda mostrarse todo el codigo de pais 
-
-
-//todo revisa a ver si los componentes del header, cumplen los requisitos del tema por defecto oscuro, principal el boton menu usuario, no le veo bien centrado el contenido de dentro y he notado que el header del tema oscuro y header del tema claro, cambian los tamanos de los componentes, pense que solo cambiaban los colores
-
-
 //todo haz una revision y dime cuales vistas necesitan de una refactorizacion 3 en su vista y estilos

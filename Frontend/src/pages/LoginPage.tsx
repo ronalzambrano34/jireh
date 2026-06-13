@@ -128,12 +128,7 @@ export function LoginPage({ onLogin }: { onLogin: (operador: Operador) => void }
           <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
         </label>
         {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
-        {loading && (
-          <div className="login-progress" role="status" aria-live="polite">
-            <PageLoader inline label="Iniciando sesion" />
-            <div className="login-progress-text">{progressLabel}</div>
-          </div>
-        )}
+        {loading && <PageLoader inline label={progressLabel} />}
         <div className="theme-test-actions login-actions">
           <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
         </div>

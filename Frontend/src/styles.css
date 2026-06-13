@@ -646,7 +646,7 @@ input, select, textarea {
 }
 
 .auth-panel .phone-input-row {
-  grid-template-columns: 116px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .auth-panel .phone-code-select-floating .floating-select-button {
@@ -3883,20 +3883,20 @@ textarea {
 
 .phone-input-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 42px;
+  grid-template-columns: max-content minmax(0, 1fr) 42px;
   gap: 0;
 }
 
 .phone-input-row.phone-input-row-with-actions {
-  grid-template-columns: 96px minmax(0, 1fr) 42px 42px;
+  grid-template-columns: max-content minmax(0, 1fr) 42px 42px;
 }
 
 .phone-input-row.phone-input-row-no-paste {
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .phone-input-row.phone-input-row-no-paste.phone-input-row-with-actions {
-  grid-template-columns: 96px minmax(0, 1fr) 42px;
+  grid-template-columns: max-content minmax(0, 1fr) 42px;
 }
 
 .phone-input-row .phone-code-select {
@@ -3940,19 +3940,19 @@ textarea {
 
 @media (max-width: 420px) {
   .phone-input-row {
-    grid-template-columns: 92px minmax(0, 1fr) 40px;
+    grid-template-columns: max-content minmax(0, 1fr) 40px;
   }
 
   .phone-input-row.phone-input-row-with-actions {
-    grid-template-columns: 92px minmax(0, 1fr) 40px 40px;
+    grid-template-columns: max-content minmax(0, 1fr) 40px 40px;
   }
 
   .phone-input-row.phone-input-row-no-paste {
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr);
   }
 
   .phone-input-row.phone-input-row-no-paste.phone-input-row-with-actions {
-    grid-template-columns: 92px minmax(0, 1fr) 40px;
+    grid-template-columns: max-content minmax(0, 1fr) 40px;
   }
 }
 
@@ -21791,14 +21791,14 @@ pre {
 
 .auth-panel .phone-input-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: stretch;
 }
 
 .auth-panel .phone-code-select-floating,
 .auth-panel .phone-code-select-floating .floating-select-button {
-  width: 100%;
-  min-width: 0;
+  width: max-content;
+  min-width: max-content;
   height: 100%;
 }
 
@@ -22379,4 +22379,85 @@ pre {
   color: inherit;
   stroke: currentColor;
   pointer-events: none;
+}
+
+/* Header geometry is shared by both themes; themes only change its appearance. */
+.toolbar,
+:root[data-theme="dark-sidebar"] .toolbar {
+  min-height: 66px;
+  padding: 12px 14px;
+  gap: 16px;
+}
+
+.header-brand,
+:root[data-theme="dark-sidebar"] .header-brand {
+  width: auto;
+  height: auto;
+  flex: 0 0 auto;
+  padding: 0 14px 0 0;
+}
+
+.header-brand img,
+:root[data-theme="dark-sidebar"] .header-brand img {
+  width: 54px;
+  height: 54px;
+}
+
+.toolbar-actions,
+:root[data-theme="dark-sidebar"] .toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operator-chip.user-floating-trigger,
+:root[data-theme="dark-sidebar"] .operator-chip.user-floating-trigger {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 11px 6px 7px;
+  line-height: 1;
+}
+
+.operator-chip.user-floating-trigger .operator-chip-avatar {
+  align-self: center;
+}
+
+.operator-chip.user-floating-trigger .operator-chip-text {
+  align-self: center;
+}
+
+.operator-chip.user-floating-trigger .user-menu-chevron {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+@media (max-width: 920px) {
+  .toolbar,
+  :root[data-theme="dark-sidebar"] .toolbar {
+    min-height: 58px;
+    padding: 7px 9px 7px 11px;
+    gap: 10px;
+  }
+
+  .header-brand,
+  :root[data-theme="dark-sidebar"] .header-brand {
+    padding-right: 0;
+  }
+
+  .header-brand img,
+  :root[data-theme="dark-sidebar"] .header-brand img {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 620px) {
+  .operator-chip.user-floating-trigger,
+  :root[data-theme="dark-sidebar"] .operator-chip.user-floating-trigger {
+    min-height: 44px;
+    gap: 9px;
+    padding: 5px 9px 5px 6px;
+  }
 }
