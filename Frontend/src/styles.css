@@ -22321,3 +22321,62 @@ pre {
     z-index: 150;
   }
 }
+
+/* PasswordField owns the reveal action; suppress browser-provided duplicates. */
+.password-field input::-ms-reveal,
+.password-field input::-ms-clear {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.password-field input::-webkit-credentials-auto-fill-button,
+.password-field input::-webkit-contacts-auto-fill-button {
+  position: absolute;
+  right: 0;
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
+
+.auth-panel .password-field > input {
+  padding-right: 52px;
+}
+
+.auth-panel .password-toggle,
+:root[data-theme="dark-sidebar"] .auth-panel .password-toggle {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  right: 7px;
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  box-shadow: none;
+  opacity: 1;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.auth-panel .password-toggle:hover,
+.auth-panel .password-toggle:focus-visible {
+  color: var(--ui-primary-hover);
+  background: color-mix(in srgb, var(--ui-primary) 12%, transparent);
+  outline: 0;
+  box-shadow: none;
+}
+
+.auth-panel .password-toggle svg {
+  display: block;
+  color: inherit;
+  stroke: currentColor;
+  pointer-events: none;
+}
