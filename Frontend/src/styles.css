@@ -21322,6 +21322,66 @@ pre {
   overflow-x: auto;
 }
 
+/* Theme UI is the canonical form-control reference. */
+.theme-test-page .theme-form-card :is(
+  input,
+  textarea,
+  .floating-select-button,
+  .currency-select-shell
+) {
+  border-radius: var(--ui-radius-md, 10px);
+}
+
+.theme-test-page .theme-form-card :is(
+  .phone-input-row,
+  .password-field,
+  .input-action-row
+) {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md, 10px);
+  background: var(--ui-surface-raised);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  overflow: hidden;
+}
+
+.theme-test-page .theme-form-card :is(
+  .phone-input-row > input,
+  .password-field > input,
+  .input-action-row > input
+) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.theme-test-page .theme-form-card .phone-input-row .floating-select-button {
+  border: 0;
+  border-right: 1px solid var(--ui-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.theme-test-page .theme-form-card :is(
+  .password-toggle,
+  .input-action-row .field-action-button
+) {
+  border-radius: 0;
+}
+
+.theme-test-page .theme-form-card :is(
+  .phone-input-row,
+  .password-field,
+  .input-action-row
+):focus-within {
+  border-color: var(--ui-primary-hover);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
 /* Canonical refactored login */
 .login-screen,
 :root[data-theme="dark-sidebar"] .login-screen {
