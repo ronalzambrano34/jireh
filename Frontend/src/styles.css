@@ -22166,3 +22166,47 @@ pre {
   justify-content: center;
   font-size: 0.98rem;
 }
+
+/* Mobile shell: one visible column with the workspace as the scroll container. */
+@media (max-width: 920px) {
+  .app-shell,
+  :root[data-theme="dark-sidebar"] .app-shell {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .sidebar,
+  :root[data-theme="dark-sidebar"] .sidebar {
+    display: none;
+  }
+
+  .workspace,
+  :root[data-theme="dark-sidebar"] .workspace {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: 100dvh;
+    padding: 0 12px calc(88px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .workspace > :last-child {
+    margin-bottom: 0;
+  }
+
+  .bottom-nav,
+  :root[data-theme="dark-sidebar"] .bottom-nav {
+    z-index: 150;
+  }
+}
