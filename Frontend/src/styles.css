@@ -21185,71 +21185,281 @@ body {
   }
 }
 
-/* Mobile layout guardrails */
-@media (max-width: 920px) {
-  html,
-  body,
-  #root,
-  .app-shell {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-  }
+/* Canonical refactored layout */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+}
 
+body {
+  overflow: hidden;
+}
+
+.app-shell {
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.workspace {
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workspace > *,
+.content-grid,
+.content-grid > *,
+.list-panel,
+.detail-panel,
+.form-panel,
+.create-stack,
+.form-flow,
+.form-flow > *,
+.form-section-card,
+.form-grid,
+.form-grid > *,
+.client-section,
+.reports-page,
+.report-filters,
+.report-summary,
+.report-grid,
+.report-table,
+.admin-page,
+.admin-surface,
+.admin-hero-card,
+.admin-section,
+.setup-page,
+.setup-layout,
+.setup-card,
+.profile-page,
+.profile-hero-card,
+.profile-section,
+.home-page,
+.rates-hero,
+.rates-currency-sections,
+.rates-currency-section,
+.operation-currency-header,
+.live-rate-panel,
+.home-services-section,
+.operational-rates-grid,
+.home-tracking-section,
+.track-order-panel,
+.order-detail-page,
+.order-detail-page-body,
+.order-detail-surface,
+.order-detail-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(
+  .toolbar,
+  .toolbar-actions,
+  .filters,
+  .state-row,
+  .orders-scope-chips,
+  .orders-top-actions,
+  .form-grid,
+  .client-lookup,
+  .lookup-row,
+  .payment-section-header,
+  .operation-currency-header,
+  .report-filters,
+  .report-summary,
+  .report-grid,
+  .admin-hero-main,
+  .admin-section-header,
+  .setup-layout,
+  .profile-hero-main,
+  .order-detail-page-header,
+  .order-detail-fields,
+  .payment-data-grid
+) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+.floating-select-button,
+.phone-input,
+.phone-input-row,
+.password-field,
+.input-action-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+}
+
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Canonical refactored login */
+.login-screen,
+:root[data-theme="dark-sidebar"] .login-screen {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  padding: clamp(14px, 4vw, 24px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.login-panel,
+:root[data-theme="dark-sidebar"] .login-panel {
+  width: min(100%, 440px);
+  min-width: 0;
+  margin: auto;
+  padding: clamp(20px, 5vw, 32px);
+  gap: 16px;
+}
+
+.login-field,
+:root[data-theme="dark-sidebar"] .login-field {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  gap: 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.login-field > label,
+:root[data-theme="dark-sidebar"] .login-field > label {
+  margin: 0;
+  padding: 0 2px;
+  line-height: 1.3;
+}
+
+.login-panel .phone-input-row,
+.login-panel .password-field,
+:root[data-theme="dark-sidebar"] .login-panel .phone-input-row,
+:root[data-theme="dark-sidebar"] .login-panel .password-field {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ui-border-strong, #cbd3dd);
+  border-radius: var(--ui-radius-md, 10px);
+  background: var(--ui-surface-raised, #ffffff);
+  overflow: hidden;
+}
+
+.login-panel .phone-input-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.login-panel .phone-code-select-floating,
+.login-panel .phone-code-select-floating .floating-select-button {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+.login-panel .phone-input-row .floating-select-button,
+.login-panel .phone-input-row > input,
+.login-panel .password-field > input,
+:root[data-theme="dark-sidebar"] .login-panel .phone-input-row .floating-select-button,
+:root[data-theme="dark-sidebar"] .login-panel .phone-input-row > input,
+:root[data-theme="dark-sidebar"] .login-panel .password-field > input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
+}
+
+.login-panel .phone-input-row .floating-select-button {
+  padding: 0 9px;
+  border-right: 1px solid var(--ui-border-strong, #cbd3dd);
+}
+
+.login-panel .phone-input-row > input {
+  padding: 0 12px;
+}
+
+.login-panel .password-field > input {
+  padding: 0 48px 0 12px;
+}
+
+.login-panel .password-toggle,
+:root[data-theme="dark-sidebar"] .login-panel .password-toggle {
+  top: 50%;
+  right: 7px;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  transform: translateY(-50%);
+}
+
+.login-panel .phone-input-row:focus-within,
+.login-panel .password-field:focus-within,
+:root[data-theme="dark-sidebar"] .login-panel .phone-input-row:focus-within,
+:root[data-theme="dark-sidebar"] .login-panel .password-field:focus-within {
+  border-color: var(--ui-primary, #12805f);
+  box-shadow: 0 0 0 3px var(--ui-focus, rgba(18, 128, 95, 0.16));
+}
+
+.login-panel > .primary-button,
+:root[data-theme="dark-sidebar"] .login-panel > .primary-button {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+}
+
+@media (max-width: 920px) {
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .workspace,
-  .workspace > *,
-  .content-grid,
-  .content-grid > *,
-  .list-panel,
-  .detail-panel,
-  .form-panel,
-  .create-stack,
-  .form-flow,
-  .form-flow > *,
-  .form-section-card,
-  .form-grid,
-  .form-grid > *,
-  .client-section,
-  .reports-page,
-  .report-filters,
-  .report-summary,
-  .report-grid,
-  .report-table,
-  .admin-page,
-  .admin-surface,
-  .admin-hero-card,
-  .admin-section,
-  .setup-page,
-  .setup-layout,
-  .setup-card,
-  .profile-page,
-  .profile-hero-card,
-  .profile-section,
-  .home-page,
-  .rates-hero,
-  .rates-currency-sections,
-  .rates-currency-section,
-  .operation-currency-header,
-  .live-rate-panel,
-  .home-services-section,
-  .operational-rates-grid,
-  .home-tracking-section,
-  .track-order-panel,
-  .order-detail-page,
-  .order-detail-page-body,
-  .order-detail-surface,
-  .order-detail-section {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .workspace {
-    padding-top: 0;
+  :root[data-theme="dark-sidebar"] .workspace {
+    height: 100vh;
+    height: 100dvh;
+    padding: 0 12px calc(84px + env(safe-area-inset-bottom));
+    scroll-padding: 72px 0 calc(84px + env(safe-area-inset-bottom));
   }
 
   .toolbar,
@@ -21258,36 +21468,29 @@ body {
     min-width: 0;
     max-width: 100%;
     top: 0;
-    margin-top: 0;
-    margin-right: 0;
-    margin-left: 0;
+    margin: 0 0 12px;
+    border-radius: 0 0 var(--ui-radius-md, 10px) var(--ui-radius-md, 10px);
   }
 
-  :is(
-    .toolbar,
-    .toolbar-actions,
-    .filters,
-    .state-row,
-    .orders-scope-chips,
-    .orders-top-actions,
-    .form-grid,
-    .client-lookup,
-    .lookup-row,
-    .payment-section-header,
-    .operation-currency-header,
-    .report-filters,
-    .report-summary,
-    .report-grid,
-    .admin-hero-main,
-    .admin-section-header,
-    .setup-layout,
-    .profile-hero-main,
-    .order-detail-page-header,
-    .order-detail-fields,
-    .payment-data-grid
-  ) > * {
-    min-width: 0;
-    max-width: 100%;
+  .bottom-nav,
+  :root[data-theme="dark-sidebar"] .bottom-nav {
+    min-height: 68px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .bottom-nav button,
+  :root[data-theme="dark-sidebar"] .bottom-nav button {
+    min-height: 50px;
+  }
+
+  .orders-view-shell .workspace,
+  .order-detail-view-shell .workspace {
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(132px + env(safe-area-inset-bottom));
+  }
+
+  .order-detail-view-shell .order-detail-page {
+    padding-bottom: 0;
   }
 
   .orders-scope-chips > button {
@@ -21301,25 +21504,25 @@ body {
     max-width: 100%;
   }
 
-  input,
-  select,
-  textarea,
-  .floating-select-button,
-  .phone-input,
-  .password-field,
-  .input-action-row {
-    min-width: 0;
-    max-width: 100%;
+  :root[data-theme="dark-sidebar"] .service-tabs,
+  :root[data-theme="dark-sidebar"] .order-detail-page-header,
+  :root[data-theme="dark-sidebar"] .admin-hero-card,
+  .home-page .operation-currency-header {
+    top: 64px;
+  }
+}
+
+@media (max-width: 560px) {
+  .login-screen,
+  :root[data-theme="dark-sidebar"] .login-screen {
+    align-items: start;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   }
 
-  img,
-  video,
-  canvas {
-    max-width: 100%;
-  }
-
-  pre {
-    max-width: 100%;
-    overflow-x: auto;
+  .login-panel,
+  :root[data-theme="dark-sidebar"] .login-panel {
+    width: 100%;
+    padding: 20px 16px;
+    border-radius: var(--ui-radius-lg, 16px);
   }
 }
