@@ -299,11 +299,11 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                 </span>
                 <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={handleDocumentoChange} />
               </label>
-              {/*<label className="document-camera-button">
+              <label className="document-camera-button">
                 <Camera size={18} />
                 Tomar foto
-                <input type="file" accept="image/*" capture="environment" onChange={handleDocumentoChange} />
-              </label>*/}
+                <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" capture="environment" onChange={handleDocumentoChange} />
+              </label>
             </div>
             <label className="wide">
               Punto de recogida
