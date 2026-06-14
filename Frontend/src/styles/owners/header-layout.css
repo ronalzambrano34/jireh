@@ -27,6 +27,26 @@
   gap: 8px;
 }
 
+.toolbar-title h1,
+:root[data-theme="dark-sidebar"] .toolbar-title h1 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: clamp(1.35rem, 2vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.toolbar-title p,
+:root[data-theme="dark-sidebar"] .toolbar-title p {
+  margin: 4px 0 0;
+  color: var(--ui-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
 @media (max-width: 920px) {
   .toolbar,
 :root[data-theme="dark-sidebar"] .toolbar {
@@ -45,6 +65,11 @@
     width: 38px;
     height: 38px;
   }
+
+  .toolbar-title h1,
+  :root[data-theme="dark-sidebar"] .toolbar-title h1 {
+    font-size: 19px;
+  }
 }
 
 /* Home component alignment and responsive behavior. */
@@ -60,9 +85,9 @@
 }
 
 :root[data-theme="dark-sidebar"] .header-brand img {
-  width: 44px;
-  height: 44px;
-  padding: 2px;
+  width: 54px;
+  height: 54px;
+  padding: 0;
   background: var(--ui-surface);
   border-radius: 50%;
 }
@@ -70,9 +95,17 @@
 :root[data-theme="dark-sidebar"] .header-brand span,
 :root[data-theme="dark-sidebar"] .brand-button span {
   color: var(--ui-text);
-  font-size: 0.92rem;
-  font-weight: 850;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+}
+
+:root[data-theme="dark-sidebar"] .header-brand span {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+:root[data-theme="dark-sidebar"] .brand-button span {
+  font-size: 24px;
+  font-weight: 800;
 }
 
 :root[data-theme="dark-sidebar"] .sidebar > .ghost-button {
@@ -97,7 +130,7 @@
 
 @media (max-width: 700px) {
   :root[data-theme="dark-sidebar"] .header-brand img {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
   }
 }
