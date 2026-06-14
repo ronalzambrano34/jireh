@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
-import { calcularOperacion, crearDivisa, listarMetodosPago } from '../api/client';
+import { calcularOperacion, crearDivisa, listarMetodosPago, subirArchivo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -27,7 +27,7 @@ function telefonoCubaPayload(value: string) {
 
 type DivisaInitialData = { monto_pago?: string; moneda_pago?: string; tipo_tarjeta?: string };
 
-export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: DivisaInitialData }) {
+export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void; initialData?: DivisaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
@@ -47,6 +47,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   const [loading, setLoading] = useState(false);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
   const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
+  const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -148,7 +149,13 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
         observaciones: form.observaciones.trim() || undefined,
       });
-      onCreated(response);
+      if (comprobante) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'comprobante_cliente');
+        uploadForm.set('archivo', comprobante);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
+      onCreated(response, Boolean(comprobante));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -162,6 +169,8 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
       loading={loading}
       loadingLabel="Creando divisa"
       submitLabel="Crear divisa"
+      comprobante={comprobante}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

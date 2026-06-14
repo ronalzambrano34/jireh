@@ -35,7 +35,7 @@ function whatsappHref(phone: string) {
   return `https://wa.me/${normalized}`;
 }
 
-export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: EfectivoInitialData }) {
+export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void; initialData?: EfectivoInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
@@ -60,6 +60,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   const [calculoError, setCalculoError] = useState<string | null>(null);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
+  const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo<MetodoPago[]>(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -205,7 +206,13 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
         uploadForm.set('archivo', documentoFile);
         await subirArchivo(response.codigo_operacion, uploadForm);
       }
-      onCreated(response);
+      if (comprobante) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'comprobante_cliente');
+        uploadForm.set('archivo', comprobante);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
+      onCreated(response, Boolean(comprobante));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -225,6 +232,8 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
       loading={loading}
       loadingLabel="Creando efectivo"
       submitLabel="Crear efectivo"
+      comprobante={comprobante}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

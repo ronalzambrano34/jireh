@@ -436,8 +436,27 @@ export function App() {
     setQuickCreateOpen(false);
   }
 
-  function finalizarCreacionPedido(pedido: PedidoDetalle) {
-    setPedidoPagoModal(pedido);
+  async function finalizarCreacionPedido(pedido: PedidoDetalle, pagoConfirmado: boolean) {
+    if (pagoConfirmado) {
+      try {
+        const actualizado = await actualizarEstado(
+          pedido.codigo_operacion,
+          'pago_confirmado',
+          'Pago confirmado al crear el pedido con comprobante cargado.',
+        );
+        if (actualizado.whatsapp_grupo_pedidos_url) {
+          setWhatsappGrupoPendiente({
+            codigo: actualizado.codigo_operacion,
+            url: actualizado.whatsapp_grupo_pedidos_url,
+            mensaje: actualizado.mensaje_grupo_pedidos ?? '',
+          });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'El comprobante se cargo, pero no se pudo confirmar el pago');
+      }
+    } else {
+      setPedidoPagoModal(pedido);
+    }
     setSeleccionado(null);
     setAlcancePedidos('mis');
     setVista('bandeja');

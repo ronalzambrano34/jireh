@@ -4,7 +4,7 @@ import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
 import { UiSwitch } from '../components/UiSwitch';
-import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
+import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerAssetBlob, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
 import type { ArchivoPedido, Operador, PedidoDetalle, PedidoResumen } from '../types/api';
 import {
   abrirWhatsAppUrl,
@@ -197,7 +197,7 @@ function monedaEntregaPedido(pedido: PedidoDetalle) {
   return 'CUP';
 }
 
-function archivoUrl(archivo: ArchivoPedido) {
+function archivoUrlRemota(archivo: ArchivoPedido) {
   return apiAssetUrl(archivo.ruta_archivo);
 }
 
@@ -233,6 +233,7 @@ export function PedidoDetallePanel({
   const [pedido, setPedido] = useState<PedidoDetalle | null>(
     pedidoInicial as PedidoDetalle | null,
   );
+  const [archivoBlobUrls, setArchivoBlobUrls] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -291,6 +292,39 @@ export function PedidoDetallePanel({
       ?? archivos[0]
       ?? null;
   }, [pedido?.archivos]);
+  const archivosFirma = (pedido?.archivos ?? [])
+    .map((archivo) => `${archivo.id}:${archivo.ruta_archivo}`)
+    .join('|');
+
+  useEffect(() => {
+    let activo = true;
+    const urlsCreadas: string[] = [];
+    const archivos = pedido?.archivos ?? [];
+
+    setArchivoBlobUrls({});
+    void Promise.all(archivos.map(async (archivo) => {
+      try {
+        const blob = await obtenerAssetBlob(archivo.ruta_archivo);
+        const url = URL.createObjectURL(blob);
+        urlsCreadas.push(url);
+        return [archivo.id, url] as const;
+      } catch {
+        return null;
+      }
+    })).then((resultados) => {
+      if (!activo) return;
+      setArchivoBlobUrls(Object.fromEntries(resultados.filter((item) => item !== null)));
+    });
+
+    return () => {
+      activo = false;
+      urlsCreadas.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [archivosFirma]);
+
+  function archivoUrl(archivo: ArchivoPedido) {
+    return archivoBlobUrls[archivo.id] ?? archivoUrlRemota(archivo);
+  }
   const monedaEntrega = pedido ? monedaEntregaPedido(pedido) : 'CUP';
   const tieneComprobantePago = Boolean(
     pedido?.comprobante_pago

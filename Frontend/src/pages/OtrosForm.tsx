@@ -19,7 +19,7 @@ function telefonoCubaCompleto(value: string) {
   return value.replace(/\D/g, '').length > 2;
 }
 
-export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void }) {
+export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void }) {
   const [form, setForm] = useState({
     monto_pago: '',
     moneda_pago: 'BRL',
@@ -41,6 +41,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
+  const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -159,7 +160,13 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
         uploadForm.set('archivo', documentoFile);
         await subirArchivo(response.codigo_operacion, uploadForm);
       }
-      onCreated(response);
+      if (comprobante) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'comprobante_cliente');
+        uploadForm.set('archivo', comprobante);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
+      onCreated(response, Boolean(comprobante));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -173,6 +180,8 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
       loading={loading}
       loadingLabel="Creando pedido"
       submitLabel="Crear otros"
+      comprobante={comprobante}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

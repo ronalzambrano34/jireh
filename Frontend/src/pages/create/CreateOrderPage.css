@@ -149,6 +149,12 @@
   white-space: nowrap;
 }
 
+.payment-proof-field {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
 .document-upload-field small {
   margin-top: 3px;
   color: var(--ui-text-muted);

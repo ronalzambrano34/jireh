@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { calcularOperacion, crearTransferencia, listarMetodosPago } from '../api/client';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { calcularOperacion, crearTransferencia, listarMetodosPago, subirArchivo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -26,7 +26,7 @@ function telefonoCubaPayload(value: string) {
 type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
 
 
-export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: TransferenciaInitialData }) {
+export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
@@ -46,6 +46,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   const [calculo, setCalculo] = useState<CalculoOperacionResponse | null>(null);
   const [calculando, setCalculando] = useState(false);
   const [calculoError, setCalculoError] = useState<string | null>(null);
+  const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -160,7 +161,13 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
       });
-      onCreated(response);
+      if (comprobante) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'comprobante_cliente');
+        uploadForm.set('archivo', comprobante);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
+      onCreated(response, Boolean(comprobante));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -174,6 +181,8 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
       loading={loading}
       loadingLabel="Creando transferencia"
       submitLabel="Crear transferencia"
+      comprobante={comprobante}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

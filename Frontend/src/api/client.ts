@@ -84,6 +84,26 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
   return response.blob();
 }
 
+export async function obtenerAssetBlob(path: string): Promise<Blob> {
+  if (/^(data:|blob:)/i.test(path)) {
+    const response = await fetch(path);
+    return response.blob();
+  }
+
+  const url = /^https?:/i.test(path)
+    ? path
+    : `${API_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const headers = new Headers();
+  const token = getToken();
+
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  addTunnelHeaders(headers);
+
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error(`Error ${response.status}`);
+  return response.blob();
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   const token = getToken();

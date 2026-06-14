@@ -29,7 +29,7 @@ export function CreateOrderPage({
   draft: CreateOrderDraft;
   operadorId: number;
   onServiceChange: (service: CreateService) => void;
-  onCreated: (pedido: PedidoDetalle) => void;
+  onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void;
 }) {
   const services: { value: CreateService; label: string }[] = [
     { value: 'transferencia', label: 'Transferencia' },

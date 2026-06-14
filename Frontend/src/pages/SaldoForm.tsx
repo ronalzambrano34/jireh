@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
 import { Smartphone } from 'lucide-react';
-import { crearSaldo, listarMetodosPago, listarPaquetesSaldo } from '../api/client';
+import { crearSaldo, listarMetodosPago, listarPaquetesSaldo, subirArchivo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
@@ -27,7 +27,7 @@ function telefonoCubaPayload(value: string) {
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
-export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle) => void; initialData?: SaldoInitialData }) {
+export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void; initialData?: SaldoInitialData }) {
   const [form, setForm] = useState({
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
@@ -45,6 +45,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
+  const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
@@ -170,7 +171,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
         observaciones: form.observaciones.trim() || undefined,
       });
-      onCreated(response);
+      if (comprobante) {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'comprobante_cliente');
+        uploadForm.set('archivo', comprobante);
+        await subirArchivo(response.codigo_operacion, uploadForm);
+      }
+      onCreated(response, Boolean(comprobante));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -184,6 +191,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       loading={loading}
       loadingLabel="Creando saldo"
       submitLabel="Crear saldo"
+      comprobante={comprobante}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

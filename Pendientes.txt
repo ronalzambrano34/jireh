@@ -2,10 +2,6 @@ PENDIENTES:
 
 //todo estoy pensando en agregar en el rastreador de pedidos, que tambien  se pueda rastrear los pedidos con el numero de cliente, y que aparezcan todos los pedidos en curso que no esten finalizados o cancelados.
 
-//todo hay q repensar el flujo de las operaciones, ya que lo primero que yo pido es el pago, por ende no debe estar en la segunda página, pienso que debería estar en el primer formulario como opcional y si no se sube entonces pasar a la segunda página. el proceso real es este momento es el siguiente, cuando el cliente me escribe para hacer una operación yo le mando número de cuenta a transferir, le pido comprobante de pago y le pido los datos de la operación (los que pongo en el formulario)
-
-//todo hay q revisar las fotos de los comprobantes de pago pq después que se guardan, voy a detalle de pedido y no me deja ver la foto
-
 Contexto:
 - Las hojas globales suman aproximadamente 21 500 lineas.
 - La aplicacion solo utiliza los temas "light" y "dark-sidebar".
