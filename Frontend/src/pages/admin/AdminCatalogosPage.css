@@ -831,7 +831,6 @@
 
 :root[data-theme="dark-sidebar"] .admin-panel,
 :root[data-theme="dark-sidebar"] .admin-toolbar,
-:root[data-theme="dark-sidebar"] .admin-surface,
 :root[data-theme="dark-sidebar"] .admin-hero-card,
 :root[data-theme="dark-sidebar"] .admin-section,
 :root[data-theme="dark-sidebar"] .admin-menu-section,
@@ -1902,7 +1901,7 @@
   box-shadow: 0 18px 48px color-mix(in srgb, var(--ui-shadow) 72%, transparent);
 }
 
-.admin-page .admin-hero-card.is-overview::after {
+.admin-page .admin-hero-card::after {
   content: "";
   position: absolute;
   inset: auto -50px -100px auto;
@@ -1914,15 +1913,17 @@
 }
 
 .admin-page .admin-hero-main {
+  position: relative;
   min-height: 168px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 18px;
   padding: clamp(22px, 4vw, 38px);
 }
 
 .admin-page .admin-hero-card.is-detail .admin-hero-main {
-  min-height: 0;
-  padding: 16px 18px;
+  min-height: 176px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  padding: clamp(22px, 4vw, 34px);
 }
 
 .admin-page .admin-hero-icon {
@@ -1939,6 +1940,11 @@
   position: relative;
   z-index: 2;
   min-width: 0;
+}
+
+.admin-page .admin-detail-hero-icon {
+  width: 64px;
+  height: 64px;
 }
 
 .admin-page .admin-eyebrow {
@@ -1959,7 +1965,7 @@
 }
 
 .admin-page .admin-hero-card.is-detail h2 {
-  font-size: 22px;
+  font-size: clamp(24px, 3vw, 34px);
 }
 
 .admin-page .admin-hero-main p {
@@ -1972,14 +1978,17 @@
 }
 
 .admin-page .admin-hero-mark {
-  position: relative;
+  position: absolute;
   z-index: 1;
+  right: clamp(34px, 9vw, 110px);
+  bottom: -2px;
   display: grid;
   place-items: center;
   width: 116px;
   height: 116px;
   color: color-mix(in srgb, var(--admin-accent) 56%, var(--ui-text));
   opacity: .55;
+  pointer-events: none;
 }
 
 .admin-page .admin-back-button,
@@ -2000,10 +2009,12 @@
 .admin-page .admin-back-button {
   width: 42px;
   padding: 0;
+  align-self: start;
 }
 
 .admin-page .admin-refresh-button {
   padding: 0 14px;
+  align-self: start;
 }
 
 .admin-page .admin-back-button:hover,
@@ -2152,7 +2163,9 @@
   padding: 18px;
   border: 1px solid var(--admin-card-border);
   border-radius: var(--ui-radius-lg);
-  background: var(--ui-surface);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ui-surface) 96%, transparent), var(--ui-surface)),
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--admin-accent) 7%, transparent), transparent 32%);
   box-shadow: 0 12px 34px var(--ui-shadow-faint);
 }
 
@@ -2164,6 +2177,11 @@
   gap: 13px;
   padding: 0 0 16px;
   border-bottom: 1px solid var(--ui-border);
+}
+
+.admin-page .admin-detail-section > .admin-state-switch {
+  padding: 5px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
 }
 
 .admin-page .admin-section-icon {
@@ -2213,16 +2231,43 @@
 
 .admin-page .admin-section .catalog-row,
 .admin-page .admin-section .config-row {
+  position: relative;
+  overflow: hidden;
   border-color: var(--ui-border);
   border-radius: var(--ui-radius-md);
-  background: var(--ui-surface-raised);
-  box-shadow: none;
+  background:
+    linear-gradient(145deg, var(--ui-surface-raised), color-mix(in srgb, var(--ui-surface-raised) 94%, var(--admin-accent)));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ui-shadow) 32%, transparent);
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.admin-page .admin-section .catalog-row::before,
+.admin-page .admin-section .config-row::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: color-mix(in srgb, var(--admin-accent) 72%, transparent);
+  pointer-events: none;
 }
 
 .admin-page .admin-section .catalog-row:hover,
 .admin-page .admin-section .config-row:hover {
   border-color: var(--ui-border-strong);
   background: var(--ui-surface-hover);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ui-shadow) 48%, transparent);
+  transform: translateY(-1px);
+}
+
+.admin-page .admin-service-group {
+  padding: 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-canvas-soft) 78%, transparent);
+}
+
+.admin-page .admin-service-group-header {
+  padding-bottom: 10px;
 }
 
 .admin-page .catalog-toggle-action {
@@ -2265,8 +2310,27 @@
   }
 
   .admin-page .admin-hero-card.is-detail .admin-hero-main {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    padding: 12px;
+    min-height: 158px;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 16px 12px;
+  }
+
+  .admin-page .admin-detail-hero-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+  }
+
+  .admin-page .admin-hero-card.is-detail .admin-hero-copy {
+    align-self: center;
+  }
+
+  .admin-page .admin-hero-card.is-detail .admin-hero-copy p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .admin-page .admin-refresh-button {
@@ -2306,5 +2370,26 @@
   .admin-page .admin-create-button {
     grid-column: 1 / -1;
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-page .admin-hero-card.is-detail .admin-hero-main {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .admin-page .admin-detail-hero-icon {
+    display: none;
+  }
+
+  .admin-page .admin-hero-card.is-detail h2 {
+    font-size: 21px;
+  }
+
+  .admin-page .admin-hero-card.is-detail .admin-eyebrow {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

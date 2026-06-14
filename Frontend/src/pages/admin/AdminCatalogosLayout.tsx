@@ -19,27 +19,34 @@ export type AdminMenuGroup<T extends string> = {
 type AdminHeroProps = {
   titulo: string;
   subtitulo: string;
+  descripcion?: string;
+  icono?: LucideIcon;
   loading: boolean;
   detail: boolean;
   onBack: () => void;
   onRefresh: () => void;
 };
 
-export function AdminHero({ titulo, subtitulo, loading, detail, onBack, onRefresh }: AdminHeroProps) {
+export function AdminHero({ titulo, subtitulo, descripcion, icono: DetailIcon, loading, detail, onBack, onRefresh }: AdminHeroProps) {
   return (
     <div className={`admin-hero-card ${detail ? 'is-detail' : 'is-overview'}`}>
       <div className="admin-hero-main">
         {detail ? (
-          <button className="admin-back-button" type="button" onClick={onBack} title="Volver a administracion" aria-label="Volver a administracion">
-            <ArrowLeft size={18} />
-          </button>
+          <>
+            <button className="admin-back-button" type="button" onClick={onBack} title="Volver a administracion" aria-label="Volver a administracion">
+              <ArrowLeft size={18} />
+            </button>
+            <div className="admin-hero-icon admin-detail-hero-icon">
+              {DetailIcon ? <DetailIcon size={28} /> : <Settings2 size={28} />}
+            </div>
+          </>
         ) : (
           <div className="admin-hero-icon"><Settings2 size={26} /></div>
         )}
         <div className="admin-hero-copy">
-          <span className="admin-eyebrow">{detail ? 'Administracion' : 'Centro de control'}</span>
+          <span className="admin-eyebrow">{detail ? subtitulo : 'Centro de control'}</span>
           <h2>{titulo}</h2>
-          <p>{loading ? 'Actualizando informacion...' : detail ? subtitulo : 'Configura los datos que sostienen la operacion diaria.'}</p>
+          <p>{loading ? 'Actualizando informacion...' : detail ? descripcion : 'Configura los datos que sostienen la operacion diaria.'}</p>
         </div>
         {detail && (
           <button className="admin-refresh-button" type="button" onClick={onRefresh} disabled={loading} title={`Actualizar ${titulo.toLowerCase()}`} aria-label={`Actualizar ${titulo.toLowerCase()}`}>
@@ -47,11 +54,9 @@ export function AdminHero({ titulo, subtitulo, loading, detail, onBack, onRefres
             <span>Actualizar</span>
           </button>
         )}
-        {!detail && (
-          <div className="admin-hero-mark" aria-hidden="true">
-            <Grid2X2 size={70} strokeWidth={1.25} />
-          </div>
-        )}
+        <div className="admin-hero-mark" aria-hidden="true">
+          {detail && DetailIcon ? <DetailIcon size={78} strokeWidth={1.1} /> : <Grid2X2 size={70} strokeWidth={1.25} />}
+        </div>
       </div>
     </div>
   );
@@ -98,9 +103,9 @@ export function AdminSection({ icono: Icon, titulo, resumen, action, children }:
       <header className="admin-section-header">
         <span className="admin-section-icon"><Icon size={22} /></span>
         <div className="admin-section-copy">
-          <span className="admin-eyebrow">Catalogo</span>
-          <h3>{titulo}</h3>
-          <small><strong>{resumen}</strong> registros visibles</small>
+          <span className="admin-eyebrow">Gestion de registros</span>
+          <h3>Registros</h3>
+          <small><strong>{resumen}</strong> de {titulo.toLowerCase()}</small>
         </div>
         {action}
       </header>

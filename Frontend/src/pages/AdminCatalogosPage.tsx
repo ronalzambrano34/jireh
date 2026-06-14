@@ -163,6 +163,20 @@ function tituloTema(tema: AdminTema | null) {
   return 'Catalogos';
 }
 
+const adminTemaVisual: Record<AdminTema, { descripcion: string; icono: typeof Settings2 }> = {
+  metodos: { descripcion: 'Administra medios de cobro, monedas, logos y cuentas asociadas.', icono: Banknote },
+  provincias: { descripcion: 'Define las provincias disponibles para organizar la cobertura del servicio.', icono: MapPin },
+  puntos: { descripcion: 'Gestiona ubicaciones, direcciones y contactos para las entregas en efectivo.', icono: MapPin },
+  ofertas: { descripcion: 'Configura tasas, monedas, importes minimos y servicios disponibles.', icono: Tags },
+  paquetes: { descripcion: 'Organiza los paquetes de recarga, su precio y el saldo que recibe el cliente.', icono: Package },
+  promociones: { descripcion: 'Programa campañas, imagenes y periodos de vigencia para destacar ofertas.', icono: Megaphone },
+  clientes: { descripcion: 'Consulta y administra las personas que solicitan o pagan operaciones.', icono: UsersRound },
+  contactos: { descripcion: 'Mantiene los destinatarios frecuentes y sus datos operativos.', icono: UserRound },
+  operadores: { descripcion: 'Controla accesos, roles, permisos y disponibilidad del equipo.', icono: UsersRound },
+  configuracion: { descripcion: 'Centraliza enlaces, claves y valores que definen el comportamiento del sistema.', icono: Settings2 },
+  templates: { descripcion: 'Edita los mensajes utilizados en operaciones, estados y notificaciones.', icono: FileText },
+};
+
 function resumenCarga(cargado: boolean, resumen: string) {
   return cargado ? resumen : 'Se carga al abrir';
 }
@@ -1156,7 +1170,9 @@ export function AdminCatalogosPage() {
     <section className="admin-page admin-surface">
       <AdminHero
         titulo={tituloTema(temaActivo)}
-        subtitulo={temaActivo ? `Administracion / ${tituloTema(temaActivo)}` : 'Administracion'}
+        subtitulo={temaActivo ? 'Administracion / Catalogos' : 'Administracion'}
+        descripcion={temaActivo ? adminTemaVisual[temaActivo].descripcion : undefined}
+        icono={temaActivo ? adminTemaVisual[temaActivo].icono : undefined}
         loading={loading}
         detail={Boolean(temaActivo)}
         onBack={volverMenu}
