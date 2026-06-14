@@ -12,8 +12,8 @@ Contexto:
 - La aplicacion solo utiliza los temas "light" y "dark-sidebar".
 - Los selectores de "dark", "dark-deep" y "dark-vscode" ya fueron eliminados.
 - Hay unas 2 651 declaraciones de color directo y 30 usos de "!important".
-- Orden actual de carga: foundation.css -> components.css -> themes.css -> canonical.css.
-  canonical.css esta funcionando como capa de correcciones sobre estilos anteriores.
+- Orden actual de carga: foundation.css -> components.css -> themes.css -> styles/owners/*.
+  Los estilos antes acumulados en canonical.css ya estan separados por propietario.
 
 PRIORIDAD ALTA
 
@@ -44,10 +44,12 @@ PRIORIDAD ALTA
     - Login flotante conservado como variante del mismo sistema.
     - Eliminadas las definiciones estructurales duplicadas de los estilos antiguos.
 
-[ ] 5. Dividir canonical.css y dejar de usarlo como parche global.
-    Actualmente contiene varias etapas "Phase 2", "Canonical refactored" y arreglos finales.
-    Mover cada regla estable a su componente o pagina propietaria.
-    El objetivo es que canonical.css contenga solo tokens/contratos globales o desaparezca.
+[x] 5. Dividir canonical.css y dejar de usarlo como parche global.
+    - canonical.css fue eliminado.
+    - Sus reglas se organizaron por propietario en styles/owners.
+    - Se separaron shell, home, pedidos, reportes, administracion, login y componentes compartidos.
+    - Los tokens y contratos reutilizables quedaron aislados en ui-contract.css y layout-contract.css.
+    - Se conservaron el orden de cascada y las hojas independientes de switches y modales.
 
 PRIORIDAD MEDIA
 
@@ -64,19 +66,19 @@ PRIORIDAD MEDIA
 
 [ ] 7. Unificar FloatingSelect y CurrencyPicker.
     FloatingSelect se reparte entre components.css (6717-7129), themes.css (2952-3010)
-    y canonical.css (3828 en adelante).
+    y styles/owners/login.css.
     CurrencyPicker tiene una primera version cerca de components.css:6602 y otra cerca de 7675.
     Mantener una base compartida y variantes por contexto, sin repetir menus y estados hover.
 
 [ ] 8. Consolidar tarjetas y columnas de Pedidos.
     pedido-column-header y sus contadores se definen en foundation.css varias veces,
-    reciben overrides en themes.css/components.css y vuelven a corregirse en canonical.css.
+    reciben overrides en themes.css/components.css y styles/owners/orders-create.css.
     Hacer lo mismo con pedido-row, chat-order-card, estados de bloqueo y retraso.
     Mover el resultado a un CSS propio de OrdersPage.
 
 [ ] 9. Consolidar las tarjetas administrativas.
     catalog-row tiene versiones en foundation.css (980, 2606 y 4262 en adelante)
-    y overrides oscuros en components.css/canonical.css.
+    y overrides oscuros en components.css/styles/owners/admin-setup-profile.css.
     Unificar catalog-row, catalog-edit-main, catalog-offer-actions y payment-account-row
     dentro de pages/admin/AdminCatalogosPage.css.
 
@@ -90,7 +92,7 @@ PRIORIDAD MEDIA
 [ ] 11. Revisar ThemeTestPage y el catalogo visual antiguo.
      ThemeTestPage.tsx no esta conectado a App ni a una ruta visible.
      Decidir si se convierte en pagina interna de referencia o se elimina junto con sus estilos.
-     Evitar mantener simultaneamente ThemeTest y el contrato "Tema UI" de canonical.css.
+     Evitar mantener simultaneamente ThemeTest y el contrato de styles/owners/ui-contract.css.
 
 PRIORIDAD BAJA
 
@@ -101,7 +103,7 @@ PRIORIDAD BAJA
 
 [ ] 13. Reducir y eliminar usos de !important.
      Hay aproximadamente 30 usos.
-     La mayoria compensa el orden de cascada entre components/themes/canonical.
+     La mayoria compensa el orden de cascada entre components/themes y los estilos propietarios.
      Eliminarlos despues de consolidar cada familia de componentes.
 
 [ ] 14. Definir propiedad clara de estilos por archivo.

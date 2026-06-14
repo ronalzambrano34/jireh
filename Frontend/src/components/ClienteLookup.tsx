@@ -5,6 +5,7 @@ import type { Cliente } from '../types/api';
 import { DismissibleNotice } from './DismissibleNotice';
 import { PhoneInput } from './PhoneInput';
 import { PasteButton } from './PasteButton';
+import { separarTelefono } from '../utils/telefonos';
 
 type ClienteLookupProps = {
   telefono: string;
@@ -23,7 +24,15 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
   const [buscando, setBuscando] = useState(false);
   const [busquedaHecha, setBusquedaHecha] = useState(false);
   const [clienteEncontradoOculto, setClienteEncontradoOculto] = useState(false);
-  const termino = useMemo(() => (telefono || nombre).trim(), [nombre, telefono]);
+  const [campoBusqueda, setCampoBusqueda] = useState<'telefono' | 'nombre'>(() => nombre.trim() ? 'nombre' : 'telefono');
+  const telefonoLocal = useMemo(
+    () => separarTelefono(telefono, '+55').local.replace(/\D/g, ''),
+    [telefono],
+  );
+  const termino = campoBusqueda === 'nombre' ? nombre.trim() : telefono.trim();
+  const terminoValido = campoBusqueda === 'nombre'
+    ? termino.length >= 3
+    : telefonoLocal.length >= 3;
   const resumen = clienteId
     ? `Historial vinculado #${clienteId}`
     : nombre || telefono
@@ -42,7 +51,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
       return;
     }
 
-    if (termino.length < 3) {
+    if (!terminoValido) {
       setResultados([]);
       setBuscando(false);
       setBusquedaHecha(false);
@@ -73,7 +82,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
       cancelado = true;
       window.clearTimeout(timer);
     };
-  }, [clienteId, onError, termino]);
+  }, [clienteId, onError, termino, terminoValido]);
 
   function seleccionar(cliente: Cliente) {
     onChange({
@@ -97,14 +106,17 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
     <section className="client-section wide compact-client-section">
       <div className="client-section-heading">
         <strong>Buscar o registrar cliente</strong>
-        <small>{buscando ? 'Buscando coincidencias...' : resumen}</small>
+        <small>{buscando ? `Buscando por ${campoBusqueda}...` : clienteId ? resumen : 'Busca por nombre o telefono; si no existe, se registra al crear el pedido'}</small>
       </div>
       <div className="client-lookup">
         <label>
-          Telefono / WhatsApp del cliente
+          Telefono / WhatsApp
           <PhoneInput
             value={telefono}
-            onChange={(value) => onChange({ telefono: value, clienteId: '' })}
+            onChange={(value) => {
+              setCampoBusqueda('telefono');
+              onChange({ telefono: value, clienteId: '' });
+            }}
             defaultCode="+55"
             pasteTitle="Pegar telefono del cliente"
             actions={(
@@ -115,14 +127,23 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
           />
         </label>
         <label>
-          Nombre cliente
+          Nombre del cliente
           <span className="input-action-row">
             <input
               value={nombre}
-              onChange={(event) => onChange({ nombre: event.target.value, clienteId: '' })}
-              placeholder={telefono ? `Si queda vacio se usara ${telefono}` : 'Opcional'}
+              onChange={(event) => {
+                setCampoBusqueda('nombre');
+                onChange({ nombre: event.target.value, clienteId: '' });
+              }}
+              placeholder="Escribe al menos 3 letras para buscar"
             />
-            <PasteButton onPaste={(value) => onChange({ nombre: value, clienteId: '' })} title="Pegar nombre del cliente" />
+            <PasteButton
+              onPaste={(value) => {
+                setCampoBusqueda('nombre');
+                onChange({ nombre: value, clienteId: '' });
+              }}
+              title="Pegar nombre del cliente"
+            />
           </span>
         </label>
         {resultados.length > 0 && (
@@ -147,7 +168,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
             </button>
           </div>
         )}
-        {!clienteId && busquedaHecha && !buscando && termino.length >= 3 && resultados.length === 0 && (
+        {!clienteId && busquedaHecha && !buscando && terminoValido && resultados.length === 0 && (
           <DismissibleNotice className="lookup-hit lookup-new-client">Cliente nuevo. Se registrara al crear el pedido.</DismissibleNotice>
         )}
       </div>

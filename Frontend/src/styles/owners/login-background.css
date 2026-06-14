@@ -1,0 +1,49 @@
+/* Login background and action layout. */
+.login-screen,
+:root[data-theme="dark-sidebar"] .login-screen {
+  position: relative;
+  width: 100vw;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--ui-canvas);
+  isolation: isolate;
+}
+
+.login-bg-logo,
+:root[data-theme="dark-sidebar"] .login-bg-logo {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  width: 100vw;
+  min-width: 100vw;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0.42;
+  transform: none;
+}
+
+.login-screen > .auth-panel {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-panel .login-actions {
+  width: 50%;
+  margin: 4px auto 0;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-panel .login-actions .primary-button {
+  width: 100%;
+  min-height: 50px;
+  padding-inline: 28px;
+  justify-content: center;
+  font-size: 0.98rem;
+}

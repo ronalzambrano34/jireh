@@ -1,0 +1,176 @@
+/* Global UI tokens and reusable visual contracts. */
+:root {
+  --ui-canvas: #08111f;
+  --ui-canvas-soft: #0b1627;
+  --ui-surface: #0f1b2d;
+  --ui-surface-raised: #16243a;
+  --ui-surface-hover: #1b2d47;
+  --ui-border: #263a55;
+  --ui-border-strong: #365273;
+  --ui-text: #f4f7fb;
+  --ui-text-muted: #a9b7c9;
+  --ui-text-subtle: #72849b;
+  --ui-primary: #2fa66f;
+  --ui-primary-hover: #38b77c;
+  --ui-primary-pressed: #25885c;
+  --ui-on-primary: #08111f;
+  --ui-info: #2f6fdb;
+  --ui-success: #2fa66f;
+  --ui-warning: #e3b341;
+  --ui-danger: #dc5a63;
+  --ui-focus: rgba(47, 166, 111, 0.28);
+  --ui-shadow: rgba(1, 6, 15, 0.34);
+  --ui-radius-sm: 8px;
+  --ui-radius-md: 14px;
+  --ui-radius-lg: 18px;
+  --ui-accent-width: 3px;
+  --ui-accent-inset: 0;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ui-canvas: #f4f6f8;
+  --ui-canvas-soft: #edf1f5;
+  --ui-surface: #ffffff;
+  --ui-surface-raised: #f8fafc;
+  --ui-surface-hover: #edf4f1;
+  --ui-border: #d8e2eb;
+  --ui-border-strong: #b9c7d6;
+  --ui-text: #18212f;
+  --ui-text-muted: #526173;
+  --ui-text-subtle: #72849b;
+  --ui-on-primary: #ffffff;
+  --ui-focus: rgba(47, 166, 111, 0.22);
+  --ui-shadow: rgba(29, 45, 65, 0.16);
+}
+
+:is(
+  .ui-accent-card,
+  .list-panel,
+  .form-panel,
+  .detail-panel.order-detail-surface,
+  .profile-section,
+  .admin-section,
+  .report-table,
+  .report-chart
+) {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+:is(
+  .ui-accent-card,
+  .list-panel,
+  .form-panel,
+  .detail-panel.order-detail-surface,
+  .profile-section,
+  .admin-section,
+  .report-table,
+  .report-chart
+)::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: var(--ui-accent-inset) auto var(--ui-accent-inset) 0;
+  display: block;
+  width: var(--ui-accent-width);
+  height: auto;
+  background: var(--ui-primary);
+  border-radius: 0 var(--ui-radius-sm) var(--ui-radius-sm) 0;
+  pointer-events: none;
+}
+
+.ui-nav-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-nav-item::before {
+  content: "";
+  position: absolute;
+  inset: 7px auto 7px 0;
+  display: block;
+  width: var(--ui-accent-width);
+  background: transparent;
+  border-radius: 0 999px 999px 0;
+  pointer-events: none;
+  transition: background 0.16s ease;
+}
+
+.ui-nav-item.active::before {
+  background: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .nav-stack .ui-nav-item,
+:root[data-theme="dark-sidebar"] .nav-stack .ui-nav-item.active {
+  box-shadow: none;
+}
+
+.ui-glass-surface {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--ui-surface-raised) 72%, transparent),
+      color-mix(in srgb, var(--ui-surface) 58%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--ui-border-strong) 72%, transparent);
+  box-shadow:
+    0 24px 70px color-mix(in srgb, var(--ui-shadow) 82%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  backdrop-filter: blur(22px) saturate(1.12);
+}
+
+.theme-effects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.theme-loader-preview {
+  min-height: 210px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  padding: 24px;
+  overflow: hidden;
+  color: var(--ui-text);
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--ui-primary) 14%, transparent), transparent 62%),
+    var(--ui-canvas-soft);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  text-align: center;
+}
+
+.theme-loader-preview small {
+  color: var(--ui-text-muted);
+}
+
+.ui-loader-mark {
+  display: grid;
+  place-items: center;
+  gap: 18px;
+  color: var(--ui-text);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.ui-loader-mark img {
+  width: 68px;
+  height: 68px;
+  padding: 3px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  box-shadow:
+    0 22px 52px color-mix(in srgb, var(--ui-shadow) 88%, transparent),
+    0 0 42px color-mix(in srgb, var(--ui-primary) 24%, transparent);
+  animation: logo-pingpong 0.8s cubic-bezier(.22, .61, .36, 1) infinite alternate;
+}

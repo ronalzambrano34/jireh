@@ -1,0 +1,136 @@
+/* Shared viewport and overflow layout contract. */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+.app-shell {
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.workspace {
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workspace > *,
+.content-grid,
+.content-grid > *,
+.list-panel,
+.detail-panel,
+.form-panel,
+.create-stack,
+.form-flow,
+.form-flow > *,
+.form-section-card,
+.form-grid,
+.form-grid > *,
+.client-section,
+.reports-page,
+.report-filters,
+.report-summary,
+.report-grid,
+.report-table,
+.admin-page,
+.admin-surface,
+.admin-hero-card,
+.admin-section,
+.setup-page,
+.setup-layout,
+.setup-card,
+.profile-page,
+.profile-hero-card,
+.profile-section,
+.home-page,
+.rates-hero,
+.rates-currency-sections,
+.rates-currency-section,
+.operation-currency-header,
+.live-rate-panel,
+.home-services-section,
+.operational-rates-grid,
+.home-tracking-section,
+.track-order-panel,
+.order-detail-page,
+.order-detail-page-body,
+.order-detail-surface,
+.order-detail-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(
+  .toolbar,
+  .toolbar-actions,
+  .filters,
+  .state-row,
+  .orders-scope-chips,
+  .orders-top-actions,
+  .form-grid,
+  .client-lookup,
+  .lookup-row,
+  .payment-section-header,
+  .operation-currency-header,
+  .report-filters,
+  .report-summary,
+  .report-grid,
+  .admin-hero-main,
+  .admin-section-header,
+  .setup-layout,
+  .profile-hero-main,
+  .order-detail-page-header,
+  .order-detail-fields,
+  .payment-data-grid
+) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+.floating-select-button,
+.phone-input,
+.phone-input-row,
+.password-field,
+.input-action-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+}
+
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+}

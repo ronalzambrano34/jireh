@@ -1,0 +1,67 @@
+/* Page loader presentation. */
+.logo-bounce-loader,
+:root[data-theme="dark-sidebar"] .logo-bounce-loader,
+.logo-bounce-loader.inline-loader,
+:root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader {
+  position: fixed;
+  z-index: 140;
+  inset: 0;
+  width: auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 0;
+  color: var(--ui-text);
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--ui-primary) 11%, transparent), transparent 34rem);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  pointer-events: none;
+}
+
+.logo-bounce-loader img,
+:root[data-theme="dark-sidebar"] .logo-bounce-loader img,
+.logo-bounce-loader.inline-loader img,
+:root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader img {
+  width: clamp(64px, 18vw, 82px);
+  height: clamp(64px, 18vw, 82px);
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 24px 60px color-mix(in srgb, var(--ui-shadow) 88%, transparent),
+    0 0 48px color-mix(in srgb, var(--ui-primary) 24%, transparent);
+}
+
+.logo-bounce-loader > span,
+:root[data-theme="dark-sidebar"] .logo-bounce-loader > span {
+  max-width: min(86vw, 420px);
+  color: var(--ui-text);
+  font-size: 0.94rem;
+  font-weight: 750;
+  text-align: center;
+  text-shadow: 0 2px 14px var(--ui-shadow);
+}
+
+:root[data-theme="dark-sidebar"] .login-progress {
+  background: color-mix(in srgb, var(--ui-canvas) 64%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 720px) {
+  .theme-effects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-loader-mark img {
+    animation: none;
+  }
+}

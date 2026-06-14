@@ -1,0 +1,231 @@
+/* Home component alignment and responsive behavior. */
+:root[data-theme="dark-sidebar"] .header-brand {
+  width: auto;
+  height: auto;
+  flex-basis: auto;
+  padding: 0 14px 0 0;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--ui-border);
+  border-radius: 0;
+}
+
+:root[data-theme="dark-sidebar"] .header-brand img {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+:root[data-theme="dark-sidebar"] .header-brand span,
+:root[data-theme="dark-sidebar"] .brand-button span {
+  color: var(--ui-text);
+  font-size: 0.92rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme="dark-sidebar"] .sidebar > .ghost-button {
+  min-height: 42px;
+  justify-content: flex-start;
+  color: #f28b92;
+  background: rgba(220, 90, 99, 0.08);
+  border-color: rgba(220, 90, 99, 0.22);
+}
+
+:root[data-theme="dark-sidebar"] .sidebar > .ghost-button:hover {
+  color: #ffffff;
+  background: rgba(220, 90, 99, 0.16);
+  border-color: rgba(220, 90, 99, 0.38);
+}
+
+:root[data-theme="dark-sidebar"] .hero-carousel-dots button {
+  background: var(--ui-text-subtle);
+}
+
+:root[data-theme="dark-sidebar"] .hero-carousel-dots button.active {
+  background: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .hero-kicker {
+  color: #91dfb7;
+  background: rgba(47, 166, 111, 0.12);
+  border-color: rgba(47, 166, 111, 0.28);
+}
+
+:root[data-theme="dark-sidebar"] .hero-rate-pill,
+:root[data-theme="dark-sidebar"] .live-rate-result {
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .hero-rate-pill.blue,
+:root[data-theme="dark-sidebar"] .live-rate-result.blue {
+  background: color-mix(in srgb, var(--ui-info) 12%, var(--ui-surface-raised));
+  border-color: color-mix(in srgb, var(--ui-info) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .hero-rate-pill.green,
+:root[data-theme="dark-sidebar"] .live-rate-result.green {
+  background: color-mix(in srgb, var(--ui-primary) 12%, var(--ui-surface-raised));
+  border-color: color-mix(in srgb, var(--ui-primary) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .hero-rate-pill:hover,
+:root[data-theme="dark-sidebar"] .hero-rate-pill:focus-visible,
+:root[data-theme="dark-sidebar"] .live-rate-result:hover {
+  background: var(--ui-surface-hover);
+  border-color: var(--ui-border-strong);
+  transform: translateY(-1px);
+}
+
+:root[data-theme="dark-sidebar"] .hero-rate-pill.blue small,
+:root[data-theme="dark-sidebar"] .live-rate-result.blue > span {
+  color: #8db4ff;
+}
+
+:root[data-theme="dark-sidebar"] .hero-rate-pill.green small,
+:root[data-theme="dark-sidebar"] .live-rate-result.green > span {
+  color: #91dfb7;
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .operation-rate-card-header {
+  color: var(--ui-text);
+  background: transparent;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .operation-rate-card-header h3 {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .operation-rate-card-header small {
+  color: var(--ui-text-muted);
+  opacity: 1;
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-state {
+  color: var(--ui-text-subtle);
+  background: var(--ui-canvas-soft);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-state.active,
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-state.active,
+:root[data-theme="dark-sidebar"] .operation-rate-card.divisa .rate-state.active {
+  color: #91dfb7;
+  background: rgba(47, 166, 111, 0.12);
+  border-color: rgba(47, 166, 111, 0.3);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-lines,
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-packages {
+  background: transparent;
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-tier-icon,
+:root[data-theme="dark-sidebar"] .operation-rate-card.efectivo .rate-tier-icon,
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-tier-icon {
+  color: #91dfb7;
+  background: rgba(47, 166, 111, 0.12);
+  border-color: rgba(47, 166, 111, 0.26);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card.transferencia .rate-tier-icon {
+  color: #8db4ff;
+  background: rgba(47, 111, 219, 0.13);
+  border-color: rgba(47, 111, 219, 0.28);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card.divisa .rate-tier-icon {
+  color: var(--ui-warning);
+  background: rgba(227, 179, 65, 0.12);
+  border-color: rgba(227, 179, 65, 0.28);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-tier-label,
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-tier-price b,
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-package-option .package-balance strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-tier-copy small,
+:root[data-theme="dark-sidebar"] .operation-rate-card .rate-tier-price small,
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-package-option .package-balance small,
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-package-option .package-balance em {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-package-option .package-balance {
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .operation-rate-card.saldo .rate-package-option .package-price {
+  color: #91dfb7;
+  background: rgba(47, 166, 111, 0.12);
+}
+
+:root[data-theme="dark-sidebar"] .rate-empty-state {
+  color: var(--ui-text-muted);
+  background: var(--ui-canvas-soft);
+  border-color: var(--ui-border-strong);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-panel {
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .track-order-icon {
+  color: var(--ui-primary);
+  background: rgba(47, 166, 111, 0.13);
+  border: 1px solid rgba(47, 166, 111, 0.26);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-head h3,
+:root[data-theme="dark-sidebar"] .track-order-result strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-head small,
+:root[data-theme="dark-sidebar"] .track-order-result small,
+:root[data-theme="dark-sidebar"] .track-order-steps small {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-input,
+:root[data-theme="dark-sidebar"] .track-order-result {
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-input:focus-within {
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-steps::before {
+  background: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .track-order-steps .active,
+:root[data-theme="dark-sidebar"] .track-order-steps .done {
+  color: var(--ui-primary);
+}
+
+@media (max-width: 920px) {
+  :root[data-theme="dark-sidebar"] .header-brand {
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  :root[data-theme="dark-sidebar"] .header-brand img {
+    width: 40px;
+    height: 40px;
+  }
+}
