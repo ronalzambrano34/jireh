@@ -5461,11 +5461,19 @@
 }
 
 .home-currency-card .operation-currency-header {
-  position: relative;
-  top: auto;
+  position: sticky;
+  top: 78px;
+  z-index: 18;
   min-height: 76px;
   padding: 16px;
   border-radius: 16px;
+  backdrop-filter: blur(16px) saturate(1.05);
+}
+
+@media (max-width: 920px) {
+  .home-currency-card .operation-currency-header {
+    top: 64px;
+  }
 }
 
 .calculator-interaction-badge {
