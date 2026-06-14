@@ -2,6 +2,7 @@ PENDIENTES:
 
 //todo estoy pensando en agregar en el rastreador de pedidos, que tambien  se pueda rastrear los pedidos con el numero de cliente, y que aparezcan todos los pedidos en curso que no esten finalizados o cancelados.
 
+//todo añadir un poco mas de margen top al boton del formulario login
 
 REVISION DE ESTILOS ANTIGUOS
 
