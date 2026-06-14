@@ -75,7 +75,6 @@
   --ui-shadow-medium: rgba(24, 33, 47, 0.16);
 }
 
-.ui-accent-card,
 .list-panel,
 .form-panel {
   position: relative;
@@ -86,9 +85,16 @@
   color: var(--ui-text);
 }
 
-.ui-accent-card::before,
-.list-panel::before,
-.form-panel::before {
+.ui-accent-card {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+.ui-accent-card::before {
   content: "";
   position: absolute;
   z-index: 1;

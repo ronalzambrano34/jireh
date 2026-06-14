@@ -684,20 +684,6 @@
   overflow: hidden;
 }
 
-.form-panel::before,
-.list-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--ui-primary-strong);
-}
-
-.form-panel,
-.list-panel {
-  padding-left: 18px;
-}
-
 .config-row,
 .archivo-row {
   box-shadow: 0 2px 8px var(--ui-shadow-faint);
@@ -1735,16 +1721,18 @@
   }
 }
 
-.ui-accent-card,
 .list-panel,
 .form-panel {
   position: relative;
   overflow: hidden;
 }
 
-.ui-accent-card::before,
-.list-panel::before,
-.form-panel::before {
+.ui-accent-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-accent-card::before {
   content: "";
   position: absolute;
   z-index: 1;
