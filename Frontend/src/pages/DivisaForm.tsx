@@ -91,12 +91,13 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
       servicio: form.tipo_tarjeta.toLowerCase(),
       moneda_pago: form.moneda_pago,
       monto_pago: montoPago,
+      bonificacion_manual: Number(form.bonificacion_manual) || 0,
     })
       .then((data) => { if (activo) setCalculo(data); })
       .catch(() => { if (activo) setCalculo(null); });
 
     return () => { activo = false; };
-  }, [form.monto_pago, form.moneda_pago, form.tipo_tarjeta]);
+  }, [form.bonificacion_manual, form.monto_pago, form.moneda_pago, form.tipo_tarjeta]);
 
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -109,13 +110,6 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
       numero_tarjeta: contacto.numero_tarjeta ?? current.numero_tarjeta,
       telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
     }));
-  }
-
-  function observacionesConBono() {
-    const bono = form.bonificacion_manual.trim();
-    const observaciones = form.observaciones.trim();
-    if (!bono) return observaciones || undefined;
-    return [observaciones, `Cupon/bono: ${bono}`].filter(Boolean).join(' | ');
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -151,7 +145,8 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
-        observaciones: observacionesConBono(),
+        bonificacion_manual: Number(form.bonificacion_manual) || undefined,
+        observaciones: form.observaciones.trim() || undefined,
       });
       onCreated(response);
     } catch (err) {
@@ -258,7 +253,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
             </label>
             <label>
               Cupon o bono
-              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Referencia opcional" />
+              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>
             <CalculoPreview calculo={calculo} monedaResultado={form.tipo_tarjeta || 'DIV'} />
             <label className="wide">

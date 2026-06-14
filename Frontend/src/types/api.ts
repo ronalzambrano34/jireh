@@ -237,6 +237,7 @@ export type CrearSaldoPayload = {
   monto_pago?: number | null;
   saldo_cup?: number | null;
   moneda_pago: string;
+  bonificacion_manual?: number;
   observaciones?: string;
 };
 
@@ -273,6 +274,7 @@ export type CrearDivisaPayload = {
   cliente_id?: number | null;
   nombre_cliente?: string;
   numero_telefono_cliente?: string;
+  bonificacion_manual?: number;
   observaciones?: string;
 };
 

@@ -17,6 +17,11 @@
     display: none;
   }
 
+  .sidebar.mobile-open,
+  :root[data-theme="dark-sidebar"] .sidebar.mobile-open {
+    display: grid;
+  }
+
   .workspace,
   :root[data-theme="dark-sidebar"] .workspace {
     position: relative;

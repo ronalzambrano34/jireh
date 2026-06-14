@@ -110,14 +110,19 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     if (!paqueteSeleccionado) return null;
     const montoPago = Number(paqueteSeleccionado.monto_pago) || 0;
     const saldoCup = Number(paqueteSeleccionado.saldo_cup) || 0;
+    const tasa = montoPago > 0 ? saldoCup / montoPago : 0;
+    const bonificacion = Number(form.bonificacion_manual) || 0;
+    const tasaFinal = tasa + bonificacion;
+    const saldoFinal = Math.round(montoPago * tasaFinal);
     return {
       paquete_id: paqueteSeleccionado.id,
-      monto_resultado: saldoCup,
-      tasa: montoPago,
-      tasa_final: montoPago,
-      saldo_cup: saldoCup,
+      monto_resultado: saldoFinal,
+      tasa,
+      bonificacion,
+      tasa_final: tasaFinal,
+      saldo_cup: saldoFinal,
     };
-  }, [paqueteSeleccionado]);
+  }, [form.bonificacion_manual, paqueteSeleccionado]);
 
   function update(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -128,13 +133,6 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       ...current,
       telefono_destinatario: contacto.telefono ?? current.telefono_destinatario,
     }));
-  }
-
-  function observacionesConBono() {
-    const bono = form.bonificacion_manual.trim();
-    const observaciones = form.observaciones.trim();
-    if (!bono) return observaciones || undefined;
-    return [observaciones, `Cupon/bono: ${bono}`].filter(Boolean).join(' | ');
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -169,7 +167,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         paquete_saldo_id: form.paquete_saldo_id ? Number(form.paquete_saldo_id) : null,
         moneda_pago: form.moneda_pago,
-        observaciones: observacionesConBono(),
+        bonificacion_manual: Number(form.bonificacion_manual) || undefined,
+        observaciones: form.observaciones.trim() || undefined,
       });
       onCreated(response);
     } catch (err) {
@@ -270,7 +269,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
             </label>
             <label>
               Cupon o bono
-              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Referencia opcional" />
+              <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>
             <CalculoPreview calculo={calculo} />
             <label className="wide">

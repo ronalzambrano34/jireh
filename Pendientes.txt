@@ -2,10 +2,7 @@ PENDIENTES:
 
 //todo estoy pensando en agregar en el rastreador de pedidos, que tambien  se pueda rastrear los pedidos con el numero de cliente, y que aparezcan todos los pedidos en curso que no esten finalizados o cancelados.
 
-//todo añadir un poco mas de margen top al boton del formulario login
-
-//todo las fotos que descargo por whatsap y tomo de la galeria, no se dejan ver despues, quizas sea al coprimirlas a .webp ,Otra cosa es que me gusta el visual de tomar de la galeria, pero ese boton solo abre la galeria qy me obliga a tener otro boton para tirar fotos, pero el 
-
+//todo
 
 Contexto:
 - Las hojas globales suman aproximadamente 21 500 lineas.
@@ -112,6 +109,8 @@ PRIORIDAD BAJA
      themes.css: solamente tokens o diferencias estrictamente tematicas.
      pages/*/*.css: estilos exclusivos de cada vista.
      Evitar volver a declarar un componente completo en mas de una capa.
+     Avance: el ancho de todas las vistas principales se unifico en
+     styles/owners/layout-contract.css tomando Inicio y Reportes como referencia.
 
 [ ] 15. Añadir una comprobacion automatica de CSS obsoleto.
      Detectar selectores data-theme no soportados, clases sin uso y nuevos !important.

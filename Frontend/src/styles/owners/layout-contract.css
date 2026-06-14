@@ -85,6 +85,23 @@ body {
   max-width: 100%;
 }
 
+/* Main views share the same usable width as Inicio and Reportes. */
+.workspace > :is(
+  .home-page,
+  .reports-page,
+  .orders-content-grid,
+  .profile-page,
+  .setup-page,
+  .admin-page,
+  .create-stack,
+  .order-detail-page
+),
+.public-home-content {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
 :is(
   .toolbar,
   .toolbar-actions,

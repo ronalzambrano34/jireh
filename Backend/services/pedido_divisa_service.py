@@ -86,7 +86,11 @@ def crear_pedido_divisa(
         ),
 
         "bonificacion_manual":
-        0,
+        getattr(
+            data,
+            "bonificacion_manual",
+            0
+        ) or 0,
 
         "observaciones":
         getattr(

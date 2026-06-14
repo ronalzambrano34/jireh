@@ -34,4 +34,6 @@ class PedidoSaldoCreate(
 
     moneda_pago: str = "BRL"
 
+    bonificacion_manual: float | None = 0
+
     observaciones: str | None = None

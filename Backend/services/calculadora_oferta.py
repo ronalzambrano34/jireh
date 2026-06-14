@@ -134,7 +134,8 @@ def calcular_transferencia_efectivo(
 def calcular_saldo(
     db: Session,
     moneda_pago: str,
-    monto_pago: float
+    monto_pago: float,
+    bonificacion_manual: float = 0
 ):
 
     paquete = (
@@ -163,29 +164,30 @@ def calcular_saldo(
             "Paquete saldo no encontrado"
         )
 
+    tasa = float(paquete.saldo_cup) / float(paquete.monto_pago)
+    bonificacion = float(bonificacion_manual or 0)
+    tasa_final = tasa + bonificacion
+    saldo_cup = round(float(paquete.monto_pago) * tasa_final)
+
     return {
 
         "paquete_id":
         paquete.id,
 
         "tasa":
-        float(
-            paquete.monto_pago
-        ),
+        tasa,
 
         "bonificacion":
-        0,
+        bonificacion,
 
         "tasa_final":
-        float(
-            paquete.monto_pago
-        ),
+        tasa_final,
 
         "saldo_cup":
-        paquete.saldo_cup,
+        saldo_cup,
 
         "monto_resultado":
-        paquete.saldo_cup,
+        saldo_cup,
 
         "ganancia":
         float(
@@ -202,7 +204,8 @@ def calcular_divisa(
     db: Session,
     servicio: str,
     moneda_pago: str,
-    monto_pago: float
+    monto_pago: float,
+    bonificacion_manual: float = 0
 ):
 
     oferta = buscar_oferta(
@@ -213,14 +216,16 @@ def calcular_divisa(
     )
 
     tasa = float(oferta.tasa)
+    bonificacion = float(bonificacion_manual or 0)
+    tasa_final = tasa - bonificacion
 
-    if tasa <= 0:
+    if tasa_final <= 0:
         raise Exception(
-            "La tasa de la oferta debe ser mayor que cero"
+            "La tasa final debe ser mayor que cero"
         )
 
     monto_resultado = round(
-        monto_pago / tasa,
+        monto_pago / tasa_final,
         2
     )
 
@@ -233,10 +238,10 @@ def calcular_divisa(
         tasa,
 
         "bonificacion":
-        0,
+        bonificacion,
 
         "tasa_final":
-        tasa,
+        tasa_final,
 
         "monto_resultado":
         monto_resultado,
@@ -279,7 +284,8 @@ def calcular_operacion(
         return calcular_saldo(
             db=db,
             moneda_pago=moneda_pago,
-            monto_pago=monto_pago
+            monto_pago=monto_pago,
+            bonificacion_manual=bonificacion_manual
         )
 
     if servicio in [
@@ -292,7 +298,8 @@ def calcular_operacion(
             db=db,
             servicio=servicio,
             moneda_pago=moneda_pago,
-            monto_pago=monto_pago
+            monto_pago=monto_pago,
+            bonificacion_manual=bonificacion_manual
         )
 
     raise Exception(

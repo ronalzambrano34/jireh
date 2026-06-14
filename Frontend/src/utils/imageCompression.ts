@@ -1,5 +1,6 @@
 const MAX_IMAGE_DIMENSION = 1600;
 const IMAGE_QUALITY = 0.72;
+const COMPRESSED_IMAGE_TYPE = 'image/jpeg';
 
 export async function compressImage(file: File): Promise<File> {
   if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
@@ -19,17 +20,19 @@ export async function compressImage(file: File): Promise<File> {
       return file;
     }
 
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
+      canvas.toBlob(resolve, COMPRESSED_IMAGE_TYPE, IMAGE_QUALITY);
     });
-    if (!blob || blob.size >= file.size) return file;
+    if (!blob || blob.type !== COMPRESSED_IMAGE_TYPE || blob.size >= file.size) return file;
 
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'imagen';
-    return new File([blob], `${baseName}.webp`, {
-      type: 'image/webp',
+    return new File([blob], `${baseName}.jpg`, {
+      type: COMPRESSED_IMAGE_TYPE,
       lastModified: file.lastModified,
     });
   } catch {

@@ -499,22 +499,33 @@ def crear_pedido(
             data["saldo_cup"]
         )
 
+        tasa = saldo_cup / monto_pago
+        bonificacion = float(
+            data.get(
+                "bonificacion_manual",
+                0
+            ) or 0
+        )
+        tasa_final = tasa + bonificacion
+
         calculo = {
 
             "oferta_id":
             None,
 
             "tasa":
-            monto_pago,
+            tasa,
 
             "bonificacion":
-            0,
+            bonificacion,
 
             "tasa_final":
-            monto_pago,
+            tasa_final,
 
             "monto_resultado":
-            saldo_cup,
+            round(
+                monto_pago * tasa_final
+            ),
 
             "ganancia":
             0
@@ -555,7 +566,11 @@ def crear_pedido(
             db=db,
             servicio=servicio_divisa,
             moneda_pago=data["moneda_pago"],
-            monto_pago=monto_pago
+            monto_pago=monto_pago,
+            bonificacion_manual=data.get(
+                "bonificacion_manual",
+                0
+            )
         )
 
     else:
