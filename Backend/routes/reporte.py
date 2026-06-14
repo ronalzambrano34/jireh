@@ -223,7 +223,7 @@ def operaciones_xlsx_route(
         "Gestor",
         "Dia",
         "Fecha",
-        "Codigo",
+        "Gestor",
         "Banco / Cuenta",
         "Moneda",
         "Monto pago",
@@ -288,7 +288,7 @@ def operaciones_xlsx_route(
     worksheet.freeze_panes = "A2"
     worksheet.auto_filter.ref = worksheet.dimensions
     worksheet.column_dimensions["A"].width = 13
-    worksheet.column_dimensions["B"].width = 19
+    worksheet.column_dimensions["B"].width = 13
     worksheet.column_dimensions["C"].width = 20
     worksheet.column_dimensions["D"].width = 20
     worksheet.column_dimensions["E"].width = 28
