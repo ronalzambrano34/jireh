@@ -928,6 +928,37 @@ def listar_pedidos(
     ]
 
 
+def listar_pedidos_activos_por_cliente(
+    db: Session,
+    cliente_id: int,
+    limit: int = 50
+):
+    pedidos = (
+        db.query(Pedido)
+        .filter(
+            Pedido.cliente_id == cliente_id,
+            Pedido.estado.notin_(ESTADOS_TERMINALES)
+        )
+        .order_by(
+            Pedido.created_at.desc(),
+            Pedido.id.desc()
+        )
+        .limit(max(1, min(limit, 200)))
+        .all()
+    )
+    detalles_por_pedido = _detalles_por_pedido_map(db, pedidos)
+    operadores_nombre = _operadores_nombre_map(db, pedidos)
+
+    return [
+        pedido_resumen_dict(
+            pedido,
+            detalles_por_pedido,
+            operadores_nombre
+        )
+        for pedido in pedidos
+    ]
+
+
 def redirigir_pedido_operador(
     db: Session,
     codigo_operacion: str,

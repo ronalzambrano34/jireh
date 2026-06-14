@@ -1,7 +1,5 @@
 PENDIENTES:
 
-//todo estoy pensando en agregar en el rastreador de pedidos, que tambien  se pueda rastrear los pedidos con el numero de cliente, y que aparezcan todos los pedidos en curso que no esten finalizados o cancelados.
-
 Contexto:
 - Las hojas globales suman aproximadamente 21 500 lineas.
 - La aplicacion solo utiliza los temas "light" y "dark-sidebar".

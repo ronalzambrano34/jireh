@@ -286,6 +286,10 @@ export function obtenerPedido(codigo: string) {
   return request<PedidoDetalle>(`/pedido/${codigo}`);
 }
 
+export function rastrearPedidosPorCliente(clienteId: number) {
+  return request<PedidoResumen[]>(`/pedido/rastrear/cliente/${clienteId}`);
+}
+
 export function tomarOperacion(codigo: string) {
   return request<PedidoDetalle>(`/pedido/${codigo}/tomar`, {
     method: 'POST',

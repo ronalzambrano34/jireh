@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { CheckCircle2, ClipboardList, Clock3, Search } from 'lucide-react';
-import { obtenerPedido } from '../../api/client';
-import type { PedidoDetalle } from '../../types/api';
+import { obtenerPedido, rastrearPedidosPorCliente } from '../../api/client';
+import type { PedidoResumen } from '../../types/api';
 
 function estadoLabel(value: string) {
   const labels: Record<string, string> = {
@@ -14,8 +14,7 @@ function estadoLabel(value: string) {
   return labels[value] ?? value.replaceAll('_', ' ');
 }
 
-function stepIndex(pedido: PedidoDetalle | null) {
-  if (!pedido) return 1;
+function stepIndex(pedido: PedidoResumen) {
   if (pedido.estado === 'completado') return 2;
   if (pedido.estado === 'pendiente_pago') return 0;
   return 1;
@@ -28,22 +27,27 @@ function stepClass(index: number, activeIndex: number, completado: boolean) {
 }
 
 export function TrackOrderPanel({ onTrackPedido }: { onTrackPedido: (codigo: string) => void }) {
-  const [codigo, setCodigo] = useState('');
-  const [pedido, setPedido] = useState<PedidoDetalle | null>(null);
+  const [termino, setTermino] = useState('');
+  const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const codigoLimpio = codigo.trim().toUpperCase();
-  const activeIndex = stepIndex(pedido);
-  const completado = pedido?.estado === 'completado';
+  const terminoLimpio = termino.trim();
+  const esNumeroCliente = /^\d+$/.test(terminoLimpio);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!codigoLimpio) return;
+    if (!terminoLimpio) return;
     setLoading(true);
     setError(null);
-    setPedido(null);
+    setPedidos([]);
     try {
-      setPedido(await obtenerPedido(codigoLimpio));
+      const encontrados = esNumeroCliente
+        ? await rastrearPedidosPorCliente(Number(terminoLimpio))
+        : [await obtenerPedido(terminoLimpio.toUpperCase())];
+      setPedidos(encontrados);
+      if (esNumeroCliente && encontrados.length === 0) {
+        setError('El cliente no tiene pedidos en curso');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo rastrear el pedido');
     } finally {
@@ -55,30 +59,34 @@ export function TrackOrderPanel({ onTrackPedido }: { onTrackPedido: (codigo: str
     <section className="track-order-panel" aria-label="Rastrear pedido">
       <div className="track-order-head">
         <span className="track-order-icon"><ClipboardList size={22} /></span>
-        <span><h3>Rastrear pedido</h3><small>Codigo de operacion</small></span>
+        <span><h3>Rastrear pedido</h3><small>Codigo de operacion o numero de cliente</small></span>
       </div>
       <form className="track-order-form" onSubmit={handleSubmit}>
         <label className="track-order-input">
           <Search size={17} />
-          <input value={codigo} onChange={(event) => setCodigo(event.target.value)} placeholder="Ej. JH-3204-CUBA" autoComplete="off" spellCheck={false} aria-label="Codigo de operacion" />
+          <input value={termino} onChange={(event) => setTermino(event.target.value)} placeholder="Ej. JH-3204-CUBA o 125" autoComplete="off" spellCheck={false} aria-label="Codigo de operacion o numero de cliente" />
         </label>
-        <button className="primary-button" type="submit" disabled={!codigoLimpio || loading}>{loading ? 'Buscando...' : 'Rastrear'}</button>
+        <button className="primary-button" type="submit" disabled={!terminoLimpio || loading}>{loading ? 'Buscando...' : 'Rastrear'}</button>
       </form>
-      {pedido && (
-        <div className="track-order-steps" aria-hidden="true">
-          <span className={stepClass(0, activeIndex, completado)}><CheckCircle2 size={16} /><small>Recibido</small></span>
-          <span className={stepClass(1, activeIndex, completado)}><Clock3 size={16} /><small>Procesando</small></span>
-          <span className={stepClass(2, activeIndex, completado)}><CheckCircle2 size={16} /><small>Completado</small></span>
-        </div>
-      )}
       {error && <div className="track-order-result error">{error}</div>}
-      {pedido && (
-        <div className={`track-order-result ${pedido.estado}`}>
-          <span><small>Estado</small><strong>{estadoLabel(pedido.estado)}</strong></span>
-          <span><small>Codigo</small><strong>{pedido.codigo_operacion}</strong></span>
-          <button className="ghost-button" type="button" onClick={() => onTrackPedido(pedido.codigo_operacion)}>Abrir detalle</button>
-        </div>
-      )}
+      {pedidos.map((pedido) => {
+        const activeIndex = stepIndex(pedido);
+        const completado = pedido.estado === 'completado';
+        return (
+          <div className="track-order-match" key={pedido.codigo_operacion}>
+            <div className="track-order-steps" aria-hidden="true">
+              <span className={stepClass(0, activeIndex, completado)}><CheckCircle2 size={16} /><small>Recibido</small></span>
+              <span className={stepClass(1, activeIndex, completado)}><Clock3 size={16} /><small>Procesando</small></span>
+              <span className={stepClass(2, activeIndex, completado)}><CheckCircle2 size={16} /><small>Completado</small></span>
+            </div>
+            <div className={`track-order-result ${pedido.estado}`}>
+              <span><small>Estado</small><strong>{estadoLabel(pedido.estado)}</strong></span>
+              <span><small>Codigo</small><strong>{pedido.codigo_operacion}</strong></span>
+              <button className="ghost-button" type="button" onClick={() => onTrackPedido(pedido.codigo_operacion)}>Abrir detalle</button>
+            </div>
+          </div>
+        );
+      })}
     </section>
   );
 }

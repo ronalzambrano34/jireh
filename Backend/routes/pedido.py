@@ -21,6 +21,7 @@ from Backend.schemas.pedido_transferencia import (
 from Backend.services.pedido_service import (
     actualizar_estado_pedido,
     liberar_bloqueo_pedido,
+    listar_pedidos_activos_por_cliente,
     listar_pedidos,
     obtener_pedido_por_codigo,
     redirigir_pedido_operador,
@@ -137,6 +138,29 @@ def listar(
             status_code=400,
             detail="Rango de fechas invalido"
         ) from exc
+
+
+@router.get(
+    "/rastrear/cliente/{cliente_id}"
+)
+def rastrear_por_cliente(
+    cliente_id: int,
+    db: Session = Depends(
+        get_db
+    ),
+    _operador = Depends(
+        require_any_permission(
+            [
+                "pedidos:crear",
+                "pedidos:gestionar"
+            ]
+        )
+    )
+):
+    return listar_pedidos_activos_por_cliente(
+        db,
+        cliente_id
+    )
 
 
 @router.get(
