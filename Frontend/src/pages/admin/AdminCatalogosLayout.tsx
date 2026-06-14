@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowLeft, ChevronDown, RefreshCw, Settings2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Grid2X2, RefreshCw, Settings2 } from 'lucide-react';
 
 export type AdminEstadoVista = 'activos' | 'inactivos';
 
@@ -27,23 +27,30 @@ type AdminHeroProps = {
 
 export function AdminHero({ titulo, subtitulo, loading, detail, onBack, onRefresh }: AdminHeroProps) {
   return (
-    <div className="admin-hero-card">
+    <div className={`admin-hero-card ${detail ? 'is-detail' : 'is-overview'}`}>
       <div className="admin-hero-main">
         {detail ? (
-          <button className="icon-button" type="button" onClick={onBack} title="Volver a administracion" aria-label="Volver a administracion">
+          <button className="admin-back-button" type="button" onClick={onBack} title="Volver a administracion" aria-label="Volver a administracion">
             <ArrowLeft size={18} />
           </button>
         ) : (
-          <div className="admin-hero-icon"><Settings2 size={24} /></div>
+          <div className="admin-hero-icon"><Settings2 size={26} /></div>
         )}
-        <div>
+        <div className="admin-hero-copy">
+          <span className="admin-eyebrow">{detail ? 'Administracion' : 'Centro de control'}</span>
           <h2>{titulo}</h2>
-          <p>{loading ? 'Actualizando...' : subtitulo}</p>
+          <p>{loading ? 'Actualizando informacion...' : detail ? subtitulo : 'Configura los datos que sostienen la operacion diaria.'}</p>
         </div>
         {detail && (
-          <button className="icon-button" type="button" onClick={onRefresh} disabled={loading} title={`Actualizar ${titulo.toLowerCase()}`} aria-label={`Actualizar ${titulo.toLowerCase()}`}>
+          <button className="admin-refresh-button" type="button" onClick={onRefresh} disabled={loading} title={`Actualizar ${titulo.toLowerCase()}`} aria-label={`Actualizar ${titulo.toLowerCase()}`}>
             <RefreshCw size={18} />
+            <span>Actualizar</span>
           </button>
+        )}
+        {!detail && (
+          <div className="admin-hero-mark" aria-hidden="true">
+            <Grid2X2 size={70} strokeWidth={1.25} />
+          </div>
         )}
       </div>
     </div>
@@ -53,16 +60,24 @@ export function AdminHero({ titulo, subtitulo, loading, detail, onBack, onRefres
 export function AdminMenu<T extends string>({ groups, onOpen }: { groups: AdminMenuGroup<T>[]; onOpen: (tema: T) => void }) {
   return (
     <div className="admin-menu-grid">
-      {groups.map((group) => (
+      {groups.map((group, groupIndex) => (
         <section className="profile-section admin-menu-section" key={group.titulo}>
-          <h3>{group.titulo}</h3>
-          {group.items.map(({ tema, titulo, resumen, icono: Icon }) => (
-            <button className="profile-option admin-topic-option" type="button" onClick={() => onOpen(tema)} key={tema}>
-              <Icon size={22} />
-              <span><strong>{titulo}</strong><small>{resumen}</small></span>
-              <ChevronDown size={18} />
-            </button>
-          ))}
+          <header className="admin-menu-heading">
+            <span className="admin-menu-number">0{groupIndex + 1}</span>
+            <div>
+              <h3>{group.titulo}</h3>
+              <small>{group.items.length} {group.items.length === 1 ? 'modulo' : 'modulos'}</small>
+            </div>
+          </header>
+          <div className="admin-menu-items">
+            {group.items.map(({ tema, titulo, resumen, icono: Icon }) => (
+              <button className="profile-option admin-topic-option" type="button" onClick={() => onOpen(tema)} key={tema}>
+                <span className="admin-topic-icon"><Icon size={20} /></span>
+                <span className="admin-topic-copy"><strong>{titulo}</strong><small>{resumen}</small></span>
+                <ChevronRight className="admin-topic-arrow" size={18} />
+              </button>
+            ))}
+          </div>
         </section>
       ))}
     </div>
@@ -82,9 +97,10 @@ export function AdminSection({ icono: Icon, titulo, resumen, action, children }:
     <section className="admin-section admin-detail-section">
       <header className="admin-section-header">
         <span className="admin-section-icon"><Icon size={22} /></span>
-        <div>
+        <div className="admin-section-copy">
+          <span className="admin-eyebrow">Catalogo</span>
           <h3>{titulo}</h3>
-          <small>{resumen}</small>
+          <small><strong>{resumen}</strong> registros visibles</small>
         </div>
         {action}
       </header>
