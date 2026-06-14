@@ -185,7 +185,7 @@ function rangosOferta(ofertas: OfertaOperativa[]): RateTier[] {
       oferta,
       nextMinimum,
       label: nextMinimum === null
-        ? `Desde ${formatNumber(minimoOferta(oferta))}`
+        ? `Más de ${formatNumber(minimoOferta(oferta))}`
         : `Menos de ${formatNumber(nextMinimum)}`,
     };
   });
@@ -200,7 +200,7 @@ function agruparOpcionesPorTasa(rangos: RateTier[]) {
       anterior.nextMinimum = rango.nextMinimum;
       anterior.kind = rango.kind;
       anterior.label = rango.nextMinimum === null
-        ? `Desde ${formatNumber(minimoOferta(anterior.oferta))}`
+        ? `Más de ${formatNumber(minimoOferta(anterior.oferta))}`
         : `Menos de ${formatNumber(rango.nextMinimum)}`;
       continue;
     }

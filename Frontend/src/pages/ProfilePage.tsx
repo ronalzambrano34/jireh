@@ -77,7 +77,7 @@ export function ProfilePage(props: {
         <div className="profile-appearance-row">
           <span className="profile-appearance-icon" aria-hidden="true"><Palette size={22} /></span>
           <div className="profile-appearance-copy">
-            <div className="profile-appearance-title"><strong>Apariencia</strong><label className="theme-switch"><input type="checkbox" checked={props.theme !== 'light'} onChange={(event) => props.onThemeChange(event.target.checked ? 'dark-sidebar' : 'light')} aria-label="Activar tema oscuro" /><span>Oscuro</span></label></div>
+            <div className="profile-appearance-title"><strong>Apariencia</strong><label className="theme-switch"><input className="ui-switch-input" type="checkbox" checked={props.theme !== 'light'} onChange={(event) => props.onThemeChange(event.target.checked ? 'dark-sidebar' : 'light')} aria-label="Activar tema oscuro" /><span>Oscuro</span></label></div>
             <small>{props.theme === 'light' ? 'Tema claro' : 'Oscuro Jireh predeterminado'}</small>
           </div>
         </div>

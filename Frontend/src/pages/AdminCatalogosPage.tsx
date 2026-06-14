@@ -124,6 +124,7 @@ function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChan
               <label className="permission-switch-row" key={permiso.value}>
                 <span>{permiso.label}<small>{permiso.value}</small></span>
                 <input
+                  className="ui-switch-input"
                   type="checkbox"
                   checked={permisos.includes(permiso.value)}
                   onChange={() => onChange(togglePermiso(permisos, permiso.value))}
@@ -1464,7 +1465,7 @@ export function AdminCatalogosPage() {
               <input value={cuentaMetodoForm.qr_url} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, qr_url: event.target.value }))} placeholder="QR URL opcional" />
               <label className="permission-switch-row">
                 <span>Predeterminada<small>Usar esta cuenta en pedidos nuevos con este metodo.</small></span>
-                <input type="checkbox" checked={cuentaMetodoForm.predeterminada} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, predeterminada: event.target.checked }))} />
+                <input className="ui-switch-input" type="checkbox" checked={cuentaMetodoForm.predeterminada} onChange={(event) => setCuentaMetodoForm((current) => ({ ...current, predeterminada: event.target.checked }))} />
               </label>
               <button className="primary-button" disabled={cuentaMetodoSaving}><SavingLabel saving={cuentaMetodoSaving} idle="Agregar cuenta" busy="Agregando..." /></button>
             </form>
@@ -1478,7 +1479,7 @@ export function AdminCatalogosPage() {
             <input value={provinciaForm.nombre} onChange={(event) => setProvinciaForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Provincia" required />
             <label className="permission-switch-row">
               <span>Habilitada<small>Disponible para entrega de efectivo</small></span>
-              <input type="checkbox" checked={provinciaForm.activo} onChange={(event) => setProvinciaForm((current) => ({ ...current, activo: event.target.checked }))} />
+              <input className="ui-switch-input" type="checkbox" checked={provinciaForm.activo} onChange={(event) => setProvinciaForm((current) => ({ ...current, activo: event.target.checked }))} />
             </label>
             <button className="primary-button"><Save size={18} /> {provinciaEditando ? 'Guardar cambios' : 'Crear provincia'}</button>
           </form>
@@ -1495,7 +1496,7 @@ export function AdminCatalogosPage() {
             {puntoEditando && (
               <label className="permission-switch-row">
                 <span>Activo<small>Disponible para seleccionar en pedidos de efectivo.</small></span>
-                <input type="checkbox" checked={puntoForm.activo} onChange={(event) => setPuntoForm((current) => ({ ...current, activo: event.target.checked }))} />
+                <input className="ui-switch-input" type="checkbox" checked={puntoForm.activo} onChange={(event) => setPuntoForm((current) => ({ ...current, activo: event.target.checked }))} />
               </label>
             )}
             <button className="primary-button"><Save size={18} /> {puntoEditando ? 'Guardar cambios' : 'Crear punto'}</button>

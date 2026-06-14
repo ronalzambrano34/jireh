@@ -915,6 +915,7 @@ export function App() {
                     </button>
                     <label className="theme-switch user-menu-theme-switch" onClick={(event) => event.stopPropagation()}>
                       <input
+                        className="ui-switch-input"
                         type="checkbox"
                         checked={theme !== 'light'}
                         onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}

@@ -1017,7 +1017,7 @@ export function PedidoDetallePanel({
                   <strong>Finalizar sin comprobante</strong>
                   <small>Solo cuando la conexion o el proveedor no permiten obtener la confirmacion.</small>
                 </span>
-                <span className="finalization-switch-control" aria-hidden="true">
+                <span className={finalizarSinComprobante ? 'ui-switch-indicator active' : 'ui-switch-indicator'} aria-hidden="true">
                   <span />
                 </span>
               </button>

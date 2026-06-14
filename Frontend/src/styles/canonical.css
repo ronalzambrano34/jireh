@@ -4829,3 +4829,63 @@ pre {
     animation: none;
   }
 }
+
+/* Header user trigger and order counters */
+.operator-chip.user-floating-trigger,
+:root[data-theme="dark-sidebar"] .operator-chip.user-floating-trigger {
+  display: grid;
+  grid-template-columns: 34px minmax(0, auto) 16px;
+  align-items: center;
+  justify-content: center;
+  column-gap: 9px;
+  padding-block: 5px;
+}
+
+.operator-chip.user-floating-trigger .operator-chip-avatar,
+.operator-chip.user-floating-trigger .operator-chip-text,
+.operator-chip.user-floating-trigger .user-menu-chevron {
+  align-self: center;
+  justify-self: center;
+}
+
+.operator-chip.user-floating-trigger .operator-chip-text {
+  width: 100%;
+  justify-items: start;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.operator-chip.user-floating-trigger .operator-chip-text strong,
+.operator-chip.user-floating-trigger .operator-chip-text small {
+  display: block;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pedido-column-header > strong {
+  min-width: 30px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+:root[data-theme="dark-sidebar"] .pedido-column-header > strong {
+  border-color: color-mix(in srgb, var(--ui-primary) 28%, var(--ui-border));
+  background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-surface-raised));
+  color: color-mix(in srgb, var(--ui-primary) 72%, white);
+}
+
+@media (max-width: 620px) {
+  .operator-chip.user-floating-trigger,
+  :root[data-theme="dark-sidebar"] .operator-chip.user-floating-trigger {
+    grid-template-columns: 33px minmax(0, auto) 16px;
+    column-gap: 8px;
+  }
+}
