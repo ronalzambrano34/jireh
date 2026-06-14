@@ -19,6 +19,7 @@
 
   .workspace,
   :root[data-theme="dark-sidebar"] .workspace {
+    position: relative;
     grid-column: 1;
     grid-row: 1;
     width: 100%;
@@ -32,6 +33,37 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  .pull-refresh-indicator {
+    position: fixed;
+    z-index: 145;
+    top: max(8px, env(safe-area-inset-top));
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 7px 12px;
+    color: var(--ui-text);
+    background: color-mix(in srgb, var(--ui-surface-raised) 94%, transparent);
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    box-shadow: 0 10px 28px var(--ui-shadow);
+    font-size: 0.8rem;
+    font-weight: 800;
+    opacity: 0;
+    transform: translate(-50%, calc(-48px + var(--pull-distance, 0px)));
+    transition: opacity 120ms ease, transform 80ms linear;
+    pointer-events: none;
+  }
+
+  .pull-refresh-indicator.visible {
+    opacity: 1;
+  }
+
+  .pull-refresh-indicator.refreshing svg {
+    animation: pull-refresh-spin 700ms linear infinite;
+  }
+
   .workspace > :last-child {
     width: 100%;
     max-width: none;
@@ -41,5 +73,17 @@
   .bottom-nav,
   :root[data-theme="dark-sidebar"] .bottom-nav {
     z-index: 150;
+  }
+}
+
+@keyframes pull-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 921px), (prefers-reduced-motion: reduce) {
+  .pull-refresh-indicator {
+    display: none;
   }
 }

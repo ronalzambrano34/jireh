@@ -1,4 +1,4 @@
-import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, type ChangeEvent, type FormEvent, type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ClipboardList, Copy, Home, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
@@ -49,6 +49,7 @@ const estadosBandeja = estados.filter((item) => item.value);
 const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
 const ERROR_TOAST_DURATION_MS = 5200;
+const PULL_REFRESH_THRESHOLD = 64;
 
 function vistaGuardada(): AppView {
   if (typeof sessionStorage === 'undefined') return 'inicio';
@@ -161,6 +162,9 @@ export function App() {
   const profileMessageTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
   const profileErrorTimeoutRef = useRef<number | null>(null);
+  const pullStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -186,6 +190,49 @@ export function App() {
     () => operador?.rol !== 'cliente' && (puedeCrear || puedeReportes || puedeAdmin),
     [operador, puedeAdmin, puedeCrear, puedeReportes],
   );
+
+  function iniciarPullRefresh(event: TouchEvent<HTMLElement>) {
+    if (
+      !window.matchMedia('(max-width: 920px)').matches
+      || pullRefreshing
+      || event.currentTarget.scrollTop > 0
+      || event.touches.length !== 1
+    ) return;
+    const touch = event.touches[0];
+    pullStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function moverPullRefresh(event: TouchEvent<HTMLElement>) {
+    const start = pullStartRef.current;
+    if (!start || pullRefreshing || event.currentTarget.scrollTop > 0 || event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (deltaY <= 0 || Math.abs(deltaX) >= deltaY) {
+      setPullDistance(0);
+      return;
+    }
+
+    setPullDistance(Math.min(96, deltaY * 0.45));
+  }
+
+  function finalizarPullRefresh() {
+    pullStartRef.current = null;
+    if (pullDistance < PULL_REFRESH_THRESHOLD) {
+      setPullDistance(0);
+      return;
+    }
+
+    setPullRefreshing(true);
+    setPullDistance(PULL_REFRESH_THRESHOLD);
+    window.setTimeout(() => window.location.reload(), 180);
+  }
+
+  function cancelarPullRefresh() {
+    pullStartRef.current = null;
+    setPullDistance(0);
+  }
 
   const pedidosFiltrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
@@ -829,7 +876,21 @@ export function App() {
 
       {mobileMenuOpen && <button className="mobile-menu-backdrop" aria-label="Cerrar menu" onClick={() => setMobileMenuOpen(false)} />}
 
-      <main className="workspace">
+      <main
+        className="workspace"
+        onTouchStart={iniciarPullRefresh}
+        onTouchMove={moverPullRefresh}
+        onTouchEnd={finalizarPullRefresh}
+        onTouchCancel={cancelarPullRefresh}
+      >
+        <div
+          className={`pull-refresh-indicator ${pullDistance > 0 ? 'visible' : ''} ${pullRefreshing ? 'refreshing' : ''}`}
+          style={{ '--pull-distance': `${pullDistance}px` } as React.CSSProperties}
+          aria-live="polite"
+        >
+          <RefreshCw size={17} />
+          <span>{pullRefreshing ? 'Actualizando...' : pullDistance >= PULL_REFRESH_THRESHOLD ? 'Suelta para actualizar' : 'Desliza para actualizar'}</span>
+        </div>
         {!online && (
           <div className="offline-banner">
             <WifiOff size={18} /> Sin conexion, los datos del formulario se conservan en esta pantalla.
