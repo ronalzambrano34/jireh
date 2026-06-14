@@ -111,16 +111,15 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     if (!paqueteSeleccionado) return null;
     const montoPago = Number(paqueteSeleccionado.monto_pago) || 0;
     const saldoCup = Number(paqueteSeleccionado.saldo_cup) || 0;
-    const tasa = montoPago > 0 ? saldoCup / montoPago : 0;
+    const tasaSaldo = montoPago > 0 ? saldoCup / montoPago : 0;
     const bonificacion = Number(form.bonificacion_manual) || 0;
-    const tasaFinal = tasa + bonificacion;
-    const saldoFinal = Math.round(montoPago * tasaFinal);
+    const saldoFinal = Math.round(montoPago * (tasaSaldo + bonificacion));
     return {
       paquete_id: paqueteSeleccionado.id,
       monto_resultado: saldoFinal,
-      tasa,
+      tasa: montoPago,
       bonificacion,
-      tasa_final: tasaFinal,
+      tasa_final: montoPago,
       saldo_cup: saldoFinal,
     };
   }, [form.bonificacion_manual, paqueteSeleccionado]);
@@ -280,7 +279,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
               Cupon o bono
               <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>
-            <CalculoPreview calculo={calculo} />
+            <CalculoPreview calculo={calculo} tasaLabel="Precio del paquete" />
             <label className="wide">
               Observaciones
               <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />

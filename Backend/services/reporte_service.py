@@ -170,7 +170,11 @@ def historial_operaciones(
             ) or "Sin metodo",
             "moneda": pedido.moneda_pago,
             "monto_pago": float(pedido.monto_pago or 0),
-            "tasa": float(pedido.tasa_final or 0),
+            "tasa": float(
+                pedido.monto_pago
+                if pedido.servicio == "saldo"
+                else pedido.tasa_final or 0
+            ),
             **montos,
             "ganancia": float(pedido.ganancia or 0),
             "estado": pedido.estado,

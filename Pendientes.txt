@@ -1,3 +1,2 @@
 PENDIENTES:
 
-porque el paquete de saldo es 20 BRL - 360 Saldo pero cuando vas a crear el pedido, dice que la tasa es 18. en el caso de saldo, la tasa es el mismo precio del paquete

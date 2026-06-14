@@ -164,10 +164,10 @@ def calcular_saldo(
             "Paquete saldo no encontrado"
         )
 
-    tasa = float(paquete.saldo_cup) / float(paquete.monto_pago)
+    tasa_saldo = float(paquete.saldo_cup) / float(paquete.monto_pago)
     bonificacion = float(bonificacion_manual or 0)
-    tasa_final = tasa + bonificacion
-    saldo_cup = round(float(paquete.monto_pago) * tasa_final)
+    precio_paquete = float(paquete.monto_pago)
+    saldo_cup = round(precio_paquete * (tasa_saldo + bonificacion))
 
     return {
 
@@ -175,13 +175,13 @@ def calcular_saldo(
         paquete.id,
 
         "tasa":
-        tasa,
+        precio_paquete,
 
         "bonificacion":
         bonificacion,
 
         "tasa_final":
-        tasa_final,
+        precio_paquete,
 
         "saldo_cup":
         saldo_cup,

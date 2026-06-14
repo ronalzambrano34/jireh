@@ -499,14 +499,18 @@ def crear_pedido(
             data["saldo_cup"]
         )
 
-        tasa = saldo_cup / monto_pago
+        tasa_saldo = saldo_cup / monto_pago
         bonificacion = float(
             data.get(
                 "bonificacion_manual",
                 0
             ) or 0
         )
-        tasa_final = tasa + bonificacion
+        saldo_final = round(
+            monto_pago * (
+                tasa_saldo + bonificacion
+            )
+        )
 
         calculo = {
 
@@ -514,18 +518,16 @@ def crear_pedido(
             None,
 
             "tasa":
-            tasa,
+            monto_pago,
 
             "bonificacion":
             bonificacion,
 
             "tasa_final":
-            tasa_final,
+            monto_pago,
 
             "monto_resultado":
-            round(
-                monto_pago * tasa_final
-            ),
+            saldo_final,
 
             "ganancia":
             0

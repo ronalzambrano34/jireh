@@ -5,6 +5,7 @@ type CalculoPreviewProps = {
   loading?: boolean;
   error?: string | null;
   monedaResultado?: string;
+  tasaLabel?: string;
 };
 
 function formatValue(value?: number) {
@@ -12,7 +13,7 @@ function formatValue(value?: number) {
   return Number(value).toLocaleString('es-UY', { maximumFractionDigits: 2 });
 }
 
-export function CalculoPreview({ calculo, loading, error, monedaResultado = 'CUP' }: CalculoPreviewProps) {
+export function CalculoPreview({ calculo, loading, error, monedaResultado = 'CUP', tasaLabel = 'Tasa aplicada' }: CalculoPreviewProps) {
   return (
     <div className={error ? 'payment-preview error' : 'payment-preview'}>
       <div>
@@ -20,7 +21,7 @@ export function CalculoPreview({ calculo, loading, error, monedaResultado = 'CUP
         <strong>{loading ? 'Calculando...' : calculo ? `${formatValue(calculo.monto_resultado)} ${monedaResultado}` : '-'}</strong>
       </div>
       <div>
-        <span>Tasa aplicada</span>
+        <span>{tasaLabel}</span>
         <strong>{loading ? '-' : formatValue(calculo?.tasa_final ?? calculo?.tasa)}</strong>
       </div>
       {error && <small>{error}</small>}
