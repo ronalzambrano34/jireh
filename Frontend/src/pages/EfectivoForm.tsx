@@ -297,7 +297,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                   <strong>{documentoFile?.name ?? (form.documento_identidad_url || 'Elegir de la galeria')}</strong>
                   <small>Seleccionar una imagen guardada</small>
                 </span>
-                <input type="file" accept="image/*" onChange={handleDocumentoChange} />
+                <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={handleDocumentoChange} />
               </label>
               <label className="document-camera-button">
                 <Camera size={18} />

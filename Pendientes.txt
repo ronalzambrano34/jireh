@@ -4,7 +4,8 @@ PENDIENTES:
 
 //todo añadir un poco mas de margen top al boton del formulario login
 
-REVISION DE ESTILOS ANTIGUOS
+//todo las fotos que descargo por whatsap y tomo de la galeria, no se dejan ver despues, quizas sea al coprimirlas a .webp ,Otra cosa es que me gusta el visual de tomar de la galeria, pero ese boton solo abre la galeria qy me obliga a tener otro boton para tirar fotos, pero el 
+
 
 Contexto:
 - Las hojas globales suman aproximadamente 21 500 lineas.
