@@ -1,6 +1,6 @@
 import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, ClipboardList, Copy, Home, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
+import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { Modal } from './components/Modal';
@@ -322,7 +322,6 @@ export function App() {
     setCrearDraft(draft);
     setVista('crear');
     setMobileMenuOpen(false);
-    setUserMenuOpen(false);
     setQuickCreateOpen(false);
   }
 
@@ -361,7 +360,6 @@ export function App() {
     setSeleccionado(codigoNormalizado);
     setVista('bandeja');
     setMobileMenuOpen(false);
-    setUserMenuOpen(false);
     setQuickCreateOpen(false);
     setProfileSection(null);
     setError(null);
@@ -388,7 +386,6 @@ export function App() {
     setVista('inicio');
     setSetupRevisado(false);
     setMobileMenuOpen(false);
-    setUserMenuOpen(false);
     setQuickCreateOpen(false);
   }
 

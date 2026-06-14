@@ -158,7 +158,6 @@
 :root[data-theme="dark-sidebar"] .filter-modal-button,
 :root[data-theme="dark-sidebar"] .floating-select-button,
 :root[data-theme="dark-sidebar"] .currency-select-shell,
-:root[data-theme="dark-sidebar"] .operator-chip,
 :root[data-theme="dark-sidebar"] .icon-button,
 :root[data-theme="dark-sidebar"] .ghost-button,
 :root[data-theme="dark-sidebar"] .support-whatsapp-link,
@@ -631,8 +630,7 @@
 
 :root[data-theme="dark-sidebar"] .floating-create-menu,
 :root[data-theme="dark-sidebar"] .floating-select-menu,
-:root[data-theme="dark-sidebar"] .currency-picker-menu,
-:root[data-theme="dark-sidebar"] .user-floating-menu {
+:root[data-theme="dark-sidebar"] .currency-picker-menu {
   border-color: var(--menu-line);
   background: var(--menu-card);
   color: var(--menu-text);
@@ -643,24 +641,9 @@
 :root[data-theme="dark-sidebar"] .floating-select-menu button:hover,
 :root[data-theme="dark-sidebar"] .floating-select-menu button.active,
 :root[data-theme="dark-sidebar"] .currency-picker-menu button:hover,
-:root[data-theme="dark-sidebar"] .currency-picker-menu button.active,
-:root[data-theme="dark-sidebar"] .user-floating-menu button:hover {
+:root[data-theme="dark-sidebar"] .currency-picker-menu button.active {
   background: rgba(49, 209, 154, 0.1);
   color: #dffcf1;
-}
-
-:root[data-theme="dark-sidebar"] .user-floating-menu .user-menu-theme-row:hover {
-  background: rgba(49, 209, 154, 0.1);
-}
-
-:root[data-theme="dark-sidebar"] .user-floating-menu .user-menu-theme-link:hover,
-:root[data-theme="dark-sidebar"] .user-floating-menu .user-menu-theme-link:focus-visible {
-  background: transparent;
-  color: var(--menu-text);
-}
-
-:root[data-theme="dark-sidebar"] .user-floating-menu .user-menu-theme-link small {
-  color: var(--menu-muted);
 }
 
 :root[data-theme="dark-sidebar"] .primary-button,
@@ -3132,18 +3115,7 @@
   color: #ffb9be;
 }
 
-:root[data-theme="dark-sidebar"] :is(.floating-select-menu, .floating-create-menu, .currency-picker-menu, .user-floating-menu) {
-  border-color: var(--ui-border);
-  background: var(--ui-surface);
-  color: var(--ui-text);
-  box-shadow: 0 22px 54px rgba(1, 6, 15, 0.46);
-}
 
-:root[data-theme="dark-sidebar"] :is(.floating-select-menu, .floating-create-menu, .currency-picker-menu, .user-floating-menu) button {
-  color: var(--ui-text);
-}
-
-:root[data-theme="dark-sidebar"] :is(.floating-select-menu, .floating-create-menu, .currency-picker-menu, .user-floating-menu) button:hover,
 :root[data-theme="dark-sidebar"] .floating-select-menu button.active {
   background: var(--ui-surface-hover);
   color: var(--ui-text);
