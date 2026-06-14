@@ -34,7 +34,6 @@
 @media (max-width: 920px) {
   .workspace > .reports-page,
   :root[data-theme="light"] .workspace > .reports-page,
-  :root[data-theme="dark-vscode"] .workspace > .reports-page,
   :root[data-theme="dark-sidebar"] .workspace > .reports-page {
     width: auto;
     margin: 0 12px;

@@ -14,7 +14,6 @@
 
 .home-page .rates-currency-section,
 :root[data-theme="light"] .home-page .rates-currency-section,
-:root[data-theme="dark-vscode"] .home-page .rates-currency-section,
 :root[data-theme="dark-sidebar"] .home-page .rates-currency-section {
   padding: 0;
   background: transparent;
@@ -285,7 +284,6 @@
 @media (max-width: 920px) {
   .workspace > .home-page,
   :root[data-theme="light"] .workspace > .home-page,
-  :root[data-theme="dark-vscode"] .workspace > .home-page,
   :root[data-theme="dark-sidebar"] .workspace > .home-page {
     width: auto;
     margin: 0 12px;

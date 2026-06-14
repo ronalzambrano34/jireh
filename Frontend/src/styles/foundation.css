@@ -1657,34 +1657,22 @@ textarea {
   }
 }
 
-:root[data-theme="dark"] .chat-order-card.order-owned-by-me,
-:root[data-theme="dark-deep"] .chat-order-card.order-owned-by-me,
+
 :root[data-theme="dark-sidebar"] .chat-order-card.order-owned-by-me,
-:root[data-theme="dark-vscode"] .chat-order-card.order-owned-by-me,
-:root[data-theme="dark"] .pedido-row.order-owned-by-me,
-:root[data-theme="dark-deep"] .pedido-row.order-owned-by-me,
-:root[data-theme="dark-sidebar"] .pedido-row.order-owned-by-me,
-:root[data-theme="dark-vscode"] .pedido-row.order-owned-by-me {
+:root[data-theme="dark-sidebar"] .pedido-row.order-owned-by-me {
   border-color: rgba(49, 209, 154, 0.34);
   background: linear-gradient(180deg, rgba(49, 209, 154, 0.13) 0%, rgba(7, 10, 18, 0.98) 100%);
 }
 
-:root[data-theme="dark"] .chat-order-card.order-blocked-by-other,
-:root[data-theme="dark-deep"] .chat-order-card.order-blocked-by-other,
+
 :root[data-theme="dark-sidebar"] .chat-order-card.order-blocked-by-other,
-:root[data-theme="dark-vscode"] .chat-order-card.order-blocked-by-other,
-:root[data-theme="dark"] .pedido-row.order-blocked-by-other,
-:root[data-theme="dark-deep"] .pedido-row.order-blocked-by-other,
-:root[data-theme="dark-sidebar"] .pedido-row.order-blocked-by-other,
-:root[data-theme="dark-vscode"] .pedido-row.order-blocked-by-other {
+:root[data-theme="dark-sidebar"] .pedido-row.order-blocked-by-other {
   border-color: rgba(248, 113, 113, 0.26);
   background: rgba(42, 20, 24, 0.72);
 }
 
-:root[data-theme="dark"] .release-order-button,
-:root[data-theme="dark-deep"] .release-order-button,
-:root[data-theme="dark-sidebar"] .release-order-button,
-:root[data-theme="dark-vscode"] .release-order-button {
+
+:root[data-theme="dark-sidebar"] .release-order-button {
   border-color: rgba(248, 113, 113, 0.32);
   background: rgba(127, 29, 29, 0.16);
   color: #fca5a5;

@@ -5,7 +5,9 @@ import { PageLoader } from './components/PageLoader';
 import './styles.css';
 
 const savedTheme = localStorage.getItem('jireh.theme');
-document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark-sidebar';
+const initialTheme = savedTheme === 'light' ? 'light' : 'dark-sidebar';
+document.documentElement.dataset.theme = initialTheme;
+if (savedTheme !== initialTheme) localStorage.setItem('jireh.theme', initialTheme);
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {

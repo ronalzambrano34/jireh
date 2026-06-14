@@ -1,4 +1,117 @@
 PENDIENTES:
 
+//todo estoy pensando en agregar en el rastreador de pedidos, que tambien  se pueda rastrear los pedidos con el numero de cliente, y que aparezcan todos los pedidos en curso que no esten finalizados o cancelados.
 
 
+REVISION DE ESTILOS ANTIGUOS
+
+Contexto:
+- Las hojas globales suman aproximadamente 21 500 lineas.
+- La aplicacion solo utiliza los temas "light" y "dark-sidebar".
+- Los selectores de "dark", "dark-deep" y "dark-vscode" ya fueron eliminados.
+- Hay unas 2 651 declaraciones de color directo y 30 usos de "!important".
+- Orden actual de carga: foundation.css -> components.css -> themes.css -> canonical.css.
+  canonical.css esta funcionando como capa de correcciones sobre estilos anteriores.
+
+PRIORIDAD ALTA
+
+[x] 1. Eliminar los temas oscuros antiguos que ya no se pueden seleccionar.
+    Archivos: styles/components.css, styles/themes.css y styles/foundation.css.
+    Se conservaron solamente "light" y "dark-sidebar".
+    localStorage normaliza al iniciar los valores antiguos hacia "dark-sidebar".
+
+[ ] 2. Consolidar todos los switches en un unico componente visual.
+    Bloques antiguos:
+    - components.css: theme-switch (1601-1649).
+    - components.css: permission-switch-row input (3752-3785).
+    - components.css: dark switch overrides (7970-8026).
+    - themes.css: dark-sidebar switch overrides (593-614).
+    - canonical.css: overrides de switches (2836-2857 y bloque final).
+    Dejar una sola implementacion ui-switch y eliminar las correcciones con !important.
+
+[ ] 3. Refactorizar completamente el boton/menu de usuario del header.
+    Bloques duplicados:
+    - components.css: operator-chip inicial (37-94).
+    - components.css: user-floating y reconstrucciones (7248-7290, 7775-7908).
+    - canonical.css: geometria del header (4698-4777).
+    - canonical.css: correcciones recientes del trigger (4833 en adelante).
+    Crear un bloque unico para trigger, avatar, texto, chevron y menu flotante.
+
+[ ] 4. Unificar los estilos de modales.
+    Bloques duplicados:
+    - foundation.css: modal base y movil (1057-1177).
+    - foundation.css: segunda definicion de modal-panel/header (2702 en adelante).
+    - canonical.css: modal oscuro (3293-3344).
+    - canonical.css: modal movil/bottom placement (3646-3682).
+    Definir una sola geometria responsive con safe-area inferior y variantes normal/wide.
+
+[ ] 5. Dividir canonical.css y dejar de usarlo como parche global.
+    Actualmente contiene varias etapas "Phase 2", "Canonical refactored" y arreglos finales.
+    Mover cada regla estable a su componente o pagina propietaria.
+    El objetivo es que canonical.css contenga solo tokens/contratos globales o desaparezca.
+
+PRIORIDAD MEDIA
+
+[ ] 6. Consolidar los estilos del Home, calculadora y ofertas.
+    components.css contiene varias generaciones consecutivas:
+    - Operational offers format.
+    - Mobile offer cards refinements.
+    - Visual reference mobile operations refactor.
+    - Shared header treatment.
+    - Light/dark calculator treatments.
+    - Calculator result hover y bordes finales.
+    live-rate-input aparece redefinido al menos en 4124, 4593, 5219, 5782 y 6187.
+    Trasladar la version definitiva a pages/inicio/InicioPage.css.
+
+[ ] 7. Unificar FloatingSelect y CurrencyPicker.
+    FloatingSelect se reparte entre components.css (6717-7129), themes.css (2952-3010)
+    y canonical.css (3828 en adelante).
+    CurrencyPicker tiene una primera version cerca de components.css:6602 y otra cerca de 7675.
+    Mantener una base compartida y variantes por contexto, sin repetir menus y estados hover.
+
+[ ] 8. Consolidar tarjetas y columnas de Pedidos.
+    pedido-column-header y sus contadores se definen en foundation.css varias veces,
+    reciben overrides en themes.css/components.css y vuelven a corregirse en canonical.css.
+    Hacer lo mismo con pedido-row, chat-order-card, estados de bloqueo y retraso.
+    Mover el resultado a un CSS propio de OrdersPage.
+
+[ ] 9. Consolidar las tarjetas administrativas.
+    catalog-row tiene versiones en foundation.css (980, 2606 y 4262 en adelante)
+    y overrides oscuros en components.css/canonical.css.
+    Unificar catalog-row, catalog-edit-main, catalog-offer-actions y payment-account-row
+    dentro de pages/admin/AdminCatalogosPage.css.
+
+[ ] 10. Eliminar estilos de componentes que ya no aparecen en JSX.
+     Candidatos detectados:
+     - user-menu-card y user-menu-wrap antiguos; ahora se usa user-floating-menu.
+     - bottom-sheet-layer, bottom-sheet-panel y sus variantes; los filtros usan FloatingSelect.
+     - client-section-toggle; no se encontro uso en componentes TSX actuales.
+     Confirmar con busqueda antes de borrar cada bloque.
+
+[ ] 11. Revisar ThemeTestPage y el catalogo visual antiguo.
+     ThemeTestPage.tsx no esta conectado a App ni a una ruta visible.
+     Decidir si se convierte en pagina interna de referencia o se elimina junto con sus estilos.
+     Evitar mantener simultaneamente ThemeTest y el contrato "Tema UI" de canonical.css.
+
+PRIORIDAD BAJA
+
+[ ] 12. Sustituir colores directos por tokens --ui-*.
+     Hay aproximadamente 2 651 usos de hexadecimal/rgba en las hojas globales.
+     Empezar por superficies, bordes, texto, estados y sombras repetidos.
+     Mantener colores directos solo para identidad de servicios o ilustraciones.
+
+[ ] 13. Reducir y eliminar usos de !important.
+     Hay aproximadamente 30 usos.
+     La mayoria compensa el orden de cascada entre components/themes/canonical.
+     Eliminarlos despues de consolidar cada familia de componentes.
+
+[ ] 14. Definir propiedad clara de estilos por archivo.
+     foundation.css: reset, layout base, tipografia y utilidades.
+     components.css: componentes realmente compartidos.
+     themes.css: solamente tokens o diferencias estrictamente tematicas.
+     pages/*/*.css: estilos exclusivos de cada vista.
+     Evitar volver a declarar un componente completo en mas de una capa.
+
+[ ] 15. Añadir una comprobacion automatica de CSS obsoleto.
+     Detectar selectores data-theme no soportados, clases sin uso y nuevos !important.
+     Ejecutarla junto al build para impedir que vuelvan a crecer las capas heredadas.
