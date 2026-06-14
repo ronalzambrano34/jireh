@@ -132,8 +132,7 @@
   color: var(--ui-text-subtle);
 }
 
-:root[data-theme="dark-sidebar"] .order-filter-floating.open .floating-select-chevron,
-:root[data-theme="dark-sidebar"] .floating-select.open .floating-select-chevron {
+:root[data-theme="dark-sidebar"] .order-filter-floating.open .floating-select-chevron {
   color: var(--ui-primary);
   transform: rotate(180deg);
 }
@@ -541,81 +540,6 @@
   color: var(--ui-primary);
   background: var(--ui-surface-hover);
   border-color: rgba(47, 166, 111, 0.4);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-button {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 11px;
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-icon {
-  grid-column: 1;
-  color: var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-current {
-  grid-column: 2;
-  min-width: 0;
-  overflow: hidden;
-  color: inherit;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-chevron {
-  grid-column: 3;
-  justify-self: end;
-  flex: 0 0 auto;
-  color: var(--ui-text-subtle);
-  transition: color 0.16s ease, transform 0.16s ease;
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-menu {
-  padding: 6px;
-  background: var(--ui-surface-raised);
-  border: 1px solid var(--ui-border-strong);
-  border-radius: var(--ui-radius-md);
-  box-shadow: var(--ui-shadow-lg);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-menu button {
-  min-height: 44px;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 9px;
-  padding: 7px 9px;
-  color: var(--ui-text-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--ui-radius-sm);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-menu button:not(:has(.floating-select-option-icon)) {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-menu button:hover,
-:root[data-theme="dark-sidebar"] .floating-select-menu button:focus-visible {
-  color: var(--ui-text);
-  background: var(--ui-surface-hover);
-  border-color: var(--ui-border);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-menu button.active {
-  color: #91dfb7;
-  background: rgba(47, 166, 111, 0.13);
-  border-color: rgba(47, 166, 111, 0.32);
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-option-copy strong {
-  color: inherit;
-}
-
-:root[data-theme="dark-sidebar"] .floating-select-option-copy small {
-  color: var(--ui-text-subtle);
 }
 
 :root[data-theme="dark-sidebar"] .payment-section-header {

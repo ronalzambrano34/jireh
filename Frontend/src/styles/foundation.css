@@ -657,7 +657,7 @@ input, select, textarea {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px clamp(18px, 2.2vw, 30px);
+  padding: 12px clamp(16px, 2.2vw, 30px);
   border-bottom: 1px solid var(--ui-border);
   background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
   backdrop-filter: blur(14px);
@@ -667,7 +667,7 @@ input, select, textarea {
   width: 100%;
   min-height: calc(100% - 70px);
   margin: 0;
-  padding: 22px clamp(18px, 2.2vw, 30px) 44px;
+  padding: 16px clamp(16px, 2.2vw, 30px) 30px;
 }
 
 .login-modal-form {
@@ -685,7 +685,7 @@ input, select, textarea {
   }
 
   .public-home-content {
-    padding: 14px 12px 32px;
+    padding: 10px 12px 32px;
   }
 
   .login-modal-form {
@@ -2127,37 +2127,6 @@ textarea {
   background: #ffffff;
   color: #173c67;
   box-shadow: 0 6px 16px rgba(24, 33, 47, 0.07);
-}
-
-.currency-picker {
-  min-height: 38px;
-  display: inline-grid;
-  grid-template-columns: auto auto;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px 4px 10px;
-  border: 1px solid #c7d3df;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #173c67;
-  box-shadow: 0 6px 16px rgba(24, 33, 47, 0.07);
-}
-
-.currency-picker-flag {
-  display: inline-flex;
-  align-items: center;
-  font-size: 20px;
-  line-height: 1;
-}
-
-.currency-picker select {
-  min-width: 72px;
-  border: 0;
-  background: transparent;
-  color: #173c67;
-  font: inherit;
-  font-weight: 900;
-  outline: 0;
 }
 
 .rates-grid {

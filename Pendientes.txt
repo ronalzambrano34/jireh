@@ -50,22 +50,19 @@ PRIORIDAD ALTA
 
 PRIORIDAD MEDIA
 
-[ ] 6. Consolidar los estilos del Home, calculadora y ofertas.
-    components.css contiene varias generaciones consecutivas:
-    - Operational offers format.
-    - Mobile offer cards refinements.
-    - Visual reference mobile operations refactor.
-    - Shared header treatment.
-    - Light/dark calculator treatments.
-    - Calculator result hover y bordes finales.
-    live-rate-input aparece redefinido al menos en 4124, 4593, 5219, 5782 y 6187.
-    Trasladar la version definitiva a pages/inicio/InicioPage.css.
+[x] 6. Consolidar los estilos del Home, calculadora y ofertas.
+    - Movidos 661 selectores propietarios a pages/inicio/InicioPage.css.
+    - Eliminadas de components.css las generaciones antiguas del Home.
+    - Calculadora, ofertas, selector de moneda, carrusel y rastreo tienen un unico propietario.
+    - live-rate-input quedo con una sola definicion por selector, tema y estado.
+    - Se conservaron en components.css solamente los componentes realmente compartidos.
 
-[ ] 7. Unificar FloatingSelect y CurrencyPicker.
-    FloatingSelect se reparte entre components.css (6717-7129), themes.css (2952-3010)
-    y styles/owners/login.css.
-    CurrencyPicker tiene una primera version cerca de components.css:6602 y otra cerca de 7675.
-    Mantener una base compartida y variantes por contexto, sin repetir menus y estados hover.
+[x] 7. Unificar FloatingSelect y CurrencyPicker.
+    - Base unica en styles/floating-select.css.
+    - FloatingSelect y CurrencyPicker comparten geometria, portal, menu y estados.
+    - Eliminados 112 selectores base duplicados de las hojas antiguas.
+    - Telefono, filtros, pagos y Home conservan solo variantes contextuales.
+    - Eliminada la geometria de menus repetida e inefectiva en Pedidos y Reportes.
 
 [ ] 8. Consolidar tarjetas y columnas de Pedidos.
     pedido-column-header y sus contadores se definen en foundation.css varias veces,

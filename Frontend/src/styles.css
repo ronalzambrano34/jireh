@@ -1,6 +1,7 @@
 @import "./styles/foundation.css";
 @import "./styles/components.css";
 @import "./styles/themes.css";
+@import "./styles/floating-select.css";
 @import "./styles/owners/shell-login-home.css";
 @import "./styles/owners/home-components.css";
 @import "./styles/owners/orders-create.css";

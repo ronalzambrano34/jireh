@@ -117,8 +117,7 @@
 :root[data-theme="dark-sidebar"] .pedido-card-pay small,
 :root[data-theme="dark-sidebar"] .chat-card-side small,
 :root[data-theme="dark-sidebar"] .detail-fields span,
-:root[data-theme="dark-sidebar"] .metrics dt,
-:root[data-theme="dark-sidebar"] .floating-select-option-copy small {
+:root[data-theme="dark-sidebar"] .metrics dt {
   color: var(--menu-muted);
 }
 
@@ -153,7 +152,6 @@
 :root[data-theme="dark-sidebar"] .input-action-row,
 :root[data-theme="dark-sidebar"] .order-filter-button,
 :root[data-theme="dark-sidebar"] .filter-modal-button,
-:root[data-theme="dark-sidebar"] .floating-select-button,
 :root[data-theme="dark-sidebar"] .currency-select-shell,
 :root[data-theme="dark-sidebar"] .icon-button,
 :root[data-theme="dark-sidebar"] .ghost-button,
@@ -167,7 +165,6 @@
 
 :root[data-theme="dark-sidebar"] input:focus,
 :root[data-theme="dark-sidebar"] textarea:focus,
-:root[data-theme="dark-sidebar"] .floating-select-button:focus-visible,
 :root[data-theme="dark-sidebar"] .order-filter-button:focus-visible,
 :root[data-theme="dark-sidebar"] .filter-modal-button:focus-visible {
   border-color: rgba(49, 209, 154, 0.52);
@@ -625,20 +622,14 @@
   color: #04100c;
 }
 
-:root[data-theme="dark-sidebar"] .floating-create-menu,
-:root[data-theme="dark-sidebar"] .floating-select-menu,
-:root[data-theme="dark-sidebar"] .currency-picker-menu {
+:root[data-theme="dark-sidebar"] .floating-create-menu {
   border-color: var(--menu-line);
   background: var(--menu-card);
   color: var(--menu-text);
   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.38);
 }
 
-:root[data-theme="dark-sidebar"] .floating-create-menu button:hover,
-:root[data-theme="dark-sidebar"] .floating-select-menu button:hover,
-:root[data-theme="dark-sidebar"] .floating-select-menu button.active,
-:root[data-theme="dark-sidebar"] .currency-picker-menu button:hover,
-:root[data-theme="dark-sidebar"] .currency-picker-menu button.active {
+:root[data-theme="dark-sidebar"] .floating-create-menu button:hover {
   background: rgba(49, 209, 154, 0.1);
   color: #dffcf1;
 }
@@ -2476,12 +2467,6 @@
   padding: 0;
 }
 
-.orders-scope-chips .orders-top-actions .orders-service-action > .floating-select > .order-filter-button {
-  width: 100%;
-  min-width: 0;
-  padding: 0 10px;
-}
-
 .orders-scope-chips > button svg {
   flex: 0 0 auto;
   display: block;
@@ -2779,24 +2764,6 @@
 }
 
 /* Shared select geometry and dark surface hierarchy */
-.floating-select-button {
-  grid-template-columns: auto minmax(0, 1fr) 18px;
-  padding: 9px 11px;
-}
-
-.floating-select-chevron {
-  grid-column: 3;
-  justify-self: end;
-  flex: 0 0 auto;
-}
-
-.floating-select-icon {
-  grid-column: 1;
-}
-
-.floating-select-current {
-  grid-column: 2;
-}
 
 .payment-currency-picker,
 .payment-currency-picker .currency-reception-select,
@@ -3076,12 +3043,6 @@
   padding: 8px 12px;
   background: color-mix(in srgb, var(--ui-danger) 12%, var(--ui-surface-raised));
   color: #ffb9be;
-}
-
-
-:root[data-theme="dark-sidebar"] .floating-select-menu button.active {
-  background: var(--ui-surface-hover);
-  color: var(--ui-text);
 }
 
 :root[data-theme="dark-sidebar"] :is(h1, h2, h3, h4, strong) {

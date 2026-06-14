@@ -238,11 +238,6 @@
   backdrop-filter: blur(2px);
 }
 
-:root[data-theme="dark-sidebar"] .floating-select-portal-backdrop {
-  background: transparent;
-  backdrop-filter: none;
-}
-
 :root[data-theme="dark-sidebar"] .floating-create-menu {
   width: min(248px, calc(100vw - 28px));
   gap: 5px;
