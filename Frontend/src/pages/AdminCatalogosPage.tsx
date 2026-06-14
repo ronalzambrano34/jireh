@@ -1200,10 +1200,11 @@ export function AdminCatalogosPage() {
             {provinciasVisibles.length === 0 && <AdminEmpty>Sin provincias {estadoVista}</AdminEmpty>}
             {provinciasVisibles.map((provincia) => (
               <div className="catalog-row" key={provincia.id}>
-                <span><strong>{provincia.nombre}</strong><small>{provincia.activo ? 'Disponible para puntos de recogida' : 'No disponible para nuevos puntos'}</small></span>
+                <button type="button" className="catalog-edit-main" onClick={() => abrirEditarProvincia(provincia)}>
+                  <span><strong>{provincia.nombre}</strong><small>{provincia.activo ? 'Disponible para puntos de recogida' : 'No disponible para nuevos puntos'}</small></span>
+                </button>
                 <div className="catalog-offer-actions">
                   <span className={provincia.activo ? 'status completado' : 'status cancelado'}>{provincia.activo ? 'habilitada' : 'deshabilitada'}</span>
-                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => abrirEditarProvincia(provincia)}><Edit3 size={18} /> Editar</button>
                   <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleProvincia(provincia)}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
                 </div>
               </div>
@@ -1219,10 +1220,11 @@ export function AdminCatalogosPage() {
             {puntosVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
             {puntosVisibles.map((punto) => (
               <div className="catalog-row" key={punto.id}>
-                <span><strong>{punto.nombre}</strong><small>{[punto.provincia_nombre, punto.direccion].filter(Boolean).join(' · ')}</small></span>
+                <button type="button" className="catalog-edit-main" onClick={() => abrirEditarPunto(punto)}>
+                  <span><strong>{punto.nombre}</strong><small>{[punto.provincia_nombre, punto.direccion].filter(Boolean).join(' · ')}</small></span>
+                </button>
                 <div className="catalog-offer-actions">
                   <span className={punto.activo ? 'status completado' : 'status cancelado'}>{punto.activo ? 'activo' : 'inactivo'}</span>
-                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => abrirEditarPunto(punto)}><Edit3 size={18} /> Editar</button>
                   <button className="ghost-button catalog-toggle-action" type="button" onClick={() => togglePunto(punto)}><Power size={18} /> {punto.activo ? 'Desactivar' : 'Activar'}</button>
                 </div>
               </div>
@@ -1448,8 +1450,10 @@ export function AdminCatalogosPage() {
                 <div className="catalog-row payment-account-row" key={cuenta.id}>
                   <span><strong>{cuenta.alias}</strong><small>{cuenta.cuenta} · {cuenta.titular}</small></span>
                   <div className="catalog-offer-actions">
-                    {cuenta.predeterminada && <span className="status completado">predeterminada</span>}
-                    <span className={cuenta.activa ? 'status completado' : 'status cancelado'}>{cuenta.activa ? 'activa' : 'inactiva'}</span>
+                    <div className="payment-account-statuses">
+                      <span className={cuenta.predeterminada ? 'status completado' : 'status neutral'}>{cuenta.predeterminada ? 'predeterminada' : 'secundaria'}</span>
+                      <span className={cuenta.activa ? 'status completado' : 'status cancelado'}>{cuenta.activa ? 'activa' : 'inactiva'}</span>
+                    </div>
                     {!cuenta.predeterminada && <button type="button" className="ghost-button catalog-toggle-action" onClick={() => marcarCuentaPredeterminada(cuenta)}>Predeterminar</button>}
                     <button type="button" className="ghost-button catalog-toggle-action" onClick={() => toggleCuentaMetodo(cuenta)}><Power size={18} /> {cuenta.activa ? 'Desactivar' : 'Activar'}</button>
                   </div>

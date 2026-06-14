@@ -4833,24 +4833,36 @@ pre {
 /* Header user trigger and order counters */
 .operator-chip.user-floating-trigger,
 :root[data-theme="dark-sidebar"] .operator-chip.user-floating-trigger {
-  display: grid;
-  grid-template-columns: 34px minmax(0, auto) 16px;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  min-width: 0;
+  min-height: 46px;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  column-gap: 9px;
-  padding-block: 5px;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 5px 10px 5px 6px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .operator-chip.user-floating-trigger .operator-chip-avatar,
 .operator-chip.user-floating-trigger .operator-chip-text,
 .operator-chip.user-floating-trigger .user-menu-chevron {
   align-self: center;
-  justify-self: center;
+}
+
+.operator-chip.user-floating-trigger .operator-chip-avatar {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex: 0 0 34px;
+  margin: 0;
 }
 
 .operator-chip.user-floating-trigger .operator-chip-text {
-  width: 100%;
-  justify-items: start;
+  min-width: 0;
+  flex: 0 1 auto;
   padding: 0;
   line-height: 1.2;
 }
@@ -4858,8 +4870,32 @@ pre {
 .operator-chip.user-floating-trigger .operator-chip-text strong,
 .operator-chip.user-floating-trigger .operator-chip-text small {
   display: block;
+  max-width: 132px;
   margin: 0;
   line-height: 1.2;
+}
+
+.operator-chip.user-floating-trigger .user-menu-chevron {
+  min-width: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+}
+
+.payment-account-statuses {
+  display: grid;
+  grid-template-columns: repeat(2, 104px);
+  align-items: center;
+  justify-content: end;
+  gap: 6px;
+}
+
+.payment-account-statuses .status {
+  width: 104px;
+  min-width: 104px;
+  justify-self: auto;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .pedido-column-header > strong {
@@ -4885,7 +4921,103 @@ pre {
 @media (max-width: 620px) {
   .operator-chip.user-floating-trigger,
   :root[data-theme="dark-sidebar"] .operator-chip.user-floating-trigger {
-    grid-template-columns: 33px minmax(0, auto) 16px;
-    column-gap: 8px;
+    max-width: min(230px, calc(100vw - 80px));
+    min-height: 44px;
+    gap: 8px;
+    padding: 5px 8px 5px 5px;
   }
+
+  .operator-chip.user-floating-trigger .operator-chip-avatar {
+    width: 33px;
+    height: 33px;
+    min-width: 33px;
+    flex-basis: 33px;
+  }
+
+  .payment-account-statuses {
+    justify-content: start;
+  }
+}
+
+.catalog-edit-main {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  justify-items: stretch;
+  padding: 4px 6px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm, 6px);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.catalog-edit-main > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.catalog-edit-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-edit-main:hover,
+.catalog-edit-main:focus-visible {
+  background: color-mix(in srgb, var(--ui-primary) 9%, transparent);
+}
+
+@media (max-width: 920px) {
+  .modal-body,
+  :root[data-theme="dark-sidebar"] .modal-body {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 721px) {
+  .catalog-edit-main {
+    padding: 4px 6px;
+    border-bottom: 0;
+  }
+}
+
+/* Switches: remove legacy dark input shells */
+input.ui-switch-input,
+:root[data-theme="dark-sidebar"] input.ui-switch-input {
+  box-sizing: border-box;
+  color-scheme: light;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: 0;
+  filter: none;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="dark-sidebar"] input.ui-switch-input {
+  border-color: var(--ui-border-strong) !important;
+  background-color: var(--ui-canvas-soft) !important;
+}
+
+:root[data-theme="dark-sidebar"] input.ui-switch-input:checked {
+  border-color: var(--ui-primary) !important;
+  background-color: color-mix(in srgb, var(--ui-primary) 28%, var(--ui-surface)) !important;
+}
+
+.theme-switch,
+:root[data-theme="dark-sidebar"] .theme-switch,
+.rate-repeat-switch {
+  background: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+input.ui-switch-input:focus-visible,
+:root[data-theme="dark-sidebar"] input.ui-switch-input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ui-primary) 22%, transparent);
+  outline-offset: 2px;
 }
