@@ -3166,50 +3166,6 @@
 
 /* Phase 2 close: global feedback, overlays and PWA */
 
-:root[data-theme="dark-sidebar"] .modal-backdrop {
-  padding: 20px;
-  background: rgba(2, 8, 18, 0.72);
-  backdrop-filter: blur(8px);
-}
-
-:root[data-theme="dark-sidebar"] .modal-panel {
-  color: var(--ui-text);
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border-strong);
-  border-radius: var(--ui-radius-lg);
-  box-shadow: 0 28px 90px rgba(1, 6, 15, 0.62);
-}
-
-:root[data-theme="dark-sidebar"] .modal-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: 15px 16px;
-  background: color-mix(in srgb, var(--ui-surface) 96%, transparent);
-  border-bottom: 1px solid var(--ui-border);
-  backdrop-filter: blur(14px);
-}
-
-:root[data-theme="dark-sidebar"] .modal-header h2 {
-  color: var(--ui-text);
-  font-size: 1.12rem;
-  letter-spacing: -0.015em;
-}
-
-:root[data-theme="dark-sidebar"] .modal-header p {
-  color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .modal-header .icon-button {
-  width: 40px;
-  height: 40px;
-}
-
-:root[data-theme="dark-sidebar"] .modal-body {
-  padding: 16px;
-  scrollbar-color: var(--ui-border-strong) transparent;
-}
-
 :root[data-theme="dark-sidebar"] .modal-form {
   gap: 12px;
 }
@@ -3518,44 +3474,7 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 920px) {
-  :root[data-theme="dark-sidebar"] .modal-backdrop {
-    align-items: end;
-    padding: 10px;
-  }
-
-  :root[data-theme="dark-sidebar"] .modal-panel,
-  :root[data-theme="dark-sidebar"] .modal-panel.wide-modal {
-    width: 100%;
-    height: auto;
-    max-height: calc(100dvh - 20px);
-    border-radius: var(--ui-radius-lg);
-  }
-}
-
 @media (max-width: 560px) {
-  :root[data-theme="dark-sidebar"] .modal-backdrop {
-    padding: 0;
-  }
-
-  :root[data-theme="dark-sidebar"] .modal-panel,
-  :root[data-theme="dark-sidebar"] .modal-panel.wide-modal,
-  :root[data-theme="dark-sidebar"] .modal-panel.payment-confirmed-modal {
-    width: 100vw;
-    height: 100dvh;
-    max-height: 100dvh;
-    margin: 0;
-    border-width: 0;
-    border-radius: 0;
-  }
-
-  :root[data-theme="dark-sidebar"] .modal-header {
-    padding-top: calc(13px + env(safe-area-inset-top));
-  }
-
-  :root[data-theme="dark-sidebar"] .modal-body {
-    padding-bottom: calc(18px + env(safe-area-inset-bottom));
-  }
 
   :root[data-theme="dark-sidebar"] .app-toast-stack {
     top: calc(70px + env(safe-area-inset-top));
@@ -4620,60 +4539,6 @@ pre {
   }
 }
 
-/* Public login behaves like a floating menu below the top bar. */
-.modal-backdrop.login-popover-backdrop,
-:root[data-theme="dark-sidebar"] .modal-backdrop.login-popover-backdrop {
-  place-items: start end;
-  padding: 72px max(18px, calc((100vw - 1240px) / 2));
-  background: rgba(2, 8, 18, 0.28);
-  backdrop-filter: blur(3px);
-}
-
-.login-popover-backdrop .login-modal,
-:root[data-theme="dark-sidebar"] .login-popover-backdrop .login-modal {
-  width: min(480px, calc(100vw - 36px));
-  height: auto;
-  max-height: calc(100dvh - 88px);
-  margin: 0;
-  border-width: 1px;
-  border-radius: var(--ui-radius-lg, 14px);
-  box-shadow: 0 20px 54px rgba(1, 6, 15, 0.42);
-  animation: login-popover-enter 160ms ease-out both;
-}
-
-@keyframes login-popover-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (max-width: 640px) {
-  .modal-backdrop.login-popover-backdrop,
-  :root[data-theme="dark-sidebar"] .modal-backdrop.login-popover-backdrop {
-    place-items: start center;
-    padding: 64px 10px 10px;
-  }
-
-  .login-popover-backdrop .login-modal,
-  :root[data-theme="dark-sidebar"] .login-popover-backdrop .login-modal {
-    width: 100%;
-    max-height: calc(100dvh - 74px);
-    border-width: 1px;
-    border-radius: var(--ui-radius-lg, 14px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-popover-backdrop .login-modal {
-    animation: none;
-  }
-}
-
 /* Header user trigger and order counters */
 
 .payment-account-statuses {
@@ -4749,14 +4614,6 @@ pre {
 .catalog-edit-main:hover,
 .catalog-edit-main:focus-visible {
   background: color-mix(in srgb, var(--ui-primary) 9%, transparent);
-}
-
-@media (max-width: 920px) {
-  .modal-body,
-  :root[data-theme="dark-sidebar"] .modal-body {
-    padding-bottom: calc(88px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
-  }
 }
 
 @media (min-width: 721px) {

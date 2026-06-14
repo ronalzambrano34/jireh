@@ -1,0 +1,177 @@
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  background: rgba(2, 8, 18, 0.72);
+  backdrop-filter: blur(8px);
+  animation: modal-backdrop-in 160ms ease-out;
+}
+
+.modal-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(720px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(2, 8, 18, 0.38);
+  animation: modal-panel-in 180ms ease-out;
+}
+
+.modal-panel.wide-modal {
+  width: min(980px, 100%);
+}
+
+.modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--ui-surface);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.modal-header > div {
+  min-width: 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+
+.modal-header p {
+  margin: 5px 0 0;
+  color: var(--ui-muted);
+  font-size: 0.9rem;
+}
+
+.modal-body {
+  min-width: 0;
+  min-height: 0;
+  padding: 18px 20px 22px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.login-popover-backdrop {
+  place-items: start end;
+  padding-top: max(72px, env(safe-area-inset-top));
+}
+
+.login-popover-backdrop .login-modal {
+  width: min(480px, 100%);
+  height: auto;
+  max-height: calc(100dvh - 92px);
+}
+
+.login-modal .modal-body {
+  padding: 0;
+}
+
+@media (max-width: 920px) {
+  .modal-backdrop {
+    place-items: end center;
+    padding: max(10px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+  }
+
+  .modal-panel,
+  .modal-panel.wide-modal {
+    width: 100%;
+    max-height: calc(
+      100dvh - 20px - env(safe-area-inset-top) -
+        env(safe-area-inset-bottom)
+    );
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-popover-backdrop {
+    place-items: start center;
+    padding: max(64px, env(safe-area-inset-top)) 10px
+      max(10px, env(safe-area-inset-bottom));
+  }
+
+  .login-popover-backdrop .login-modal {
+    width: min(480px, 100%);
+    height: auto;
+    max-height: calc(100dvh - 74px - env(safe-area-inset-bottom));
+    border: 1px solid var(--ui-border);
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop:not(.login-popover-backdrop) {
+    place-items: stretch;
+    padding: 0;
+  }
+
+  .modal-backdrop:not(.login-popover-backdrop) .modal-panel {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .modal-header {
+    padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
+  }
+
+  .modal-body {
+    padding: 14px 14px calc(88px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .payment-confirmed-modal .modal-body,
+  .payment-confirmed-modal .payment-modal-actions,
+  .payment-confirmed-modal .payment-modal-actions button {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-panel {
+    animation: none;
+  }
+}

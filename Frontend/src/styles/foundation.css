@@ -670,14 +670,6 @@ input, select, textarea {
   padding: 22px 18px 44px;
 }
 
-.login-modal {
-  width: min(520px, 100%);
-}
-
-.login-modal .modal-body {
-  padding: 0;
-}
-
 .login-modal-form {
   width: 100%;
   margin: 0;
@@ -1054,69 +1046,6 @@ textarea {
   }
 }
 
-.modal-open {
-  overflow: hidden;
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 22px;
-  background: rgba(11, 18, 28, 0.58);
-}
-
-.modal-panel {
-  width: min(720px, 100%);
-  max-height: calc(100vh - 44px);
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  background: #ffffff;
-  border: 1px solid #d9e0e8;
-  border-radius: 8px;
-  box-shadow: 0 22px 70px rgba(12, 18, 28, 0.28);
-  overflow: hidden;
-}
-
-.modal-panel.wide-modal {
-  width: min(980px, 100%);
-}
-
-.modal-header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #e1e7ef;
-}
-
-.modal-header > div {
-  min-width: 0;
-}
-
-.modal-header .icon-button {
-  flex: 0 0 auto;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.modal-header p {
-  margin: 4px 0 0;
-  color: #6a7583;
-}
-
-.modal-body {
-  min-height: 0;
-  overflow: auto;
-  padding: 16px;
-}
-
 .modal-detail-panel {
   border: 0;
   padding: 0;
@@ -1139,40 +1068,6 @@ textarea {
 
 .modal-form {
   max-width: none;
-}
-
-@media (max-width: 920px) {
-  .modal-backdrop {
-    align-items: stretch;
-    padding: 0;
-  }
-
-  .modal-panel,
-  .modal-panel.wide-modal {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    max-height: none;
-    border: 0;
-    border-radius: 0;
-  }
-
-  .modal-header {
-    align-items: center;
-    min-height: 58px;
-    padding: max(14px, env(safe-area-inset-top)) 14px 14px;
-  }
-
-  .modal-header h2,
-  .modal-header p {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .modal-body {
-    padding: 14px 14px max(18px, env(safe-area-inset-bottom));
-  }
 }
 
 @media (max-width: 720px) {
@@ -2685,14 +2580,6 @@ textarea {
 
 .status-filters {
   padding: 4px 2px 8px;
-}
-
-.modal-panel {
-  box-shadow: 0 28px 80px rgba(12, 18, 28, 0.32);
-}
-
-.modal-header {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .detail-fields div,

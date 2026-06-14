@@ -58,7 +58,6 @@
 :root[data-theme="dark-sidebar"] .report-filters,
 :root[data-theme="dark-sidebar"] .report-summary div,
 :root[data-theme="dark-sidebar"] .report-table,
-:root[data-theme="dark-sidebar"] .modal-panel,
 :root[data-theme="dark-sidebar"] .track-order-panel,
 :root[data-theme="dark-sidebar"] .operation-currency-header,
 :root[data-theme="dark-sidebar"] .live-rate-panel,
@@ -101,7 +100,6 @@
 :root[data-theme="dark-sidebar"] .report-table h2,
 :root[data-theme="dark-sidebar"] .profile-section h3,
 :root[data-theme="dark-sidebar"] .form-section-header h3,
-:root[data-theme="dark-sidebar"] .modal-header h2,
 :root[data-theme="dark-sidebar"] .order-section-heading h3 {
   color: var(--menu-text);
 }
@@ -120,7 +118,6 @@
 :root[data-theme="dark-sidebar"] .chat-card-side small,
 :root[data-theme="dark-sidebar"] .detail-fields span,
 :root[data-theme="dark-sidebar"] .metrics dt,
-:root[data-theme="dark-sidebar"] .modal-header p,
 :root[data-theme="dark-sidebar"] .floating-select-option-copy small {
   color: var(--menu-muted);
 }
@@ -1735,16 +1732,6 @@
     grid-template-columns: 1fr;
   }
 
-  .modal-panel.payment-confirmed-modal {
-    width: calc(100vw - 24px);
-    height: calc(100dvh - 24px);
-    max-height: calc(100dvh - 24px);
-    margin: 12px;
-    border: 1px solid #d9e0e8;
-    border-radius: 10px;
-  }
-
-  .payment-confirmed-modal .modal-body,
   .payment-confirmed-modal .payment-modal-actions,
   .payment-confirmed-modal .payment-modal-actions button {
     min-width: 0;
@@ -2833,13 +2820,6 @@
 }
 
 :root:is( [data-theme="dark-sidebar"])
-  :is(.form-section-card, .client-section, .recent-contact-card, .report-filters, .report-table,
-      .report-chart, .admin-section, .admin-menu-section, .modal-panel) {
-  border-color: var(--dark-ui-border);
-  background: linear-gradient(180deg, var(--dark-ui-surface) 0%, var(--dark-ui-surface-raised) 100%);
-}
-
-:root:is( [data-theme="dark-sidebar"])
   :is(input, textarea, .password-field, .phone-input-row, .input-action-row, .floating-select-button,
       .ghost-button, .icon-button, .order-filter-button, .filter-modal-button) {
   border-color: var(--dark-ui-border);
@@ -3016,23 +2996,6 @@
   background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
   color: var(--ui-text);
   box-shadow: 0 12px 30px var(--ui-shadow);
-}
-
-:root[data-theme="dark-sidebar"] :is(
-  .list-panel, .detail-panel, .form-panel, .profile-panel, .profile-hero-card,
-  .profile-section, .admin-panel, .admin-toolbar, .admin-surface, .admin-hero-card,
-  .admin-section, .admin-menu-section, .admin-detail-section, .report-filters,
-  .report-summary > div, .report-table, .report-chart, .modal-panel, .track-order-panel,
-  .operation-currency-header, .live-rate-panel, .operation-rate-card, .pedido-column,
-  .chat-order-card, .form-section-card, .client-section, .recent-contact-card,
-  .theme-test-intro, .theme-lab-section, .theme-test-card, .payment-instructions-summary,
-  .payment-already-paid, .payment-qr-placeholder, .order-control-head, .liquidation-card,
-  .order-bottom-actions, .order-detail-page-header, .finalization-proof-panel
-) {
-  border-color: var(--ui-border);
-  background: var(--ui-surface);
-  color: var(--ui-text);
-  box-shadow: 0 14px 34px var(--ui-shadow);
 }
 
 :root[data-theme="dark-sidebar"] :is(

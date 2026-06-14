@@ -36,13 +36,13 @@ PRIORIDAD ALTA
     - El componente gestiona apertura, Escape, clic exterior, scroll y resize.
     - Eliminadas las clases operator-chip, user-floating y user-menu antiguas.
 
-[ ] 4. Unificar los estilos de modales.
-    Bloques duplicados:
-    - foundation.css: modal base y movil (1057-1177).
-    - foundation.css: segunda definicion de modal-panel/header (2702 en adelante).
-    - canonical.css: modal oscuro (3293-3344).
-    - canonical.css: modal movil/bottom placement (3646-3682).
-    Definir una sola geometria responsive con safe-area inferior y variantes normal/wide.
+[x] 4. Unificar los estilos de modales.
+    Implementado en styles/modal.css:
+    - Geometria unica responsive para las variantes normal y wide.
+    - Modal centrado en escritorio, inferior en tablet y completo en movil.
+    - Safe-area inferior y espacio para la barra fija en pantallas pequenas.
+    - Login flotante conservado como variante del mismo sistema.
+    - Eliminadas las definiciones estructurales duplicadas de los estilos antiguos.
 
 [ ] 5. Dividir canonical.css y dejar de usarlo como parche global.
     Actualmente contiene varias etapas "Phase 2", "Canonical refactored" y arreglos finales.

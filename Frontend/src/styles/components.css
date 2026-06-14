@@ -311,7 +311,6 @@ body {
 :root[data-theme="dark-sidebar"] .report-filters,
 :root[data-theme="dark-sidebar"] .report-summary div,
 :root[data-theme="dark-sidebar"] .report-table,
-:root[data-theme="dark-sidebar"] .modal-panel,
 :root[data-theme="dark-sidebar"] .rate-card,
 :root[data-theme="dark-sidebar"] .pedido-column,
 :root[data-theme="dark-sidebar"] .chat-order-card,
@@ -341,8 +340,7 @@ body {
 :root[data-theme="dark-sidebar"] .admin-panel h2,
 :root[data-theme="dark-sidebar"] .profile-section h3,
 :root[data-theme="dark-sidebar"] .profile-hero-main h2,
-:root[data-theme="dark-sidebar"] .order-section-heading h3,
-:root[data-theme="dark-sidebar"] .modal-header h2 {
+:root[data-theme="dark-sidebar"] .order-section-heading h3 {
   color: #f4f8fb;
 }
 
@@ -360,8 +358,7 @@ body {
 :root[data-theme="dark-sidebar"] .profile-session-panel small,
 :root[data-theme="dark-sidebar"] .profile-form label span,
 :root[data-theme="dark-sidebar"] .detail-fields span,
-:root[data-theme="dark-sidebar"] .metrics dt,
-:root[data-theme="dark-sidebar"] .modal-header p {
+:root[data-theme="dark-sidebar"] .metrics dt {
   color: var(--jireh-muted);
 }
 
@@ -431,8 +428,7 @@ body {
 }
 
 
-:root[data-theme="dark-sidebar"] .data-row.header,
-:root[data-theme="dark-sidebar"] .modal-header {
+:root[data-theme="dark-sidebar"] .data-row.header {
   background: #101822;
   color: #cbd6e2;
 }
@@ -594,7 +590,6 @@ body {
 :root[data-theme="dark-sidebar"] .profile-section,
 :root[data-theme="dark-sidebar"] .admin-panel,
 :root[data-theme="dark-sidebar"] .report-table,
-:root[data-theme="dark-sidebar"] .modal-panel,
 :root[data-theme="dark-sidebar"] .rate-card,
 :root[data-theme="dark-sidebar"] .chat-order-card,
 :root[data-theme="dark-sidebar"] .pedido-column .pedido-row,
@@ -613,7 +608,6 @@ body {
 :root[data-theme="dark-sidebar"] .chat-card-main .pedido-card-head,
 :root[data-theme="dark-sidebar"] .kanban-card-top,
 :root[data-theme="dark-sidebar"] .pedido-card-pay,
-:root[data-theme="dark-sidebar"] .modal-header,
 :root[data-theme="dark-sidebar"] .report-table h2,
 :root[data-theme="dark-sidebar"] .data-row,
 :root[data-theme="dark-sidebar"] .bottom-sheet-header,
@@ -738,7 +732,6 @@ body {
 
 
 :root[data-theme="dark-sidebar"] .bottom-nav,
-:root[data-theme="dark-sidebar"] .modal-backdrop,
 :root[data-theme="dark-sidebar"] .bottom-sheet-backdrop {
   border-color: var(--jireh-line);
 }
