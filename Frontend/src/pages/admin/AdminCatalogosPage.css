@@ -1,3 +1,324 @@
+/* Administrative catalog cards, editing actions and payment accounts. */
+
+.catalog-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 42px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #e1e7ef;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(24, 33, 47, 0.04);
+  background: #f8fafc;
+}
+
+.catalog-row small {
+  display: block;
+  margin-top: 3px;
+  color: #6a7583;
+}
+
+.catalog-row:hover {
+  background: #fbfdff;
+}
+
+.admin-kanban-column .catalog-row {
+  position: relative;
+  min-height: 0;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+  border-color: #d3dce6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 5px 18px rgba(24, 33, 47, 0.07);
+  grid-template-columns: 1fr auto;
+}
+
+.admin-kanban-column .catalog-row > span:first-child {
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1e7ef;
+}
+
+.admin-kanban-column .catalog-row > .status {
+  justify-self: end;
+}
+
+.admin-kanban-column .catalog-row > .icon-button {
+  width: 100%;
+  grid-column: 1;
+}
+
+.admin-kanban-column .catalog-row > .ghost-button {
+  width: 100%;
+  grid-column: 2;
+}
+
+.admin-section .catalog-row {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-color: #d3dce6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 5px 18px rgba(24, 33, 47, 0.07);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+}
+
+.admin-section .catalog-row > span:first-child {
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1e7ef;
+}
+
+.admin-section .catalog-row > .status {
+  justify-self: end;
+}
+
+.catalog-row-offer {
+  grid-template-columns: minmax(0, 1fr) minmax(112px, auto);
+}
+
+.catalog-offer-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: stretch;
+  align-self: stretch;
+}
+
+.catalog-offer-actions .status {
+  justify-self: stretch;
+  text-align: center;
+}
+
+.catalog-offer-actions .catalog-toggle-action {
+  grid-column: auto;
+  width: 100%;
+}
+
+:root[data-theme="dark-sidebar"] .catalog-row {
+  border-color: var(--menu-line);
+  background: linear-gradient(180deg, var(--menu-card) 0%, #111a2c 100%);
+  color: var(--menu-text);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark-sidebar"] .catalog-row small {
+  color: var(--jireh-muted);
+}
+
+:root[data-theme="dark-sidebar"] .admin-section .catalog-row {
+  border-color: var(--menu-line);
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .admin-section .catalog-row:hover {
+  background: var(--ui-surface-hover);
+  border-color: var(--ui-border-strong);
+}
+
+.payment-account-row strong {
+  color: #18212f;
+}
+
+.payment-account-row small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.payment-account-row {
+  align-items: center;
+}
+
+.payment-account-statuses {
+  display: grid;
+  grid-template-columns: repeat(2, 104px);
+  align-items: center;
+  justify-content: end;
+  gap: 6px;
+}
+
+.payment-account-statuses .status {
+  width: 104px;
+  min-width: 104px;
+  justify-self: auto;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+}
+
+:root[data-theme="dark-sidebar"]
+   .payment-account-row strong {
+  color: var(--dark-ui-text);
+}
+
+:root[data-theme="dark-sidebar"]
+   .payment-account-row small {
+  color: var(--dark-ui-muted);
+}
+
+:root[data-theme="dark-sidebar"]
+   .admin-section .catalog-row > span:first-child {
+  border-color: var(--dark-ui-border);
+}
+
+:root[data-theme="dark-sidebar"]
+   .admin-section .catalog-row {
+  border-color: var(--dark-ui-border);
+  background: var(--dark-ui-surface-soft);
+  color: var(--dark-ui-text);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"]
+
+      .payment-account-row {
+  border-color: var(--dark-ui-border);
+  background: var(--dark-ui-surface-soft);
+  color: var(--dark-ui-text);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"]
+   .admin-section .catalog-row:hover {
+  background: var(--dark-ui-surface-raised);
+}
+
+:root[data-theme="dark-sidebar"]
+  .catalog-row {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .payment-account-row {
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .admin-section .catalog-row > span:first-child {
+  border-bottom-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .admin-section .catalog-row strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .admin-section .catalog-row small {
+  color: var(--ui-text-muted);
+}
+
+.catalog-edit-main {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  justify-items: stretch;
+  padding: 4px 6px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm, 6px);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.catalog-edit-main > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.catalog-edit-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-edit-main:hover {
+  background: color-mix(in srgb, var(--ui-primary) 9%, transparent);
+}
+
+.catalog-edit-main:focus-visible {
+  background: color-mix(in srgb, var(--ui-primary) 9%, transparent);
+}
+
+@media (max-width: 920px) {
+  .catalog-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+
+  .admin-kanban-column .catalog-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-kanban-column .catalog-row > .status {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+
+  .admin-kanban-column .catalog-row > .icon-button {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+
+  .admin-kanban-column .catalog-row > .ghost-button {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+}
+
+@media (min-width: 721px) {
+  .admin-section .catalog-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+  }
+
+  .admin-section .catalog-row > span:first-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .catalog-row-offer {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-offer-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .payment-account-statuses {
+    justify-content: start;
+  }
+}
+
+@media (min-width: 721px) {
+  .catalog-edit-main {
+    padding: 4px 6px;
+    border-bottom: 0;
+  }
+}
+
+/* Page layout */
 .admin-menu-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -105,12 +105,12 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
   }
 
   const form = (
-    <form className={embedded ? 'auth-panel login-modal-form' : 'auth-panel theme-test-card theme-form-card ui-accent-card ui-glass-surface'} onSubmit={handleSubmit}>
+    <form className={embedded ? 'auth-panel login-modal-form' : 'auth-panel ui-accent-card ui-glass-surface'} onSubmit={handleSubmit}>
       <header className="login-header">
         <div className="login-brand">
           <img src={logoJireh} alt="El Jireh" />
           <div className="login-title">
-            <span className="theme-test-kicker">Acceso seguro</span>
+            <span className="login-kicker">Acceso seguro</span>
             <h1>Jireh Operaciones</h1>
             <p>Gestion de pedidos y tasas</p>
           </div>
@@ -132,7 +132,7 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
       </label>
       {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && <PageLoader inline label={progressLabel} />}
-      <div className="theme-test-actions login-actions">
+      <div className="login-actions">
         <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>
       </div>
     </form>

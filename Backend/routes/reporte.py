@@ -220,10 +220,10 @@ def operaciones_xlsx_route(
     worksheet = workbook.active
     worksheet.title = "Operaciones"
     encabezados = [
+        "Gestor",
         "Dia",
         "Fecha",
         "Codigo",
-        "Gestor",
         "Banco / Cuenta",
         "Moneda",
         "Monto pago",
@@ -252,9 +252,9 @@ def operaciones_xlsx_route(
     for operacion in operaciones:
         fecha = operacion["fecha"]
         worksheet.append([
+            operacion["codigo"],
             dias[fecha.weekday()] if fecha else "",
             fecha,
-            operacion["codigo"],
             operacion["gestor"],
             operacion["banco"],
             operacion["moneda"],

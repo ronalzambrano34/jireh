@@ -153,9 +153,7 @@
   color: var(--ui-text-muted);
 }
 
-:root[data-theme="dark-sidebar"] .admin-section .catalog-row,
 :root[data-theme="dark-sidebar"] .admin-section .config-row,
-:root[data-theme="dark-sidebar"] .payment-account-row,
 :root[data-theme="dark-sidebar"] .operator-admin-row {
   color: var(--ui-text);
   background: var(--ui-surface-raised);
@@ -164,24 +162,23 @@
   box-shadow: none;
 }
 
-:root[data-theme="dark-sidebar"] .admin-section .catalog-row:hover,
 :root[data-theme="dark-sidebar"] .admin-section .config-row:hover {
   background: var(--ui-surface-hover);
   border-color: var(--ui-border-strong);
 }
 
-:root[data-theme="dark-sidebar"] .admin-section .catalog-row > span:first-child {
-  border-bottom-color: var(--ui-border);
-}
-
-:root[data-theme="dark-sidebar"] .admin-section :is(.catalog-row, .config-row) strong,
-:root[data-theme="dark-sidebar"] :is(.payment-method-admin-main, .operator-admin-main, .promo-admin-main) strong {
+:root[data-theme="dark-sidebar"] .admin-section  .config-row strong,
+:root[data-theme="dark-sidebar"] .payment-method-admin-main strong,
+:root[data-theme="dark-sidebar"]  .operator-admin-main strong,
+:root[data-theme="dark-sidebar"]  .promo-admin-main strong {
   color: var(--ui-text);
 }
 
-:root[data-theme="dark-sidebar"] .admin-section :is(.catalog-row, .config-row) small,
 :root[data-theme="dark-sidebar"] .admin-section .config-row > span,
-:root[data-theme="dark-sidebar"] :is(.payment-method-admin-main, .operator-admin-main, .promo-admin-main) small {
+:root[data-theme="dark-sidebar"] .admin-section  .config-row small,
+:root[data-theme="dark-sidebar"] .payment-method-admin-main small,
+:root[data-theme="dark-sidebar"]  .operator-admin-main small,
+:root[data-theme="dark-sidebar"]  .promo-admin-main small {
   color: var(--ui-text-muted);
 }
 

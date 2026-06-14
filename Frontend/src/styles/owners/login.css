@@ -37,6 +37,8 @@
 .auth-panel {
   width: min(100%, 440px);
   min-width: 0;
+  display: grid;
+  align-content: start;
   margin: auto;
   padding: clamp(20px, 5vw, 32px);
   gap: 16px;
@@ -108,7 +110,7 @@
   overflow: hidden;
 }
 
-.login-title .theme-test-kicker {
+.login-title .login-kicker {
   display: block;
   overflow: hidden;
   font-size: 0.72rem;

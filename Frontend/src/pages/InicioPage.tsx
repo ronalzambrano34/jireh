@@ -296,9 +296,6 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
           <h3>Calculadora</h3>
           <small>Escribe un monto y compara cuanto recibe el destinatario</small>
         </span>
-        <span className="calculator-interaction-badge">
-          <MousePointerClick size={15} /> Prueba tu monto
-        </span>
       </div>
       <label className="live-rate-input">
         <span>Monto a enviar ({moneda})</span>

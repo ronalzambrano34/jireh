@@ -64,19 +64,19 @@ PRIORIDAD MEDIA
     - Telefono, filtros, pagos y Home conservan solo variantes contextuales.
     - Eliminada la geometria de menus repetida e inefectiva en Pedidos y Reportes.
 
-[ ] 8. Consolidar tarjetas y columnas de Pedidos.
+[x] 8. Consolidar tarjetas y columnas de Pedidos.
     pedido-column-header y sus contadores se definen en foundation.css varias veces,
     reciben overrides en themes.css/components.css y styles/owners/orders-create.css.
     Hacer lo mismo con pedido-row, chat-order-card, estados de bloqueo y retraso.
     Mover el resultado a un CSS propio de OrdersPage.
 
-[ ] 9. Consolidar las tarjetas administrativas.
+[x] 9. Consolidar las tarjetas administrativas.
     catalog-row tiene versiones en foundation.css (980, 2606 y 4262 en adelante)
     y overrides oscuros en components.css/styles/owners/admin-setup-profile.css.
     Unificar catalog-row, catalog-edit-main, catalog-offer-actions y payment-account-row
     dentro de pages/admin/AdminCatalogosPage.css.
 
-[ ] 10. Eliminar estilos de componentes que ya no aparecen en JSX.
+[x] 10. Eliminar estilos de componentes que ya no aparecen en JSX.
      Candidatos detectados:
      - user-menu-card y user-menu-wrap antiguos; ahora se usa user-floating-menu.
      - bottom-sheet-layer, bottom-sheet-panel y sus variantes; los filtros usan FloatingSelect.

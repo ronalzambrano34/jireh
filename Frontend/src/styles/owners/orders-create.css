@@ -184,91 +184,6 @@
   border-color: rgba(220, 90, 99, 0.38);
 }
 
-:root[data-theme="dark-sidebar"] .chat-order-list {
-  gap: 9px;
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card,
-:root[data-theme="dark-sidebar"] .pedido-column .pedido-row {
-  color: var(--ui-text);
-  background: var(--ui-surface-raised);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card:hover,
-:root[data-theme="dark-sidebar"] .pedido-column .pedido-row:hover {
-  background: var(--ui-surface-hover);
-  border-color: var(--ui-border-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--ui-shadow-sm);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card::before,
-:root[data-theme="dark-sidebar"] .pedido-column .pedido-row::before {
-  top: 12px;
-  width: 3px;
-  height: 30px;
-  background: var(--ui-text-subtle);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.pendiente_pago)::before,
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.pago_confirmado)::before,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.pendiente_pago) .pedido-row::before,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.pago_confirmado) .pedido-row::before {
-  background: var(--ui-warning);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.en_operacion)::before,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.en_operacion) .pedido-row::before {
-  background: var(--ui-info);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.completado)::before,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.completado) .pedido-row::before {
-  background: var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.cancelado)::before,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.cancelado) .pedido-row::before {
-  background: var(--ui-danger);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.pendiente_pago),
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.pago_confirmado),
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.en_operacion),
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.completado),
-:root[data-theme="dark-sidebar"] .chat-order-card:has(.status.cancelado),
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.pendiente_pago) .pedido-row,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.pago_confirmado) .pedido-row,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.en_operacion) .pedido-row,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.completado) .pedido-row,
-:root[data-theme="dark-sidebar"] .pedido-column:has(.status.cancelado) .pedido-row {
-  background: var(--ui-surface-raised);
-  border-color: var(--ui-border);
-}
-
-:root[data-theme="dark-sidebar"] .chat-card-main .pedido-card-head,
-:root[data-theme="dark-sidebar"] .kanban-card-top {
-  border-bottom-color: var(--ui-border);
-}
-
-:root[data-theme="dark-sidebar"] .pedido-card-head strong,
-:root[data-theme="dark-sidebar"] .pedido-card-field strong,
-:root[data-theme="dark-sidebar"] .chat-card-side strong,
-:root[data-theme="dark-sidebar"] .kanban-card-top > strong {
-  color: var(--ui-text);
-}
-
-:root[data-theme="dark-sidebar"] .pedido-card-head small,
-:root[data-theme="dark-sidebar"] .pedido-card-field small,
-:root[data-theme="dark-sidebar"] .pedido-card-pay small,
-:root[data-theme="dark-sidebar"] .chat-card-side small,
-:root[data-theme="dark-sidebar"] .compact-pay {
-  color: var(--ui-text-muted);
-}
-
 :root[data-theme="dark-sidebar"] .status {
   border: 1px solid transparent;
 }
@@ -297,65 +212,10 @@
   border-color: rgba(220, 90, 99, 0.28);
 }
 
-:root[data-theme="dark-sidebar"] .chat-order-card.selected,
-:root[data-theme="dark-sidebar"] .pedido-column .pedido-row.selected,
-:root[data-theme="dark-sidebar"] .chat-order-card.order-owned-by-me,
-:root[data-theme="dark-sidebar"] .pedido-row.order-owned-by-me {
-  background: rgba(47, 166, 111, 0.08);
-  border-color: rgba(47, 166, 111, 0.42);
-  box-shadow: inset 3px 0 0 var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .chat-order-card.order-blocked-by-other,
-:root[data-theme="dark-sidebar"] .pedido-row.order-blocked-by-other {
-  color: var(--ui-text-muted);
-  background: color-mix(in srgb, var(--ui-danger) 6%, var(--ui-surface-raised));
-  border-color: rgba(220, 90, 99, 0.22);
-  opacity: 0.58;
-  filter: none;
-}
-
-:root[data-theme="dark-sidebar"] .order-taken-chip.owned,
 :root[data-theme="dark-sidebar"] .order-redirect-chip.own {
   color: #91dfb7;
   background: rgba(47, 166, 111, 0.12);
   border-color: rgba(47, 166, 111, 0.28);
-}
-
-:root[data-theme="dark-sidebar"] .order-taken-chip.blocked {
-  color: #f28b92;
-  background: rgba(220, 90, 99, 0.11);
-  border-color: rgba(220, 90, 99, 0.26);
-}
-
-:root[data-theme="dark-sidebar"] .pedido-board {
-  gap: 12px;
-}
-
-:root[data-theme="dark-sidebar"] .pedido-column {
-  padding: 12px;
-  background: var(--ui-canvas-soft);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .pedido-column-header {
-  min-height: 40px;
-  color: var(--ui-text);
-  border-bottom: 1px solid var(--ui-border);
-}
-
-:root[data-theme="dark-sidebar"] .pedido-column-toggle {
-  color: var(--ui-text);
-}
-
-:root[data-theme="dark-sidebar"] .pedido-column-toggle svg {
-  color: var(--ui-text-subtle);
-}
-
-:root[data-theme="dark-sidebar"] .pedido-column-toggle:hover svg {
-  color: var(--ui-primary);
 }
 
 :root[data-theme="dark-sidebar"] .create-stack {

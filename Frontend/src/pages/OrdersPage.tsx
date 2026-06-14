@@ -4,6 +4,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import type { Operador, PedidoResumen } from '../types/api';
 import { formatearNumeroTarjeta } from '../utils/tarjetas';
+import './orders/OrdersPage.css';
 
 export type OrdersScope = 'mis' | 'todas';
 export type OrdersPeriod = 'hoy' | '7_dias' | 'mes' | 'todos';
