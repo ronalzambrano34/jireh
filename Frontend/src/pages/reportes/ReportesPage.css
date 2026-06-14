@@ -937,6 +937,19 @@
   max-width: 100%;
 }
 
+:root[data-theme="dark-sidebar"] .reports-page .report-filter-field,
+:root[data-theme="dark-sidebar"] .reports-page .report-filters label.report-filter-field {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .reports-page .report-filter-icon {
+  left: 12px;
+}
+
 .report-table,
 .report-chart {
   position: relative;

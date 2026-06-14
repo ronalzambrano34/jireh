@@ -838,6 +838,22 @@
   max-width: 100%;
 }
 
+:root[data-theme="dark-sidebar"] .orders-view-shell .orders-list-panel {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .orders-view-shell .order-filter-field {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 @media (max-width: 920px) {
 
   .orders-view-shell .workspace {

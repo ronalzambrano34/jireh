@@ -817,16 +817,22 @@ export function App() {
   if (!operador) {
     return (
       <div className="public-home-shell">
-        <header className="public-home-header">
-          <button className="header-brand" type="button" title="Inicio">
-            <img src={logoJireh} alt="El Jireh" />
-            <span>EL JIREH</span>
-          </button>
-          <button className="primary-button" type="button" onClick={() => solicitarLogin()}>
-            Entrar
-          </button>
-        </header>
-        <main className="public-home-content">
+        <main className="workspace public-home-workspace">
+          <header className="toolbar public-home-toolbar">
+            <button className="header-brand" type="button" title="Inicio">
+              <img src={logoJireh} alt="El Jireh" />
+              <span>EL JIREH</span>
+            </button>
+            <div className="toolbar-title">
+              <h1>Inicio</h1>
+              <p>Tasas activas y accesos rapidos</p>
+            </div>
+            <div className="toolbar-actions">
+              <button className="primary-button" type="button" onClick={() => solicitarLogin()}>
+                Entrar
+              </button>
+            </div>
+          </header>
           <InicioPage
             onCreate={(nextServicio, draft) => solicitarLogin({ type: 'crear', servicio: nextServicio, draft: draft ?? {} })}
             onTrackPedido={(codigo) => solicitarLogin({ type: 'rastrear', codigo })}
