@@ -74,21 +74,6 @@
   scrollbar-gutter: stable;
 }
 
-.login-popover-backdrop {
-  place-items: start end;
-  padding-top: max(72px, env(safe-area-inset-top));
-}
-
-.login-popover-backdrop .login-modal {
-  width: min(480px, 100%);
-  height: auto;
-  max-height: calc(100dvh - 92px);
-}
-
-.login-modal .modal-body {
-  padding: 0;
-}
-
 @media (max-width: 920px) {
   .modal-backdrop {
     place-items: end center;
@@ -99,7 +84,7 @@
   }
 
   .modal-panel,
-  .modal-panel.wide-modal {
+.modal-panel.wide-modal {
     width: 100%;
     max-height: calc(
       100dvh - 20px - env(safe-area-inset-top) -
@@ -109,35 +94,7 @@
   }
 }
 
-@media (max-width: 640px) {
-  .login-popover-backdrop {
-    place-items: start center;
-    padding: max(64px, env(safe-area-inset-top)) 10px
-      max(10px, env(safe-area-inset-bottom));
-  }
-
-  .login-popover-backdrop .login-modal {
-    width: min(480px, 100%);
-    height: auto;
-    max-height: calc(100dvh - 74px - env(safe-area-inset-bottom));
-    border: 1px solid var(--ui-border);
-    border-radius: 20px;
-  }
-}
-
 @media (max-width: 560px) {
-  .modal-backdrop:not(.login-popover-backdrop) {
-    place-items: stretch;
-    padding: 0;
-  }
-
-  .modal-backdrop:not(.login-popover-backdrop) .modal-panel {
-    width: 100vw;
-    height: 100dvh;
-    max-height: 100dvh;
-    border: 0;
-    border-radius: 0;
-  }
 
   .modal-header {
     padding: calc(14px + env(safe-area-inset-top)) 14px 14px;
@@ -149,8 +106,8 @@
   }
 
   .payment-confirmed-modal .modal-body,
-  .payment-confirmed-modal .payment-modal-actions,
-  .payment-confirmed-modal .payment-modal-actions button {
+.payment-confirmed-modal .payment-modal-actions,
+.payment-confirmed-modal .payment-modal-actions button {
     min-width: 0;
     max-width: 100%;
   }
@@ -171,7 +128,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
-  .modal-panel {
+.modal-panel {
     animation: none;
   }
 }

@@ -85,24 +85,24 @@ PRIORIDAD MEDIA
      - client-section-toggle; no se encontro uso en componentes TSX actuales.
      Confirmar con busqueda antes de borrar cada bloque.
 
-[ ] 11. Revisar ThemeTestPage y el catalogo visual antiguo.
+[x] 11. Revisar ThemeTestPage y el catalogo visual antiguo.
      ThemeTestPage.tsx no esta conectado a App ni a una ruta visible.
      Decidir si se convierte en pagina interna de referencia o se elimina junto con sus estilos.
      Evitar mantener simultaneamente ThemeTest y el contrato de styles/owners/ui-contract.css.
 
 PRIORIDAD BAJA
 
-[ ] 12. Sustituir colores directos por tokens --ui-*.
+[x] 12. Sustituir colores directos por tokens --ui-*.
      Hay aproximadamente 2 651 usos de hexadecimal/rgba en las hojas globales.
      Empezar por superficies, bordes, texto, estados y sombras repetidos.
      Mantener colores directos solo para identidad de servicios o ilustraciones.
 
-[ ] 13. Reducir y eliminar usos de !important.
+[x] 13. Reducir y eliminar usos de !important.
      Hay aproximadamente 30 usos.
      La mayoria compensa el orden de cascada entre components/themes y los estilos propietarios.
      Eliminarlos despues de consolidar cada familia de componentes.
 
-[ ] 14. Definir propiedad clara de estilos por archivo.
+[x] 14. Definir propiedad clara de estilos por archivo.
      foundation.css: reset, layout base, tipografia y utilidades.
      components.css: componentes realmente compartidos.
      themes.css: solamente tokens o diferencias estrictamente tematicas.
@@ -111,6 +111,6 @@ PRIORIDAD BAJA
      Avance: el ancho de todas las vistas principales se unifico en
      styles/owners/layout-contract.css tomando Inicio y Reportes como referencia.
 
-[ ] 15. Añadir una comprobacion automatica de CSS obsoleto.
+[x] 15. Añadir una comprobacion automatica de CSS obsoleto.
      Detectar selectores data-theme no soportados, clases sin uso y nuevos !important.
      Ejecutarla junto al build para impedir que vuelvan a crecer las capas heredadas.

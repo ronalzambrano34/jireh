@@ -1,0 +1,1101 @@
+/* profile page-owned styles migrated from global layers. */
+
+
+.profile-panel {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface);
+}
+
+.profile-avatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #e2f2ee;
+  color: var(--ui-primary-strong);
+}
+
+.profile-panel h2,
+.profile-panel p,
+.profile-data {
+  margin: 0;
+}
+
+.profile-panel p {
+  color: var(--ui-text-muted);
+}
+
+.profile-data {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-data div {
+  padding: 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-surface-raised);
+}
+
+.profile-data dt {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-data dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+@media (max-width: 920px) {
+
+  .profile-panel {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+
+  .profile-data {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-panel {
+  border-color: #d3dce6;
+  background: linear-gradient(180deg, var(--ui-surface) 0%, var(--ui-surface-raised) 100%);
+  box-shadow: 0 8px 24px var(--ui-shadow-low);
+}
+
+.profile-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--ui-primary-strong);
+}
+
+.profile-panel {
+  padding-left: 18px;
+}
+
+.profile-panel {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  max-width: 720px;
+}
+
+.profile-avatar {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-primary-strong) 18%, transparent), 0 8px 18px color-mix(in srgb, var(--ui-primary-strong) 14%, transparent);
+}
+
+.profile-data {
+  grid-column: 1 / -1;
+}
+
+.profile-data div {
+  box-shadow: 0 2px 8px var(--ui-shadow-faint);
+}
+
+@media (max-width: 720px) {
+
+  .profile-panel {
+    padding-left: 16px;
+  }
+
+  .profile-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-panel .danger-action {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+
+.profile-page {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+}
+
+.profile-hero-card {
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: 14px;
+  background: var(--ui-surface);
+  box-shadow: 0 8px 24px var(--ui-shadow-low);
+}
+
+.profile-hero-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+}
+
+.profile-avatar.initials {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e2f7d8;
+  color: #275f13;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.profile-avatar.avatar-photo {
+  object-fit: cover;
+  padding: 0;
+}
+
+.profile-avatar-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.profile-photo-upload {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--ui-surface);
+  color: var(--ui-primary-strong);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.profile-photo-upload input {
+  display: none;
+}
+
+.profile-photo-upload:has(input:disabled) {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.profile-hero-main h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.profile-hero-main p {
+  margin: 4px 0 0;
+  color: #5f6978;
+}
+
+.profile-hero-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 13px 16px;
+  border-top: 1px solid var(--ui-border);
+  color: #5f6978;
+  font-size: 13px;
+}
+
+.profile-hero-meta strong {
+  color: var(--ui-text);
+}
+
+.profile-section {
+  display: grid;
+  gap: 0;
+  padding: 14px 18px 4px;
+  border-top: 8px solid #e9ebef;
+  background: var(--ui-surface);
+}
+
+.profile-section h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.profile-option {
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ui-border);
+  padding: 0;
+  background: transparent;
+  color: #202733;
+  text-align: left;
+  font-weight: 760;
+}
+
+.profile-option svg {
+  color: #5f6978;
+}
+
+.profile-option > span {
+  min-width: 0;
+}
+
+.profile-option.danger {
+  color: var(--ui-danger-text);
+}
+
+.profile-option.active {
+  color: var(--ui-primary-strong);
+}
+
+.profile-option .chevron-open {
+  transform: rotate(180deg);
+}
+
+.profile-support-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 0 14px 36px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.profile-support-options {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-support-panel-list {
+  grid-template-columns: 1fr;
+  padding-top: 0;
+}
+
+.support-whatsapp-link > span:last-child {
+  min-width: 0;
+}
+
+.support-whatsapp-link strong,
+.support-whatsapp-link small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-whatsapp-link {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface-raised);
+  color: #202733;
+  text-decoration: none;
+  font-weight: 760;
+}
+
+.support-whatsapp-link-br {
+  border-color: rgba(0, 124, 72, 0.35);
+  background:
+    linear-gradient(90deg, rgba(37, 43, 50, 0.86) 0%, rgba(37, 43, 50, 0.68) 48%, rgba(37, 43, 50, 0.18) 72%, rgba(37, 43, 50, 0) 100%),
+    radial-gradient(circle at 84% 50%, #002776 0 14%, transparent 15%),
+    linear-gradient(135deg, transparent 48%, #ffdf00 49% 70%, transparent 71%),
+    linear-gradient(90deg, #009b3a 0%, #009b3a 100%);
+  color: var(--ui-text-on-color);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 18px rgba(0, 124, 72, 0.16);
+}
+
+.support-whatsapp-link-uy {
+  border-color: rgba(38, 128, 199, 0.3);
+  background:
+    linear-gradient(90deg, rgba(37, 43, 50, 0.84) 0%, rgba(37, 43, 50, 0.64) 48%, rgba(37, 43, 50, 0.14) 72%, rgba(37, 43, 50, 0) 100%),
+    radial-gradient(circle at 86% 28%, #f7c600 0 9%, transparent 10%),
+    repeating-linear-gradient(180deg, var(--ui-surface) 0 10px, var(--ui-surface) 10px 16px, #2f80c3 16px 26px, #2f80c3 26px 32px);
+  color: var(--ui-text-on-color);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 18px rgba(33, 118, 189, 0.12);
+}
+
+.support-whatsapp-link svg {
+  color: var(--ui-primary-strong);
+}
+
+.support-whatsapp-link small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.support-whatsapp-link.support-whatsapp-link-br svg,
+.support-whatsapp-link.support-whatsapp-link-uy svg {
+  color: var(--ui-text-on-color);
+}
+
+.support-whatsapp-link.support-whatsapp-link-br small,
+.support-whatsapp-link.support-whatsapp-link-uy small {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.support-whatsapp-link.disabled {
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.profile-feedback {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.profile-feedback.success {
+  border: 1px solid rgba(23, 107, 93, 0.24);
+  background: #eaf8f2;
+  color: var(--ui-primary-strong);
+}
+
+.profile-feedback.error {
+  border: 1px solid rgba(175, 43, 43, 0.22);
+  background: #fff0f0;
+  color: var(--ui-danger-text);
+}
+
+.profile-inline-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0 16px 36px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.profile-data-grid,
+.profile-session-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-data-grid div,
+.profile-session-panel div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dce4ed;
+  border-radius: 10px;
+  background: var(--ui-surface-raised);
+}
+
+.profile-data-grid small,
+.profile-session-panel small,
+.profile-form label span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.profile-data-grid strong,
+.profile-session-panel strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-form {
+  max-width: 460px;
+}
+
+.profile-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-form input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--ui-border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font: inherit;
+}
+
+.profile-form input:disabled {
+  background: var(--ui-canvas-soft);
+  color: var(--ui-text-muted);
+}
+
+.profile-form > small {
+  color: var(--ui-text-muted);
+  font-weight: 650;
+}
+
+.profile-role-pill {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--ui-primary-strong) 22%, transparent);
+  border-radius: 999px;
+  background: #eaf8f2;
+  color: var(--ui-primary-strong);
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.profile-permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-permission-list span {
+  padding: 8px 10px;
+  border: 1px solid #dce4ed;
+  border-radius: 999px;
+  background: var(--ui-surface-raised);
+  color: #445064;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.profile-inline-panel .primary-action,
+.profile-inline-panel .secondary-action {
+  min-height: 42px;
+  justify-self: start;
+  border-radius: 9px;
+  padding: 0 16px;
+  font-weight: 850;
+}
+
+.profile-inline-panel .primary-action {
+  border: 1px solid var(--ui-primary-strong);
+  background: var(--ui-primary-strong);
+  color: var(--ui-text-on-color);
+}
+
+.profile-inline-panel .secondary-action {
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+  color: #202733;
+}
+
+.profile-inline-panel .primary-action:disabled {
+  opacity: 0.62;
+}
+
+@media (max-width: 620px) {
+  .profile-inline-panel {
+    padding-left: 0;
+  }
+
+  .profile-data-grid,
+.profile-session-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-support-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .profile-support-panel-list {
+    grid-template-columns: 1fr;
+  }
+
+  .support-whatsapp-link {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: stretch;
+    padding: 10px 8px;
+    text-align: left;
+  }
+
+  .profile-inline-panel .primary-action,
+.profile-inline-panel .secondary-action {
+    width: 100%;
+  }
+}
+
+:root[data-theme="dark-sidebar"] .profile-photo-upload {
+  border-color: var(--jireh-line);
+  background: var(--jireh-surface-soft);
+  color: var(--jireh-accent);
+}
+
+:root[data-theme="dark-sidebar"] .profile-panel,
+:root[data-theme="dark-sidebar"] .profile-hero-card,
+:root[data-theme="dark-sidebar"] .profile-section {
+  border-color: var(--jireh-line);
+  background: linear-gradient(180deg, var(--jireh-surface-2) 0%, var(--jireh-surface) 100%);
+  color: var(--jireh-ink);
+  box-shadow: 0 10px 28px var(--jireh-shadow);
+}
+
+:root[data-theme="dark-sidebar"] .profile-section h3,
+:root[data-theme="dark-sidebar"] .profile-hero-main h2 {
+  color: #f4f8fb;
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-main p,
+:root[data-theme="dark-sidebar"] .profile-data-grid small,
+:root[data-theme="dark-sidebar"] .profile-session-panel small,
+:root[data-theme="dark-sidebar"] .profile-form label span {
+  color: var(--jireh-muted);
+}
+
+:root[data-theme="dark-sidebar"] .support-whatsapp-link {
+  border-color: var(--jireh-line);
+  background: #0f1721;
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option,
+:root[data-theme="dark-sidebar"] .profile-data-grid div,
+:root[data-theme="dark-sidebar"] .profile-session-panel div {
+  border-color: var(--jireh-line);
+  background: #121c28;
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option.active {
+  color: var(--jireh-emerald);
+}
+
+:root[data-theme="dark-sidebar"] .profile-role-pill {
+  background: rgba(33, 184, 131, 0.16);
+  color: #7ee0b8;
+}
+
+:root[data-theme="dark-sidebar"] .profile-feedback.error {
+  background: rgba(196, 61, 61, 0.16);
+  color: #ffb1b1;
+}
+
+:root[data-theme="dark-sidebar"] .profile-feedback.success {
+  background: rgba(33, 184, 131, 0.16);
+  color: #7ee0b8;
+}
+
+:root[data-theme="dark-sidebar"] .profile-form select {
+  min-height: 42px;
+  border: 1px solid var(--jireh-line);
+  border-radius: 9px;
+  padding: 9px 11px;
+  background: #0f1721;
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-card,
+:root[data-theme="dark-sidebar"] .profile-section {
+  border-color: var(--jireh-line);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option,
+:root[data-theme="dark-sidebar"] .profile-inline-panel,
+:root[data-theme="dark-sidebar"] .profile-support-panel,
+:root[data-theme="dark-sidebar"] .profile-hero-meta {
+  border-color: var(--jireh-line-soft);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-meta,
+:root[data-theme="dark-sidebar"] .profile-form > small {
+  color: var(--jireh-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-meta strong,
+:root[data-theme="dark-sidebar"] .profile-data-grid strong,
+:root[data-theme="dark-sidebar"] .profile-session-panel strong {
+  color: #f8fbff;
+}
+
+:root[data-theme="dark-sidebar"] .profile-inline-panel .secondary-action {
+  border-color: var(--jireh-line);
+  background: #132030;
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .profile-avatar.initials {
+  background: rgba(33, 184, 131, 0.16);
+  color: #8ff0c7;
+}
+
+:root[data-theme="dark-sidebar"] .profile-option svg {
+  color: #aebccd;
+}
+
+:root[data-theme="dark-sidebar"] .profile-option.danger {
+  color: #ffb7b7;
+}
+
+.profile-support-panel {
+  justify-items: center;
+  padding-left: 0;
+}
+
+.profile-support-panel-list {
+  justify-items: center;
+}
+
+.support-whatsapp-link {
+  width: min(100%, 260px);
+  justify-self: center;
+}
+
+@media (max-width: 620px) {
+  .profile-support-panel,
+.profile-support-panel-list {
+    justify-items: stretch;
+  }
+
+  .support-whatsapp-link {
+    width: 100%;
+  }
+}
+
+.profile-support-options {
+  justify-items: center;
+}
+
+.profile-support-panel {
+  width: min(100%, 560px);
+  justify-self: center;
+  justify-items: center;
+  padding-left: 0;
+}
+
+.profile-support-panel-list {
+  width: min(100%, 360px);
+}
+
+.support-whatsapp-link {
+  width: min(100%, 260px);
+}
+
+@media (max-width: 620px) {
+  .profile-support-panel,
+.profile-support-panel-list,
+.support-whatsapp-link {
+    width: 100%;
+  }
+}
+
+.profile-appearance-row {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--ui-border);
+  padding: 8px 0;
+}
+
+.profile-appearance-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5f6978;
+}
+
+.profile-appearance-copy {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.profile-appearance-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-appearance-copy strong {
+  color: #202733;
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.profile-appearance-copy small {
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 620px) {
+  .profile-appearance-title {
+    gap: 8px;
+  }
+}
+
+:root[data-theme="dark-sidebar"] .profile-appearance-row {
+  border-color: var(--jireh-line-soft);
+}
+
+:root[data-theme="dark-sidebar"] .profile-appearance-icon {
+  color: var(--jireh-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-appearance-copy strong {
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .profile-appearance-copy small {
+  color: var(--jireh-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-panel,
+:root[data-theme="dark-sidebar"] .profile-hero-card,
+:root[data-theme="dark-sidebar"] .profile-section,
+:root[data-theme="dark-sidebar"] .profile-data-grid div,
+:root[data-theme="dark-sidebar"] .profile-session-panel div {
+  border-color: var(--menu-line);
+  background: linear-gradient(180deg, var(--menu-card) 0%, var(--ui-surface-raised) 100%);
+  color: var(--menu-text);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark-sidebar"] .profile-section h3 {
+  color: var(--menu-text);
+}
+
+:root[data-theme="dark-sidebar"] .support-whatsapp-link {
+  border-color: var(--menu-line);
+  background: var(--menu-row);
+  color: var(--menu-text);
+  box-shadow: inset 0 0 0 1px rgba(243, 244, 246, 0.03);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option,
+:root[data-theme="dark-sidebar"] .profile-inline-panel,
+:root[data-theme="dark-sidebar"] .profile-support-panel,
+:root[data-theme="dark-sidebar"] .profile-appearance-row {
+  border-color: var(--menu-line);
+  background: linear-gradient(180deg, var(--menu-card) 0%, var(--ui-surface-raised) 100%);
+  color: var(--menu-text);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option:hover,
+:root[data-theme="dark-sidebar"] .profile-option.active {
+  border-color: rgba(49, 209, 154, 0.3);
+  background: color-mix(in srgb, var(--ui-primary-strong) 8%, transparent);
+  color: #dffcf1;
+}
+
+:root[data-theme="dark-sidebar"] .profile-option.danger {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fca5a5;
+}
+
+.profile-logout-option {
+  grid-template-columns: 22px minmax(0, 1fr);
+}
+
+:root[data-theme="dark-sidebar"] .profile-form input,
+:root[data-theme="dark-sidebar"] .profile-form .password-field,
+:root[data-theme="dark-sidebar"] .profile-form .password-field input {
+  border-color: var(--menu-line);
+  background: var(--menu-row);
+  color: var(--menu-text);
+}
+
+:root[data-theme="dark-sidebar"]
+  .profile-inline-panel,
+:root[data-theme="dark-sidebar"]  .profile-option {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"]  .profile-appearance-icon {
+  background: color-mix(in srgb, var(--ui-primary) 16%, var(--ui-surface-raised));
+  color: var(--ui-success-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-primary) 28%, transparent);
+}
+
+.profile-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-section::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: var(--ui-accent-inset, 0) auto var(--ui-accent-inset, 0) 0;
+  width: var(--ui-accent-width, 3px);
+  background: var(--ui-primary);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+:root[data-theme="dark-sidebar"] .profile-role-pill {
+  color: var(--ui-success-text);
+  background: color-mix(in srgb, var(--ui-primary) 12%, transparent);
+  border-color: var(--ui-focus);
+}
+
+:root[data-theme="dark-sidebar"] .profile-page {
+  width: min(760px, 100%);
+  max-width: 760px;
+  margin: 0 auto;
+  gap: 12px;
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-card,
+:root[data-theme="dark-sidebar"] .profile-section {
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-main {
+  padding: 18px;
+}
+
+:root[data-theme="dark-sidebar"] .profile-avatar.initials {
+  color: var(--ui-on-primary);
+  background: var(--ui-primary);
+  border: 3px solid rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="dark-sidebar"] .profile-photo-upload {
+  color: var(--ui-success-text);
+  background: color-mix(in srgb, var(--ui-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--ui-primary) 30%, transparent);
+}
+
+:root[data-theme="dark-sidebar"] .profile-photo-upload:hover {
+  background: rgba(47, 166, 111, 0.16);
+  border-color: rgba(47, 166, 111, 0.42);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-main h2,
+:root[data-theme="dark-sidebar"] .profile-section h3 {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-main p,
+:root[data-theme="dark-sidebar"] .profile-hero-meta {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-meta {
+  border-top-color: var(--ui-border);
+  background: var(--ui-canvas-soft);
+}
+
+:root[data-theme="dark-sidebar"] .profile-hero-meta strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .profile-section {
+  padding: 14px 16px 6px;
+  border-top-width: 1px;
+}
+
+:root[data-theme="dark-sidebar"] .profile-option,
+:root[data-theme="dark-sidebar"] .profile-appearance-row {
+  color: var(--ui-text);
+  border-bottom-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option {
+  padding: 0 8px;
+  border-radius: var(--ui-radius-sm);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option:hover,
+:root[data-theme="dark-sidebar"] .profile-option:focus-visible {
+  background: var(--ui-surface-hover);
+  outline: 0;
+}
+
+:root[data-theme="dark-sidebar"] .profile-option svg,
+:root[data-theme="dark-sidebar"] .profile-appearance-icon {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option.active {
+  color: var(--ui-success-text);
+  background: rgba(47, 166, 111, 0.08);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option.active svg {
+  color: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .profile-option.danger {
+  color: var(--ui-danger-text);
+}
+
+:root[data-theme="dark-sidebar"] .profile-inline-panel {
+  padding: 14px 10px 16px;
+  background: var(--ui-canvas-soft);
+  border-bottom-color: var(--ui-border);
+  border-radius: 0 0 var(--ui-radius-sm) var(--ui-radius-sm);
+}
+
+:root[data-theme="dark-sidebar"] .profile-form label span,
+:root[data-theme="dark-sidebar"] .profile-form > small {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-form input,
+:root[data-theme="dark-sidebar"] .profile-form  .password-field {
+  min-height: 44px;
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .profile-form input:disabled {
+  color: var(--ui-text-subtle);
+  background: var(--ui-canvas);
+}
+
+:root[data-theme="dark-sidebar"] .profile-inline-panel .primary-action {
+  color: var(--ui-on-primary);
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .profile-permission-list span {
+  color: var(--ui-text-muted);
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .profile-appearance-copy strong {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .profile-appearance-copy small {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .profile-support-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 10px 8px 14px;
+  border-bottom-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .support-whatsapp-link,
+:root[data-theme="dark-sidebar"] .support-whatsapp-link-br,
+:root[data-theme="dark-sidebar"] .support-whatsapp-link-uy {
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .support-whatsapp-link:hover,
+:root[data-theme="dark-sidebar"] .support-whatsapp-link:focus-visible {
+  background: var(--ui-surface-hover);
+  border-color: color-mix(in srgb, var(--ui-primary) 40%, transparent);
+  outline: 0;
+}
+
+:root[data-theme="dark-sidebar"] .support-whatsapp-link small,
+:root[data-theme="dark-sidebar"] .support-whatsapp-link.support-whatsapp-link-br small,
+:root[data-theme="dark-sidebar"] .support-whatsapp-link.support-whatsapp-link-uy small {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .support-whatsapp-link.support-whatsapp-link-br svg,
+:root[data-theme="dark-sidebar"] .support-whatsapp-link.support-whatsapp-link-uy svg {
+  color: var(--ui-text-on-color);
+}
+
+@media (max-width: 560px) {
+
+  :root[data-theme="dark-sidebar"] .profile-hero-main {
+    align-items: flex-start;
+  }
+
+  :root[data-theme="dark-sidebar"] .profile-hero-meta {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  :root[data-theme="dark-sidebar"] .profile-hero-meta span:nth-child(2) {
+    grid-column: 1;
+  }
+
+  :root[data-theme="dark-sidebar"] .profile-hero-meta .icon-button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  :root[data-theme="dark-sidebar"] .profile-support-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.profile-page,
+.profile-hero-card,
+.profile-section {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace >
+  .profile-page {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.profile-hero-main > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-section {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+.profile-section::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: var(--ui-accent-inset) auto var(--ui-accent-inset) 0;
+  display: block;
+  width: var(--ui-accent-width);
+  height: auto;
+  background: var(--ui-primary);
+  border-radius: 0 var(--ui-radius-sm) var(--ui-radius-sm) 0;
+  pointer-events: none;
+}

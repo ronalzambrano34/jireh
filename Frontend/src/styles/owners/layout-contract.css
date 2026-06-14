@@ -45,86 +45,25 @@ body {
 .list-panel,
 .detail-panel,
 .form-panel,
-.create-stack,
 .form-flow,
 .form-flow > *,
-.form-section-card,
 .form-grid,
 .form-grid > *,
-.client-section,
-.reports-page,
-.report-filters,
-.report-summary,
-.report-grid,
-.report-table,
-.admin-page,
-.admin-surface,
-.admin-hero-card,
-.admin-section,
-.setup-page,
-.setup-layout,
-.setup-card,
-.profile-page,
-.profile-hero-card,
-.profile-section,
-.home-page,
-.rates-hero,
-.rates-currency-sections,
-.rates-currency-section,
-.operation-currency-header,
-.live-rate-panel,
-.home-services-section,
-.operational-rates-grid,
-.home-tracking-section,
-.track-order-panel,
-.order-detail-page,
-.order-detail-page-body,
-.order-detail-surface,
-.order-detail-section {
+.client-section {
   min-width: 0;
   max-width: 100%;
 }
 
 /* Main views share the same usable width as Inicio and Reportes. */
-.workspace > :is(
-  .home-page,
-  .reports-page,
-  .orders-content-grid,
-  .profile-page,
-  .setup-page,
-  .admin-page,
-  .create-stack,
-  .order-detail-page
-),
-.public-home-content {
-  width: 100%;
-  max-width: none;
-  margin-inline: 0;
-}
 
-:is(
-  .toolbar,
-  .toolbar-actions,
-  .filters,
-  .state-row,
-  .orders-scope-chips,
-  .orders-top-actions,
-  .form-grid,
-  .client-lookup,
-  .lookup-row,
-  .payment-section-header,
-  .operation-currency-header,
-  .report-filters,
-  .report-summary,
-  .report-grid,
-  .admin-hero-main,
-  .admin-section-header,
-  .setup-layout,
-  .profile-hero-main,
-  .order-detail-page-header,
-  .order-detail-fields,
-  .payment-data-grid
-) > * {
+.toolbar > *,
+.toolbar-actions > *,
+.filters > *,
+.state-row > *,
+.form-grid > *,
+.client-lookup > *,
+.payment-data-grid
+ > * {
   min-width: 0;
   max-width: 100%;
 }

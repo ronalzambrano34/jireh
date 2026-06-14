@@ -10,8 +10,7 @@
 
 :root[data-theme="dark-sidebar"] .payment-instructions-summary,
 :root[data-theme="dark-sidebar"] .payment-data-grid > div,
-:root[data-theme="dark-sidebar"] .payment-qr-placeholder,
-:root[data-theme="dark-sidebar"] .payment-already-paid {
+:root[data-theme="dark-sidebar"] .payment-qr-placeholder {
   color: var(--ui-text);
   background: var(--ui-surface-raised);
   border: 1px solid var(--ui-border);
@@ -19,21 +18,14 @@
 }
 
 :root[data-theme="dark-sidebar"] .payment-instructions-summary strong,
-:root[data-theme="dark-sidebar"] .payment-data-grid strong,
-:root[data-theme="dark-sidebar"] .payment-already-paid strong {
+:root[data-theme="dark-sidebar"] .payment-data-grid strong {
   color: var(--ui-text);
 }
 
 :root[data-theme="dark-sidebar"] .payment-instructions-summary small,
 :root[data-theme="dark-sidebar"] .payment-data-grid span,
-:root[data-theme="dark-sidebar"] .payment-qr-placeholder small,
-:root[data-theme="dark-sidebar"] .payment-already-paid small {
+:root[data-theme="dark-sidebar"] .payment-qr-placeholder small {
   color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .payment-already-paid {
-  background: rgba(47, 166, 111, 0.09);
-  border-color: rgba(47, 166, 111, 0.3);
 }
 
 :root[data-theme="dark-sidebar"] .payment-qr-placeholder {
@@ -63,7 +55,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .notice.warning {
-  color: #f4d889;
+  color: var(--ui-warning-text);
   background: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-surface));
   border-color: color-mix(in srgb, var(--ui-warning) 38%, var(--ui-border));
 }
@@ -91,22 +83,19 @@
 }
 
 :root[data-theme="dark-sidebar"] .dismissible-notice button,
-:root[data-theme="dark-sidebar"] .app-toast button,
-:root[data-theme="dark-sidebar"] .copy-toast button {
+:root[data-theme="dark-sidebar"] .app-toast button {
   color: inherit;
   background: rgba(255, 255, 255, 0.055);
 }
 
 :root[data-theme="dark-sidebar"] .dismissible-notice button:hover,
-:root[data-theme="dark-sidebar"] .app-toast button:hover,
-:root[data-theme="dark-sidebar"] .copy-toast button:hover {
+:root[data-theme="dark-sidebar"] .app-toast button:hover {
   background: rgba(255, 255, 255, 0.11);
 }
 
-:root[data-theme="dark-sidebar"] .offline-banner,
-:root[data-theme="dark-sidebar"] .login-network-status.offline {
+:root[data-theme="dark-sidebar"] .offline-banner {
   min-height: 42px;
-  color: #f4d889;
+  color: var(--ui-warning-text);
   background: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-surface));
   border: 1px solid color-mix(in srgb, var(--ui-warning) 38%, var(--ui-border));
   border-radius: var(--ui-radius-md);
@@ -118,8 +107,7 @@
   gap: 8px;
 }
 
-:root[data-theme="dark-sidebar"] .app-toast,
-:root[data-theme="dark-sidebar"] .copy-toast {
+:root[data-theme="dark-sidebar"] .app-toast {
   color: #9de0bc;
   background: color-mix(in srgb, var(--ui-primary) 13%, var(--ui-surface));
   border: 1px solid color-mix(in srgb, var(--ui-primary) 38%, var(--ui-border));
@@ -134,14 +122,14 @@
   border-color: color-mix(in srgb, var(--ui-danger) 38%, var(--ui-border));
 }
 
-:root[data-theme="dark-sidebar"] :is(
+:root[data-theme="dark-sidebar"]
   .empty-row,
-  .admin-empty-row,
+:root[data-theme="dark-sidebar"]
   .order-empty-line,
+:root[data-theme="dark-sidebar"]
   .rate-empty-state,
-  .recent-contacts-empty,
-  .detail-panel.empty
-) {
+:root[data-theme="dark-sidebar"]
+  .detail-panel.empty {
   min-height: 54px;
   color: var(--ui-text-muted);
   background: var(--ui-canvas-soft);
@@ -159,7 +147,7 @@
 
 :root[data-theme="dark-sidebar"] .logo-bounce-loader img {
   padding: 2px;
-  background: #ffffff;
+  background: var(--ui-surface);
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 18px 42px rgba(1, 6, 15, 0.48);
 }
@@ -188,48 +176,6 @@
 :root[data-theme="dark-sidebar"] .logo-bounce-loader.inline-loader img {
   width: 52px;
   height: 52px;
-}
-
-:root[data-theme="dark-sidebar"] .login-progress {
-  display: grid;
-  place-items: center;
-  background: rgba(8, 17, 31, 0.86);
-  backdrop-filter: blur(10px);
-}
-
-:root[data-theme="dark-sidebar"] .login-progress .logo-bounce-loader.inline-loader {
-  position: relative;
-  width: auto;
-  min-height: 0;
-  padding: 0;
-  background: transparent;
-  border: 0;
-}
-
-:root[data-theme="dark-sidebar"] .login-progress .logo-bounce-loader > span {
-  display: none;
-}
-
-:root[data-theme="dark-sidebar"] .login-progress .login-progress-text {
-  color: var(--ui-text);
-  text-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] :is(
-  .report-summary-loading strong,
-  .report-summary-loading span,
-  .report-table-skeleton h2,
-  .report-table-skeleton .data-row span,
-  .rate-card-skeleton,
-  .rates-carousel-loading .skeleton-card
-) {
-  background: linear-gradient(
-    90deg,
-    var(--ui-surface-raised),
-    color-mix(in srgb, var(--ui-primary) 16%, var(--ui-surface-hover)),
-    var(--ui-surface-raised)
-  );
-  background-size: 220% 100%;
 }
 
 :root[data-theme="dark-sidebar"] .floating-create-backdrop,
@@ -273,7 +219,7 @@
   color: var(--ui-on-primary);
   background: var(--ui-primary-pressed);
   border-color: var(--ui-primary-pressed);
-  box-shadow: 0 14px 32px rgba(47, 166, 111, 0.28);
+  box-shadow: 0 14px 32px var(--ui-focus);
 }
 
 :root[data-theme="dark-sidebar"] .pwa-install-prompt {
@@ -297,7 +243,11 @@
   color: var(--ui-on-primary);
 }
 
-:root[data-theme="dark-sidebar"] :is(button, a, input, textarea, select):focus-visible {
+:root[data-theme="dark-sidebar"] button:focus-visible,
+:root[data-theme="dark-sidebar"]  a:focus-visible,
+:root[data-theme="dark-sidebar"]  input:focus-visible,
+:root[data-theme="dark-sidebar"]  textarea:focus-visible,
+:root[data-theme="dark-sidebar"]  select:focus-visible {
   outline: 2px solid var(--ui-primary-hover);
   outline-offset: 2px;
 }
@@ -320,13 +270,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .logo-bounce-loader img,
-  .button-spinner,
-  .report-summary-loading strong,
-  .report-summary-loading span,
-  .report-table-skeleton h2,
-  .report-table-skeleton .data-row span,
-  .rate-card-skeleton,
-  .rates-carousel-loading .skeleton-card {
-    animation: none !important;
+.button-spinner {
+    animation: none;
   }
 }

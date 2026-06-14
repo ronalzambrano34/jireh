@@ -5,6 +5,7 @@ import { PasswordField } from '../components/PasswordField';
 import { UiSwitch } from '../components/UiSwitch';
 import type { Operador } from '../types/api';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
+import './profile/ProfilePage.css';
 
 export type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
 export type ProfilePassword = { actual: string; nueva: string; confirmar: string };

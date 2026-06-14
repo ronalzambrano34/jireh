@@ -1,3 +1,418 @@
+/* setup page-owned styles migrated from global layers. */
+
+.setup-page {
+  width: min(1080px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.setup-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #cfe0db;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f3fbf7, var(--ui-surface));
+  box-shadow: 0 10px 28px var(--ui-shadow-soft);
+}
+
+.setup-hero > span {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--ui-primary-strong);
+  color: var(--ui-text-on-color);
+}
+
+.setup-hero small {
+  color: var(--ui-primary-strong);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.setup-hero h2,
+.setup-card h3 {
+  margin: 3px 0;
+  color: var(--ui-text);
+}
+
+.setup-hero p,
+.setup-card header p {
+  margin: 4px 0 0;
+  color: #66758a;
+}
+
+.setup-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.34fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.setup-steps,
+.setup-card {
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: var(--ui-surface);
+  box-shadow: 0 8px 24px var(--ui-shadow-low);
+}
+
+.setup-steps {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+}
+
+.setup-steps button {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--ui-text-secondary);
+  text-align: left;
+}
+
+.setup-steps button:hover,
+.setup-steps button.active {
+  background: #e8f4ef;
+  color: var(--ui-primary-strong);
+}
+
+.setup-steps button > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.setup-steps button small {
+  overflow: hidden;
+  color: #66758a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-step-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--ui-canvas-soft);
+}
+
+.setup-step-icon.done {
+  background: var(--ui-primary-strong);
+  color: var(--ui-text-on-color);
+}
+
+.setup-card {
+  min-height: 430px;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 20px;
+}
+
+.setup-card .form-grid {
+  margin: 0;
+}
+
+.setup-actions,
+.setup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.setup-footer {
+  padding: 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-surface);
+}
+
+@media (max-width: 760px) {
+  .setup-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .setup-steps button {
+    min-width: 0;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .setup-steps button > span:nth-child(2) small,
+.setup-steps button > svg {
+    display: none;
+  }
+
+  .setup-footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}
+
+@media (max-width: 520px) {
+  .setup-hero {
+    align-items: start;
+    padding: 15px;
+  }
+
+  .setup-hero > span {
+    width: 42px;
+    height: 42px;
+  }
+
+  .setup-card {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .setup-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero,
+:root[data-theme="dark-sidebar"] .setup-steps,
+:root[data-theme="dark-sidebar"] .setup-card,
+:root[data-theme="dark-sidebar"] .setup-footer {
+  border-color: var(--jireh-line);
+  background: var(--jireh-surface);
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero h2,
+:root[data-theme="dark-sidebar"] .setup-card h3 {
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps button {
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps button:hover,
+:root[data-theme="dark-sidebar"] .setup-steps button.active {
+  background: var(--jireh-surface-3);
+  color: var(--jireh-emerald);
+}
+
+:root[data-theme="dark-sidebar"] .setup-page {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  gap: 14px;
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero {
+  padding: 18px;
+  color: var(--ui-text);
+  background:
+    radial-gradient(circle at 0 0, var(--ui-success-soft), transparent 26rem),
+    var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero > span {
+  color: var(--ui-on-primary);
+  background: var(--ui-primary);
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero small {
+  color: var(--ui-success-text);
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero h2,
+:root[data-theme="dark-sidebar"] .setup-card h3 {
+  color: var(--ui-text);
+}
+
+:root[data-theme="dark-sidebar"] .setup-hero p,
+:root[data-theme="dark-sidebar"] .setup-card header p {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .setup-layout {
+  gap: 12px;
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps,
+:root[data-theme="dark-sidebar"] .setup-card,
+:root[data-theme="dark-sidebar"] .setup-footer {
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps button {
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps button:hover {
+  color: var(--ui-text);
+  background: var(--ui-surface-hover);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps button.active {
+  color: var(--ui-success-text);
+  background: var(--ui-success-soft);
+  border-color: rgba(47, 166, 111, 0.34);
+}
+
+:root[data-theme="dark-sidebar"] .setup-steps button small {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .setup-step-icon {
+  color: var(--ui-text-muted);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .setup-step-icon.done {
+  color: var(--ui-on-primary);
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .setup-card {
+  min-height: 430px;
+  padding: 18px;
+}
+
+:root[data-theme="dark-sidebar"] .setup-card > header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .setup-card label {
+  color: var(--ui-text-muted);
+}
+
+:root[data-theme="dark-sidebar"] .setup-card input,
+:root[data-theme="dark-sidebar"] .setup-card  .floating-select-button {
+  min-height: 46px;
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .setup-card input:focus-visible,
+:root[data-theme="dark-sidebar"] .setup-card  .floating-select-button:focus-visible {
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+:root[data-theme="dark-sidebar"] .setup-actions {
+  padding-top: 4px;
+}
+
+:root[data-theme="dark-sidebar"] .setup-footer {
+  padding: 12px;
+}
+
+@media (max-width: 760px) {
+
+  :root[data-theme="dark-sidebar"] .setup-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-steps {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-steps::-webkit-scrollbar {
+    display: none;
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-steps button {
+    min-width: 150px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-steps button > svg:last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+
+  :root[data-theme="dark-sidebar"] .setup-hero {
+    align-items: start;
+    padding: 14px;
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-hero > span {
+    width: 44px;
+    height: 44px;
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-card {
+    min-height: 0;
+    padding: 14px;
+    border-radius: var(--ui-radius-md);
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-actions,
+:root[data-theme="dark-sidebar"] .setup-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root[data-theme="dark-sidebar"] .setup-actions button,
+:root[data-theme="dark-sidebar"] .setup-footer button {
+    width: 100%;
+  }
+}
+
+.setup-page,
+.setup-layout,
+.setup-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace >
+  .setup-page {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.setup-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .setup-page {
   container-type: inline-size;
 }

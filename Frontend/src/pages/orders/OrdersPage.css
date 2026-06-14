@@ -1,3 +1,862 @@
+/* orders page-owned styles migrated from global layers. */
+
+
+.orders-content-grid {
+  grid-template-columns: minmax(360px, 1fr);
+}
+
+.orders-list-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.orders-scope-chips button strong {
+  min-width: 24px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0 7px;
+  background: var(--ui-canvas-soft);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.orders-scope-chips button.active strong {
+  background: rgba(255, 255, 255, 0.86);
+  color: inherit;
+}
+
+.orders-list-panel {
+  padding-top: 18px;
+}
+
+.orders-toolbar-row {
+  gap: 10px;
+}
+
+.orders-toolbar-row .primary-button {
+  margin-left: 0;
+}
+
+.orders-search-box {
+  max-width: 420px;
+  margin-left: auto;
+}
+
+.orders-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface-raised);
+}
+
+.order-filter-field {
+  position: relative;
+  gap: 0;
+  padding: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface);
+  color: #3a4657;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.order-filter-field select,
+.order-filter-button {
+  border-color: var(--ui-border);
+  padding-left: 34px;
+}
+
+.order-filter-button {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font: inherit;
+  line-height: normal;
+  text-align: left;
+  padding: 8px 10px 8px 34px;
+}
+
+.order-filter-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-filter-caret {
+  flex: 0 0 auto;
+  color: var(--ui-text-muted);
+}
+
+.order-filter-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  z-index: 1;
+  color: var(--ui-primary-strong);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 720px) {
+  .orders-toolbar-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .orders-search-box {
+    max-width: none;
+    margin-left: 0;
+    order: -1;
+  }
+
+  .orders-filter-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+.single-view-toggle {
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.single-view-toggle:hover {
+  background: var(--ui-surface);
+  box-shadow: 0 3px 10px var(--ui-shadow-soft);
+}
+
+@media (max-width: 720px) {
+  .single-view-toggle {
+    width: 100%;
+  }
+}
+
+.single-view-toggle {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  display: inline-grid;
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+  border-color: var(--ui-border-strong);
+  border-radius: 6px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+.orders-view-mode-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+}
+
+@media (max-width: 520px) {
+
+  .orders-filter-grid {
+    padding: 8px;
+  }
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-button {
+  border-color: var(--jireh-line);
+  background: #0f1721;
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-field,
+:root[data-theme="dark-sidebar"] .orders-filter-grid {
+  border-color: var(--jireh-line);
+  background: #121c28;
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-icon {
+  color: var(--jireh-emerald);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-caret {
+  color: #aebccd;
+}
+
+.orders-view-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.orders-top-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orders-service-action {
+  width: min(210px, 34vw);
+  min-width: 168px;
+}
+
+.orders-service-action .order-filter-button {
+  min-height: 38px;
+  width: 100%;
+}
+
+.orders-refresh-button {
+  flex: 0 0 auto;
+}
+
+.orders-status-chips {
+  margin: 0 0 10px;
+  padding: 2px 0 8px;
+  scrollbar-width: none;
+}
+
+.orders-status-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.orders-status-chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 8px 6px 12px;
+}
+
+.orders-status-chips button strong {
+  min-width: 24px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0 7px;
+  background: var(--ui-canvas-soft);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.orders-status-chips button.active strong {
+  background: rgba(255, 255, 255, 0.82);
+  color: inherit;
+}
+
+.orders-status-chips button.pendiente_pago,
+.orders-status-chips button.pago_confirmado {
+  border-color: #f0d88a;
+}
+
+.orders-status-chips button.pendiente_pago.active,
+.orders-status-chips button.pago_confirmado.active {
+  background: var(--ui-warning-soft);
+  color: var(--ui-warning-text);
+}
+
+.orders-status-chips button.en_operacion {
+  border-color: #bdd7ef;
+}
+
+.orders-status-chips button.en_operacion.active {
+  background: #dcecff;
+  color: #195d9d;
+}
+
+.orders-status-chips button.completado {
+  border-color: #b8dec6;
+}
+
+.orders-status-chips button.completado.active {
+  background: var(--ui-success-soft);
+  color: var(--ui-success-text);
+}
+
+.orders-status-chips button.cancelado {
+  border-color: #efb8b8;
+}
+
+.orders-status-chips button.cancelado.active {
+  background: var(--ui-danger-soft);
+  color: var(--ui-danger-text);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button {
+  border-color: var(--jireh-line);
+  background: var(--jireh-surface);
+  color: var(--jireh-ink);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button strong {
+  color: var(--jireh-muted);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.active {
+  border-color: var(--jireh-emerald);
+  background: rgba(33, 184, 131, 0.14);
+  color: var(--jireh-emerald);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.pendiente_pago.active,
+:root[data-theme="dark-sidebar"] .orders-status-chips button.pago_confirmado.active {
+  border-color: rgba(250, 204, 21, 0.48);
+  background: rgba(250, 204, 21, 0.14);
+  color: #facc15;
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.en_operacion.active {
+  border-color: rgba(96, 165, 250, 0.48);
+  background: rgba(96, 165, 250, 0.14);
+  color: #60a5fa;
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.completado.active {
+  border-color: rgba(52, 211, 153, 0.48);
+  background: rgba(52, 211, 153, 0.14);
+  color: #34d399;
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.cancelado.active {
+  border-color: rgba(248, 113, 113, 0.48);
+  background: rgba(248, 113, 113, 0.14);
+  color: #f87171;
+}
+
+.order-filter-floating {
+  overflow: visible;
+}
+
+.order-filter-floating .floating-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.order-filter-floating .order-filter-button {
+  width: 100%;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.order-filter-floating .floating-select-icon,
+.order-filter-floating .floating-select-option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-primary-strong);
+}
+
+.order-filter-floating .floating-select-current {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating .floating-select-icon,
+:root[data-theme="dark-sidebar"] .order-filter-floating .floating-select-option-icon {
+  color: var(--ui-primary-strong);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-field,
+:root[data-theme="dark-sidebar"] .orders-filter-grid {
+  border-color: var(--menu-line);
+  background: linear-gradient(180deg, var(--menu-card) 0%, var(--ui-surface-raised) 100%);
+  color: var(--menu-text);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-button {
+  border-color: var(--menu-line);
+  background: var(--menu-row);
+  color: var(--menu-text);
+  box-shadow: inset 0 0 0 1px rgba(243, 244, 246, 0.03);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-button:focus-visible {
+  border-color: rgba(49, 209, 154, 0.52);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-primary-strong) 12%, transparent), inset 0 0 0 1px rgba(243, 244, 246, 0.04);
+}
+
+:root[data-theme="dark-sidebar"] .orders-search-box,
+:root[data-theme="dark-sidebar"] .orders-search-box input,
+:root[data-theme="dark-sidebar"] .order-filter-floating .order-filter-button,
+:root[data-theme="dark-sidebar"] .orders-refresh-button {
+  border-color: var(--menu-line);
+  background: var(--menu-row);
+  color: var(--menu-text);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button {
+  border-color: var(--menu-line);
+  background: linear-gradient(180deg, var(--menu-card) 0%, var(--ui-surface-raised) 100%);
+  color: var(--menu-muted);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button strong {
+  min-width: 26px;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: var(--menu-row);
+  color: var(--menu-text);
+  box-shadow: inset 0 0 0 1px var(--menu-line);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.active strong {
+  background: rgba(49, 209, 154, 0.14);
+  color: var(--ui-success-text);
+  box-shadow: inset 0 0 0 1px rgba(49, 209, 154, 0.24);
+}
+
+@media (max-width: 920px) {
+  .orders-view-shell .workspace {
+    padding-bottom: calc(190px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(190px + env(safe-area-inset-bottom));
+  }
+
+  .orders-view-shell .floating-create-wrap {
+    bottom: calc(152px + env(safe-area-inset-bottom));
+  }
+
+  .orders-view-shell .orders-status-chips {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    z-index: 51;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: 8px;
+    margin: 0;
+    padding: 9px 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    border-top: 1px solid #d1d5db;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 -12px 28px var(--ui-shadow-medium);
+    backdrop-filter: blur(14px) saturate(1.05);
+  }
+
+  .orders-view-shell .orders-status-chips button {
+    min-height: 48px;
+    min-width: 118px;
+    justify-content: center;
+    border-color: #d1d5db;
+    border-radius: 12px;
+    padding: 8px 10px;
+    box-shadow: 0 2px 8px var(--ui-shadow-soft);
+  }
+
+  .orders-view-shell .orders-status-chips button strong {
+    min-width: 28px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+
+  .orders-view-shell .orders-filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .orders-view-shell .order-filter-button,
+.orders-view-shell .orders-search-box,
+.orders-view-shell .orders-refresh-button,
+.orders-view-shell .single-view-toggle {
+    min-height: 48px;
+  }
+
+  .orders-view-shell .orders-search-box,
+.orders-view-shell .order-filter-button {
+    border-color: #cbd5df;
+  }
+}
+
+:root[data-theme="dark-sidebar"] .orders-view-shell .orders-status-chips {
+  border-color: var(--menu-line, var(--jireh-line));
+  background: rgba(10, 16, 32, 0.96);
+  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.34);
+}
+
+.orders-scope-chips {
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.orders-period-action {
+  width: 124px;
+  min-width: 112px;
+}
+
+.orders-scope-chips > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 8px 7px 12px;
+  line-height: 1;
+}
+
+.orders-scope-chips .orders-top-actions > button {
+  min-width: 42px;
+  width: 42px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.orders-scope-chips > button svg {
+  flex: 0 0 auto;
+  display: block;
+}
+
+.orders-scope-chips > button span {
+  display: block;
+  line-height: 1;
+}
+
+.orders-scope-chips > button strong {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+@media (max-width: 430px) {
+  .orders-top-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .orders-service-action {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .orders-scope-chips > button {
+    min-height: 40px;
+    padding: 8px 8px 8px 10px;
+    gap: 7px;
+  }
+}
+
+:root[data-theme="dark-sidebar"]
+  .orders-status-chips button strong {
+  border: 1px solid var(--dark-ui-border);
+  background: var(--dark-ui-surface-soft);
+  color: var(--dark-ui-text);
+}
+
+:root[data-theme="dark-sidebar"]
+  .orders-status-chips button.active strong {
+  border-color: color-mix(in srgb, currentColor 38%, transparent);
+  background: color-mix(in srgb, currentColor 14%, var(--dark-ui-surface-soft));
+  color: inherit;
+}
+
+:root[data-theme="dark-sidebar"]
+   .order-filter-button {
+  border-color: var(--dark-ui-border);
+  background: var(--dark-ui-surface-soft);
+  color: var(--dark-ui-text);
+}
+
+:root[data-theme="dark-sidebar"]  .order-filter-button {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+:root[data-theme="dark-sidebar"]  .order-filter-button:focus-visible {
+  border-color: var(--ui-primary-hover);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+:root[data-theme="dark-sidebar"] .orders-content-grid {
+  display: block;
+}
+
+:root[data-theme="dark-sidebar"] .orders-list-panel {
+  padding: clamp(14px, 2vw, 20px);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+:root[data-theme="dark-sidebar"] .orders-toolbar-row {
+  margin: 0 0 12px;
+}
+
+:root[data-theme="dark-sidebar"] .orders-search-box {
+  min-height: 46px;
+  max-width: none;
+  padding: 0 13px;
+  gap: 10px;
+  color: var(--ui-text-muted);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .orders-search-box:focus-within {
+  color: var(--ui-primary);
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+:root[data-theme="dark-sidebar"] .orders-search-box input {
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .orders-scope-chips {
+  margin: 0 0 10px;
+  padding: 0;
+  gap: 8px;
+}
+
+:root[data-theme="dark-sidebar"] .orders-scope-chips > button,
+:root[data-theme="dark-sidebar"] .orders-status-chips button {
+  min-height: 40px;
+  color: var(--ui-text-muted);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .orders-scope-chips > button:hover,
+:root[data-theme="dark-sidebar"] .orders-status-chips button:hover {
+  color: var(--ui-text);
+  background: var(--ui-surface-hover);
+  border-color: var(--ui-border-strong);
+}
+
+:root[data-theme="dark-sidebar"] .orders-scope-chips > button.active {
+  color: var(--ui-success-text);
+  background: var(--ui-success-soft);
+  border-color: rgba(47, 166, 111, 0.36);
+}
+
+:root[data-theme="dark-sidebar"] .orders-scope-chips button strong,
+:root[data-theme="dark-sidebar"] .orders-status-chips button strong {
+  min-width: 25px;
+  height: 23px;
+  color: var(--ui-text-muted);
+  background: var(--ui-canvas-soft);
+  border: 1px solid var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .orders-scope-chips button.active strong,
+:root[data-theme="dark-sidebar"] .orders-status-chips button.active strong {
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border-color: var(--ui-border-strong);
+}
+
+:root[data-theme="dark-sidebar"] .orders-top-actions {
+  gap: 8px;
+}
+
+:root[data-theme="dark-sidebar"] .orders-period-action {
+  width: 132px;
+}
+
+:root[data-theme="dark-sidebar"] .orders-service-action {
+  width: min(220px, 36vw);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating .order-filter-button,
+:root[data-theme="dark-sidebar"] .single-view-toggle,
+:root[data-theme="dark-sidebar"] .orders-refresh-button {
+  min-height: 40px;
+  height: 40px;
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating .order-filter-button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 18px;
+  gap: 8px;
+  padding: 0 10px;
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating .floating-select-icon {
+  width: 20px;
+  color: var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating .floating-select-current {
+  min-width: 0;
+  text-align: left;
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating .floating-select-chevron {
+  grid-column: 3;
+  justify-self: end;
+  color: var(--ui-text-subtle);
+}
+
+:root[data-theme="dark-sidebar"] .order-filter-floating.open .floating-select-chevron {
+  color: var(--ui-primary);
+  transform: rotate(180deg);
+}
+
+:root[data-theme="dark-sidebar"] .single-view-toggle:hover,
+:root[data-theme="dark-sidebar"] .orders-refresh-button:hover,
+:root[data-theme="dark-sidebar"] .order-filter-floating .order-filter-button:hover {
+  color: var(--ui-primary);
+  background: var(--ui-surface-hover);
+  border-color: color-mix(in srgb, var(--ui-primary) 40%, transparent);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips {
+  gap: 7px;
+  margin-bottom: 14px;
+  padding: 0 0 5px;
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button {
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.active {
+  color: var(--ui-text);
+  background: var(--ui-surface-hover);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.pendiente_pago.active,
+:root[data-theme="dark-sidebar"] .orders-status-chips button .pago_confirmado.active {
+  color: var(--ui-warning-text);
+  background: var(--ui-warning-soft);
+  border-color: rgba(227, 179, 65, 0.38);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.en_operacion.active {
+  color: var(--ui-info-text);
+  background: var(--ui-info-soft);
+  border-color: rgba(47, 111, 219, 0.38);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.completado.active {
+  color: var(--ui-success-text);
+  background: var(--ui-success-soft);
+  border-color: rgba(47, 166, 111, 0.38);
+}
+
+:root[data-theme="dark-sidebar"] .orders-status-chips button.cancelado.active {
+  color: var(--ui-danger-text);
+  background: var(--ui-danger-soft);
+  border-color: rgba(220, 90, 99, 0.38);
+}
+
+@media (max-width: 760px) {
+  :root[data-theme="dark-sidebar"] .orders-list-panel {
+    padding: 12px;
+    border-radius: var(--ui-radius-md);
+  }
+
+  :root[data-theme="dark-sidebar"] .orders-top-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(112px, 0.8fr) minmax(150px, 1.2fr) 42px 42px;
+    margin-left: 0;
+  }
+
+  :root[data-theme="dark-sidebar"] .orders-period-action,
+:root[data-theme="dark-sidebar"] .orders-service-action {
+    width: auto;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  :root[data-theme="dark-sidebar"] .orders-scope-chips > button {
+    flex: 1 1 0;
+  }
+
+  :root[data-theme="dark-sidebar"] .orders-top-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) 40px 40px;
+    gap: 6px;
+  }
+
+  :root[data-theme="dark-sidebar"] .order-filter-floating .order-filter-button {
+    padding-inline: 8px;
+  }
+}
+
+.workspace >
+  .orders-content-grid {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.orders-scope-chips > *,
+.orders-top-actions > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 920px) {
+
+  .orders-view-shell .workspace {
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(132px + env(safe-area-inset-bottom));
+  }
+
+  .orders-scope-chips > button {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .orders-scope-chips .orders-top-actions {
+    flex: 1 0 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
 /* OrdersPage: cards, columns, counters and availability states. */
 
 .pedido-list {
@@ -850,4 +1709,3 @@
     font-size: 15px;
   }
 }
-

@@ -3,16 +3,10 @@
 @import "./styles/themes.css";
 @import "./styles/floating-select.css";
 @import "./styles/owners/shell-login-home.css";
-@import "./styles/owners/home-components.css";
-@import "./styles/owners/orders-create.css";
-@import "./styles/owners/order-detail-reports.css";
-@import "./styles/owners/admin-setup-profile.css";
 @import "./styles/owners/feedback-overlays.css";
 @import "./styles/owners/layout-contract.css";
-@import "./styles/owners/login.css";
 @import "./styles/owners/ui-contract.css";
 @import "./styles/owners/page-loader.css";
-@import "./styles/owners/login-background.css";
 @import "./styles/owners/mobile-shell.css";
 @import "./styles/owners/password-field.css";
 @import "./styles/owners/header-layout.css";

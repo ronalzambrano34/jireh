@@ -40,7 +40,7 @@
   flex: 0 0 44px;
   object-fit: contain;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--ui-surface);
 }
 
 :root[data-theme="dark-sidebar"] .brand-button strong {
@@ -135,7 +135,7 @@
   height: 44px;
   flex: 0 0 44px;
   padding: 3px;
-  background: #ffffff;
+  background: var(--ui-surface);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 50%;
   box-shadow: none;
@@ -160,7 +160,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .operator-avatar {
-  color: #ffffff;
+  color: var(--ui-text-on-color);
   background: var(--ui-primary);
   box-shadow: none;
 }
@@ -179,315 +179,28 @@
 
 :root[data-theme="dark-sidebar"] .bottom-nav button.active {
   color: var(--ui-primary);
-  background: rgba(47, 166, 111, 0.12);
+  background: color-mix(in srgb, var(--ui-primary) 12%, transparent);
 }
 
-:root[data-theme="dark-sidebar"] .login-screen {
-  min-height: 100vh;
-  padding: 24px;
-  background:
-    radial-gradient(circle at 18% 14%, rgba(47, 166, 111, 0.13), transparent 30rem),
-    radial-gradient(circle at 88% 86%, rgba(47, 111, 219, 0.1), transparent 34rem),
-    var(--ui-canvas);
-}
-
-:root[data-theme="dark-sidebar"] .login-bg-logo {
-  width: min(68vw, 680px);
-  max-height: 76vh;
-  opacity: 0.045;
-  filter: grayscale(1) contrast(0.75);
-}
-
-:root[data-theme="dark-sidebar"] .login-panel {
-  width: min(100%, 440px);
-  max-width: 440px;
-  min-width: 0;
-  padding: clamp(24px, 4vw, 34px);
-  gap: 18px;
-  color: var(--ui-text);
-  background: color-mix(in srgb, var(--ui-surface) 96%, transparent);
-  border: 1px solid var(--ui-border-strong);
-  border-radius: 20px;
-  box-shadow: 0 24px 70px rgba(2, 8, 18, 0.46);
-  backdrop-filter: blur(18px);
-}
-
-:root[data-theme="dark-sidebar"] .login-brand {
-  align-items: center;
-}
-
-:root[data-theme="dark-sidebar"] .login-brand img {
-  width: 72px;
-  height: 72px;
-  padding: 2px;
-  object-fit: contain;
-  background: #ffffff;
-  border-radius: 50%;
-}
-
-:root[data-theme="dark-sidebar"] .login-mark {
-  width: 44px;
-  height: 44px;
-  color: var(--ui-primary);
-  background: rgba(47, 166, 111, 0.13);
-  border: 1px solid rgba(47, 166, 111, 0.28);
-  border-radius: var(--ui-radius-md);
-}
-
-:root[data-theme="dark-sidebar"] .login-title h1 {
-  margin: 0 0 2px;
-  color: var(--ui-text);
-  font-size: clamp(1.75rem, 5vw, 2.12rem);
-  line-height: 1.08;
-  letter-spacing: -0.035em;
-  overflow-wrap: anywhere;
-}
-
-:root[data-theme="dark-sidebar"] .login-title p {
-  color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .login-field {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  padding: 0;
-  gap: 7px;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .login-field > label,
-:root[data-theme="dark-sidebar"] .login-field > span:first-child {
-  color: var(--ui-text-muted);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-:root[data-theme="dark-sidebar"] .login-field .phone-input,
-:root[data-theme="dark-sidebar"] .login-field .password-field,
-:root[data-theme="dark-sidebar"] .login-field input {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  min-height: 46px;
-  color: var(--ui-text);
-  background: var(--ui-surface-raised);
-  border-color: var(--ui-border-strong);
-  border-radius: var(--ui-radius-md);
-}
-
-:root[data-theme="dark-sidebar"] .login-field .phone-input-row > *,
-:root[data-theme="dark-sidebar"] .login-field .password-field > input {
-  min-width: 0;
-  max-width: 100%;
-}
-
-:root[data-theme="dark-sidebar"] .login-field .phone-input:focus-within,
-:root[data-theme="dark-sidebar"] .login-field .password-field:focus-within,
-:root[data-theme="dark-sidebar"] .login-field input:focus {
-  border-color: var(--ui-primary);
-  box-shadow: 0 0 0 3px var(--ui-focus);
-}
-
-:root[data-theme="dark-sidebar"] .login-panel > button[type="submit"],
-:root[data-theme="dark-sidebar"] .login-panel > .primary-button {
-  min-height: 48px;
-  margin-top: 2px;
-  border-radius: var(--ui-radius-md);
-}
-
-:root[data-theme="dark-sidebar"] .home-page {
-  gap: 20px;
-}
-
-:root[data-theme="dark-sidebar"] .rates-hero {
-  overflow: hidden;
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  box-shadow: var(--ui-shadow-md);
-}
-
-:root[data-theme="dark-sidebar"] .hero-carousel {
-  background: var(--ui-surface);
-}
-
-:root[data-theme="dark-sidebar"] .hero-carousel-nav button,
-:root[data-theme="dark-sidebar"] .hero-carousel-arrow {
-  color: var(--ui-text);
-  background: color-mix(in srgb, var(--ui-surface-raised) 90%, transparent);
-  border: 1px solid var(--ui-border-strong);
-  box-shadow: var(--ui-shadow-sm);
-}
-
-:root[data-theme="dark-sidebar"] .hero-carousel-nav button:hover,
-:root[data-theme="dark-sidebar"] .hero-carousel-arrow:hover {
-  color: #ffffff;
-  background: var(--ui-primary);
-  border-color: var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .hero-carousel-dot {
-  background: var(--ui-text-subtle);
-}
-
-:root[data-theme="dark-sidebar"] .hero-carousel-dot.active {
-  background: var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .rates-currency-section,
-:root[data-theme="dark-sidebar"] .home-services-section,
-:root[data-theme="dark-sidebar"] .home-tracking-section {
-  padding: clamp(16px, 2vw, 22px);
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  box-shadow: var(--ui-shadow-sm);
-}
-
-:root[data-theme="dark-sidebar"] .operation-currency-header {
-  padding: 12px 14px;
-  gap: 12px;
-  background: var(--ui-surface-raised);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-}
-
-:root[data-theme="dark-sidebar"] .operation-currency-header h2,
-:root[data-theme="dark-sidebar"] .home-services-section h2,
-:root[data-theme="dark-sidebar"] .home-tracking-section h2 {
-  color: var(--ui-text);
-  letter-spacing: -0.02em;
-}
-
-:root[data-theme="dark-sidebar"] .operation-currency-header p,
-:root[data-theme="dark-sidebar"] .home-services-section p,
-:root[data-theme="dark-sidebar"] .home-tracking-section p {
-  color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .live-rate-panel {
-  padding: 16px;
-  background: var(--ui-canvas-soft);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-}
-
-:root[data-theme="dark-sidebar"] .live-rate-panel input,
-:root[data-theme="dark-sidebar"] .live-rate-panel .rate-input {
-  color: var(--ui-text);
-  background: var(--ui-surface-raised);
-  border-color: var(--ui-border-strong);
-}
-
-:root[data-theme="dark-sidebar"] .live-rate-result,
 :root[data-theme="dark-sidebar"] .rate-result-card {
   background: var(--ui-surface-raised);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
 }
 
-:root[data-theme="dark-sidebar"] .home-services-grid {
-  gap: 12px;
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card {
-  position: relative;
-  overflow: hidden;
-  padding: 16px;
-  color: var(--ui-text);
-  background: var(--ui-surface-raised);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  background: var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card:hover {
-  background: var(--ui-surface-hover);
-  border-color: var(--ui-border-strong);
-  transform: translateY(-2px);
-  box-shadow: var(--ui-shadow-md);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card.transferencia::before {
-  background: var(--ui-info);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card.divisa::before {
-  background: var(--ui-warning);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card h3,
-:root[data-theme="dark-sidebar"] .operation-rate-card strong {
-  color: var(--ui-text);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card p,
-:root[data-theme="dark-sidebar"] .operation-rate-card small {
-  color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card .rate-icon {
-  color: var(--ui-primary);
-  background: rgba(47, 166, 111, 0.13);
-  border: 1px solid rgba(47, 166, 111, 0.26);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card.transferencia .rate-icon {
-  color: #79a7ff;
-  background: rgba(47, 111, 219, 0.14);
-  border-color: rgba(47, 111, 219, 0.3);
-}
-
-:root[data-theme="dark-sidebar"] .operation-rate-card.divisa .rate-icon {
-  color: var(--ui-warning);
-  background: rgba(227, 179, 65, 0.12);
-  border-color: rgba(227, 179, 65, 0.28);
-}
-
-:root[data-theme="dark-sidebar"] .rate-line,
-:root[data-theme="dark-sidebar"] .rate-package-option {
-  color: var(--ui-text-muted);
-  background: var(--ui-canvas-soft);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-sm);
-}
-
-:root[data-theme="dark-sidebar"] .rate-line:hover,
-:root[data-theme="dark-sidebar"] .rate-package-option:hover,
-:root[data-theme="dark-sidebar"] .rate-package-option.active {
-  color: var(--ui-text);
-  background: rgba(47, 166, 111, 0.1);
-  border-color: rgba(47, 166, 111, 0.4);
-}
-
-:root[data-theme="dark-sidebar"] .rate-action,
-:root[data-theme="dark-sidebar"] .hero-offer-actions button {
+:root[data-theme="dark-sidebar"] .rate-action {
   color: var(--ui-on-primary);
   background: var(--ui-primary);
   border-color: var(--ui-primary);
   box-shadow: none;
 }
 
-:root[data-theme="dark-sidebar"] .rate-action:hover,
-:root[data-theme="dark-sidebar"] .hero-offer-actions button:hover {
+:root[data-theme="dark-sidebar"] .rate-action:hover {
   background: var(--ui-primary-hover);
   border-color: var(--ui-primary-hover);
 }
 
-:root[data-theme="dark-sidebar"] .tracking-panel,
-:root[data-theme="dark-sidebar"] .track-order-panel {
+:root[data-theme="dark-sidebar"] .tracking-panel {
   color: var(--ui-text);
   background: var(--ui-canvas-soft);
   border: 1px solid var(--ui-border);
@@ -499,12 +212,12 @@
   background: var(--ui-primary);
 }
 
-:root[data-theme="dark-sidebar"] :is(
+:root[data-theme="dark-sidebar"]
   .primary-button,
+:root[data-theme="dark-sidebar"]
   .floating-create,
-  .rate-action,
-  .hero-offer-actions button
-) {
+:root[data-theme="dark-sidebar"]
+  .rate-action {
   color: var(--ui-on-primary);
 }
 
@@ -535,21 +248,5 @@
     width: 40px;
     height: 40px;
     flex-basis: 40px;
-  }
-
-  :root[data-theme="dark-sidebar"] .login-screen {
-    padding: 14px;
-  }
-
-  :root[data-theme="dark-sidebar"] .login-panel {
-    padding: 22px 18px;
-    border-radius: var(--ui-radius-lg);
-  }
-
-  :root[data-theme="dark-sidebar"] .rates-currency-section,
-  :root[data-theme="dark-sidebar"] .home-services-section,
-  :root[data-theme="dark-sidebar"] .home-tracking-section {
-    padding: 14px;
-    border-radius: var(--ui-radius-md);
   }
 }

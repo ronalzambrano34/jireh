@@ -8,9 +8,11 @@
   --ui-border: #263a55;
   --ui-border-strong: #365273;
   --ui-text: #f4f7fb;
+  --ui-text-secondary: #cbd6e2;
   --ui-text-muted: #a9b7c9;
   --ui-text-subtle: #72849b;
   --ui-primary: #2fa66f;
+  --ui-primary-strong: #31d19a;
   --ui-primary-hover: #38b77c;
   --ui-primary-pressed: #25885c;
   --ui-on-primary: #08111f;
@@ -18,8 +20,22 @@
   --ui-success: #2fa66f;
   --ui-warning: #e3b341;
   --ui-danger: #dc5a63;
+  --ui-text-on-color: #ffffff;
+  --ui-success-text: #91dfb7;
+  --ui-info-text: #8db4ff;
+  --ui-warning-text: #f4d889;
+  --ui-danger-text: #f28b92;
+  --ui-success-soft: rgba(47, 166, 111, 0.13);
+  --ui-info-soft: rgba(47, 111, 219, 0.13);
+  --ui-warning-soft: rgba(227, 179, 65, 0.12);
+  --ui-danger-soft: rgba(220, 90, 99, 0.12);
   --ui-focus: rgba(47, 166, 111, 0.28);
   --ui-shadow: rgba(1, 6, 15, 0.34);
+  --ui-shadow-faint: rgba(1, 6, 15, 0.12);
+  --ui-shadow-low: rgba(1, 6, 15, 0.16);
+  --ui-shadow-soft: rgba(1, 6, 15, 0.2);
+  --ui-shadow-raised: rgba(1, 6, 15, 0.24);
+  --ui-shadow-medium: rgba(1, 6, 15, 0.28);
   --ui-radius-sm: 8px;
   --ui-radius-md: 14px;
   --ui-radius-lg: 18px;
@@ -37,23 +53,31 @@
   --ui-border: #d8e2eb;
   --ui-border-strong: #b9c7d6;
   --ui-text: #18212f;
+  --ui-text-secondary: #334155;
   --ui-text-muted: #526173;
   --ui-text-subtle: #72849b;
+  --ui-primary-strong: #176b5d;
+  --ui-success-text: #145c38;
+  --ui-info-text: #173c67;
+  --ui-warning-text: #815c00;
+  --ui-danger-text: #9b2525;
+  --ui-success-soft: #e8f6f1;
+  --ui-info-soft: #e8f1fb;
+  --ui-warning-soft: #fff0c7;
+  --ui-danger-soft: #fae2e2;
   --ui-on-primary: #ffffff;
   --ui-focus: rgba(47, 166, 111, 0.22);
   --ui-shadow: rgba(29, 45, 65, 0.16);
+  --ui-shadow-faint: rgba(24, 33, 47, 0.04);
+  --ui-shadow-low: rgba(24, 33, 47, 0.06);
+  --ui-shadow-soft: rgba(24, 33, 47, 0.08);
+  --ui-shadow-raised: rgba(24, 33, 47, 0.12);
+  --ui-shadow-medium: rgba(24, 33, 47, 0.16);
 }
 
-:is(
-  .ui-accent-card,
-  .list-panel,
-  .form-panel,
-  .detail-panel.order-detail-surface,
-  .profile-section,
-  .admin-section,
-  .report-table,
-  .report-chart
-) {
+.ui-accent-card,
+.list-panel,
+.form-panel {
   position: relative;
   overflow: hidden;
   border-color: var(--ui-border);
@@ -62,16 +86,9 @@
   color: var(--ui-text);
 }
 
-:is(
-  .ui-accent-card,
-  .list-panel,
-  .form-panel,
-  .detail-panel.order-detail-surface,
-  .profile-section,
-  .admin-section,
-  .report-table,
-  .report-chart
-)::before {
+.ui-accent-card::before,
+.list-panel::before,
+.form-panel::before {
   content: "";
   position: absolute;
   z-index: 1;

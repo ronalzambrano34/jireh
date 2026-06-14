@@ -29,20 +29,75 @@
 
 @media (max-width: 920px) {
   .toolbar,
-  :root[data-theme="dark-sidebar"] .toolbar {
+:root[data-theme="dark-sidebar"] .toolbar {
     min-height: 58px;
     padding: 7px 9px 7px 11px;
     gap: 10px;
   }
 
   .header-brand,
-  :root[data-theme="dark-sidebar"] .header-brand {
+:root[data-theme="dark-sidebar"] .header-brand {
     padding-right: 0;
   }
 
   .header-brand img,
-  :root[data-theme="dark-sidebar"] .header-brand img {
+:root[data-theme="dark-sidebar"] .header-brand img {
     width: 38px;
     height: 38px;
+  }
+}
+
+/* Home component alignment and responsive behavior. */
+:root[data-theme="dark-sidebar"] .header-brand {
+  width: auto;
+  height: auto;
+  flex-basis: auto;
+  padding: 0 14px 0 0;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--ui-border);
+  border-radius: 0;
+}
+
+:root[data-theme="dark-sidebar"] .header-brand img {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  background: var(--ui-surface);
+  border-radius: 50%;
+}
+
+:root[data-theme="dark-sidebar"] .header-brand span,
+:root[data-theme="dark-sidebar"] .brand-button span {
+  color: var(--ui-text);
+  font-size: 0.92rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}
+
+:root[data-theme="dark-sidebar"] .sidebar > .ghost-button {
+  min-height: 42px;
+  justify-content: flex-start;
+  color: var(--ui-danger-text);
+  background: rgba(220, 90, 99, 0.08);
+  border-color: rgba(220, 90, 99, 0.22);
+}
+
+:root[data-theme="dark-sidebar"] .sidebar > .ghost-button:hover {
+  color: var(--ui-text-on-color);
+  background: rgba(220, 90, 99, 0.16);
+  border-color: rgba(220, 90, 99, 0.38);
+}
+
+@media (max-width: 920px) {
+  :root[data-theme="dark-sidebar"] .header-brand {
+    padding-right: 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  :root[data-theme="dark-sidebar"] .header-brand img {
+    width: 40px;
+    height: 40px;
   }
 }

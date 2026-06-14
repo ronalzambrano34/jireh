@@ -228,7 +228,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .floating-select-chevron,
-  .floating-select-menu {
+.floating-select-menu {
     animation: none;
     transition: none;
   }

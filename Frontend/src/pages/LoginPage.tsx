@@ -8,6 +8,7 @@ import { PasswordField } from '../components/PasswordField';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
 import bannerJireh from '../assets/brand/banner-jireh.webp';
+import './login/LoginPage.css';
 
 const DEV_LOGIN_TELEFONO = import.meta.env.VITE_TEST_LOGIN_TELEFONO || (import.meta.env.DEV ? '+1234567890' : '');
 const DEV_LOGIN_PASSWORD = import.meta.env.VITE_TEST_LOGIN_PASSWORD || (import.meta.env.DEV ? 'admin' : '');

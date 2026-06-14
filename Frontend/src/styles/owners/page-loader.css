@@ -61,21 +61,3 @@
   text-align: center;
   text-shadow: 0 2px 14px var(--ui-shadow);
 }
-
-:root[data-theme="dark-sidebar"] .login-progress {
-  background: color-mix(in srgb, var(--ui-canvas) 64%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-
-@media (max-width: 720px) {
-  .theme-effects-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ui-loader-mark img {
-    animation: none;
-  }
-}

@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 import type { PedidoDetalle } from '../types/api';
+import './create/CreateOrderPage.css';
 
 const TransferenciaForm = lazy(() => import('./TransferenciaForm').then((module) => ({ default: module.TransferenciaForm })));
 const EfectivoForm = lazy(() => import('./EfectivoForm').then((module) => ({ default: module.EfectivoForm })));
