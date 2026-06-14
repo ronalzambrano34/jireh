@@ -1189,55 +1189,6 @@ body {
   font-weight: 700;
 }
 
-.theme-switch {
-  min-height: 34px;
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid #d7e0ea;
-  border-radius: 999px;
-  padding: 4px 5px 4px 10px;
-  background: #f8fafc;
-  color: #202733;
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.theme-switch input {
-  width: 44px;
-  height: 26px;
-  min-height: 26px;
-  appearance: none;
-  position: relative;
-  border: 0;
-  border-radius: 999px;
-  padding: 0;
-  background: #cbd3dd;
-  transition: background 0.16s ease;
-}
-
-.theme-switch input::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 2px 5px rgba(24, 33, 47, 0.22);
-  transition: transform 0.16s ease;
-}
-
-.theme-switch input:checked {
-  background: #176b5d;
-}
-
-.theme-switch input:checked::after {
-  transform: translateX(18px);
-}
-
 .theme-variant-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1272,10 +1223,6 @@ body {
 @media (max-width: 620px) {
   .profile-appearance-title {
     gap: 8px;
-  }
-
-  .theme-switch {
-    padding-left: 8px;
   }
 
   .theme-variant-row {
@@ -1331,7 +1278,7 @@ body {
 }
 
 
-:root[data-theme="dark-sidebar"] .theme-switch,
+
 :root[data-theme="dark-sidebar"] .theme-variant-row button {
   border-color: var(--jireh-line);
   background: var(--jireh-surface-3);
@@ -3011,41 +2958,6 @@ body {
   white-space: nowrap;
 }
 
-.permission-switch-row input {
-  width: 42px;
-  height: 24px;
-  appearance: none;
-  position: relative;
-  min-height: 0;
-  border: 0;
-  border-radius: 999px;
-  padding: 0;
-  background: #cbd5e1;
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-
-.permission-switch-row input::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(24, 33, 47, 0.24);
-  transition: transform 0.18s ease;
-}
-
-.permission-switch-row input:checked {
-  background: #176b5d;
-}
-
-.permission-switch-row input:checked::after {
-  transform: translateX(18px);
-}
-
 @media (max-width: 720px) {
   .operator-permission-list {
     grid-template-columns: 1fr;
@@ -3070,16 +2982,6 @@ body {
 :root[data-theme="dark-sidebar"] .operator-permission-group h4,
 :root[data-theme="dark-sidebar"] .permission-switch-row small {
   color: var(--jireh-muted);
-}
-
-
-:root[data-theme="dark-sidebar"] .permission-switch-row input {
-  background: var(--jireh-line);
-}
-
-
-:root[data-theme="dark-sidebar"] .permission-switch-row input:checked {
-  background: var(--jireh-emerald);
 }
 
 
@@ -6853,43 +6755,6 @@ body {
 }
 
 
-:root[data-theme="dark-sidebar"] .theme-switch {
-  border-color: #273242;
-  background: linear-gradient(180deg, #151b24 0%, #0f141c 100%);
-  color: #dbe7f5;
-  box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.04);
-}
-
-
-:root[data-theme="dark-sidebar"] .theme-switch input,
-:root[data-theme="dark-sidebar"] .permission-switch-row input {
-  border: 1px solid #273242;
-  background: linear-gradient(180deg, #070a12 0%, #101722 100%);
-  box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.04);
-}
-
-
-:root[data-theme="dark-sidebar"] .theme-switch input::after,
-:root[data-theme="dark-sidebar"] .permission-switch-row input::after {
-  background: #dbe7f5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.34);
-}
-
-
-:root[data-theme="dark-sidebar"] .theme-switch input:checked,
-:root[data-theme="dark-sidebar"] .permission-switch-row input:checked {
-  border-color: rgba(49, 209, 154, 0.4);
-  background: linear-gradient(180deg, #31d19a 0%, #13966e 100%);
-  box-shadow: 0 0 0 3px rgba(49, 209, 154, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-
-:root[data-theme="dark-sidebar"] .theme-switch input:checked::after,
-:root[data-theme="dark-sidebar"] .permission-switch-row input:checked::after {
-  background: #04100c;
-}
-
-
 :root[data-theme="dark-sidebar"] .permission-switch-row {
   border-color: #273242;
   background: linear-gradient(180deg, #151b24 0%, #101722 100%);
@@ -7205,8 +7070,8 @@ body {
   box-shadow: none;
 }
 
-.user-floating-menu .user-menu-theme-switch input,
-.user-menu-card .user-menu-theme-switch input {
+.user-floating-menu .user-menu-theme-switch .ui-switch,
+.user-menu-card .user-menu-theme-switch .ui-switch {
   margin: 0;
 }
 
@@ -7216,62 +7081,4 @@ body {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
-}
-
-/* Shared switch control */
-input.ui-switch-input,
-.ui-switch-indicator {
-  position: relative;
-  width: 34px !important;
-  height: 20px !important;
-  min-width: 34px;
-  min-height: 20px !important;
-  flex: 0 0 34px;
-  display: block;
-  margin: 0;
-  padding: 2px !important;
-  border: 1px solid var(--ui-border-strong) !important;
-  border-radius: 999px;
-  background: var(--ui-canvas-soft) !important;
-  appearance: none;
-  cursor: pointer;
-  box-shadow: none !important;
-  transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
-}
-
-input.ui-switch-input::after,
-.ui-switch-indicator > span {
-  content: "";
-  position: static !important;
-  width: 14px !important;
-  height: 14px !important;
-  display: block;
-  margin: 0 !important;
-  border-radius: 50%;
-  background: var(--ui-text-subtle) !important;
-  box-shadow: none !important;
-  transform: none !important;
-  transition: transform 160ms ease, background 160ms ease;
-}
-
-input.ui-switch-input:checked,
-.ui-switch-indicator.active {
-  border-color: var(--ui-primary) !important;
-  background: color-mix(in srgb, var(--ui-primary) 28%, var(--ui-surface)) !important;
-}
-
-input.ui-switch-input:checked::after,
-.ui-switch-indicator.active > span {
-  background: var(--ui-primary-hover) !important;
-  transform: translateX(14px) !important;
-}
-
-input.ui-switch-input:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--ui-primary) 22%, transparent);
-  outline-offset: 2px;
-}
-
-input.ui-switch-input:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }

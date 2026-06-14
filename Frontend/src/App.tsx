@@ -1,10 +1,11 @@
 import { lazy, type ChangeEvent, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ChevronDown, ClipboardList, Copy, Edit3, HelpCircle, Home, LogOut, Menu, Palette, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, ClipboardList, Copy, Home, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, apiAssetUrl, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { Modal } from './components/Modal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
+import { UserHeaderMenu } from './components/UserHeaderMenu';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
 import {
@@ -68,18 +69,6 @@ function intervaloRefrescoPedidos() {
 
 function estadoFaseUno(value: string) {
   return value === 'en_operacion' ? 'pago_confirmado' : value;
-}
-
-function inicialesOperador(operador: Operador) {
-  return operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-}
-
-function OperadorAvatar({ operador, className }: { operador: Operador; className: string }) {
-  if (operador.foto_url) {
-    return <img className={`${className} avatar-photo`} src={apiAssetUrl(operador.foto_url)} alt="" />;
-  }
-
-  return <span className={className}>{inicialesOperador(operador)}</span>;
 }
 
 function AppToast({ kind, message, onClose }: { kind: AppToastKind; message: string; onClose: () => void }) {
@@ -149,8 +138,6 @@ export function App() {
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const [pedidosClock, setPedidosClock] = useState(() => Date.now());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement | null>(null);
   const lastScrollYRef = useRef(0);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [quickCreateHidden, setQuickCreateHidden] = useState(false);
@@ -308,7 +295,6 @@ export function App() {
     if (nextVista !== 'crear') setCrearDraft({});
     setVista(nextVista);
     setMobileMenuOpen(false);
-    setUserMenuOpen(false);
     setQuickCreateOpen(false);
     setQuickCreateHidden(false);
     setProfileSection(null);
@@ -387,12 +373,10 @@ export function App() {
     setProfileSection(section);
     setProfileMessage(null);
     setProfileError(null);
-    setUserMenuOpen(false);
     setMobileMenuOpen(false);
   }
 
   function navegarDesdeMenuUsuario(nextVista: typeof vista) {
-    setUserMenuOpen(false);
     navegar(nextVista);
   }
 
@@ -644,39 +628,9 @@ export function App() {
   }, [quickCreateOpen, vista]);
 
   useEffect(() => {
-    if (!userMenuOpen) return undefined;
-
-    function closeUserMenuOnScroll() {
-      setUserMenuOpen(false);
-    }
-
-    window.addEventListener('scroll', closeUserMenuOnScroll, true);
-    window.addEventListener('resize', closeUserMenuOnScroll);
-    return () => {
-      window.removeEventListener('scroll', closeUserMenuOnScroll, true);
-      window.removeEventListener('resize', closeUserMenuOnScroll);
-    };
-  }, [userMenuOpen]);
-
-
-  useEffect(() => {
     if (!operador) return;
     setProfileNombre(operador.nombre);
   }, [operador]);
-
-  useEffect(() => {
-    if (!userMenuOpen) return;
-
-    function closeUserMenuOutside(event: PointerEvent) {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (userMenuRef.current?.contains(target)) return;
-      setUserMenuOpen(false);
-    }
-
-    document.addEventListener('pointerdown', closeUserMenuOutside, true);
-    return () => document.removeEventListener('pointerdown', closeUserMenuOutside, true);
-  }, [userMenuOpen]);
 
   useEffect(() => {
     function syncOnline() {
@@ -897,63 +851,17 @@ export function App() {
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
-            {userMenuOpen && <button className="floating-create-backdrop user-floating-backdrop" type="button" aria-label="Cerrar opciones de usuario" onClick={() => setUserMenuOpen(false)} />}
-            <div ref={userMenuRef} className={userMenuOpen ? 'user-floating-wrap open' : 'user-floating-wrap'}>
-              {userMenuOpen && (
-                <div className="floating-create-menu user-floating-menu" role="menu" aria-label="Opciones de usuario" onClick={(event) => event.stopPropagation()}>
-                  <div className="user-menu-summary">
-                    <OperadorAvatar operador={operador} className="operator-chip-avatar" />
-                    <span><strong>{operador.nombre}</strong><small>{operador.codigo_operador}</small></span>
-                  </div>
-                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('editar')}>
-                    <Edit3 size={18} /> Modificar usuario
-                  </button>
-                  <div className="user-menu-theme-row" role="menuitem">
-                    <button className="user-menu-theme-link" type="button" onClick={() => navegarDesdeMenuUsuario('perfil')}>
-                      <Palette size={18} />
-                      <span><strong>Apariencia</strong><small>{theme === 'light' ? 'Tema claro' : 'Oscuro Jireh'}</small></span>
-                    </button>
-                    <label className="theme-switch user-menu-theme-switch" onClick={(event) => event.stopPropagation()}>
-                      <input
-                        className="ui-switch-input"
-                        type="checkbox"
-                        checked={theme !== 'light'}
-                        onChange={(event) => setTheme(event.target.checked ? 'dark-sidebar' : 'light')}
-                        aria-label="Activar tema oscuro"
-                      />
-                      <span>Oscuro</span>
-                    </label>
-                  </div>
-                  {puedeAdmin && (
-                    <button type="button" role="menuitem" onClick={() => navegarDesdeMenuUsuario('admin')}>
-                      <Settings size={18} /> Configuracion Admin
-                    </button>
-                  )}
-                  <button type="button" role="menuitem" onClick={() => abrirPerfilDesdeMenu('ayuda')}>
-                    <HelpCircle size={18} /> Soporte
-                  </button>
-                  <button className="danger" type="button" role="menuitem" onClick={cerrarSesion}>
-                    <LogOut size={18} /> Salir
-                  </button>
-                </div>
-              )}
-              <button
-                className={userMenuOpen ? 'operator-chip user-floating-trigger active' : 'operator-chip user-floating-trigger'}
-                type="button"
-                onClick={() => setUserMenuOpen((current) => !current)}
-                title={userMenuOpen ? 'Cerrar opciones' : 'Opciones de usuario'}
-                aria-label={userMenuOpen ? 'Cerrar opciones de usuario' : 'Opciones de usuario'}
-                aria-expanded={userMenuOpen}
-                aria-haspopup="menu"
-              >
-                <OperadorAvatar operador={operador} className="operator-chip-avatar" />
-                <span className="operator-chip-text">
-                  <strong>{operador.nombre}</strong>
-                  <small>{operador.rol}</small>
-                </span>
-                {userMenuOpen ? <X className="user-menu-chevron open" size={16} /> : <ChevronDown className="user-menu-chevron" size={16} />}
-              </button>
-            </div>
+            <UserHeaderMenu
+              operador={operador}
+              darkTheme={theme !== 'light'}
+              canAdmin={Boolean(puedeAdmin)}
+              onThemeChange={(dark) => setTheme(dark ? 'dark-sidebar' : 'light')}
+              onEditProfile={() => abrirPerfilDesdeMenu('editar')}
+              onAppearance={() => navegarDesdeMenuUsuario('perfil')}
+              onAdmin={() => navegarDesdeMenuUsuario('admin')}
+              onSupport={() => abrirPerfilDesdeMenu('ayuda')}
+              onLogout={cerrarSesion}
+            />
             <button className="icon-button mobile-menu-button" onClick={() => setMobileMenuOpen(true)} title="Abrir menu">
               <Menu size={20} />
             </button>

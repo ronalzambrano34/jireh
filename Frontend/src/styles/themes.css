@@ -586,30 +586,6 @@
   color: var(--menu-text);
 }
 
-:root[data-theme="dark-sidebar"] .theme-switch {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .theme-switch input,
-:root[data-theme="dark-sidebar"] .permission-switch-row input {
-  border: 1px solid var(--menu-line);
-  background: var(--menu-row);
-  box-shadow: inset 0 0 0 1px rgba(243, 244, 246, 0.03);
-}
-
-:root[data-theme="dark-sidebar"] .theme-switch input::after,
-:root[data-theme="dark-sidebar"] .permission-switch-row input::after {
-  background: #dbe7f5;
-}
-
-:root[data-theme="dark-sidebar"] .theme-switch input:checked,
-:root[data-theme="dark-sidebar"] .permission-switch-row input:checked {
-  border-color: rgba(49, 209, 154, 0.42);
-  background: linear-gradient(180deg, var(--menu-green) 0%, var(--menu-green-strong) 100%);
-}
-
 /* Administracion */
 :root[data-theme="dark-sidebar"] .admin-topic-option,
 :root[data-theme="dark-sidebar"] .admin-section .catalog-row,
@@ -2033,7 +2009,7 @@
 }
 
 .finalization-exception-switch:hover,
-.finalization-exception-switch:focus-visible {
+.finalization-exception-switch:focus-within {
   border-color: #b7791f;
   box-shadow: 0 0 0 3px rgba(217, 154, 43, 0.14);
 }
@@ -2051,36 +2027,6 @@
 .finalization-exception-switch small {
   color: #6a7583;
   line-height: 1.35;
-}
-
-.finalization-switch-control {
-  width: 46px;
-  height: 26px;
-  display: block;
-  border: 1px solid #aeb9c5;
-  border-radius: 999px;
-  background: #dfe5eb;
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-
-.finalization-switch-control > span {
-  width: 20px;
-  height: 20px;
-  display: block;
-  margin: 2px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 2px 5px rgba(19, 34, 53, 0.24);
-  transition: transform 0.18s ease;
-}
-
-.finalization-exception-switch.active .finalization-switch-control {
-  border-color: #b7791f;
-  background: #d99a2b;
-}
-
-.finalization-exception-switch.active .finalization-switch-control > span {
-  transform: translateX(20px);
 }
 
 .finalization-exception-fields {
@@ -3240,11 +3186,6 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-primary) 28%, transparent);
 }
 
-:root[data-theme="dark-sidebar"] .theme-switch input:checked {
-  border-color: var(--ui-primary);
-  background: var(--ui-primary);
-}
-
 /* Theme UI catalogue */
 .theme-test-page {
   --ui-canvas: #08111f;
@@ -3658,4 +3599,3 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-

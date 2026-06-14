@@ -6,6 +6,7 @@ import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } fr
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
+import { UiSwitch } from '../components/UiSwitch';
 import { TrackOrderPanel } from './inicio/TrackOrderPanel';
 import { ServicesRatesGrid, type InicioCreateDraft, type InicioServiceCard, type InicioServicio } from './inicio/ServicesRatesGrid';
 import './inicio/InicioPage.css';
@@ -506,11 +507,11 @@ function RateTierRows({ ofertas, moneda, servicio, onCreate }: { ofertas: Oferta
         <span>{opciones.length} {opciones.length === 1 ? 'opcion' : 'opciones'}</span>
         <label className="rate-repeat-switch">
           <span>Mostrar tasas repetidas</span>
-          <input
-            type="checkbox"
+          <UiSwitch
             checked={showRepeated}
-            onChange={(event) => {
-              setShowRepeated(event.target.checked);
+            ariaLabel="Mostrar tasas repetidas"
+            onChange={(checked) => {
+              setShowRepeated(checked);
               setExpanded(false);
             }}
           />

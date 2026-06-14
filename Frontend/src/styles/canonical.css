@@ -2092,7 +2092,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .finalization-exception-switch:hover,
-:root[data-theme="dark-sidebar"] .finalization-exception-switch:focus-visible {
+:root[data-theme="dark-sidebar"] .finalization-exception-switch:focus-within {
   border-color: rgba(227, 179, 65, 0.42);
   box-shadow: 0 0 0 3px rgba(227, 179, 65, 0.13);
 }
@@ -2106,25 +2106,6 @@
 :root[data-theme="dark-sidebar"] .finalization-exception-switch small,
 :root[data-theme="dark-sidebar"] .finalization-exception-fields > label {
   color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .finalization-switch-control {
-  background: var(--ui-surface-hover);
-  border-color: var(--ui-border-strong);
-}
-
-:root[data-theme="dark-sidebar"] .finalization-switch-control > span {
-  background: var(--ui-text-muted);
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .finalization-exception-switch.active .finalization-switch-control {
-  background: var(--ui-warning);
-  border-color: var(--ui-warning);
-}
-
-:root[data-theme="dark-sidebar"] .finalization-exception-switch.active .finalization-switch-control > span {
-  background: var(--ui-canvas);
 }
 
 :root[data-theme="dark-sidebar"] .whatsapp-attachment-preview {
@@ -2833,29 +2814,6 @@
   border-color: var(--ui-border-strong);
 }
 
-:root[data-theme="dark-sidebar"] .permission-switch-row input,
-:root[data-theme="dark-sidebar"] .theme-switch input {
-  background: var(--ui-surface-hover);
-  border: 1px solid var(--ui-border-strong);
-}
-
-:root[data-theme="dark-sidebar"] .permission-switch-row input::after,
-:root[data-theme="dark-sidebar"] .theme-switch input::after {
-  background: var(--ui-text-muted);
-  box-shadow: none;
-}
-
-:root[data-theme="dark-sidebar"] .permission-switch-row input:checked,
-:root[data-theme="dark-sidebar"] .theme-switch input:checked {
-  background: var(--ui-primary);
-  border-color: var(--ui-primary);
-}
-
-:root[data-theme="dark-sidebar"] .permission-switch-row input:checked::after,
-:root[data-theme="dark-sidebar"] .theme-switch input:checked::after {
-  background: var(--ui-canvas);
-}
-
 :root[data-theme="dark-sidebar"] .method-image-dropzone {
   border-style: dashed;
 }
@@ -3153,12 +3111,6 @@
 
 :root[data-theme="dark-sidebar"] .profile-appearance-copy small {
   color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .theme-switch {
-  color: var(--ui-text-muted);
-  background: var(--ui-canvas-soft);
-  border-color: var(--ui-border);
 }
 
 :root[data-theme="dark-sidebar"] .profile-support-panel {
@@ -4983,41 +4935,4 @@ pre {
     padding: 4px 6px;
     border-bottom: 0;
   }
-}
-
-/* Switches: remove legacy dark input shells */
-input.ui-switch-input,
-:root[data-theme="dark-sidebar"] input.ui-switch-input {
-  box-sizing: border-box;
-  color-scheme: light;
-  -webkit-appearance: none;
-  appearance: none;
-  outline: 0;
-  filter: none;
-  background-image: none !important;
-  box-shadow: none !important;
-}
-
-:root[data-theme="dark-sidebar"] input.ui-switch-input {
-  border-color: var(--ui-border-strong) !important;
-  background-color: var(--ui-canvas-soft) !important;
-}
-
-:root[data-theme="dark-sidebar"] input.ui-switch-input:checked {
-  border-color: var(--ui-primary) !important;
-  background-color: color-mix(in srgb, var(--ui-primary) 28%, var(--ui-surface)) !important;
-}
-
-.theme-switch,
-:root[data-theme="dark-sidebar"] .theme-switch,
-.rate-repeat-switch {
-  background: transparent !important;
-  background-image: none !important;
-  box-shadow: none !important;
-}
-
-input.ui-switch-input:focus-visible,
-:root[data-theme="dark-sidebar"] input.ui-switch-input:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--ui-primary) 22%, transparent);
-  outline-offset: 2px;
 }

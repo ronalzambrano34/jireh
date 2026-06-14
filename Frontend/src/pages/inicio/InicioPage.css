@@ -112,41 +112,6 @@
   cursor: pointer;
 }
 
-.rate-repeat-switch input {
-  width: 34px;
-  height: 20px;
-  min-height: 20px;
-  flex: 0 0 34px;
-  margin: 0;
-  padding: 2px;
-  border: 1px solid var(--ui-border-strong);
-  border-radius: 999px;
-  background: var(--ui-canvas-soft);
-  appearance: none;
-  cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease;
-}
-
-.rate-repeat-switch input::after {
-  content: "";
-  display: block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--ui-text-subtle);
-  transition: transform 160ms ease, background 160ms ease;
-}
-
-.rate-repeat-switch input:checked {
-  border-color: var(--ui-primary);
-  background: color-mix(in srgb, var(--ui-primary) 28%, var(--ui-surface));
-}
-
-.rate-repeat-switch input:checked::after {
-  background: var(--ui-primary-hover);
-  transform: translateX(14px);
-}
-
 .rate-tier-table-head,
 .operation-rate-card .rate-tier-row {
   display: grid;

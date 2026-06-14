@@ -20,14 +20,12 @@ PRIORIDAD ALTA
     Se conservaron solamente "light" y "dark-sidebar".
     localStorage normaliza al iniciar los valores antiguos hacia "dark-sidebar".
 
-[ ] 2. Consolidar todos los switches en un unico componente visual.
-    Bloques antiguos:
-    - components.css: theme-switch (1601-1649).
-    - components.css: permission-switch-row input (3752-3785).
-    - components.css: dark switch overrides (7970-8026).
-    - themes.css: dark-sidebar switch overrides (593-614).
-    - canonical.css: overrides de switches (2836-2857 y bloque final).
-    Dejar una sola implementacion ui-switch y eliminar las correcciones con !important.
+[x] 2. Consolidar todos los switches en un unico componente visual.
+    Completado:
+    - Componente unico: components/UiSwitch.tsx.
+    - Estilo unico: styles/switch.css.
+    - Migrados tema, tasas repetidas, permisos, formularios admin y finalizacion.
+    - Eliminadas las variantes antiguas y los !important asociados.
 
 [ ] 3. Refactorizar completamente el boton/menu de usuario del header.
     Bloques duplicados:

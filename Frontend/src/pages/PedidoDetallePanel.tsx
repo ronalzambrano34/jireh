@@ -3,6 +3,7 @@ import { CheckCircle2, Copy, ExternalLink, FileText, Lock, MessageCircle, Refres
 import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
+import { UiSwitch } from '../components/UiSwitch';
 import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
 import type { ArchivoPedido, Operador, PedidoDetalle, PedidoResumen } from '../types/api';
 import {
@@ -513,9 +514,8 @@ export function PedidoDetallePanel({
     setMotivoSinComprobante('');
   }
 
-  function alternarFinalizacionSinComprobante() {
+  function alternarFinalizacionSinComprobante(checked: boolean) {
     if (saving || uploading) return;
-    const checked = !finalizarSinComprobante;
     setFinalizarSinComprobante(checked);
     if (checked && !motivoSinComprobante.trim()) {
       setMotivoSinComprobante(
@@ -1005,22 +1005,20 @@ export function PedidoDetallePanel({
 
               <div className="finalization-alternative"><span>o</span></div>
 
-              <button
+              <label
                 className={finalizarSinComprobante ? 'finalization-exception-switch active' : 'finalization-exception-switch'}
-                type="button"
-                role="switch"
-                aria-checked={finalizarSinComprobante}
-                onClick={alternarFinalizacionSinComprobante}
-                disabled={saving || uploading}
               >
                 <span className="finalization-switch-copy">
                   <strong>Finalizar sin comprobante</strong>
                   <small>Solo cuando la conexion o el proveedor no permiten obtener la confirmacion.</small>
                 </span>
-                <span className={finalizarSinComprobante ? 'ui-switch-indicator active' : 'ui-switch-indicator'} aria-hidden="true">
-                  <span />
-                </span>
-              </button>
+                <UiSwitch
+                  checked={finalizarSinComprobante}
+                  onChange={alternarFinalizacionSinComprobante}
+                  ariaLabel="Finalizar sin comprobante"
+                  disabled={saving || uploading}
+                />
+              </label>
 
               {finalizarSinComprobante && (
                 <div className="finalization-exception-fields">
