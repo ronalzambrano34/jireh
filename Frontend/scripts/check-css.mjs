@@ -62,12 +62,37 @@ function extractClasses(selector) {
   return classes;
 }
 
+function targetClasses(selector) {
+  const targets = [];
+
+  for (const item of selector.split(',')) {
+    const compounds = item
+      .trim()
+      .split(/\s+|(?=[>+~])|(?<=[>+~])/)
+      .filter((part) => part && !/^[>+~]$/.test(part));
+    const target = compounds.at(-1) ?? '';
+    if (target.includes('::')) continue;
+
+    const classes = [...target.matchAll(/\.(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)/g)];
+    if (classes.length) targets.push(classes.at(-1)[1]);
+  }
+
+  return targets;
+}
+
+function rememberTarget(map, className, location) {
+  if (!map.has(className)) map.set(className, []);
+  map.get(className).push(location);
+}
+
 const allFiles = await listFiles(sourceDir);
 const cssFiles = allFiles.filter((path) => extname(path) === '.css');
 const sourceFiles = allFiles.filter((path) => sourceExtensions.has(extname(path)));
 const sourceText = (await Promise.all(sourceFiles.map((path) => readFile(path, 'utf8')))).join('\n');
 const errors = [];
 const unusedClasses = new Map();
+const relativeTargets = new Map();
+const offsetTargets = new Map();
 let selectorCount = 0;
 
 for (const path of cssFiles) {
@@ -94,6 +119,18 @@ for (const path of cssFiles) {
 
   stylesheet.walkRules((rule) => {
     selectorCount += 1;
+    const targets = targetClasses(rule.selector);
+
+    rule.walkDecls((declaration) => {
+      const location = `${displayPath}:${declaration.source?.start?.line ?? rule.source?.start?.line ?? 1}`;
+      if (declaration.prop === 'position' && declaration.value.trim() === 'relative') {
+        for (const className of targets) rememberTarget(relativeTargets, className, location);
+      }
+      if (declaration.prop === 'top' && declaration.value.trim() !== 'auto') {
+        for (const className of targets) rememberTarget(offsetTargets, className, location);
+      }
+    });
+
     for (const className of extractClasses(rule.selector)) {
       if (dynamicClassAllowlist.has(className)) continue;
       if (!sourceText.includes(className)) {
@@ -103,6 +140,21 @@ for (const path of cssFiles) {
       }
     }
   });
+}
+
+for (const [className, relativeLocations] of relativeTargets) {
+  const topLocations = offsetTargets.get(className);
+  if (!topLocations) continue;
+  errors.push(
+    `${relativeLocations[0]}: ".${className}" usa position: relative y tambien top en `
+    + `${topLocations[0]}; esta combinacion puede desplazar el componente fuera de su flujo`,
+  );
+}
+
+if (errors.length) {
+  console.error(`Auditoria CSS: ${errors.length} problema(s)\n`);
+  console.error(errors.join('\n'));
+  process.exit(1);
 }
 
 if (process.argv.includes('--write-baseline')) {

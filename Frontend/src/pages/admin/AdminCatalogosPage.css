@@ -1,5 +1,19 @@
 
 
+.operator-role-pill {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--ui-primary) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ui-primary) 12%, transparent);
+  color: var(--ui-primary-strong);
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
 :root[data-theme="dark-sidebar"] .operator-role-pill {
   color: var(--ui-success-text);
   background: color-mix(in srgb, var(--ui-primary) 12%, transparent);
@@ -215,9 +229,6 @@
 }
 
 .admin-hero-card {
-  position: sticky;
-  top: 84px;
-  z-index: 20;
   overflow: hidden;
   border: 1px solid var(--ui-border);
   border-radius: 14px;
@@ -457,7 +468,6 @@
   }
 
   .admin-hero-card {
-    top: 76px;
     border-radius: 0 0 14px 14px;
   }
 
@@ -498,10 +508,6 @@
   color: var(--ui-text-muted);
   font-size: 12px;
   font-weight: 700;
-}
-
-.admin-topic-option > svg:last-child {
-  transform: rotate(-90deg);
 }
 
 .admin-detail-section {
@@ -1148,7 +1154,6 @@
 }
 
 :root[data-theme="dark-sidebar"] .admin-hero-card {
-  top: 94px;
   color: var(--ui-text);
   background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
   border: 1px solid var(--ui-border);
@@ -1421,7 +1426,6 @@
 
 @media (max-width: 760px) {
   :root[data-theme="dark-sidebar"] .admin-hero-card {
-    top: 76px;
     border-radius: var(--ui-radius-md);
   }
 
@@ -1471,13 +1475,6 @@
 .admin-section-header > * {
   min-width: 0;
   max-width: 100%;
-}
-
-@media (max-width: 920px) {
-
-  :root[data-theme="dark-sidebar"] .admin-hero-card {
-    top: 64px;
-  }
 }
 
 .admin-section {
@@ -2141,6 +2138,7 @@
 
 .admin-page .admin-topic-arrow {
   color: var(--ui-text-subtle);
+  transform: none;
   transition: transform 150ms ease;
 }
 

@@ -61,7 +61,7 @@ export function AdminMenu<T extends string>({ groups, onOpen }: { groups: AdminM
   return (
     <div className="admin-menu-grid">
       {groups.map((group, groupIndex) => (
-        <section className="profile-section admin-menu-section" key={group.titulo}>
+        <section className="admin-menu-section" key={group.titulo}>
           <header className="admin-menu-heading">
             <span className="admin-menu-number">0{groupIndex + 1}</span>
             <div>
@@ -71,7 +71,7 @@ export function AdminMenu<T extends string>({ groups, onOpen }: { groups: AdminM
           </header>
           <div className="admin-menu-items">
             {group.items.map(({ tema, titulo, resumen, icono: Icon }) => (
-              <button className="profile-option admin-topic-option" type="button" onClick={() => onOpen(tema)} key={tema}>
+              <button className="admin-topic-option" type="button" onClick={() => onOpen(tema)} key={tema}>
                 <span className="admin-topic-icon"><Icon size={20} /></span>
                 <span className="admin-topic-copy"><strong>{titulo}</strong><small>{resumen}</small></span>
                 <ChevronRight className="admin-topic-arrow" size={18} />

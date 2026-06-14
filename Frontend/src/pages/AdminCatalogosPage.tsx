@@ -1344,7 +1344,7 @@ export function AdminCatalogosPage() {
               <div className="catalog-row operator-admin-row" key={item.id}>
                 <button type="button" className="operator-admin-main" onClick={() => abrirEditarOperador(item)}>
                   <span><strong>{item.nombre}</strong><small>{item.telefono ?? 'sin telefono'} · {item.codigo_operador}</small></span>
-                  <span className="profile-role-pill operator-role-pill">{item.rol}</span>
+                  <span className="operator-role-pill">{item.rol}</span>
                 </button>
                 <span className={item.activo ? 'status completado' : 'status cancelado'}>{item.activo ? 'activo' : 'inactivo'}</span>
                 <button className="ghost-button catalog-toggle-action" onClick={() => toggleOperador(item)}><Power size={18} /> {item.activo ? 'Desactivar' : 'Activar'}</button>
