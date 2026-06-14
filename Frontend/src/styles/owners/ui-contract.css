@@ -39,6 +39,9 @@
   --ui-radius-sm: 8px;
   --ui-radius-md: 14px;
   --ui-radius-lg: 18px;
+  --ui-control-height: 42px;
+  --ui-control-radius: var(--ui-radius-sm);
+  --ui-control-action-width: 42px;
   --ui-accent-width: 3px;
   --ui-accent-inset: 0;
 }
@@ -131,6 +134,65 @@
 :root[data-theme="dark-sidebar"] .nav-stack .ui-nav-item,
 :root[data-theme="dark-sidebar"] .nav-stack .ui-nav-item.active {
   box-shadow: none;
+}
+
+/* Shared geometry for fields composed of an input and adjacent controls. */
+.input-action-row,
+.phone-input-row,
+.password-field,
+.search-box,
+.currency-select-shell {
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-control-radius);
+}
+
+.input-action-row,
+.phone-input-row {
+  align-items: stretch;
+}
+
+.input-action-row > input,
+.phone-input-row > input {
+  min-height: var(--ui-control-height);
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+
+.input-action-row .field-action-button,
+.phone-input-row .field-action-button {
+  width: var(--ui-control-action-width);
+  min-width: var(--ui-control-action-width);
+  min-height: var(--ui-control-height);
+  height: 100%;
+  align-self: stretch;
+  margin: 0;
+  border-radius: 0;
+}
+
+.input-action-row .field-action-button:last-child,
+.phone-input-row .field-action-button:last-child {
+  border-radius: 0 var(--ui-control-radius) var(--ui-control-radius) 0;
+}
+
+.phone-input-row .phone-code-select-floating,
+.phone-input-row .phone-code-select-floating .floating-select-button {
+  min-height: var(--ui-control-height);
+  height: 100%;
+  margin: 0;
+  border-radius: var(--ui-control-radius) 0 0 var(--ui-control-radius);
+}
+
+.phone-input-row-no-paste:not(.phone-input-row-with-actions) > input {
+  border-radius: 0 var(--ui-control-radius) var(--ui-control-radius) 0;
+}
+
+.password-field > input,
+.search-box > input,
+.currency-select-shell > select {
+  min-height: 0;
+  height: 100%;
+  margin: 0;
 }
 
 .ui-glass-surface {

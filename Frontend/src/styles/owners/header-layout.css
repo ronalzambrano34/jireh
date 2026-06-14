@@ -134,3 +134,34 @@
     height: 38px;
   }
 }
+
+/* Narrow authenticated headers prioritize navigation, title and user controls. */
+@media (max-width: 375px) {
+  .app-shell .toolbar > .mobile-header-menu + .header-brand {
+    display: none;
+  }
+
+  .app-shell .toolbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .app-shell .toolbar-title {
+    grid-column: 2;
+    overflow: hidden;
+  }
+
+  .app-shell .toolbar-actions {
+    grid-column: 3;
+  }
+
+  .app-shell .toolbar-title h1,
+  .app-shell .toolbar-title p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell .toolbar-title p {
+    display: none;
+  }
+}

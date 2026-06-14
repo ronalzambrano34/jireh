@@ -940,14 +940,16 @@
 
 .auth-panel .phone-input-row,
 .auth-panel .password-field {
+  --ui-control-height: 48px;
+  --ui-control-radius: var(--ui-radius-md, 10px);
   width: 100%;
   min-width: 0;
-  height: 48px;
-  min-height: 48px;
+  height: var(--ui-control-height);
+  min-height: var(--ui-control-height);
   margin: 0;
   padding: 0;
   border: 1px solid var(--ui-border-strong, var(--ui-border-strong));
-  border-radius: var(--ui-radius-md, 10px);
+  border-radius: var(--ui-control-radius);
   background: var(--ui-surface-raised, var(--ui-surface));
   overflow: hidden;
 }

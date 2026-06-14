@@ -281,7 +281,7 @@ function CotizadorResultado({ label, tone, cotizacion, moneda }: { label: string
 }
 
 function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
-  const [monto, setMonto] = useState('200');
+  const [monto, setMonto] = useState('100');
   const montoNumerico = Number(monto.replace(',', '.')) || 0;
   const moneda = monedaPago(grupo.moneda);
   const transferencia = cotizarOferta(ofertasServicio(grupo.ofertas, 'transferencia'), montoNumerico);

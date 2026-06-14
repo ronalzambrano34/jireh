@@ -6,12 +6,12 @@
 }
 
 .user-header-trigger {
-  width: max-content;
-  max-width: min(260px, calc(100vw - 32px));
-  min-width: 0;
+  width: 156px;
+  max-width: 156px;
+  min-width: 156px;
   min-height: 46px;
   display: grid;
-  grid-template-columns: 34px minmax(0, auto) 16px;
+  grid-template-columns: 34px minmax(0, 1fr) 16px;
   align-items: center;
   gap: 9px;
   padding: 5px 10px 5px 6px;
@@ -74,7 +74,8 @@
 }
 
 .user-header-copy strong {
-  max-width: 132px;
+  width: 100%;
+  max-width: 7.5ch;
   font-size: 13px;
 }
 
@@ -185,9 +186,11 @@
 
 @media (max-width: 620px) {
   .user-header-trigger {
-    max-width: min(230px, calc(100vw - 80px));
+    width: 144px;
+    min-width: 144px;
+    max-width: 144px;
     min-height: 44px;
-    grid-template-columns: 33px minmax(0, auto) 16px;
+    grid-template-columns: 33px minmax(0, 1fr) 16px;
     gap: 8px;
     padding: 5px 8px 5px 5px;
   }

@@ -5,13 +5,13 @@ import type { ArchivoPedido, PedidoDetalle } from '../../types/api';
 export function PedidoDetailHeader({ codigo, servicio, moneda, onClose }: { codigo: string; servicio?: string; moneda?: string; onClose: () => void }) {
   return (
     <header className="order-detail-page-header">
-      <button type="button" className="ghost-button order-detail-back" onClick={onClose}>
-        <X size={18} /> Volver
-      </button>
       <div>
         <h2>{codigo}</h2>
         {servicio && <p>{servicio} · {moneda}</p>}
       </div>
+      <button type="button" className="ghost-button order-detail-back" onClick={onClose} aria-label="Cerrar detalle" title="Cerrar detalle">
+        <X size={18} /> <span>Volver</span>
+      </button>
     </header>
   );
 }

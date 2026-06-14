@@ -1046,17 +1046,25 @@
 
 .input-action-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) var(--ui-control-action-width);
+  align-items: stretch;
   gap: 0;
 }
 
 .input-action-row > input {
+  height: 100%;
+  margin: 0;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
   border-right: 0;
 }
 
 .input-action-row .field-action-button {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  align-self: stretch;
+  margin: 0;
   border-left: 0;
   border-radius: 0;
 }
@@ -1067,9 +1075,9 @@
 }
 
 .field-action-button {
-  width: 42px;
-  min-width: 42px;
-  height: 40px;
+  width: var(--ui-control-action-width);
+  min-width: var(--ui-control-action-width);
+  height: var(--ui-control-height);
   padding: 0;
   border-color: var(--ui-border-strong);
   background: var(--ui-surface);
@@ -1078,12 +1086,13 @@
 
 .phone-input-row {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) 42px;
+  grid-template-columns: max-content minmax(0, 1fr) var(--ui-control-action-width);
+  align-items: stretch;
   gap: 0;
 }
 
 .phone-input-row.phone-input-row-with-actions {
-  grid-template-columns: max-content minmax(0, 1fr) 42px 42px;
+  grid-template-columns: max-content minmax(0, 1fr) repeat(2, var(--ui-control-action-width));
 }
 
 .phone-input-row.phone-input-row-no-paste {
@@ -1091,11 +1100,13 @@
 }
 
 .phone-input-row.phone-input-row-no-paste.phone-input-row-with-actions {
-  grid-template-columns: max-content minmax(0, 1fr) 42px;
+  grid-template-columns: max-content minmax(0, 1fr) var(--ui-control-action-width);
 }
 
-.phone-input-row .phone-code-select {
+.phone-input-row .phone-code-select,
+.phone-input-row .phone-code-select-floating {
   min-width: 0;
+  height: 100%;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -1109,6 +1120,8 @@
 
 .phone-input-row > input {
   min-width: 0;
+  height: 100%;
+  margin: 0;
   border-left: 0;
   border-right: 0;
   border-radius: 0;
@@ -1120,6 +1133,11 @@
 }
 
 .phone-input-row .field-action-button {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  align-self: stretch;
+  margin: 0;
   border-left: 0;
   border-radius: 0;
 }
@@ -2732,7 +2750,8 @@ body {
 /* Guided first-run setup */
 
 .phone-code-select-floating .floating-select-button {
-  min-height: 40px;
+  height: 100%;
+  min-height: var(--ui-control-height);
   grid-template-columns: auto max-content auto;
   justify-content: center;
   border-radius: 6px 0 0 6px;

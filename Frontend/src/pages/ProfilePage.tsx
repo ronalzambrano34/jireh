@@ -57,8 +57,10 @@ export function ProfilePage(props: {
           <div><h2>{props.operador.nombre}</h2><p>{props.operador.telefono}</p></div>
         </div>
         <div className="profile-hero-meta">
-          <span>Codigo: <strong>{props.operador.codigo_operador}</strong></span>
-          <span>Rol: <strong>{props.operador.rol}</strong></span>
+          <span className="profile-hero-identity">
+            <span>Codigo: <strong>{props.operador.codigo_operador}</strong></span>
+            <span>Rol: <strong>{props.operador.rol}</strong></span>
+          </span>
           <button className="icon-button" onClick={props.onCopyCode} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
         </div>
       </div>
@@ -76,13 +78,13 @@ export function ProfilePage(props: {
         <button className={option('permisos')} type="button" onClick={() => props.onSectionChange('permisos')} aria-expanded={props.section === 'permisos'}><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown className={props.section === 'permisos' ? 'chevron-open' : ''} size={18} /></button>
         {props.section === 'permisos' && <div className="profile-inline-panel"><div className="profile-role-pill"><ShieldCheck size={18} /> {props.operador.rol}</div><div className="profile-permission-list">{props.operador.permisos.length ? props.operador.permisos.map((permiso) => <span key={permiso}>{permiso}</span>) : <span>Sin permisos especiales</span>}</div></div>}
 
-        <div className="profile-appearance-row">
+        <label className="profile-appearance-row">
           <span className="profile-appearance-icon" aria-hidden="true"><Palette size={22} /></span>
           <div className="profile-appearance-copy">
-            <div className="profile-appearance-title"><strong>Apariencia</strong><label className="theme-switch"><UiSwitch checked={props.theme !== 'light'} onChange={(checked) => props.onThemeChange(checked ? 'dark-sidebar' : 'light')} ariaLabel="Activar tema oscuro" /><span>Oscuro</span></label></div>
+            <div className="profile-appearance-title"><strong>Apariencia</strong><span className="theme-switch"><UiSwitch checked={props.theme !== 'light'} onChange={(checked) => props.onThemeChange(checked ? 'dark-sidebar' : 'light')} ariaLabel="Activar tema oscuro" /><span>Oscuro</span></span></div>
             <small>{props.theme === 'light' ? 'Tema claro' : 'Oscuro Jireh predeterminado'}</small>
           </div>
-        </div>
+        </label>
       </div>
 
       <div className="profile-section">

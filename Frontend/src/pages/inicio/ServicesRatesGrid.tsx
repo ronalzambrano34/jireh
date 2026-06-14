@@ -54,14 +54,16 @@ export function ServicesRatesGrid(props: ServicesRatesGridProps) {
             <article className={`rate-card operation-rate-card ${card.tone} ${card.servicio}`} key={`${props.moneda}-${card.servicio}`}>
               <header className="rate-card-header operation-rate-card-header">
                 <span className="rate-icon">{card.icon}</span>
-                <span>
+                <span className="operation-rate-card-copy">
                   <h3>{card.title}</h3>
                   <small>{card.subtitle}</small>
-                  <em className="rate-pair-label">{props.monedaPago(props.moneda)} → CUP</em>
                 </span>
-                <strong className={tieneDatos ? 'rate-state active' : 'rate-state'}>
-                  {tieneDatos ? `${cantidadOpciones} ${cantidadOpciones === 1 ? 'opcion' : 'opciones'}` : 'Sin tasa'}
-                </strong>
+                <span className="operation-rate-card-meta">
+                  <em className="rate-pair-label">{props.monedaPago(props.moneda)} → CUP</em>
+                  <strong className={tieneDatos ? 'rate-state active' : 'rate-state'}>
+                    {tieneDatos ? `${cantidadOpciones} ${cantidadOpciones === 1 ? 'opcion' : 'opciones'}` : 'Sin tasa'}
+                  </strong>
+                </span>
               </header>
 
               {!tieneDatos ? (

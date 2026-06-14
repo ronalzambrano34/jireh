@@ -986,6 +986,8 @@
   .input-action-row,
 :root[data-theme="dark-sidebar"] .form-section-card
   .floating-select-button {
+  --ui-control-height: 46px;
+  --ui-control-radius: var(--ui-radius-md);
   min-height: 46px;
   color: var(--ui-text);
   background: var(--ui-canvas-soft);
@@ -1026,6 +1028,39 @@
 :focus-within {
   border-color: var(--ui-primary);
   box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+:root[data-theme="dark-sidebar"] .form-section-card
+  .phone-input-row .phone-code-select-floating,
+:root[data-theme="dark-sidebar"] .form-section-card
+  .phone-input-row .floating-select-button {
+  height: 100%;
+  border-radius: var(--ui-control-radius) 0 0 var(--ui-control-radius);
+}
+
+:root[data-theme="dark-sidebar"] .form-section-card
+  .phone-input-row > input,
+:root[data-theme="dark-sidebar"] .form-section-card
+  .phone-input-row .field-action-button,
+:root[data-theme="dark-sidebar"] .form-section-card
+  .input-action-row > input,
+:root[data-theme="dark-sidebar"] .form-section-card
+  .input-action-row .field-action-button {
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+
+:root[data-theme="dark-sidebar"] .form-section-card
+  .phone-input-row .field-action-button:last-child,
+:root[data-theme="dark-sidebar"] .form-section-card
+  .input-action-row .field-action-button:last-child {
+  border-radius: 0 var(--ui-control-radius) var(--ui-control-radius) 0;
+}
+
+:root[data-theme="dark-sidebar"] .form-section-card
+  .phone-input-row-no-paste:not(.phone-input-row-with-actions) > input {
+  border-radius: 0 var(--ui-control-radius) var(--ui-control-radius) 0;
 }
 
 :root[data-theme="dark-sidebar"] .payment-section-header {
