@@ -1,1 +1,4 @@
 PENDIENTES:
+//todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, 
+
+

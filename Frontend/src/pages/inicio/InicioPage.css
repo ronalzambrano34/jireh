@@ -5678,8 +5678,8 @@
   .workspace > .home-page,
   :root[data-theme="light"] .workspace > .home-page,
   :root[data-theme="dark-sidebar"] .workspace > .home-page {
-    width: auto;
-    margin: 0 12px;
+    width: 100%;
+    margin: 0;
     padding: 0 0 calc(12px + env(safe-area-inset-bottom));
     background: transparent;
   }

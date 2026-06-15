@@ -6,6 +6,7 @@ export function PedidoDetailHeader({ codigo, servicio, moneda, onClose }: { codi
   return (
     <header className="order-detail-page-header">
       <div>
+        <span className="order-detail-eyebrow">Detalle de pedido</span>
         <h2>{codigo}</h2>
         {servicio && <p>{servicio} · {moneda}</p>}
       </div>

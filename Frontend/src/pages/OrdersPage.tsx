@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronDown, ClipboardList, LayoutGrid, LayoutList, RefreshCw, Search, UserCircle } from 'lucide-react';
+import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, RefreshCw, Search, UserCircle } from 'lucide-react';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
@@ -114,27 +114,42 @@ export function OrdersPage(props: {
   return (
     <section className="content-grid orders-content-grid">
       <div className="list-panel orders-list-panel">
-        <div className="filters orders-toolbar-row">
-          <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" /></label>
-        </div>
-        <div className="status-filters orders-scope-chips" aria-label="Alcance de ordenes">
-          <button type="button" className={props.scope === 'mis' ? 'active scope-my-orders' : 'scope-my-orders'} onClick={() => props.onScope('mis')}><UserCircle size={16} /><span>Mis pedidos</span><strong>{props.misCount}</strong></button>
-          {props.canViewAll && <button type="button" className={props.scope === 'todas' ? 'active' : ''} onClick={() => props.onScope('todas')}><ClipboardList size={16} /><span>Todas</span><strong>{props.todasCount}</strong></button>}
-          <div className="orders-top-actions">
-            <div className="order-filter-field order-filter-floating orders-period-action">
-              <FloatingSelect value={props.period} onChange={(value) => props.onPeriod(value as OrdersPeriod)} options={[{ value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> }, { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> }, { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> }, { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> }]} ariaLabel="Filtrar pedidos por fecha" align="left" buttonClassName="order-filter-button" />
-            </div>
-            <div className="order-filter-field order-filter-floating orders-service-action">
-              <FloatingSelect value={props.servicio} onChange={props.onServicio} options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios' }))} ariaLabel="Filtrar por servicio" align="right" buttonClassName="order-filter-button" />
-            </div>
-            <button type="button" className="view-toggle single-view-toggle" onClick={() => props.onView(props.view === 'lista' ? 'kanban' : 'lista')} title={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'} aria-label={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}>{props.view === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}</button>
-            <button className="icon-button orders-refresh-button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
+        <header className="orders-page-hero">
+          <div className="orders-page-hero-copy">
+            <span className="orders-page-eyebrow">Centro de operaciones</span>
+            <h2>Pedidos</h2>
+            <p>Consulta, filtra y gestiona el flujo completo de las operaciones.</p>
           </div>
-        </div>
-        <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
-          <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
-          {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? `active ${item.value}` : item.value} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
-        </div>
+          <div className="orders-page-metrics" aria-label="Resumen de pedidos">
+            <span><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></span>
+            <span><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></span>
+            <span><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></span>
+          </div>
+        </header>
+
+        <section className="orders-command-panel" aria-label="Busqueda y filtros de pedidos">
+          <div className="filters orders-toolbar-row">
+            <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" /></label>
+          </div>
+          <div className="status-filters orders-scope-chips" aria-label="Alcance de ordenes">
+            <button type="button" className={props.scope === 'mis' ? 'active scope-my-orders' : 'scope-my-orders'} onClick={() => props.onScope('mis')}><UserCircle size={16} /><span>Mis pedidos</span><strong>{props.misCount}</strong></button>
+            {props.canViewAll && <button type="button" className={props.scope === 'todas' ? 'active' : ''} onClick={() => props.onScope('todas')}><ClipboardList size={16} /><span>Todas</span><strong>{props.todasCount}</strong></button>}
+            <div className="orders-top-actions">
+              <div className="order-filter-field order-filter-floating orders-period-action">
+                <FloatingSelect value={props.period} onChange={(value) => props.onPeriod(value as OrdersPeriod)} options={[{ value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> }, { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> }, { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> }, { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> }]} ariaLabel="Filtrar pedidos por fecha" align="left" buttonClassName="order-filter-button" />
+              </div>
+              <div className="order-filter-field order-filter-floating orders-service-action">
+                <FloatingSelect value={props.servicio} onChange={props.onServicio} options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios' }))} ariaLabel="Filtrar por servicio" align="right" buttonClassName="order-filter-button" />
+              </div>
+              <button type="button" className="view-toggle single-view-toggle" onClick={() => props.onView(props.view === 'lista' ? 'kanban' : 'lista')} title={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'} aria-label={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}>{props.view === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}</button>
+              <button className="icon-button orders-refresh-button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
+            </div>
+          </div>
+          <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
+            <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
+            {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? `active ${item.value}` : item.value} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
+          </div>
+        </section>
         {props.loading && <PageLoader label="Cargando pedidos" inline />}
         {props.pedidos.length === 0 && !props.loading && <DismissibleNotice className="notice">No hay pedidos para estos filtros</DismissibleNotice>}
 

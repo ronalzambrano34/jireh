@@ -907,12 +907,10 @@ export function App() {
               </button>
             </div>
           </header>
-          <div className="app-view-content">
-            <InicioPage
-              onCreate={(nextServicio, draft) => solicitarLogin({ type: 'crear', servicio: nextServicio, draft: draft ?? {} })}
-              onTrackPedido={(codigo) => solicitarLogin({ type: 'rastrear', codigo })}
-            />
-          </div>
+          <InicioPage
+            onCreate={(nextServicio, draft) => solicitarLogin({ type: 'crear', servicio: nextServicio, draft: draft ?? {} })}
+            onTrackPedido={(codigo) => solicitarLogin({ type: 'rastrear', codigo })}
+          />
         </main>
         {loginOpen && (
           <Modal
@@ -1028,83 +1026,81 @@ export function App() {
           </div>
         </header>
 
-        <div className="app-view-content">
-          {vista === 'inicio' ? (
-            <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
-          ) : vista === 'home-test' ? (
-            <HomeTestPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
-          ) : vista === 'setup' ? (
-            <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
-          ) : vista === 'admin' ? (
-            <AdminCatalogosPage />
-          ) : vista === 'reportes' ? (
-            <ReportesPage />
-          ) : vista === 'perfil' ? (
-            <ProfilePage
-              operador={operador}
-              section={profileSection}
-              nombre={profileNombre}
-              password={profilePassword}
-              theme={theme}
-              saving={profileSaving}
-              photoSaving={profilePhotoSaving}
-              onSectionChange={abrirPerfilSeccion}
-              onNombreChange={setProfileNombre}
-              onPasswordChange={setProfilePassword}
-              onThemeChange={setTheme}
-              onPhoto={(file) => void subirFotoPerfil(file)}
-              onSaveProfile={guardarPerfil}
-              onSavePassword={guardarPassword}
-              onCopyCode={() => void copiarPago(operador.codigo_operador)}
-              onLogout={cerrarSesion}
-            />
-          ) : vista === 'crear' ? (
-            <CreateOrderPage service={servicioCrear} draft={crearDraft} operadorId={operador.id} onServiceChange={(service) => { setServicioCrear(service); setCrearDraft({}); }} onCreated={finalizarCreacionPedido} />
-          ) : seleccionado ? (
-            <PedidoDetallePanel
-              codigo={seleccionado}
-              pedidoInicial={pedidoSeleccionadoInicial}
-              operadorId={operador.id}
-              onChanged={cargarPedidos}
-              onClose={() => setSeleccionado(null)}
-              codigosNavegacion={codigosPedidosTomadosPorMi}
-              onNavigate={setSeleccionado}
-            />
-          ) : (
-            <OrdersPage
-              operador={operador}
-              pedidos={pedidosFiltrados}
-              lista={pedidosListaOrdenada}
-              grupos={pedidosPorEstado}
-              counts={pedidosConteoPorEstado}
-              total={totalPedidosConteo}
-              misCount={misPedidosConteo}
-              todasCount={todasPedidosConteo}
-              busqueda={busqueda}
-              estado={estado}
-              servicio={servicio}
-              scope={alcancePedidos}
-              period={periodoPedidos}
-              view={vistaPedidos}
-              loading={loading}
-              clock={pedidosClock}
-              canViewAll={Boolean(puedeVerTodasLasOrdenes)}
-              collapsed={pedidosEstadosColapsados}
-              onBusqueda={setBusqueda}
-              onEstado={setEstado}
-              onServicio={setServicio}
-              onScope={setAlcancePedidos}
-              onPeriod={setPeriodoPedidos}
-              onView={setVistaPedidos}
-              onRefresh={() => void cargarPedidos()}
-              onToggleGroup={toggleEstadoPedido}
-              onSelect={setSeleccionado}
-              classNameFor={(pedido, base) => disponibilidadPedidoClass(pedido, base, false, false)}
-              blockedByOther={pedidoBloqueadoPorOtro}
-              ownedByMe={pedidoTomadoPorMi}
-            />
-          )}
-        </div>
+        {vista === 'inicio' ? (
+          <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+        ) : vista === 'home-test' ? (
+          <HomeTestPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+        ) : vista === 'setup' ? (
+          <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
+        ) : vista === 'admin' ? (
+          <AdminCatalogosPage />
+        ) : vista === 'reportes' ? (
+          <ReportesPage />
+        ) : vista === 'perfil' ? (
+          <ProfilePage
+            operador={operador}
+            section={profileSection}
+            nombre={profileNombre}
+            password={profilePassword}
+            theme={theme}
+            saving={profileSaving}
+            photoSaving={profilePhotoSaving}
+            onSectionChange={abrirPerfilSeccion}
+            onNombreChange={setProfileNombre}
+            onPasswordChange={setProfilePassword}
+            onThemeChange={setTheme}
+            onPhoto={(file) => void subirFotoPerfil(file)}
+            onSaveProfile={guardarPerfil}
+            onSavePassword={guardarPassword}
+            onCopyCode={() => void copiarPago(operador.codigo_operador)}
+            onLogout={cerrarSesion}
+          />
+        ) : vista === 'crear' ? (
+          <CreateOrderPage service={servicioCrear} draft={crearDraft} operadorId={operador.id} onServiceChange={(service) => { setServicioCrear(service); setCrearDraft({}); }} onCreated={finalizarCreacionPedido} />
+        ) : seleccionado ? (
+          <PedidoDetallePanel
+            codigo={seleccionado}
+            pedidoInicial={pedidoSeleccionadoInicial}
+            operadorId={operador.id}
+            onChanged={cargarPedidos}
+            onClose={() => setSeleccionado(null)}
+            codigosNavegacion={codigosPedidosTomadosPorMi}
+            onNavigate={setSeleccionado}
+          />
+        ) : (
+          <OrdersPage
+            operador={operador}
+            pedidos={pedidosFiltrados}
+            lista={pedidosListaOrdenada}
+            grupos={pedidosPorEstado}
+            counts={pedidosConteoPorEstado}
+            total={totalPedidosConteo}
+            misCount={misPedidosConteo}
+            todasCount={todasPedidosConteo}
+            busqueda={busqueda}
+            estado={estado}
+            servicio={servicio}
+            scope={alcancePedidos}
+            period={periodoPedidos}
+            view={vistaPedidos}
+            loading={loading}
+            clock={pedidosClock}
+            canViewAll={Boolean(puedeVerTodasLasOrdenes)}
+            collapsed={pedidosEstadosColapsados}
+            onBusqueda={setBusqueda}
+            onEstado={setEstado}
+            onServicio={setServicio}
+            onScope={setAlcancePedidos}
+            onPeriod={setPeriodoPedidos}
+            onView={setVistaPedidos}
+            onRefresh={() => void cargarPedidos()}
+            onToggleGroup={toggleEstadoPedido}
+            onSelect={setSeleccionado}
+            classNameFor={(pedido, base) => disponibilidadPedidoClass(pedido, base, false, false)}
+            blockedByOther={pedidoBloqueadoPorOtro}
+            ownedByMe={pedidoTomadoPorMi}
+          />
+        )}
       </main>
       {puedeCrear && (vista === 'inicio' || vista === 'home-test' || (vista === 'bandeja' && !seleccionado)) && (
         <div className={[quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap', quickCreateHidden && !quickCreateOpen ? 'hide-on-scroll' : ''].filter(Boolean).join(' ')}>

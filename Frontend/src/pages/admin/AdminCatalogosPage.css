@@ -1879,14 +1879,14 @@
   --admin-accent: var(--ui-primary);
   --admin-accent-soft: color-mix(in srgb, var(--ui-primary) 12%, var(--ui-surface));
   --admin-card-border: color-mix(in srgb, var(--ui-border) 84%, transparent);
-  width: min(1180px, 100%);
+  width: 100%;
   gap: 18px;
-  margin-inline: auto;
+  margin-inline: 0;
 }
 
 .workspace > .admin-page {
-  width: min(1180px, 100%);
-  margin-inline: auto;
+  width: 100%;
+  margin-inline: 0;
 }
 
 .admin-page .admin-hero-card {

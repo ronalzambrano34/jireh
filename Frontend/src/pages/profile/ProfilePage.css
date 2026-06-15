@@ -1537,9 +1537,9 @@
 :root[data-theme="dark-sidebar"] .profile-page,
 .workspace > .profile-page,
 :root[data-theme="dark-sidebar"] .workspace > .profile-page {
-  width: min(1120px, 100%);
-  max-width: 1120px;
-  margin-inline: auto;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
   gap: 18px;
   background: transparent;
 }
