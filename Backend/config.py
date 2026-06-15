@@ -32,7 +32,10 @@ def _normalizar_url_supabase(value: str | None) -> str:
 SUPABASE_URL = _normalizar_url_supabase(
     os.getenv("SUPABASE_URL")
 )
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    ""
+).strip()
 SUPABASE_STORAGE_BUCKET = os.getenv(
     "SUPABASE_STORAGE_BUCKET",
     "comprobantes"

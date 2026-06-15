@@ -56,6 +56,38 @@ def _validar_configuracion_supabase():
             "SUPABASE_SERVICE_ROLE_KEY no esta configurada"
         )
 
+    if SUPABASE_SERVICE_ROLE_KEY.startswith("sb_service_role_"):
+        raise Exception(
+            "SUPABASE_SERVICE_ROLE_KEY no es valida: Supabase no emite claves "
+            "con prefijo sb_service_role_. Configura la clave secreta real "
+            "sb_secret_... o la service_role JWT legacy"
+        )
+
+    if SUPABASE_SERVICE_ROLE_KEY.startswith("sb_publishable_"):
+        raise Exception(
+            "SUPABASE_SERVICE_ROLE_KEY no puede usar una clave publicable. "
+            "Configura la clave secreta sb_secret_... o la service_role JWT legacy"
+        )
+
+    if (
+        not SUPABASE_SERVICE_ROLE_KEY.startswith("sb_secret_")
+        and SUPABASE_SERVICE_ROLE_KEY.count(".") != 2
+    ):
+        raise Exception(
+            "SUPABASE_SERVICE_ROLE_KEY tiene un formato desconocido. "
+            "Configura la clave secreta sb_secret_... o la service_role JWT legacy"
+        )
+
+
+def _headers_supabase(content_type: str):
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": content_type,
+    }
+    if SUPABASE_SERVICE_ROLE_KEY.count(".") == 2:
+        headers["Authorization"] = f"Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+    return headers
+
 
 def _leer_upload(archivo: UploadFile):
     contenido = bytearray()
@@ -84,11 +116,7 @@ def _asegurar_bucket_supabase():
         SUPABASE_STORAGE_BUCKET,
         safe=""
     )
-    headers = {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-        "Content-Type": "application/json",
-    }
+    headers = _headers_supabase("application/json")
     try:
         consulta = requests.get(
             f"{SUPABASE_URL}/storage/v1/bucket/{bucket}",
@@ -154,9 +182,7 @@ def _guardar_upload_supabase(
         response = requests.post(
             f"{SUPABASE_URL}/storage/v1/object/{bucket}/{ruta}",
             headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-                "Content-Type": content_type,
+                **_headers_supabase(content_type),
                 "x-upsert": "false",
             },
             data=contenido,

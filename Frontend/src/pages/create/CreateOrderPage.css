@@ -1,12 +1,13 @@
 
 
 :root[data-theme="dark-sidebar"] .create-form-panel {
+  width: 100%;
   max-width: none;
-  padding: clamp(14px, 2vw, 20px);
-  background: var(--ui-surface);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-lg);
-  box-shadow: var(--ui-shadow-sm);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 :root[data-theme="dark-sidebar"] .form-flow {
@@ -67,8 +68,8 @@
 @media (max-width: 760px) {
 
   :root[data-theme="dark-sidebar"] .create-form-panel {
-    padding: 12px;
-    border-radius: var(--ui-radius-md);
+    padding: 0;
+    border-radius: 0;
   }
 }
 
@@ -1274,7 +1275,13 @@
 
 /* Compact payment layout shared by every create-order flow. */
 .create-form-panel {
-  padding: 14px;
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .form-flow {
@@ -1356,12 +1363,85 @@
 @media (max-width: 520px) {
   :root[data-theme="dark-sidebar"] .payment-grid,
   .payment-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   :root[data-theme="dark-sidebar"] .payment-grid > label.wide,
   .payment-grid > label.wide {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  :root[data-theme="dark-sidebar"] .payment-section-header,
+  .payment-section-header {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  :root[data-theme="dark-sidebar"] .payment-grid,
+  .payment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .payment-grid > .payment-currency-field {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .payment-grid > .payment-amount-field {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .payment-grid > .payment-method-field {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .payment-grid > .payment-bonus-field {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .payment-grid > .payment-preview {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  :root[data-theme="dark-sidebar"] .payment-grid > .payment-currency-field,
+  .payment-grid > .payment-currency-field {
+    padding: 0 0 12px;
+    border: 0;
+    border-bottom: 1px solid var(--ui-border);
+    border-radius: 0;
+    background: transparent;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .payment-currency-picker {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    color: var(--ui-text);
+    font-size: 0.8rem;
+  }
+
+  .payment-grid > .payment-amount-field {
+    align-content: start;
+  }
+
+  .payment-grid > .payment-amount-field input {
+    min-height: 88px;
+  }
+
+  .payment-method-select {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payment-preview {
+    min-height: 100%;
   }
 }
 
@@ -1377,9 +1457,19 @@
   .payment-grid > .payment-bonus-field,
   .payment-grid > .payment-preview {
     grid-column: auto;
+    grid-row: auto;
   }
 
   .payment-method-select {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payment-grid > .payment-currency-field {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .payment-grid > .payment-amount-field input {
+    min-height: 46px;
   }
 }

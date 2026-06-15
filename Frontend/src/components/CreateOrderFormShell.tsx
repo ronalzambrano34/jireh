@@ -41,7 +41,7 @@ export function CreateOrderFormShell({
   }, [comprobante]);
 
   return (
-    <form className="form-panel create-form-panel" onSubmit={onSubmit} noValidate>
+    <form className="create-form-panel" onSubmit={onSubmit} noValidate>
       <div className="form-flow">{children}</div>
       {error && (
         <DismissibleNotice className="notice error" role="alert" onDismiss={onDismissError}>
