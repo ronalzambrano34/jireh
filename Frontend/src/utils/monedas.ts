@@ -12,7 +12,7 @@ export function banderaMoneda(moneda?: string | null) {
 export function nombreMoneda(moneda?: string | null) {
   const normalizada = (moneda || '').trim().toUpperCase();
   const nombres: Record<string, string> = {
-    BRL: 'Real brasileno',
+    BRL: 'Real brasileño',
     UYU: 'Peso uruguayo',
     USD: 'Dolar estadounidense',
     EUR: 'Euro',
