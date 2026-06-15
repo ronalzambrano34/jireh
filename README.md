@@ -123,12 +123,22 @@ OPERADOR_ADMIN_NOMBRE
 OPERADOR_ADMIN_TELEFONO
 OPERADOR_ADMIN_PASSWORD
 FRONTEND_ORIGINS
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_STORAGE_BUCKET=comprobantes
+USE_SUPABASE_STORAGE=true
 RUN_DB_BOOTSTRAP=false
 RUN_DB_MAINTENANCE=false
 OFERTAS_AUTO_SYNC_ENABLED=false
 GOOGLE_CREDENTIALS_JSON
 GOOGLE_SHEET_ID
 ```
+
+`SUPABASE_URL` debe ser la URL directa del proyecto, por ejemplo
+`https://proyecto.supabase.co`, sin envolverla en `os.getenv(...)`.
+`SUPABASE_SERVICE_ROLE_KEY` debe ser la clave secreta real del proyecto
+(`service_role` legacy o `sb_secret_...`), no una clave inventada con prefijo
+`sb_service_role_`. La clave es privada y solo debe configurarse en el backend.
 
 `GOOGLE_CREDENTIALS_JSON` debe contener el contenido completo del archivo JSON
 de la cuenta de servicio de Google, pegado como una sola variable de entorno.

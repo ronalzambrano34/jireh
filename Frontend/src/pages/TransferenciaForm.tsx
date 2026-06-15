@@ -26,7 +26,7 @@ function telefonoCubaPayload(value: string) {
 type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
 
 
-export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void; initialData?: TransferenciaInitialData }) {
+export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
@@ -161,13 +161,21 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
       });
+      let comprobanteCargado = false;
+      let advertencia: string | undefined;
       if (comprobante) {
-        const uploadForm = new FormData();
-        uploadForm.set('tipo', 'comprobante_cliente');
-        uploadForm.set('archivo', comprobante);
-        await subirArchivo(response.codigo_operacion, uploadForm);
+        try {
+          const uploadForm = new FormData();
+          uploadForm.set('tipo', 'comprobante_cliente');
+          uploadForm.set('archivo', comprobante);
+          await subirArchivo(response.codigo_operacion, uploadForm);
+          comprobanteCargado = true;
+        } catch (err) {
+          const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
+          advertencia = `El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`;
+        }
       }
-      onCreated(response, Boolean(comprobante));
+      onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -236,21 +244,24 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
               <h3>Pago de la operacion</h3>
               <p>Cantidad y metodo usado para pagar.</p>
             </div>
-            <div className="payment-currency-picker" title="Moneda de pago">
+          </header>
+          <div className="form-grid payment-grid">
+            <label className="payment-amount-field">
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
+            </label>
+            <label className="payment-currency-field">
+              Moneda
+              <span className="payment-currency-picker" title="Moneda de pago">
               <CurrencySelect
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
                 currencies={['BRL', 'USD', 'EUR', 'UYU']}
               />
-            </div>
-          </header>
-          <div className="form-grid payment-grid">
-            <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
+              </span>
             </label>
-            <label>
+            <label className="payment-method-field">
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
@@ -262,7 +273,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
             </label>
-            <label>
+            <label className="payment-bonus-field">
               Cupon o bono
               <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>

@@ -441,7 +441,11 @@ export function App() {
     setQuickCreateOpen(false);
   }
 
-  async function finalizarCreacionPedido(pedido: PedidoDetalle, pagoConfirmado: boolean) {
+  async function finalizarCreacionPedido(
+    pedido: PedidoDetalle,
+    pagoConfirmado: boolean,
+    advertencia?: string,
+  ) {
     if (pagoConfirmado) {
       try {
         const actualizado = await actualizarEstado(
@@ -466,6 +470,7 @@ export function App() {
     setAlcancePedidos('mis');
     setVista('bandeja');
     void cargarPedidos();
+    if (advertencia) setError(advertencia);
   }
 
   async function copiarPago(value?: string | null) {

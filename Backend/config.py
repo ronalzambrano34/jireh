@@ -2,6 +2,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 import os
+import re
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
@@ -15,7 +16,22 @@ STORAGE_DIR = Path(
     )
 )
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+
+def _normalizar_url_supabase(value: str | None) -> str:
+    raw = (value or "").strip()
+    getenv_match = re.fullmatch(
+        r"""os\.getenv\(\s*["'](https?://[^"']+)["']\s*\)""",
+        raw
+    )
+    if getenv_match:
+        raw = getenv_match.group(1)
+
+    return raw.strip("\"'").rstrip("/")
+
+
+SUPABASE_URL = _normalizar_url_supabase(
+    os.getenv("SUPABASE_URL")
+)
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_STORAGE_BUCKET = os.getenv(
     "SUPABASE_STORAGE_BUCKET",

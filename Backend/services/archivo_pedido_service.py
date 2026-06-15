@@ -32,6 +32,31 @@ from Backend.services.pedido_service import validar_bloqueo_pedido
 _supabase_bucket_ready = False
 
 
+def _detalle_error_supabase(response: requests.Response):
+    try:
+        data = response.json()
+    except ValueError:
+        return response.text.strip()[:300]
+
+    return (
+        data.get("message")
+        or data.get("error")
+        or str(data)
+    )
+
+
+def _validar_configuracion_supabase():
+    if not SUPABASE_URL.startswith(("http://", "https://")):
+        raise Exception(
+            "SUPABASE_URL no es valida. Debe contener la URL https://... del proyecto"
+        )
+
+    if not SUPABASE_SERVICE_ROLE_KEY:
+        raise Exception(
+            "SUPABASE_SERVICE_ROLE_KEY no esta configurada"
+        )
+
+
 def _leer_upload(archivo: UploadFile):
     contenido = bytearray()
 
@@ -54,6 +79,7 @@ def _asegurar_bucket_supabase():
     if _supabase_bucket_ready:
         return
 
+    _validar_configuracion_supabase()
     bucket = quote(
         SUPABASE_STORAGE_BUCKET,
         safe=""
@@ -63,34 +89,48 @@ def _asegurar_bucket_supabase():
         "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
         "Content-Type": "application/json",
     }
-    consulta = requests.get(
-        f"{SUPABASE_URL}/storage/v1/bucket/{bucket}",
-        headers=headers,
-        timeout=15,
-    )
+    try:
+        consulta = requests.get(
+            f"{SUPABASE_URL}/storage/v1/bucket/{bucket}",
+            headers=headers,
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        raise Exception(
+            "No se pudo conectar con Supabase Storage"
+        ) from exc
+
     if consulta.status_code == 200:
         _supabase_bucket_ready = True
         return
     if consulta.status_code not in {400, 404}:
         raise Exception(
-            "No se pudo consultar el almacenamiento de comprobantes"
+            "No se pudo consultar Supabase Storage: "
+            + _detalle_error_supabase(consulta)
         )
 
-    response = requests.post(
-        f"{SUPABASE_URL}/storage/v1/bucket",
-        headers=headers,
-        json={
-            "id": SUPABASE_STORAGE_BUCKET,
-            "name": SUPABASE_STORAGE_BUCKET,
-            "public": True,
-            "file_size_limit": UPLOAD_MAX_BYTES,
-            "allowed_mime_types": sorted(UPLOAD_ALLOWED_MIME_TYPES),
-        },
-        timeout=15,
-    )
+    try:
+        response = requests.post(
+            f"{SUPABASE_URL}/storage/v1/bucket",
+            headers=headers,
+            json={
+                "id": SUPABASE_STORAGE_BUCKET,
+                "name": SUPABASE_STORAGE_BUCKET,
+                "public": True,
+                "file_size_limit": UPLOAD_MAX_BYTES,
+                "allowed_mime_types": sorted(UPLOAD_ALLOWED_MIME_TYPES),
+            },
+            timeout=15,
+        )
+    except requests.RequestException as exc:
+        raise Exception(
+            "No se pudo conectar con Supabase Storage"
+        ) from exc
+
     if response.status_code not in {200, 201}:
         raise Exception(
-            "No se pudo preparar el almacenamiento de comprobantes"
+            "No se pudo preparar Supabase Storage: "
+            + _detalle_error_supabase(response)
         )
 
     _supabase_bucket_ready = True
@@ -110,20 +150,27 @@ def _guardar_upload_supabase(
         SUPABASE_STORAGE_BUCKET,
         safe=""
     )
-    response = requests.post(
-        f"{SUPABASE_URL}/storage/v1/object/{bucket}/{ruta}",
-        headers={
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            "Content-Type": content_type,
-            "x-upsert": "false",
-        },
-        data=contenido,
-        timeout=30,
-    )
+    try:
+        response = requests.post(
+            f"{SUPABASE_URL}/storage/v1/object/{bucket}/{ruta}",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": content_type,
+                "x-upsert": "false",
+            },
+            data=contenido,
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        raise Exception(
+            "No se pudo conectar con Supabase Storage"
+        ) from exc
+
     if response.status_code not in {200, 201}:
         raise Exception(
-            "No se pudo guardar el comprobante"
+            "No se pudo guardar el comprobante en Supabase: "
+            + _detalle_error_supabase(response)
         )
 
     return (

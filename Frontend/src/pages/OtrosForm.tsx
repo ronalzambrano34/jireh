@@ -19,7 +19,7 @@ function telefonoCubaCompleto(value: string) {
   return value.replace(/\D/g, '').length > 2;
 }
 
-export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void }) {
+export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void }) {
   const [form, setForm] = useState({
     monto_pago: '',
     moneda_pago: 'BRL',
@@ -154,19 +154,35 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
           : null,
         observaciones: form.observaciones.trim(),
       });
+      const adjuntosFallidos: string[] = [];
+      let comprobanteCargado = false;
       if (documentoFile) {
-        const uploadForm = new FormData();
-        uploadForm.set('tipo', 'documento_identidad');
-        uploadForm.set('archivo', documentoFile);
-        await subirArchivo(response.codigo_operacion, uploadForm);
+        try {
+          const uploadForm = new FormData();
+          uploadForm.set('tipo', 'documento_identidad');
+          uploadForm.set('archivo', documentoFile);
+          await subirArchivo(response.codigo_operacion, uploadForm);
+        } catch (err) {
+          const detalle = err instanceof Error ? err.message : 'No se pudo subir el documento';
+          adjuntosFallidos.push(`documento de identidad (${detalle})`);
+        }
       }
       if (comprobante) {
-        const uploadForm = new FormData();
-        uploadForm.set('tipo', 'comprobante_cliente');
-        uploadForm.set('archivo', comprobante);
-        await subirArchivo(response.codigo_operacion, uploadForm);
+        try {
+          const uploadForm = new FormData();
+          uploadForm.set('tipo', 'comprobante_cliente');
+          uploadForm.set('archivo', comprobante);
+          await subirArchivo(response.codigo_operacion, uploadForm);
+          comprobanteCargado = true;
+        } catch (err) {
+          const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
+          adjuntosFallidos.push(`comprobante (${detalle})`);
+        }
       }
-      onCreated(response, Boolean(comprobante));
+      const advertencia = adjuntosFallidos.length
+        ? `El pedido ${response.codigo_operacion} fue creado, pero no se adjunto: ${adjuntosFallidos.join(', ')}`
+        : undefined;
+      onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -282,21 +298,24 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
               <h3>Pago de la operacion</h3>
               <p>Cantidad y metodo usado para pagar.</p>
             </div>
-            <div className="payment-currency-picker" title="Moneda de pago">
+          </header>
+          <div className="form-grid payment-grid">
+            <label className="payment-amount-field">
+              Monto pago
+              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
+            </label>
+            <label className="payment-currency-field">
+              Moneda
+              <span className="payment-currency-picker" title="Moneda de pago">
               <CurrencySelect
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
                 currencies={['BRL', 'USD', 'EUR', 'UYU']}
               />
-            </div>
-          </header>
-          <div className="form-grid payment-grid">
-            <label>
-              Monto pago
-              <input value={form.monto_pago} onChange={(event) => update('monto_pago', event.target.value)} onFocus={(event) => event.currentTarget.select()} inputMode="decimal" placeholder="230" required />
+              </span>
             </label>
-            <label>
+            <label className="payment-method-field">
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}

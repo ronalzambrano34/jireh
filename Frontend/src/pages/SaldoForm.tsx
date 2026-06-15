@@ -27,7 +27,7 @@ function telefonoCubaPayload(value: string) {
 
 type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
-export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean) => void; initialData?: SaldoInitialData }) {
+export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: SaldoInitialData }) {
   const [form, setForm] = useState({
     moneda_pago: initialData?.moneda_pago ?? 'BRL',
     tipo_pago_id: '',
@@ -170,13 +170,21 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
         observaciones: form.observaciones.trim() || undefined,
       });
+      let comprobanteCargado = false;
+      let advertencia: string | undefined;
       if (comprobante) {
-        const uploadForm = new FormData();
-        uploadForm.set('tipo', 'comprobante_cliente');
-        uploadForm.set('archivo', comprobante);
-        await subirArchivo(response.codigo_operacion, uploadForm);
+        try {
+          const uploadForm = new FormData();
+          uploadForm.set('tipo', 'comprobante_cliente');
+          uploadForm.set('archivo', comprobante);
+          await subirArchivo(response.codigo_operacion, uploadForm);
+          comprobanteCargado = true;
+        } catch (err) {
+          const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
+          advertencia = `El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`;
+        }
       }
-      onCreated(response, Boolean(comprobante));
+      onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -241,17 +249,9 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
               <h3>Pago y paquete</h3>
               <p>Metodo y paquete activo para la recarga.</p>
             </div>
-            <div className="payment-currency-picker" title="Moneda de pago">
-              <CurrencySelect
-                value={form.moneda_pago}
-                onChange={(value) => update('moneda_pago', value)}
-                ariaLabel="Moneda de pago"
-                currencies={['BRL', 'USD', 'EUR', 'UYU']}
-              />
-            </div>
           </header>
           <div className="form-grid payment-grid">
-            <label>
+            <label className="payment-amount-field">
               Paquete de saldo
               <FloatingSelect
                 value={form.paquete_saldo_id}
@@ -263,7 +263,18 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 align="left"
               />
             </label>
-            <label>
+            <label className="payment-currency-field">
+              Moneda
+              <span className="payment-currency-picker" title="Moneda de pago">
+                <CurrencySelect
+                  value={form.moneda_pago}
+                  onChange={(value) => update('moneda_pago', value)}
+                  ariaLabel="Moneda de pago"
+                  currencies={['BRL', 'USD', 'EUR', 'UYU']}
+                />
+              </span>
+            </label>
+            <label className="payment-method-field">
               Metodo de pago
               <MetodoPagoSelect
                 value={form.tipo_pago_id}
@@ -275,7 +286,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                 emptyLabel={`Sin metodos para ${form.moneda_pago}`}
               />
             </label>
-            <label>
+            <label className="payment-bonus-field">
               Cupon o bono
               <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>
