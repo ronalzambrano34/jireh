@@ -94,7 +94,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .app-toast-stack {
-  top: calc(88px + env(safe-area-inset-top));
+  top: calc(18px + env(safe-area-inset-top));
   gap: 8px;
 }
 
@@ -246,9 +246,9 @@
 @media (max-width: 560px) {
 
   :root[data-theme="dark-sidebar"] .app-toast-stack {
-    top: calc(70px + env(safe-area-inset-top));
-    right: 10px;
-    width: calc(100vw - 20px);
+    top: calc(12px + env(safe-area-inset-top));
+    right: 14px;
+    width: auto;
   }
 
   :root[data-theme="dark-sidebar"] .pwa-install-prompt {
@@ -261,7 +261,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .logo-bounce-loader img,
-.button-spinner {
+.button-spinner,
+.app-toast,
+.copy-toast {
     animation: none;
   }
 }

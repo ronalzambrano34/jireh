@@ -1760,8 +1760,8 @@
 .app-toast-stack {
   position: fixed;
   right: 20px;
-  top: calc(76px + env(safe-area-inset-top));
-  z-index: 120;
+  top: calc(18px + env(safe-area-inset-top));
+  z-index: 1400;
   width: min(360px, calc(100vw - 28px));
   display: grid;
   gap: 10px;
@@ -1787,6 +1787,7 @@
   font-weight: 850;
   pointer-events: auto;
   overflow: hidden;
+  animation: toast-slide-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .app-toast.error {
@@ -1823,7 +1824,7 @@
   left: 50%;
   bottom: calc(24px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  z-index: 120;
+  z-index: 1400;
   width: max-content;
   max-width: calc(100vw - 28px);
 }
@@ -1873,8 +1874,20 @@
   .app-toast-stack {
     left: 14px;
     right: 14px;
-    top: calc(84px + env(safe-area-inset-top));
+    top: calc(12px + env(safe-area-inset-top));
     width: auto;
+  }
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(100% + 28px));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
