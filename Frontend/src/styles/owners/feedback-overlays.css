@@ -8,28 +8,19 @@
   min-height: 46px;
 }
 
-:root[data-theme="dark-sidebar"] .payment-instructions-summary,
-:root[data-theme="dark-sidebar"] .payment-data-grid > div,
-:root[data-theme="dark-sidebar"] .payment-qr-placeholder {
+:root[data-theme="dark-sidebar"] .payment-data-grid > div {
   color: var(--ui-text);
   background: var(--ui-surface-raised);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
 }
 
-:root[data-theme="dark-sidebar"] .payment-instructions-summary strong,
 :root[data-theme="dark-sidebar"] .payment-data-grid strong {
   color: var(--ui-text);
 }
 
-:root[data-theme="dark-sidebar"] .payment-instructions-summary small,
-:root[data-theme="dark-sidebar"] .payment-data-grid span,
-:root[data-theme="dark-sidebar"] .payment-qr-placeholder small {
+:root[data-theme="dark-sidebar"] .payment-data-grid span {
   color: var(--ui-text-muted);
-}
-
-:root[data-theme="dark-sidebar"] .payment-qr-placeholder {
-  border-style: dashed;
 }
 
 :root[data-theme="dark-sidebar"] .notice {

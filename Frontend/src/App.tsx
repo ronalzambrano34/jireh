@@ -1,5 +1,5 @@
 import { lazy, type ChangeEvent, type FormEvent, type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ClipboardList, Copy, Home, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Sparkles, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, CheckCircle2, ClipboardList, Copy, Home, LogOut, Menu, MessageCircle, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Sparkles, Upload, UserCircle, UsersRound, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -515,6 +515,14 @@ export function App() {
 
   function abrirMensajeGrupoPedido() {
     abrirUrlPago(pedidoPagoModal?.whatsapp_grupo_pedidos_url);
+  }
+
+  function verPedidoCreado() {
+    if (!pedidoPagoModal) return;
+    setSeleccionado(pedidoPagoModal.codigo_operacion);
+    setPedidoPagoModal(null);
+    setVista('bandeja');
+    void cargarPedidos();
   }
 
   function continuarPedidoConfirmado() {
@@ -1133,46 +1141,66 @@ export function App() {
       )}
 
       {pedidoPagoModal && (
-        <Modal title="Pedido creado" subtitle={`${pedidoPagoModal.codigo_operacion} · pendiente de pago`} onClose={() => setPedidoPagoModal(null)}>
-          <div className="payment-instructions-modal">
-            <section className="payment-instructions-summary">
-              <span className="status pendiente_pago">Pendiente pago</span>
-              <strong>{pedidoPagoModal.monto_pago} {pedidoPagoModal.moneda_pago}</strong>
-              <small>El pedido ya fue creado. Se confirmara el pago cuando se suba el comprobante.</small>
+        <Modal
+          title="Pedido creado"
+          subtitle="La operacion fue registrada correctamente"
+          onClose={() => setPedidoPagoModal(null)}
+          className="order-created-modal"
+        >
+          <div className="payment-instructions-modal order-created-view">
+            <section className="order-created-hero">
+              <span className="order-created-success-icon" aria-hidden="true">
+                <CheckCircle2 size={28} />
+              </span>
+              <div className="order-created-hero-copy">
+                <span className="order-created-eyebrow">Operacion registrada</span>
+                <strong>{pedidoPagoModal.monto_pago} {pedidoPagoModal.moneda_pago}</strong>
+                <small>Codigo {pedidoPagoModal.codigo_operacion}</small>
+              </div>
+              <span className="status pendiente_pago">Pendiente de pago</span>
             </section>
-            {pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') && (
-              <section className="payment-qr-placeholder" aria-label="QR Pix pendiente">
-                <strong>QR Pix</strong>
-                <small>Aun sin definir</small>
-              </section>
-            )}
-            <div className="payment-data-grid">
-              <div>
-                <span>Metodo</span>
-                <strong>{pedidoPagoModal.datos_pago?.metodo_pago ?? 'Por confirmar'}</strong>
+
+            <section className="order-created-section" aria-labelledby="order-created-payment-title">
+              <header className="order-created-section-heading">
+                <div>
+                  <span className="order-created-section-icon"><WalletCards size={18} /></span>
+                  <div>
+                    <h3 id="order-created-payment-title">Datos para el pago</h3>
+                    <p>Comparte estos datos con el cliente.</p>
+                  </div>
+                </div>
+              </header>
+              <div className="payment-data-grid">
+                <div className="payment-data-item">
+                  <span>Metodo</span>
+                  <strong>{pedidoPagoModal.datos_pago?.metodo_pago ?? 'Por confirmar'}</strong>
+                </div>
+                <div className="payment-data-item">
+                  <span>{pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') ? 'Llave Pix' : 'Cuenta'}</span>
+                  <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.cuenta_pago)}>
+                    <strong>{pedidoPagoModal.datos_pago?.cuenta_pago ?? 'Por confirmar'}</strong>
+                    <Copy size={16} />
+                  </button>
+                </div>
+                <div className="payment-data-item">
+                  <span>Titular</span>
+                  <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.titular_pago)}>
+                    <strong>{pedidoPagoModal.datos_pago?.titular_pago ?? 'El Jireh'}</strong>
+                    <Copy size={16} />
+                  </button>
+                </div>
               </div>
-              <div>
-                <span>{pedidoPagoModal.datos_pago?.metodo_pago?.toLowerCase().includes('pix') ? 'Llave Pix' : 'Cuenta'}</span>
-                <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.cuenta_pago)}>
-                  <strong>{pedidoPagoModal.datos_pago?.cuenta_pago ?? 'Por confirmar'}</strong>
-                  <Copy size={16} />
-                </button>
-              </div>
-              <div>
-                <span>Titular</span>
-                <button className="copy-field-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.datos_pago?.titular_pago)}>
-                  <strong>{pedidoPagoModal.datos_pago?.titular_pago ?? 'El Jireh'}</strong>
-                  <Copy size={16} />
-                </button>
-              </div>
-            </div>
+            </section>
+
             <section className="payment-already-paid">
+              <span className="payment-already-paid-icon"><Upload size={20} /></span>
               <div>
-                <strong>Si el cliente ya pago</strong>
-                <small>Sube el comprobante y confirma el pago sin salir de esta vista.</small>
+                <strong>¿El cliente ya pagó?</strong>
+                <small>Sube el comprobante para confirmar el pago inmediatamente.</small>
               </div>
               <button className="primary-button" type="button" onClick={seleccionarComprobantePedidoCreado} disabled={confirmandoPagoCreado}>
-                {confirmandoPagoCreado ? <RefreshCw className="button-spinner" size={16} /> : <Upload size={16} />} {confirmandoPagoCreado ? 'Subiendo...' : 'Subir comprobante y confirmar'}
+                {confirmandoPagoCreado ? <RefreshCw className="button-spinner" size={16} /> : <Upload size={16} />}
+                {confirmandoPagoCreado ? 'Subiendo...' : 'Subir comprobante'}
               </button>
               <input
                 ref={comprobantePedidoCreadoInputRef}
@@ -1182,17 +1210,25 @@ export function App() {
                 onChange={handleComprobantePedidoCreado}
               />
             </section>
-            <div className="message-actions payment-modal-actions">
-              <button className="ghost-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.mensaje_pago_cliente)}>
-                <Copy size={16} /> Copiar mensaje
-              </button>
-              <button className="primary-button" type="button" onClick={() => abrirUrlPago(pedidoPagoModal.whatsapp_pago_url)} disabled={!pedidoPagoModal.whatsapp_pago_url}>
-                Enviar al cliente
-              </button>
-              <button className="primary-button" type="button" onClick={abrirMensajeGrupoPedido} disabled={!pedidoPagoModal.whatsapp_grupo_pedidos_url}>
-                Enviar al grupo
-              </button>
-            </div>
+
+            <section className="order-created-actions" aria-label="Acciones del pedido">
+              <div className="order-created-share-actions">
+                <button className="primary-button" type="button" onClick={() => abrirUrlPago(pedidoPagoModal.whatsapp_pago_url)} disabled={!pedidoPagoModal.whatsapp_pago_url}>
+                  <MessageCircle size={17} /> Enviar al cliente
+                </button>
+                <button className="ghost-button" type="button" onClick={abrirMensajeGrupoPedido} disabled={!pedidoPagoModal.whatsapp_grupo_pedidos_url}>
+                  <UsersRound size={17} /> Enviar al grupo
+                </button>
+              </div>
+              <div className="order-created-secondary-actions">
+                <button className="ghost-button" type="button" onClick={() => void copiarPago(pedidoPagoModal.mensaje_pago_cliente)}>
+                  <Copy size={16} /> Copiar mensaje
+                </button>
+                <button className="ghost-button" type="button" onClick={verPedidoCreado}>
+                  <ClipboardList size={16} /> Ver pedido
+                </button>
+              </div>
+            </section>
           </div>
         </Modal>
       )}

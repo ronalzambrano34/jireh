@@ -24,10 +24,10 @@ const estados = [
 
 const detalleOrden: Record<string, string[]> = {
   transferencia: ['numero_tarjeta', 'telefono_destinatario', 'monto_cup'],
-  efectivo: ['documento_identidad_url', 'telefono_destinatario', 'monto_cup', 'punto_recogida_id'],
+  efectivo: ['documento_identidad_url', 'telefono_destinatario', 'monto_cup', 'punto_recogida'],
   saldo: ['telefono_destinatario', 'saldo_cup'],
   divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'monto_divisa'],
-  otros: ['documento_identidad_url', 'numero_tarjeta', 'telefono_destinatario', 'punto_recogida_id', 'informacion_operacion'],
+  otros: ['documento_identidad_url', 'numero_tarjeta', 'telefono_destinatario', 'punto_recogida', 'informacion_operacion'],
 };
 
 const detalleMontoKeys = ['monto_cup', 'monto_divisa', 'saldo_cup'];
@@ -75,6 +75,7 @@ const detalleLabels: Record<string, string> = {
   monto_cup: 'Monto CUP',
   documento_identidad_url: 'Foto documento',
   punto_recogida_id: 'Punto de recogida',
+  punto_recogida: 'Punto de recogida',
   saldo_cup: 'Saldo CUP',
   tipo_tarjeta: 'Tipo tarjeta',
   monto_divisa: 'Monto divisa',
@@ -110,7 +111,13 @@ function detalleEntries(pedido: PedidoDetalle) {
       return [key, detalle[key]] as [string, unknown];
     });
   const extras = Object.entries(detalle)
-    .filter(([key, value]) => !presentes.has(key) && value !== null && value !== undefined && value !== '');
+    .filter(([key, value]) => (
+      !presentes.has(key)
+      && !(key === 'punto_recogida_id' && detalle.punto_recogida)
+      && value !== null
+      && value !== undefined
+      && value !== ''
+    ));
 
   const merged = [...ordered, ...extras];
   const tarjeta = merged.find(([key]) => key === 'numero_tarjeta');
@@ -150,6 +157,18 @@ function mostrarValor(value: unknown) {
 
 function mostrarDetalleValor(key: string, value: unknown) {
   if (key === 'numero_tarjeta') return formatearNumeroTarjeta(mostrarValor(value));
+  if (key === 'punto_recogida' && value && typeof value === 'object') {
+    const punto = value as {
+      nombre?: string;
+      provincia_nombre?: string | null;
+      direccion?: string;
+    };
+    return [
+      punto.nombre,
+      punto.provincia_nombre,
+      punto.direccion,
+    ].filter(Boolean).join(' · ');
+  }
   return mostrarValor(value);
 }
 

@@ -10,6 +10,8 @@ from Backend.models.pedido_transferencia import PedidoTransferencia
 from Backend.models.pedido_otros import PedidoOtros
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.operador import Operador
+from Backend.models.punto_recogida import PuntoRecogida
+from Backend.models.provincia_servicio import ProvinciaServicio
 
 from Backend.models.pedido_historial import (PedidoHistorial)
 from Backend.services.pedido_estado import (PedidoEstado)
@@ -44,6 +46,21 @@ ESTADOS_PERMITIDOS = (
         ESTADOS_ALIASES
     )
 )
+
+
+def _punto_recogida_data(
+    punto: PuntoRecogida | None
+):
+    if not punto:
+        return None
+
+    return {
+        "id": punto.id,
+        "nombre": punto.nombre,
+        "direccion": punto.direccion,
+        "telefono": punto.telefono,
+        "provincia_nombre": punto.provincia_nombre,
+    }
 
 ESTADOS_TERMINALES = {
     PedidoEstado.COMPLETADO,
@@ -166,6 +183,38 @@ def _operadores_nombre_ids(
             .all()
         )
     }
+
+
+def _puntos_recogida_map(
+    db: Session,
+    punto_ids
+):
+    ids = {
+        punto_id
+        for punto_id in punto_ids
+        if punto_id
+    }
+    if not ids:
+        return {}
+
+    return {
+        punto.id: _punto_recogida_data(punto)
+        for punto in (
+            db.query(PuntoRecogida)
+            .filter(PuntoRecogida.id.in_(ids))
+            .all()
+        )
+    }
+
+
+def _punto_recogida_dict(
+    db: Session,
+    punto_recogida_id: int | None
+):
+    return _puntos_recogida_map(
+        db,
+        (punto_recogida_id,)
+    ).get(punto_recogida_id)
 
 
 def _redireccion_dict(
@@ -353,6 +402,10 @@ def detalle_efectivo(
         "monto_cup": detalle.monto_cup,
         "telefono_destinatario": detalle.telefono_destinatario,
         "punto_recogida_id": detalle.punto_recogida_id,
+        "punto_recogida": _punto_recogida_dict(
+            db,
+            detalle.punto_recogida_id
+        ),
         "documento_identidad_url": detalle.documento_identidad_url,
     }
 
@@ -509,6 +562,10 @@ def detalle_otros(
         "punto_recogida_id": (
             detalle.punto_recogida_id if detalle else None
         ),
+        "punto_recogida": _punto_recogida_dict(
+            db,
+            detalle.punto_recogida_id if detalle else None
+        ),
         "documento_identidad_url": (
             detalle.documento_identidad_url if detalle else None
         ),
@@ -592,14 +649,22 @@ def _detalles_por_pedido_map(
         []
     )
     if otros_ids:
+        detalles_otros_lista = (
+            db.query(PedidoOtros)
+            .filter(PedidoOtros.pedido_id.in_(otros_ids))
+            .all()
+        )
         detalles_otros = {
             detalle.pedido_id: detalle
-            for detalle in (
-                db.query(PedidoOtros)
-                .filter(PedidoOtros.pedido_id.in_(otros_ids))
-                .all()
-            )
+            for detalle in detalles_otros_lista
         }
+        puntos_otros = _puntos_recogida_map(
+            db,
+            (
+                detalle.punto_recogida_id
+                for detalle in detalles_otros_lista
+            )
+        )
         pedidos_por_id = {
             pedido.id: pedido
             for pedido in pedidos
@@ -618,6 +683,10 @@ def _detalles_por_pedido_map(
                 ),
                 "punto_recogida_id": (
                     detalle.punto_recogida_id if detalle else None
+                ),
+                "punto_recogida": (
+                    puntos_otros.get(detalle.punto_recogida_id)
+                    if detalle else None
                 ),
                 "documento_identidad_url": (
                     detalle.documento_identidad_url if detalle else None
@@ -651,7 +720,7 @@ def _detalles_por_pedido_map(
         []
     )
     if efectivo_ids:
-        for detalle in (
+        detalles_efectivo = (
             db.query(
                 PedidoEfectivo
             )
@@ -661,11 +730,22 @@ def _detalles_por_pedido_map(
                 )
             )
             .all()
-        ):
+        )
+        puntos_efectivo = _puntos_recogida_map(
+            db,
+            (
+                detalle.punto_recogida_id
+                for detalle in detalles_efectivo
+            )
+        )
+        for detalle in detalles_efectivo:
             detalles[detalle.pedido_id] = {
                 "monto_cup": detalle.monto_cup,
                 "telefono_destinatario": detalle.telefono_destinatario,
                 "punto_recogida_id": detalle.punto_recogida_id,
+                "punto_recogida": puntos_efectivo.get(
+                    detalle.punto_recogida_id
+                ),
                 "documento_identidad_url": detalle.documento_identidad_url,
             }
 

@@ -210,15 +210,9 @@
 
 /* Light mode offer cards: softer gradients with clearer color */
 
-:root[data-theme="dark-sidebar"] .payment-instructions-summary,
-:root[data-theme="dark-sidebar"] .payment-data-grid > div,
-:root[data-theme="dark-sidebar"] .payment-qr-placeholder {
+:root[data-theme="dark-sidebar"] .payment-data-grid > div {
   border-color: var(--menu-line, var(--jireh-line));
   background: #070a12;
-  color: var(--menu-text, var(--jireh-ink));
-}
-
-:root[data-theme="dark-sidebar"] .payment-instructions-summary strong {
   color: var(--menu-text, var(--jireh-ink));
 }
 
