@@ -58,6 +58,7 @@ from Backend.routes.provincia_servicio import (router as provincia_servicio_rout
 from Backend.routes.sync import (router as sync_router)
 from Backend.routes.tasa_operativa import (router as tasa_operativa_router)
 
+from Backend.services.db_maintenance import ensure_carousel_columns
 from Backend.services.db_maintenance import ensure_runtime_columns
 from Backend.services.seed_admin import seed_admin_operador
 from Backend.services.seed_admin import seed_cliente_generico
@@ -91,6 +92,9 @@ if RUN_DB_BOOTSTRAP:
 
     _db = SessionLocal()
     try:
+        ensure_carousel_columns(
+            _db
+        )
         if RUN_DB_MAINTENANCE:
             ensure_runtime_columns(
                 _db

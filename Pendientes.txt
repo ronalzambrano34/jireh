@@ -2,3 +2,4 @@ PENDIENTES:
 //todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, 
 
 
+//todo los modals de editar que abren desde abajo, en Config Admin/ ...todos estan quedando debajo del panel de navegacion que hay abajo, aprobecha y haz una revision para ver quien mas puede estar pasando por esa situacion

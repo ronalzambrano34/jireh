@@ -339,6 +339,14 @@ def ensure_runtime_columns(
         "provincia_id INTEGER"
     )
 
+    ensure_carousel_columns(db)
+
+    ensure_runtime_indexes(
+        db
+    )
+
+
+def ensure_carousel_columns(db: Session):
     _add_column_if_missing(
         db,
         "promociones",
@@ -363,15 +371,12 @@ def ensure_runtime_columns(
         "orden",
         "orden INTEGER NOT NULL DEFAULT 0"
     )
-    db.execute(text(
-        "UPDATE promociones SET titulo = descripcion "
-        "WHERE titulo IS NULL OR titulo = ''"
-    ))
-    db.commit()
-
-    ensure_runtime_indexes(
-        db
-    )
+    if _get_columns(db, "promociones"):
+        db.execute(text(
+            "UPDATE promociones SET titulo = descripcion "
+            "WHERE titulo IS NULL OR titulo = ''"
+        ))
+        db.commit()
 
 
 def ensure_runtime_tables(
