@@ -1,2 +1,11 @@
 PENDIENTES:
 
+//todo corrige los bordes de los imputs ya que muchos imputs no tienen bordes y sus botones fusionados (codigo pais, pegar), si tienen bordes.
+
+//todo en nuevo pedido/saldo comprobante de pago no tiene margen top, otro detalle es que cuando agregas imagen al boton comprobante, no se previsualiza la imagen
+
+//todo que se pueda hacer navegacion entre las vistas, es decir que al dar atras, que no se cierre la pagina y para el caso que ya este en el home que tengas que dar 2 veces Atras, para poder cerrar el programa.
+
+//todo aun tenemos problemas para ver las fotos de los coprobantes guardados, es decir cuando creas la orden, y despues de guardar vas a los detalles de pedidos y no se ve la foto, cuando la abres, da  error y dice "not found"
+
+//todo los pedidos despues que se crean y estan en estado pago confirmado, no veo ningun boton para continuar el flujo

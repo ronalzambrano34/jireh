@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Palette, Percent, ShieldCheck } from 'lucide-react';
+import { ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Palette, Percent, ShieldCheck, UserCircle } from 'lucide-react';
 import { apiAssetUrl } from '../api/client';
 import { PasswordField } from '../components/PasswordField';
 import { UiSwitch } from '../components/UiSwitch';
@@ -54,19 +54,27 @@ export function ProfilePage(props: {
               <input type="file" accept="image/*" disabled={props.photoSaving} onChange={(event) => { const file = event.target.files?.[0]; if (file) props.onPhoto(file); event.currentTarget.value = ''; }} />
             </label>
           </div>
-          <div><h2>{props.operador.nombre}</h2><p>{props.operador.telefono}</p></div>
-        </div>
-        <div className="profile-hero-meta">
-          <span className="profile-hero-identity">
-            <span>Codigo: <strong>{props.operador.codigo_operador}</strong></span>
-            <span>Rol: <strong>{props.operador.rol}</strong></span>
-          </span>
-          <button className="icon-button" onClick={props.onCopyCode} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={18} /></button>
+          <div className="profile-hero-copy">
+            <span className="profile-eyebrow">Perfil del operador</span>
+            <h2>{props.operador.nombre}</h2>
+            <p>Administra tus datos, seguridad, apariencia y accesos personales.</p>
+            <div className="profile-hero-meta">
+              <span><small>Telefono</small><strong>{props.operador.telefono}</strong></span>
+              <span><small>Rol</small><strong>{props.operador.rol}</strong></span>
+              <span className="profile-code-chip"><small>Codigo</small><strong>{props.operador.codigo_operador}</strong></span>
+              <button className="profile-copy-button" onClick={props.onCopyCode} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={17} /></button>
+            </div>
+          </div>
+          <div className="profile-hero-mark" aria-hidden="true"><UserCircle size={104} strokeWidth={1.05} /></div>
         </div>
       </div>
 
-      <div className="profile-section">
-        <h3>Mi cuenta</h3>
+      <div className="profile-content-grid">
+      <section className="profile-section profile-account-section">
+        <header className="profile-section-heading">
+          <span className="profile-section-icon"><UserCircle size={21} /></span>
+          <div><span className="profile-eyebrow">Identidad</span><h3>Mi cuenta</h3><small>Datos visibles y preferencias personales.</small></div>
+        </header>
         <button className={option('editar')} type="button" onClick={() => props.onSectionChange('editar')} aria-expanded={props.section === 'editar'}><Edit3 size={22} /><span>Modificar perfil</span><ChevronDown className={props.section === 'editar' ? 'chevron-open' : ''} size={18} /></button>
         {props.section === 'editar' && <form className="profile-inline-panel profile-form" onSubmit={props.onSaveProfile}>
           <label><span>Nombre visible</span><input value={props.nombre} onChange={(event) => props.onNombreChange(event.target.value)} autoComplete="name" /></label>
@@ -85,10 +93,13 @@ export function ProfilePage(props: {
             <small>{props.theme === 'light' ? 'Tema claro' : 'Oscuro Jireh predeterminado'}</small>
           </div>
         </label>
-      </div>
+      </section>
 
-      <div className="profile-section">
-        <h3>Seguridad</h3>
+      <section className="profile-section">
+        <header className="profile-section-heading">
+          <span className="profile-section-icon"><ShieldCheck size={21} /></span>
+          <div><span className="profile-eyebrow">Proteccion</span><h3>Seguridad</h3><small>Actualiza tus credenciales de acceso.</small></div>
+        </header>
         <button className={option('password')} type="button" onClick={() => props.onSectionChange('password')} aria-expanded={props.section === 'password'}><KeyRound size={22} /><span>Cambiar contraseña</span><ChevronDown className={props.section === 'password' ? 'chevron-open' : ''} size={18} /></button>
         {props.section === 'password' && <form className="profile-inline-panel profile-form" onSubmit={props.onSavePassword}>
           <label><span>Contraseña actual</span><PasswordField value={props.password.actual} onChange={(event) => props.onPasswordChange({ ...props.password, actual: event.target.value })} autoComplete="current-password" /></label>
@@ -96,16 +107,20 @@ export function ProfilePage(props: {
           <label><span>Confirmar nueva</span><PasswordField value={props.password.confirmar} onChange={(event) => props.onPasswordChange({ ...props.password, confirmar: event.target.value })} autoComplete="new-password" /></label>
           <button className="primary-action" type="submit" disabled={props.saving}>{props.saving ? 'Actualizando...' : 'Cambiar contraseña'}</button>
         </form>}
-      </div>
+      </section>
 
-      <div className="profile-section">
-        <h3>Soporte</h3>
+      <section className="profile-section">
+        <header className="profile-section-heading">
+          <span className="profile-section-icon"><HelpCircle size={21} /></span>
+          <div><span className="profile-eyebrow">Asistencia</span><h3>Soporte</h3><small>Contactos directos para resolver incidencias.</small></div>
+        </header>
         <button className={option('ayuda')} type="button" onClick={() => props.onSectionChange('ayuda')} aria-expanded={props.section === 'ayuda'}><HelpCircle size={22} /><span>Ayuda para operar</span><ChevronDown className={props.section === 'ayuda' ? 'chevron-open' : ''} size={18} /></button>
         {props.section === 'ayuda' && <div className="profile-support-options"><div className="profile-support-panel">
           <a className="support-whatsapp-link support-whatsapp-link-br" href="https://wa.me/554891233191?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/554891233191?text=Ayuda'); }} target="_blank" rel="noreferrer"><WhatsAppIcon /><span><strong>Brasil</strong><small>+55 48 9123-3191</small></span></a>
           <a className="support-whatsapp-link support-whatsapp-link-uy" href="https://wa.me/59894207862?text=Ayuda" onClick={(event) => { event.preventDefault(); abrirWhatsAppUrl('https://wa.me/59894207862?text=Ayuda'); }} target="_blank" rel="noreferrer"><WhatsAppIcon /><span><strong>Uruguay</strong><small>+598 94 207 862</small></span></a>
         </div></div>}
         <button className="profile-option danger profile-logout-option" type="button" onClick={props.onLogout}><LogOut size={22} /><span>Salir</span></button>
+      </section>
       </div>
     </section>
   );
