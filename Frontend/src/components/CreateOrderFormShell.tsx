@@ -1,4 +1,5 @@
 import { ImagePlus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type { ChangeEventHandler, FormEventHandler, ReactNode } from 'react';
 import { DismissibleNotice } from './DismissibleNotice';
 import { PageLoader } from './PageLoader';
@@ -26,6 +27,19 @@ export function CreateOrderFormShell({
   onSubmit,
   onDismissError,
 }: CreateOrderFormShellProps) {
+  const [comprobantePreview, setComprobantePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!comprobante?.type.startsWith('image/')) {
+      setComprobantePreview(null);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(comprobante);
+    setComprobantePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [comprobante]);
+
   return (
     <form className="form-panel create-form-panel" onSubmit={onSubmit} noValidate>
       <div className="form-flow">{children}</div>
@@ -37,7 +51,11 @@ export function CreateOrderFormShell({
       <label className="payment-proof-field">
         <span>Comprobante de pago</span>
         <span className="document-upload-field">
-          <span className="document-preview"><ImagePlus size={24} /></span>
+          <span className="document-preview">
+            {comprobantePreview
+              ? <img src={comprobantePreview} alt="Vista previa del comprobante" />
+              : <ImagePlus size={24} />}
+          </span>
           <span>
             <strong>{comprobante?.name ?? 'Seleccionar comprobante'}</strong>
             <small>Opcional. Si lo adjuntas, el pago quedara confirmado al crear el pedido.</small>

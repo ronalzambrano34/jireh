@@ -149,6 +149,9 @@
 .input-action-row,
 .phone-input-row {
   align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--ui-border-strong);
+  background: var(--ui-surface);
 }
 
 .input-action-row > input,
@@ -156,7 +159,10 @@
   min-height: var(--ui-control-height);
   height: 100%;
   margin: 0;
+  border: 0;
   border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .input-action-row .field-action-button,
@@ -167,6 +173,8 @@
   height: 100%;
   align-self: stretch;
   margin: 0;
+  border: 0;
+  border-left: 1px solid var(--ui-border-strong);
   border-radius: 0;
 }
 
@@ -180,7 +188,12 @@
   min-height: var(--ui-control-height);
   height: 100%;
   margin: 0;
+  border: 0;
   border-radius: var(--ui-control-radius) 0 0 var(--ui-control-radius);
+}
+
+.phone-input-row > input {
+  border-left: 1px solid var(--ui-border-strong);
 }
 
 .phone-input-row-no-paste:not(.phone-input-row-with-actions) > input {

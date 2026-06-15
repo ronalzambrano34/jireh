@@ -50,6 +50,7 @@ const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
 const ERROR_TOAST_DURATION_MS = 5200;
 const PULL_REFRESH_THRESHOLD = 64;
+const EXIT_BACK_WINDOW_MS = 2000;
 
 function vistaGuardada(): AppView {
   if (typeof sessionStorage === 'undefined') return 'inicio';
@@ -165,6 +166,9 @@ export function App() {
   const pullStartRef = useRef<{ x: number; y: number } | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
   const [pullRefreshing, setPullRefreshing] = useState(false);
+  const historyViewRef = useRef<AppView>(vista);
+  const handlingPopStateRef = useRef(false);
+  const lastExitBackRef = useRef(0);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -507,6 +511,14 @@ export function App() {
     abrirUrlPago(pedidoPagoModal?.whatsapp_grupo_pedidos_url);
   }
 
+  function continuarPedidoConfirmado() {
+    if (!whatsappGrupoPendiente) return;
+    setSeleccionado(whatsappGrupoPendiente.codigo);
+    setWhatsappGrupoPendiente(null);
+    setVista('bandeja');
+    void cargarPedidos();
+  }
+
   async function confirmarPagoPedidoCreado(file: File) {
     if (!pedidoPagoModal || confirmandoPagoCreado) return;
     setConfirmandoPagoCreado(true);
@@ -608,6 +620,67 @@ export function App() {
 
   useEffect(() => {
     sessionStorage.setItem(VIEW_KEY, vista);
+  }, [vista]);
+
+  useEffect(() => {
+    const initialView = historyViewRef.current;
+    window.history.replaceState({ ...window.history.state, jirehExitGuard: true }, '');
+    window.history.pushState({ jirehView: initialView }, '');
+
+    function handlePopState(event: PopStateEvent) {
+      const state = event.state as { jirehView?: AppView; jirehExitGuard?: boolean } | null;
+      const historyView = state?.jirehView;
+
+      if (historyView && APP_VIEWS.has(historyView)) {
+        handlingPopStateRef.current = true;
+        historyViewRef.current = historyView;
+        setVista(historyView);
+        setMobileMenuOpen(false);
+        setQuickCreateOpen(false);
+        return;
+      }
+
+      if (!state?.jirehExitGuard) return;
+
+      if (historyViewRef.current !== 'inicio') {
+        lastExitBackRef.current = 0;
+        handlingPopStateRef.current = true;
+        historyViewRef.current = 'inicio';
+        window.history.pushState({ jirehView: 'inicio' }, '');
+        setVista('inicio');
+        setMobileMenuOpen(false);
+        setQuickCreateOpen(false);
+        return;
+      }
+
+      const now = Date.now();
+      if (now - lastExitBackRef.current <= EXIT_BACK_WINDOW_MS) {
+        window.history.back();
+        return;
+      }
+
+      lastExitBackRef.current = now;
+      window.history.pushState({ jirehView: 'inicio' }, '');
+      setCopyToast('Presiona Atras nuevamente para salir');
+      if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+      copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), EXIT_BACK_WINDOW_MS);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    historyViewRef.current = vista;
+    if (handlingPopStateRef.current) {
+      handlingPopStateRef.current = false;
+      return;
+    }
+
+    const currentState = window.history.state as { jirehView?: AppView } | null;
+    if (currentState?.jirehView !== vista) {
+      window.history.pushState({ jirehView: vista }, '');
+    }
   }, [vista]);
 
   useEffect(() => {
@@ -1154,6 +1227,9 @@ export function App() {
             </button>
             <button className="ghost-button" type="button" onClick={() => setWhatsappGrupoPendiente(null)}>
               Enviar despues
+            </button>
+            <button className="primary-button" type="button" onClick={continuarPedidoConfirmado}>
+              Continuar pedido
             </button>
           </div>
         </Modal>

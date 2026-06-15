@@ -15,6 +15,22 @@ STORAGE_DIR = Path(
     )
 )
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_STORAGE_BUCKET = os.getenv(
+    "SUPABASE_STORAGE_BUCKET",
+    "comprobantes"
+)
+USE_SUPABASE_STORAGE = (
+    os.getenv(
+        "USE_SUPABASE_STORAGE",
+        "true" if IS_VERCEL else "false"
+    ).strip().lower()
+    in {"1", "true", "yes", "si"}
+    and bool(SUPABASE_URL)
+    and bool(SUPABASE_SERVICE_ROLE_KEY)
+)
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL"
 )
