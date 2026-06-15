@@ -1,5 +1,5 @@
 import { lazy, type ChangeEvent, type FormEvent, type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, ClipboardList, Copy, Home, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
+import { Banknote, BarChart3, BriefcaseBusiness, ClipboardList, Copy, Home, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Sparkles, Upload, UserCircle, WalletCards, WifiOff, X } from 'lucide-react';
 import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -17,6 +17,7 @@ const PedidoDetallePanel = lazy(() => import('./pages/PedidoDetallePanel').then(
 const ReportesPage = lazy(() => import('./pages/ReportesPage').then((module) => ({ default: module.ReportesPage })));
 const AdminCatalogosPage = lazy(() => import('./pages/AdminCatalogosPage').then((module) => ({ default: module.AdminCatalogosPage })));
 const InicioPage = lazy(() => import('./pages/InicioPage').then((module) => ({ default: module.InicioPage })));
+const HomeTestPage = lazy(() => import('./pages/HomeTestPage').then((module) => ({ default: module.HomeTestPage })));
 const SetupInicialPage = lazy(() => import('./pages/SetupInicialPage').then((module) => ({ default: module.SetupInicialPage })));
 const CreateOrderPage = lazy(() => import('./pages/CreateOrderPage').then((module) => ({ default: module.CreateOrderPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
@@ -36,7 +37,7 @@ type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 type AppToastKind = 'success' | 'error';
-type AppView = 'inicio' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'perfil';
+type AppView = 'inicio' | 'home-test' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'perfil';
 type PendingAuthAction =
   | { type: 'crear'; servicio: ServicioCrear; draft: CrearPedidoDraft }
   | { type: 'rastrear'; codigo: string }
@@ -44,7 +45,7 @@ type PendingAuthAction =
 
 const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
-const APP_VIEWS = new Set<AppView>(['inicio', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'perfil']);
+const APP_VIEWS = new Set<AppView>(['inicio', 'home-test', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'perfil']);
 const estadosBandeja = estados.filter((item) => item.value);
 const INFO_TOAST_DURATION_MS = 3800;
 const PROFILE_TOAST_DURATION_MS = 5600;
@@ -961,6 +962,7 @@ export function App() {
         </div>
         <nav className="nav-stack">
           <button className={`ui-nav-item ${vista === 'inicio' ? 'active' : ''}`} onClick={() => navegar('inicio')}><Home size={18} /> Inicio</button>
+          <button className={`ui-nav-item ${vista === 'home-test' ? 'active' : ''}`} onClick={() => navegar('home-test')}><Sparkles size={18} /> Home Test</button>
           <button className={`ui-nav-item ${vista === 'bandeja' ? 'active' : ''}`} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
           <button className={`ui-nav-item ${vista === 'reportes' ? 'active' : ''}`} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
           <button className={`ui-nav-item ${vista === 'admin' ? 'active' : ''}`} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
@@ -1003,8 +1005,8 @@ export function App() {
             <span>EL JIREH</span>
           </button>
           <div className="toolbar-title">
-            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'setup' ? 'Configuracion inicial' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
-            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
+            <h1>{vista === 'inicio' ? 'Inicio' : vista === 'home-test' ? 'Home Test' : vista === 'crear' ? 'Nuevo pedido' : vista === 'reportes' ? 'Reportes' : vista === 'admin' ? 'Administracion' : vista === 'setup' ? 'Configuracion inicial' : vista === 'perfil' ? 'Perfil' : 'Pedidos'}</h1>
+            <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'home-test' ? 'Nueva propuesta visual del inicio' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
             <UserHeaderMenu
@@ -1026,6 +1028,8 @@ export function App() {
 
         {vista === 'inicio' ? (
           <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+        ) : vista === 'home-test' ? (
+          <HomeTestPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'setup' ? (
           <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
         ) : vista === 'admin' ? (
@@ -1102,7 +1106,7 @@ export function App() {
           </>
         )}
       </main>
-      {puedeCrear && (vista === 'inicio' || (vista === 'bandeja' && !seleccionado)) && (
+      {puedeCrear && (vista === 'inicio' || vista === 'home-test' || (vista === 'bandeja' && !seleccionado)) && (
         <div className={[quickCreateOpen ? 'floating-create-wrap open' : 'floating-create-wrap', quickCreateHidden && !quickCreateOpen ? 'hide-on-scroll' : ''].filter(Boolean).join(' ')}>
           {quickCreateOpen && <button className="floating-create-backdrop" aria-label="Cerrar menu de creacion" onClick={() => setQuickCreateOpen(false)} />}
           {quickCreateOpen && (
