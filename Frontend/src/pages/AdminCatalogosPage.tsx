@@ -1563,7 +1563,7 @@ export function AdminCatalogosPage() {
               </span>
               <div>
                 <strong>Imagen de la promocion</strong>
-                <small>Recomendado: 1080 x 760 px para movil. Puedes arrastrar una imagen o seleccionar archivo.</small>
+                <small>Recomendado: 1600 x 600 px (relacion 8:3). Mantén texto y elementos importantes en el centro para que se vean bien en movil.</small>
               </div>
               <label className="ghost-button method-image-picker">
                 <UploadCloud size={18} /> {promoFile ? promoFile.name : 'Elegir'}
@@ -1595,7 +1595,7 @@ export function AdminCatalogosPage() {
               </span>
               <div>
                 <strong>Imagen de la promocion</strong>
-                <small>Arrastra una nueva imagen o usa la URL. La promocion se publica solo si esta activa y dentro del rango.</small>
+                <small>Recomendado: 1600 x 600 px (relacion 8:3), con el contenido importante centrado. Se publica solo si esta activa y vigente.</small>
               </div>
               <label className="ghost-button method-image-picker">
                 <UploadCloud size={18} /> {promoUploading ? 'Subiendo...' : promoFile ? promoFile.name : 'Subir'}

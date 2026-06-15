@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode, type TouchEvent } from 'react';
 import {
   ArrowRight,
   Banknote,
@@ -16,11 +16,14 @@ import {
 } from 'lucide-react';
 import { apiAssetUrl, obtenerPedido, obtenerTasasOperativas, rastrearPedidosPorCliente, sincronizarOfertas } from '../api/client';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
+import { UiSwitch } from '../components/UiSwitch';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoResumen, TasaOperativaResponse } from '../types/api';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import type { InicioCreateDraft, InicioServicio } from './inicio/ServicesRatesGrid';
 import './home-test/HomeTestPage.css';
+import tasasBanner from '../assets/brand/banner-jireh.jpeg';
 
 type HomeTestPageProps = {
   canSyncTasas?: boolean;
@@ -91,8 +94,10 @@ function HomeTestCarousel({
   const slides = [
     {
       key: 'rates',
+      className: 'rates',
       content: (
-        <div className="ht-carousel-copy">
+        <div className="ht-carousel-copy ht-banner-copy">
+          <img className="ht-carousel-banner" src={tasasBanner} alt="" aria-hidden="true" />
           <span className="ht-eyebrow"><Sparkles size={14} /> Tasas destacadas</span>
           <h2>Opera con claridad, desde el primer vistazo.</h2>
           <p>Selecciona una tasa y comienza el pedido con los datos preparados.</p>
@@ -109,15 +114,17 @@ function HomeTestCarousel({
     },
     ...(data?.promociones ?? []).map((promotion) => ({
       key: `promotion-${promotion.id}`,
+      className: 'promotion',
       content: (
         <div className="ht-promotion-slide">
           <img src={apiAssetUrl(promotion.imagen_url)} alt={promotion.descripcion} />
-          <span><span className="ht-eyebrow">Promocion vigente</span><h2>{promotion.descripcion}</h2></span>
+          <span className="ht-promotion-copy"><span className="ht-eyebrow">Promocion vigente</span><h2>{promotion.descripcion}</h2></span>
         </div>
       ),
     })),
     {
       key: 'control',
+      className: 'control',
       content: (
         <div className="ht-carousel-copy">
           <span className="ht-eyebrow"><CheckCircle2 size={14} /> Control operativo</span>
@@ -131,28 +138,76 @@ function HomeTestCarousel({
     },
   ];
   const [active, setActive] = useState(0);
+  const [touching, setTouching] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const swipedRef = useRef(false);
+
+  function move(direction: 1 | -1) {
+    if (slides.length < 2) return;
+    setActive((current) => (current + direction + slides.length) % slides.length);
+  }
+
+  function handleTouchStart(event: TouchEvent<HTMLElement>) {
+    const touch = event.touches[0];
+    if (!touch) return;
+    setTouching(true);
+    swipedRef.current = false;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }
+
+  function handleTouchMove(event: TouchEvent<HTMLElement>) {
+    const start = touchStartRef.current;
+    const touch = event.touches[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    swipedRef.current = true;
+    move(deltaX < 0 ? 1 : -1);
+    touchStartRef.current = null;
+  }
+
+  function handleTouchEnd() {
+    setTouching(false);
+    touchStartRef.current = null;
+  }
+
+  function handleClickCapture(event: MouseEvent<HTMLElement>) {
+    if (!swipedRef.current) return;
+    swipedRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }
 
   useEffect(() => {
-    if (slides.length < 2) return undefined;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 6500);
+    if (touching || slides.length < 2) return undefined;
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 9000);
     return () => window.clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, touching]);
 
   useEffect(() => {
     if (active >= slides.length) setActive(0);
   }, [active, slides.length]);
 
   return (
-    <section className="ht-carousel" aria-label="Novedades y tasas destacadas">
-      <div className="ht-carousel-slide" key={slides[active].key}>{slides[active].content}</div>
+    <section
+      className="ht-carousel"
+      aria-label="Novedades y tasas destacadas"
+      onClickCapture={handleClickCapture}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <div className={`ht-carousel-slide ${slides[active].className}`} key={slides[active].key}>{slides[active].content}</div>
       <div className="ht-carousel-controls">
-        <button type="button" onClick={() => setActive((active - 1 + slides.length) % slides.length)} aria-label="Anterior"><ChevronLeft size={18} /></button>
+        <button type="button" onClick={() => move(-1)} aria-label="Anterior"><ChevronLeft size={18} /></button>
         <div>{slides.map((slide, index) => <button key={slide.key} type="button" className={index === active ? 'active' : ''} onClick={() => setActive(index)} aria-label={`Ver diapositiva ${index + 1}`} />)}</div>
-        <button type="button" onClick={() => setActive((active + 1) % slides.length)} aria-label="Siguiente"><ChevronRight size={18} /></button>
+        <button type="button" onClick={() => move(1)} aria-label="Siguiente"><ChevronRight size={18} /></button>
       </div>
       {canSync && (
         <button className="ht-sync-button" type="button" onClick={onRefresh} disabled={loading || syncing}>
-          <RefreshCw size={16} /> {syncing ? 'Sincronizando' : 'Sincronizar'}
+          <RefreshCw size={16} /> {syncing ? 'Sincronizando...' : 'Sincronizar'}
         </button>
       )}
     </section>
@@ -160,7 +215,7 @@ function HomeTestCarousel({
 }
 
 function QuotePanel({ group }: { group: CurrencyGroup }) {
-  const [amount, setAmount] = useState('100');
+  const [amount, setAmount] = useState('');
   const numericAmount = Number(amount.replace(',', '.')) || 0;
   const transfer = bestOffer(serviceOffers(group, 'transferencia'), numericAmount);
   const cash = bestOffer(serviceOffers(group, 'efectivo'), numericAmount);
@@ -173,8 +228,20 @@ function QuotePanel({ group }: { group: CurrencyGroup }) {
       </header>
       <div className="ht-quote-layout">
         <label className="ht-amount-field">
-          <span>Monto a enviar</span>
-          <div><input type="number" min="0" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} /><strong>{group.moneda}</strong></div>
+          <span>¿Cuánto quieres enviar?</span>
+          <div>
+            <input
+              type="number"
+              min="0"
+              inputMode="decimal"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="Escribe el monto a enviar"
+              aria-label={`Monto a enviar en ${group.moneda}`}
+            />
+            <strong>{group.moneda}</strong>
+          </div>
+          <small>Los resultados se calculan mientras escribes.</small>
         </label>
         <div className="ht-quote-results">
           <article><small>Transferencia</small><strong>{formatNumber(numericAmount * rate(transfer))} <em>CUP</em></strong><span>1 {group.moneda} = {transfer ? formatNumber(transfer.tasa) : '-'} CUP</span></article>
@@ -186,6 +253,7 @@ function QuotePanel({ group }: { group: CurrencyGroup }) {
 }
 
 function OfferCard({ service, group, onCreate }: { service: InicioServicio; group: CurrencyGroup; onCreate: HomeTestPageProps['onCreate'] }) {
+  const [showRepeated, setShowRepeated] = useState(false);
   const config = {
     transferencia: { title: 'Transferencias', description: 'Envio directo a cuenta o tarjeta.' },
     efectivo: { title: 'Efectivo', description: 'Entrega coordinada en mano.' },
@@ -193,6 +261,10 @@ function OfferCard({ service, group, onCreate }: { service: InicioServicio; grou
     divisa: { title: 'Tarjetas en divisa', description: 'Opciones MLC, USD y Clasica.' },
   }[service];
   const offers = service === 'divisa' ? group.divisas : serviceOffers(group, service);
+  const supportsRepeatedRates = service === 'transferencia' || service === 'efectivo';
+  const visibleOffers = supportsRepeatedRates && !showRepeated
+    ? offers.filter((offer, index) => index === 0 || rate(offer) !== rate(offers[index - 1]))
+    : offers;
   const hasData = service === 'saldo' ? group.paquetes.length > 0 : offers.length > 0;
 
   return (
@@ -202,19 +274,28 @@ function OfferCard({ service, group, onCreate }: { service: InicioServicio; grou
         <div><small>{group.moneda} → destino</small><h3>{config.title}</h3><p>{config.description}</p></div>
         <em>{service === 'saldo' ? group.paquetes.length : offers.length} opciones</em>
       </header>
-      <div className="ht-offer-list">
-        {service === 'saldo' && group.paquetes.slice(0, 4).map((pack) => (
+      {supportsRepeatedRates && (
+        <div className="ht-offer-toolbar">
+          <span>{visibleOffers.length} tasas visibles</span>
+          <label>
+            <span>Mostrar tasas repetidas</span>
+            <UiSwitch checked={showRepeated} onChange={setShowRepeated} ariaLabel={`Mostrar tasas repetidas de ${config.title}`} />
+          </label>
+        </div>
+      )}
+      <div className="ht-offer-list" tabIndex={hasData ? 0 : undefined}>
+        {service === 'saldo' && group.paquetes.map((pack) => (
           <button type="button" key={pack.id} onClick={() => onCreate('saldo', { moneda_pago: group.moneda, paquete_saldo_id: String(pack.id) })}>
             <span><small>Recibe</small><strong>{formatNumber(pack.saldo_cup)} CUP</strong></span><b>{formatNumber(pack.monto_pago)} {group.moneda}</b><ArrowRight size={16} />
           </button>
         ))}
-        {service === 'divisa' && offers.slice(0, 4).map((offer) => (
+        {service === 'divisa' && visibleOffers.map((offer) => (
           <button type="button" key={offer.id} onClick={() => onCreate('divisa', { moneda_pago: group.moneda, monto_pago: String(offer.minimo_pago ?? ''), tipo_tarjeta: offer.servicio === 'usd' ? 'USD' : offer.servicio === 'clasica' ? 'OTRA' : 'MLC' })}>
             <span><small>{offer.nombre || offer.servicio.toUpperCase()}</small><strong>{formatNumber(offer.tasa)} {offer.servicio.toUpperCase()}</strong></span><b>{formatNumber(offer.minimo_pago)} {group.moneda}</b><ArrowRight size={16} />
           </button>
         ))}
-        {(service === 'transferencia' || service === 'efectivo') && offers.slice(0, 4).map((offer, index) => {
-          const next = offers[index + 1];
+        {(service === 'transferencia' || service === 'efectivo') && visibleOffers.map((offer, index) => {
+          const next = visibleOffers[index + 1];
           return (
             <button type="button" key={offer.id} onClick={() => onCreate(service, { moneda_pago: group.moneda, monto_pago: String(offer.minimo_pago || '') })}>
               <span><small>{next ? `Menos de ${formatNumber(next.minimo_pago)}` : `Desde ${formatNumber(offer.minimo_pago)}`} {group.moneda}</small><strong>{formatNumber(offer.tasa)} CUP</strong></span><b>Seleccionar</b><ArrowRight size={16} />
@@ -333,7 +414,21 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
         <>
           <section className="ht-currency-bar">
             <div><span className="ht-eyebrow">Moneda de pago</span><h3>{banderaMoneda(currency)} {nombreMoneda(currency)}</h3><p>Todos los cálculos y ofertas se muestran en {currency}.</p></div>
-            <div className="ht-currency-options">{groups.map((group) => <button type="button" key={group.moneda} className={group.moneda === currency ? 'active' : ''} onClick={() => setCurrency(group.moneda)}><span>{banderaMoneda(group.moneda)}</span><strong>{group.moneda}</strong></button>)}</div>
+            <FloatingSelect
+              className="ht-currency-select"
+              buttonClassName="ht-currency-select-button"
+              menuClassName="ht-currency-select-menu"
+              value={currency}
+              onChange={setCurrency}
+              ariaLabel="Seleccionar moneda de pago"
+              align="right"
+              options={groups.map((group) => ({
+                value: group.moneda,
+                label: `${group.moneda} · ${nombreMoneda(group.moneda)}`,
+                description: `Mostrar tasas y ofertas en ${group.moneda}`,
+                icon: <span className="ht-currency-flag" aria-hidden="true">{banderaMoneda(group.moneda)}</span>,
+              }))}
+            />
           </section>
           <QuotePanel group={activeGroup} />
           <section className="ht-services-section">
