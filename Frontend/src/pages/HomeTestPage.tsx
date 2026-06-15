@@ -241,7 +241,7 @@ function QuotePanel({ group }: { group: CurrencyGroup }) {
             />
             <strong>{group.moneda}</strong>
           </div>
-          <small>Los resultados se calculan mientras escribes.</small>
+          {/* <small>Los resultados se calculan mientras escribes.</small> */}
         </label>
         <div className="ht-quote-results">
           <article><small>Transferencia</small><strong>{formatNumber(numericAmount * rate(transfer))} <em>CUP</em></strong><span>1 {group.moneda} = {transfer ? formatNumber(transfer.tasa) : '-'} CUP</span></article>
@@ -271,18 +271,23 @@ function OfferCard({ service, group, onCreate }: { service: InicioServicio; grou
     <article className={`ht-offer-card ${service}`}>
       <header>
         <span className="ht-offer-icon"><ServiceIcon service={service} /></span>
-        <div><small>{group.moneda} → destino</small><h3>{config.title}</h3><p>{config.description}</p></div>
-        <em>{service === 'saldo' ? group.paquetes.length : offers.length} opciones</em>
-      </header>
-      {supportsRepeatedRates && (
-        <div className="ht-offer-toolbar">
-          <span>{visibleOffers.length} tasas visibles</span>
-          <label>
-            <span>Mostrar tasas repetidas</span>
-            <UiSwitch checked={showRepeated} onChange={setShowRepeated} ariaLabel={`Mostrar tasas repetidas de ${config.title}`} />
-          </label>
+        <div className="ht-offer-copy">
+          <div className="ht-offer-title">
+            <h3>{config.title}</h3>
+            <small>{group.moneda} → destino</small>
+          </div>
+          <p>{config.description}</p>
         </div>
-      )}
+        <div className="ht-offer-meta">
+          <em>{service === 'saldo' ? group.paquetes.length : offers.length} opciones</em>
+          {supportsRepeatedRates && (
+            <label>
+              <span>Repetidas</span>
+              <UiSwitch checked={showRepeated} onChange={setShowRepeated} ariaLabel={`Mostrar tasas repetidas de ${config.title}`} />
+            </label>
+          )}
+        </div>
+      </header>
       <div className="ht-offer-list" tabIndex={hasData ? 0 : undefined}>
         {service === 'saldo' && group.paquetes.map((pack) => (
           <button type="button" key={pack.id} onClick={() => onCreate('saldo', { moneda_pago: group.moneda, paquete_saldo_id: String(pack.id) })}>
@@ -305,7 +310,7 @@ function OfferCard({ service, group, onCreate }: { service: InicioServicio; grou
         {!hasData && <p className="ht-empty-offer">No hay opciones activas para esta moneda.</p>}
       </div>
       <button className="ht-create-service" type="button" disabled={!hasData} onClick={() => onCreate(service, { moneda_pago: group.moneda })}>
-        Crear {config.title.toLowerCase()} <ArrowRight size={17} />
+        Enviar en {config.title.toLowerCase()} <ArrowRight size={17} />
       </button>
     </article>
   );
@@ -336,7 +341,7 @@ function HomeTestTracker({ onTrackPedido }: { onTrackPedido: (code: string) => v
 
   return (
     <section className="ht-panel ht-tracker">
-      <header className="ht-section-heading"><span><ClipboardList size={21} /></span><div><small>Seguimiento</small><h3>Rastrea un pedido</h3><p>Busca por codigo de operacion o numero de cliente.</p></div></header>
+      <header className="ht-section-heading"><span><ClipboardList size={21} /></span><div><h3>Rastrea un pedido</h3><p>Busca por codigo de operacion o numero de cliente.</p></div></header>
       <form onSubmit={submit}><label><Search size={18} /><input value={term} onChange={(event) => setTerm(event.target.value)} placeholder="Ej. JH-3204-CUBA o 125" /></label><button type="submit" disabled={!term.trim() || loading}>{loading ? 'Buscando...' : 'Rastrear'}</button></form>
       {error && <div className="ht-tracker-error">{error}</div>}
       {orders.map((order) => (

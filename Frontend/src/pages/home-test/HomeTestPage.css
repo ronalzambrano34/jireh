@@ -557,8 +557,24 @@
   text-transform: uppercase;
 }
 
+.ht-offer-copy {
+  min-width: 0;
+}
+
+.ht-offer-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ht-offer-title small {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .ht-offer-card h3 {
-  margin: 2px 0 0;
+  margin: 0;
   color: var(--ui-text);
   font-size: 18px;
 }
@@ -570,7 +586,14 @@
   font-weight: 700;
 }
 
-.ht-offer-card header em {
+.ht-offer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.ht-offer-meta em {
   border: 1px solid var(--ui-border);
   border-radius: 999px;
   padding: 5px 8px;
@@ -582,32 +605,15 @@
   white-space: nowrap;
 }
 
-.ht-offer-toolbar {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-  padding: 6px 9px;
-  background: var(--ui-canvas-soft);
-}
-
-.ht-offer-toolbar > span {
-  color: var(--ui-text-muted);
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.ht-offer-toolbar label {
+.ht-offer-meta label {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--ui-text-muted);
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .ht-offer-list {
@@ -948,22 +954,16 @@
     padding: 13px;
   }
 
-  .ht-offer-card > header {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .ht-offer-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .ht-offer-list {
     max-height: 264px;
   }
 
-  .ht-offer-card header em {
-    grid-column: 1 / -1;
-    justify-self: start;
+  .ht-offer-meta {
+    align-self: stretch;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 5px;
   }
 
   .ht-tracker form {
