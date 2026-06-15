@@ -568,14 +568,14 @@ export function listarPromociones(incluirInactivas = false) {
   return request<Promocion[]>(`/promociones/?${query.toString()}`);
 }
 
-export function crearPromocion(payload: { descripcion: string; fecha_desde: string; fecha_hasta: string; imagen_url?: string; activa?: boolean }) {
+export function crearPromocion(payload: { tipo: Promocion['tipo']; titulo: string; subtitulo?: string; descripcion: string; orden?: number; fecha_desde: string; fecha_hasta: string; imagen_url?: string; activa?: boolean }) {
   return request<Promocion>('/promociones/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export function actualizarPromocion(id: number, payload: { descripcion?: string; fecha_desde?: string; fecha_hasta?: string; imagen_url?: string | null; activa?: boolean }) {
+export function actualizarPromocion(id: number, payload: { tipo?: Promocion['tipo']; titulo?: string; subtitulo?: string; descripcion?: string; orden?: number; fecha_desde?: string; fecha_hasta?: string; imagen_url?: string | null; activa?: boolean }) {
   return request<Promocion>(`/promociones/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),

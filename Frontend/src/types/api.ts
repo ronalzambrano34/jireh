@@ -351,8 +351,12 @@ export type Oferta = {
 
 export type Promocion = {
   id: number;
+  tipo: 'promocion' | 'precios' | 'marca';
+  titulo: string;
+  subtitulo: string;
   imagen_url: string;
   descripcion: string;
+  orden: number;
   fecha_desde: string;
   fecha_hasta: string;
   activa: boolean;

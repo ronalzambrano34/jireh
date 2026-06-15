@@ -339,6 +339,36 @@ def ensure_runtime_columns(
         "provincia_id INTEGER"
     )
 
+    _add_column_if_missing(
+        db,
+        "promociones",
+        "tipo",
+        "tipo VARCHAR NOT NULL DEFAULT 'promocion'"
+    )
+    _add_column_if_missing(
+        db,
+        "promociones",
+        "titulo",
+        "titulo VARCHAR NOT NULL DEFAULT ''"
+    )
+    _add_column_if_missing(
+        db,
+        "promociones",
+        "subtitulo",
+        "subtitulo VARCHAR NOT NULL DEFAULT ''"
+    )
+    _add_column_if_missing(
+        db,
+        "promociones",
+        "orden",
+        "orden INTEGER NOT NULL DEFAULT 0"
+    )
+    db.execute(text(
+        "UPDATE promociones SET titulo = descripcion "
+        "WHERE titulo IS NULL OR titulo = ''"
+    ))
+    db.commit()
+
     ensure_runtime_indexes(
         db
     )

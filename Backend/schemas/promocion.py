@@ -6,9 +6,17 @@ from pydantic import ConfigDict
 
 class PromocionBase(BaseModel):
 
+    tipo: str = "promocion"
+
+    titulo: str = ""
+
+    subtitulo: str = ""
+
     imagen_url: str | None = None
 
     descripcion: str
+
+    orden: int = 0
 
     fecha_desde: datetime
 
@@ -22,9 +30,17 @@ class PromocionCreate(PromocionBase):
 
 class PromocionUpdate(BaseModel):
 
+    tipo: str | None = None
+
+    titulo: str | None = None
+
+    subtitulo: str | None = None
+
     imagen_url: str | None = None
 
     descripcion: str | None = None
+
+    orden: int | None = None
 
     fecha_desde: datetime | None = None
 
@@ -39,9 +55,17 @@ class PromocionResponse(BaseModel):
 
     id: int
 
+    tipo: str
+
+    titulo: str
+
+    subtitulo: str
+
     imagen_url: str
 
     descripcion: str
+
+    orden: int
 
     fecha_desde: datetime
 

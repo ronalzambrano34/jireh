@@ -55,6 +55,23 @@ import './admin/AdminCatalogosPage.css';
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 const servicios = ['transferencia', 'efectivo', 'saldo', 'mlc', 'usd', 'clasica', 'divisa'];
 const rolesOperador = ['operador', 'supervisor', 'admin'];
+const tiposSlide = [
+  { value: 'promocion', label: 'Promocion con imagen' },
+  { value: 'precios', label: 'Precios destacados' },
+  { value: 'marca', label: 'Marca' },
+] as const;
+
+const nuevoSlideForm = () => ({
+  tipo: 'promocion' as Promocion['tipo'],
+  titulo: '',
+  subtitulo: '',
+  descripcion: '',
+  imagen_url: '',
+  orden: '0',
+  fecha_desde: datetimeLocalValue(),
+  fecha_hasta: datetimeLocalPlusDays(7),
+  activa: true,
+});
 
 function esMetodoEfectivo(nombre: string) {
   return nombre.trim().toLowerCase() === 'efectivo';
@@ -169,7 +186,7 @@ const adminTemaVisual: Record<AdminTema, { descripcion: string; icono: typeof Se
   puntos: { descripcion: 'Gestiona ubicaciones, direcciones y contactos para las entregas en efectivo.', icono: MapPin },
   ofertas: { descripcion: 'Configura tasas, monedas, importes minimos y servicios disponibles.', icono: Tags },
   paquetes: { descripcion: 'Organiza los paquetes de recarga, su precio y el saldo que recibe el cliente.', icono: Package },
-  promociones: { descripcion: 'Programa campañas, imagenes y periodos de vigencia para destacar ofertas.', icono: Megaphone },
+  promociones: { descripcion: 'Crea y ordena slides de precios, marca y promociones para el carrusel.', icono: Megaphone },
   clientes: { descripcion: 'Consulta y administra las personas que solicitan o pagan operaciones.', icono: UsersRound },
   contactos: { descripcion: 'Mantiene los destinatarios frecuentes y sus datos operativos.', icono: UserRound },
   operadores: { descripcion: 'Controla accesos, roles, permisos y disponibilidad del equipo.', icono: UsersRound },
@@ -252,6 +269,7 @@ const configuracionesDestacadas = new Set([
   'whatsapp_grupo_pedidos_url',
   'whatsapp_grupo_finalizados_url',
   'setup_inicial_completado',
+  'carousel_slides_seeded_v1',
 ]);
 
 const todasLasVariablesTemplate = Array.from(new Set([
@@ -282,7 +300,7 @@ export function AdminCatalogosPage() {
   const [provinciaForm, setProvinciaForm] = useState({ nombre: '', activo: false });
   const [ofertaForm, setOfertaForm] = useState({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
   const [paqueteForm, setPaqueteForm] = useState({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
-  const [promoForm, setPromoForm] = useState({ descripcion: '', imagen_url: '', fecha_desde: datetimeLocalValue(), fecha_hasta: datetimeLocalPlusDays(7), activa: true });
+  const [promoForm, setPromoForm] = useState(nuevoSlideForm);
   const [promoFile, setPromoFile] = useState<File | null>(null);
   const [promoFilePreview, setPromoFilePreview] = useState('');
   const [configForm, setConfigForm] = useState({ clave: '', valor: '' });
@@ -467,7 +485,7 @@ export function AdminCatalogosPage() {
     }
     if (tema === 'ofertas') setOfertaForm({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
     if (tema === 'paquetes') setPaqueteForm({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
-    if (tema === 'promociones') { setPromoForm({ descripcion: '', imagen_url: '', fecha_desde: datetimeLocalValue(), fecha_hasta: datetimeLocalPlusDays(7), activa: true }); setPromoFile(null); setPromoFilePreview(''); }
+    if (tema === 'promociones') { setPromoForm(nuevoSlideForm()); setPromoFile(null); setPromoFilePreview(''); }
     if (tema === 'clientes') setClienteForm({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: 'BRL' });
     if (tema === 'contactos') setContactoForm({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
     if (tema === 'operadores') setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
@@ -600,20 +618,24 @@ export function AdminCatalogosPage() {
     event.preventDefault();
     setError(null);
     setNotice(null);
-    if (!promoFile && !promoForm.imagen_url) {
-      setError('La imagen de la promocion es obligatoria');
+    if (promoForm.tipo === 'promocion' && !promoFile && !promoForm.imagen_url) {
+      setError('La imagen es obligatoria para una promocion');
       return;
     }
     try {
       const creada = await crearPromocion({
+        tipo: promoForm.tipo,
+        titulo: promoForm.titulo,
+        subtitulo: promoForm.subtitulo,
         descripcion: promoForm.descripcion,
         imagen_url: promoForm.imagen_url || undefined,
+        orden: Number(promoForm.orden) || 0,
         fecha_desde: promoForm.fecha_desde,
         fecha_hasta: promoForm.fecha_hasta,
         activa: promoForm.activa,
       });
       if (promoFile) await subirImagenPromocion(creada.id, promoFile);
-      setPromoForm({ descripcion: '', imagen_url: '', fecha_desde: datetimeLocalValue(), fecha_hasta: datetimeLocalPlusDays(7), activa: true });
+      setPromoForm(nuevoSlideForm());
       setPromoFile(null);
       setPromoFilePreview('');
       setNotice('Promocion creada');
@@ -628,8 +650,12 @@ export function AdminCatalogosPage() {
   function abrirEditarPromocion(promocion: Promocion) {
     setPromoEditando(promocion);
     setPromoForm({
+      tipo: promocion.tipo,
+      titulo: promocion.titulo,
+      subtitulo: promocion.subtitulo,
       descripcion: promocion.descripcion,
       imagen_url: promocion.imagen_url,
+      orden: String(promocion.orden),
       fecha_desde: fechaInputValue(promocion.fecha_desde),
       fecha_hasta: fechaInputValue(promocion.fecha_hasta),
       activa: promocion.activa,
@@ -647,8 +673,12 @@ export function AdminCatalogosPage() {
     setNotice(null);
     try {
       const actualizada = await actualizarPromocion(promoEditando.id, {
+        tipo: promoForm.tipo,
+        titulo: promoForm.titulo,
+        subtitulo: promoForm.subtitulo,
         descripcion: promoForm.descripcion,
         imagen_url: promoForm.imagen_url || null,
+        orden: Number(promoForm.orden) || 0,
         fecha_desde: promoForm.fecha_desde,
         fecha_hasta: promoForm.fecha_hasta,
         activa: promoForm.activa,
@@ -657,8 +687,12 @@ export function AdminCatalogosPage() {
       if (promoFile) final = await subirImagenPromocion(promoEditando.id, promoFile);
       setPromoEditando(final);
       setPromoForm({
+        tipo: final.tipo,
+        titulo: final.titulo,
+        subtitulo: final.subtitulo,
         descripcion: final.descripcion,
         imagen_url: final.imagen_url,
+        orden: String(final.orden),
         fecha_desde: fechaInputValue(final.fecha_desde),
         fecha_hasta: fechaInputValue(final.fecha_hasta),
         activa: final.activa,
@@ -686,7 +720,7 @@ export function AdminCatalogosPage() {
       const actualizada = await subirImagenPromocion(promoEditando.id, file);
       setPromoEditando(actualizada);
       setPromoForm((current) => ({ ...current, imagen_url: actualizada.imagen_url }));
-      setNotice('Imagen de promocion actualizada');
+      setNotice('Imagen del slide actualizada');
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
@@ -708,7 +742,7 @@ export function AdminCatalogosPage() {
       await actualizarPromocion(promocion.id, { activa: !promocion.activa });
       await cargar();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la promocion');
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el slide');
     }
   }
 
@@ -719,7 +753,7 @@ export function AdminCatalogosPage() {
       await eliminarPromocion(promocion.id);
       await cargar();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo desactivar la promocion');
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el slide');
     }
   }
 
@@ -1146,7 +1180,7 @@ export function AdminCatalogosPage() {
         { tema: 'puntos', titulo: 'Puntos de recogida', resumen: resumenCarga(temasCargados.has('puntos'), `${puntos.filter((item) => item.activo).length} activos · ${puntos.filter((item) => !item.activo).length} inactivos`), icono: MapPin },
         { tema: 'ofertas', titulo: 'Ofertas', resumen: resumenCarga(temasCargados.has('ofertas'), `${ofertas.filter((item) => item.activa).length} activas · ${ofertas.filter((item) => !item.activa).length} inactivas`), icono: Tags },
         { tema: 'paquetes', titulo: 'Paquetes de saldo', resumen: resumenCarga(temasCargados.has('paquetes'), `${paquetes.filter((item) => item.activo).length} activos · ${paquetes.filter((item) => !item.activo).length} inactivos`), icono: Package },
-        { tema: 'promociones', titulo: 'Promociones', resumen: resumenCarga(temasCargados.has('promociones'), `${promociones.filter((item) => item.activa).length} activas · ${promociones.filter((item) => !item.activa).length} inactivas`), icono: Megaphone },
+        { tema: 'promociones', titulo: 'Carrusel', resumen: resumenCarga(temasCargados.has('promociones'), `${promociones.filter((item) => item.activa).length} activos · ${promociones.filter((item) => !item.activa).length} inactivos`), icono: Megaphone },
       ],
     },
     {
@@ -1295,10 +1329,10 @@ export function AdminCatalogosPage() {
 
 
       {temaActivo === 'promociones' && temasCargados.has('promociones') && (
-        <AdminSection icono={Megaphone} titulo="Promociones" resumen={`${promocionesVisibles.length} de ${promociones.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('promociones')}>Crear</button>}>
-          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} feminine ariaLabel="Vista de promociones" />
+        <AdminSection icono={Megaphone} titulo="Slides del carrusel" resumen={`${promocionesVisibles.length} de ${promociones.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('promociones')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} ariaLabel="Vista de slides" />
           <div className="admin-card-list promo-admin-list">
-            {promocionesVisibles.length === 0 && <AdminEmpty>Sin promociones {estadoVista}</AdminEmpty>}
+            {promocionesVisibles.length === 0 && <AdminEmpty>Sin slides {estadoVista}</AdminEmpty>}
             {promocionesVisibles.map((promocion) => (
               <div className="catalog-row promo-admin-row" key={promocion.id}>
                 <button type="button" className="promo-admin-main" onClick={() => abrirEditarPromocion(promocion)}>
@@ -1306,13 +1340,14 @@ export function AdminCatalogosPage() {
                     {promocion.imagen_url ? <img src={apiAssetUrl(promocion.imagen_url)} alt="" /> : <ImagePlus size={22} />}
                   </span>
                   <span>
-                    <strong>{promocion.descripcion}</strong>
+                    <strong>{promocion.titulo}</strong>
+                    <small>{promocion.tipo} · orden {promocion.orden}</small>
                     <small><CalendarClock size={14} /> {formatFechaPromo(promocion.fecha_desde)} - {formatFechaPromo(promocion.fecha_hasta)}</small>
                   </span>
                 </button>
                 <span className={promocion.vigente ? 'status completado' : promocion.activa ? 'status en_operacion' : 'status cancelado'}>{estadoPromocion(promocion)}</span>
                 <button className="ghost-button catalog-toggle-action" onClick={() => togglePromocion(promocion)}><Power size={18} /> {promocion.activa ? 'Desactivar' : 'Activar'}</button>
-                {promocion.activa && <button className="ghost-button catalog-toggle-action" onClick={() => desactivarPromocion(promocion)}>Eliminar</button>}
+                <button className="ghost-button catalog-toggle-action" onClick={() => desactivarPromocion(promocion)}>Eliminar</button>
               </div>
             ))}
           </div>
@@ -1551,65 +1586,70 @@ export function AdminCatalogosPage() {
         </Modal>
       )}
       {crearModalTema === 'promociones' && (
-        <Modal title="Crear promocion" subtitle="Administracion / Promociones" onClose={() => setCrearModalTema(null)} wide>
+        <Modal title="Crear slide" subtitle="Administracion / Carrusel" onClose={() => setCrearModalTema(null)} wide>
           <form className="stack-form modal-form" onSubmit={guardarPromocion}>
-            <div
-              className="method-image-dropzone promo-image-dropzone"
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={manejarDropImagenPromo}
-            >
-              <span className="promo-admin-thumb promo-edit-preview" aria-hidden="true">
-                {promoFilePreview ? <img src={promoFilePreview} alt="" /> : promoForm.imagen_url ? <img src={apiAssetUrl(promoForm.imagen_url)} alt="" /> : <ImagePlus size={22} />}
-              </span>
-              <div>
-                <strong>Imagen de la promocion</strong>
-                <small>Recomendado: 1600 x 600 px (relacion 8:3). Mantén texto y elementos importantes en el centro para que se vean bien en movil.</small>
-              </div>
-              <label className="ghost-button method-image-picker">
-                <UploadCloud size={18} /> {promoFile ? promoFile.name : 'Elegir'}
-                <input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPromoFile(file); setPromoFilePreview(URL.createObjectURL(file)); } event.currentTarget.value = ''; }} />
-              </label>
+            <div className="inline-form three">
+              <FloatingSelect value={promoForm.tipo} onChange={(value) => setPromoForm((current) => ({ ...current, tipo: value as Promocion['tipo'] }))} options={[...tiposSlide]} ariaLabel="Tipo de slide" align="left" />
+              <input value={promoForm.titulo} onChange={(event) => setPromoForm((current) => ({ ...current, titulo: event.target.value }))} placeholder="Titulo" required />
+              <input value={promoForm.subtitulo} onChange={(event) => setPromoForm((current) => ({ ...current, subtitulo: event.target.value }))} placeholder="Etiqueta corta" />
             </div>
+            {promoForm.tipo !== 'precios' && (
+              <div className="method-image-dropzone promo-image-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={manejarDropImagenPromo}>
+                <span className="promo-admin-thumb promo-edit-preview" aria-hidden="true">
+                  {promoFilePreview ? <img src={promoFilePreview} alt="" /> : promoForm.imagen_url ? <img src={apiAssetUrl(promoForm.imagen_url)} alt="" /> : <ImagePlus size={22} />}
+                </span>
+                <div>
+                  <strong>{promoForm.tipo === 'marca' ? 'Logo opcional' : 'Imagen de la promocion'}</strong>
+                  <small>{promoForm.tipo === 'marca' ? 'Si no subes una imagen se usa el logo de El Jireh.' : 'Recomendado: 1600 x 600 px, con el contenido importante centrado.'}</small>
+                </div>
+                <label className="ghost-button method-image-picker">
+                  <UploadCloud size={18} /> {promoFile ? promoFile.name : 'Elegir'}
+                  <input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPromoFile(file); setPromoFilePreview(URL.createObjectURL(file)); } event.currentTarget.value = ''; }} />
+                </label>
+              </div>
+            )}
             <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion de la promocion" rows={3} required />
-            <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional si no subes archivo" />
+            {promoForm.tipo !== 'precios' && <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />}
             <div className="inline-form three">
               <label><span>Desde</span><input type="datetime-local" value={promoForm.fecha_desde} onChange={(event) => setPromoForm((current) => ({ ...current, fecha_desde: event.target.value }))} required /></label>
               <label><span>Hasta</span><input type="datetime-local" value={promoForm.fecha_hasta} onChange={(event) => setPromoForm((current) => ({ ...current, fecha_hasta: event.target.value }))} required /></label>
-              <FloatingSelect value={promoForm.activa ? 'activa' : 'inactiva'} onChange={(value) => setPromoForm((current) => ({ ...current, activa: value === 'activa' }))} options={[{ value: 'activa', label: 'Activa' }, { value: 'inactiva', label: 'Inactiva' }]} ariaLabel="Estado promocion" align="left" />
+              <label><span>Orden</span><input type="number" value={promoForm.orden} onChange={(event) => setPromoForm((current) => ({ ...current, orden: event.target.value }))} /></label>
             </div>
-            <button className="primary-button"><Save size={18} /> Crear promocion</button>
+            <FloatingSelect value={promoForm.activa ? 'activa' : 'inactiva'} onChange={(value) => setPromoForm((current) => ({ ...current, activa: value === 'activa' }))} options={[{ value: 'activa', label: 'Activo' }, { value: 'inactiva', label: 'Inactivo' }]} ariaLabel="Estado del slide" align="left" />
+            <button className="primary-button"><Save size={18} /> Crear slide</button>
           </form>
         </Modal>
       )}
 
       {promoEditando && (
-        <Modal title="Editar promocion" subtitle={`#${promoEditando.id} · ${estadoPromocion(promoEditando)}`} onClose={() => setPromoEditando(null)} wide>
+        <Modal title="Editar slide" subtitle={`#${promoEditando.id} · ${estadoPromocion(promoEditando)}`} onClose={() => setPromoEditando(null)} wide>
           <form className="stack-form modal-form" onSubmit={guardarPromocionEditada}>
-            <div
-              className="method-image-dropzone promo-image-dropzone"
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={manejarDropImagenPromo}
-            >
-              <span className="promo-admin-thumb promo-edit-preview" aria-hidden="true">
-                {promoFilePreview ? <img src={promoFilePreview} alt="" /> : promoForm.imagen_url ? <img src={apiAssetUrl(promoForm.imagen_url)} alt="" /> : <ImagePlus size={22} />}
-              </span>
-              <div>
-                <strong>Imagen de la promocion</strong>
-                <small>Recomendado: 1600 x 600 px (relacion 8:3), con el contenido importante centrado. Se publica solo si esta activa y vigente.</small>
-              </div>
-              <label className="ghost-button method-image-picker">
-                <UploadCloud size={18} /> {promoUploading ? 'Subiendo...' : promoFile ? promoFile.name : 'Subir'}
-                <input type="file" accept="image/*" disabled={promoUploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPromoFile(file); setPromoFilePreview(URL.createObjectURL(file)); } event.currentTarget.value = ''; }} />
-              </label>
+            <div className="inline-form three">
+              <FloatingSelect value={promoForm.tipo} onChange={(value) => setPromoForm((current) => ({ ...current, tipo: value as Promocion['tipo'] }))} options={[...tiposSlide]} ariaLabel="Tipo de slide" align="left" />
+              <input value={promoForm.titulo} onChange={(event) => setPromoForm((current) => ({ ...current, titulo: event.target.value }))} placeholder="Titulo" required />
+              <input value={promoForm.subtitulo} onChange={(event) => setPromoForm((current) => ({ ...current, subtitulo: event.target.value }))} placeholder="Etiqueta corta" />
             </div>
+            {promoForm.tipo !== 'precios' && (
+              <div className="method-image-dropzone promo-image-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={manejarDropImagenPromo}>
+                <span className="promo-admin-thumb promo-edit-preview" aria-hidden="true">
+                  {promoFilePreview ? <img src={promoFilePreview} alt="" /> : promoForm.imagen_url ? <img src={apiAssetUrl(promoForm.imagen_url)} alt="" /> : <ImagePlus size={22} />}
+                </span>
+                <div><strong>{promoForm.tipo === 'marca' ? 'Logo opcional' : 'Imagen de la promocion'}</strong><small>El slide se publica sólo si está activo y vigente.</small></div>
+                <label className="ghost-button method-image-picker">
+                  <UploadCloud size={18} /> {promoUploading ? 'Subiendo...' : promoFile ? promoFile.name : 'Subir'}
+                  <input type="file" accept="image/*" disabled={promoUploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPromoFile(file); setPromoFilePreview(URL.createObjectURL(file)); } event.currentTarget.value = ''; }} />
+                </label>
+              </div>
+            )}
             <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion de la promocion" rows={3} required />
-            <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL o /storage/promociones/archivo.webp" />
+            {promoForm.tipo !== 'precios' && <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL" />}
             <div className="inline-form three">
               <label><span>Desde</span><input type="datetime-local" value={promoForm.fecha_desde} onChange={(event) => setPromoForm((current) => ({ ...current, fecha_desde: event.target.value }))} required /></label>
               <label><span>Hasta</span><input type="datetime-local" value={promoForm.fecha_hasta} onChange={(event) => setPromoForm((current) => ({ ...current, fecha_hasta: event.target.value }))} required /></label>
-              <FloatingSelect value={promoForm.activa ? 'activa' : 'inactiva'} onChange={(value) => setPromoForm((current) => ({ ...current, activa: value === 'activa' }))} options={[{ value: 'activa', label: 'Activa' }, { value: 'inactiva', label: 'Inactiva' }]} ariaLabel="Estado promocion" align="left" />
+              <label><span>Orden</span><input type="number" value={promoForm.orden} onChange={(event) => setPromoForm((current) => ({ ...current, orden: event.target.value }))} /></label>
             </div>
-            <button className="primary-button"><Save size={18} /> Guardar promocion</button>
+            <FloatingSelect value={promoForm.activa ? 'activa' : 'inactiva'} onChange={(value) => setPromoForm((current) => ({ ...current, activa: value === 'activa' }))} options={[{ value: 'activa', label: 'Activo' }, { value: 'inactiva', label: 'Inactivo' }]} ariaLabel="Estado del slide" align="left" />
+            <button className="primary-button"><Save size={18} /> Guardar slide</button>
           </form>
         </Modal>
       )}

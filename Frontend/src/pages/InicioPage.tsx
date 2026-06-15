@@ -137,9 +137,9 @@ function etiquetaMoneda(moneda: string) {
 
 function nombreMoneda(moneda: string) {
   const etiquetas: Record<string, string> = {
-    BRL: 'BRL (Real Brasil)',
-    UYU: 'UYU (Peso Uruguay)',
-    USD: 'USD (Dolar)',
+    BRL: 'BRL',
+    UYU: 'UYU',
+    USD: 'USD',
   };
   return etiquetas[moneda] || moneda;
 }
@@ -644,10 +644,11 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
   }, [gruposMoneda, monedaSeleccionada]);
 
   const grupoActivo = gruposMoneda.find((grupo) => grupo.moneda === monedaSeleccionada) ?? gruposMoneda[0];
-  const promocionesCarrusel = useMemo<PromoBanner[]>(() => (data?.promociones ?? []).map((promocion) => ({
+  const promocionesCarrusel = useMemo<PromoBanner[]>(() => (data?.promociones ?? []).filter((promocion) => promocion.tipo === 'promocion' && promocion.imagen_url).map((promocion) => ({
     id: String(promocion.id),
     image: apiAssetUrl(promocion.imagen_url),
-    alt: promocion.descripcion,
+    alt: promocion.titulo,
+    title: promocion.titulo,
     body: promocion.descripcion,
   })), [data?.promociones]);
 

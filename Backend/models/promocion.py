@@ -16,9 +16,17 @@ class Promocion(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    imagen_url = Column(String, nullable=False)
+    tipo = Column(String, nullable=False, default="promocion", index=True)
+
+    titulo = Column(String, nullable=False, default="")
+
+    subtitulo = Column(String, nullable=False, default="")
+
+    imagen_url = Column(String, nullable=False, default="")
 
     descripcion = Column(Text, nullable=False)
+
+    orden = Column(Integer, nullable=False, default=0)
 
     fecha_desde = Column(DateTime, nullable=False, index=True)
 

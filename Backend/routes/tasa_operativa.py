@@ -112,8 +112,12 @@ def _deduplicar_paquetes(paquetes):
 def _promocion_dict(promocion):
     return {
         "id": promocion.id,
+        "tipo": promocion.tipo,
+        "titulo": promocion.titulo,
+        "subtitulo": promocion.subtitulo,
         "imagen_url": promocion.imagen_url,
         "descripcion": promocion.descripcion,
+        "orden": promocion.orden,
         "fecha_desde": promocion.fecha_desde,
         "fecha_hasta": promocion.fecha_hasta,
         "activa": promocion.activa,

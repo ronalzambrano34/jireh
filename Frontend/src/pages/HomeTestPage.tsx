@@ -4,8 +4,6 @@ import {
   Banknote,
   Calculator,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   Clock3,
   RefreshCw,
@@ -23,6 +21,7 @@ import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoResumen, TasaOperati
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import type { InicioCreateDraft, InicioServicio } from './inicio/ServicesRatesGrid';
 import './home-test/HomeTestPage.css';
+import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import tasasBanner from '../assets/brand/banner-jireh.jpeg';
 
 type HomeTestPageProps = {
@@ -43,6 +42,13 @@ const formatNumber = (value: number | string | null | undefined) => new Intl.Num
 const normalizeCurrency = (value?: string | null) => (value || 'BRL').trim().toUpperCase();
 const minimum = (offer: OfertaOperativa) => Number(offer.minimo_pago ?? 0);
 const rate = (offer?: OfertaOperativa) => Number(offer?.tasa ?? 0);
+
+function updateLabel(value?: string | null) {
+  if (!value) return 'Actualizado ahora';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Actualizado ahora';
+  return `Actualizado ${date.toLocaleDateString('es-UY')} ${date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })}`;
+}
 
 function readCache() {
   try {
@@ -91,52 +97,72 @@ function HomeTestCarousel({
 }) {
   const transfer = serviceOffers(group ?? { moneda: 'BRL', ofertas: [], divisas: [], paquetes: [] }, 'transferencia')[0];
   const cash = serviceOffers(group ?? { moneda: 'BRL', ofertas: [], divisas: [], paquetes: [] }, 'efectivo')[0];
-  const slides = [
-    {
-      key: 'rates',
-      className: 'rates',
-      content: (
-        <div className="ht-carousel-copy ht-banner-copy">
-          <img className="ht-carousel-banner" src={tasasBanner} alt="" aria-hidden="true" />
-          <span className="ht-eyebrow"><Sparkles size={14} /> Tasas destacadas</span>
-          <h2>Opera con claridad, desde el primer vistazo.</h2>
-          <p>Selecciona una tasa y comienza el pedido con los datos preparados.</p>
-          <div className="ht-featured-rates">
-            <button type="button" onClick={() => onCreate('transferencia', { moneda_pago: group?.moneda })}>
-              <small>Transferencia</small><strong>1 {group?.moneda ?? 'BRL'} = {transfer ? formatNumber(transfer.tasa) : '-'} CUP</strong><ArrowRight size={17} />
-            </button>
-            <button type="button" onClick={() => onCreate('efectivo', { moneda_pago: group?.moneda })}>
-              <small>Efectivo</small><strong>1 {group?.moneda ?? 'BRL'} = {cash ? formatNumber(cash.tasa) : '-'} CUP</strong><ArrowRight size={17} />
-            </button>
+  const currency = group?.moneda ?? 'BRL';
+  const configuredSlides = (data?.promociones ?? []).map((slide) => {
+    if (slide.tipo === 'precios') {
+      return {
+        key: `slide-${slide.id}`,
+        className: 'precios',
+        content: (
+          <div className="ht-config-slide ht-price-slide">
+            <span className="ht-eyebrow">{slide.subtitulo}</span>
+            <h2>{slide.titulo}</h2>
+            {slide.descripcion && <p>{slide.descripcion}</p>}
+            <div className="ht-price-pair">
+              <button type="button" onClick={() => onCreate('transferencia', { moneda_pago: currency, monto_pago: String(transfer?.minimo_pago ?? '') })}>
+                <small>Transferencia</small>
+                <strong><span>1 {currency} =</span><b>{transfer ? formatNumber(transfer.tasa) : '-'} CUP</b></strong>
+                <em>Crear orden</em>
+              </button>
+              <button type="button" onClick={() => onCreate('efectivo', { moneda_pago: currency, monto_pago: String(cash?.minimo_pago ?? '') })}>
+                <small>Efectivo</small>
+                <strong><span>1 {currency} =</span><b>{cash ? formatNumber(cash.tasa) : '-'} CUP</b></strong>
+                <em>Crear orden</em>
+              </button>
+            </div>
           </div>
-        </div>
-      ),
-    },
-    ...(data?.promociones ?? []).map((promotion) => ({
-      key: `promotion-${promotion.id}`,
+        ),
+      };
+    }
+
+    if (slide.tipo === 'marca') {
+      return {
+        key: `slide-${slide.id}`,
+        className: 'marca',
+        content: (
+          <div className="ht-config-slide ht-brand-slide">
+            <img src={slide.imagen_url ? apiAssetUrl(slide.imagen_url) : logoJireh} alt={slide.subtitulo || 'El Jireh'} />
+            <span>
+              <span className="ht-eyebrow">{slide.subtitulo}</span>
+              <h2>{slide.titulo}</h2>
+              {slide.descripcion && <p>{slide.descripcion}</p>}
+              <small>{updateLabel(data?.sync?.last_success_at ?? data?.generated_at)}</small>
+            </span>
+          </div>
+        ),
+      };
+    }
+
+    return {
+      key: `slide-${slide.id}`,
       className: 'promotion',
       content: (
         <div className="ht-promotion-slide">
-          <img src={apiAssetUrl(promotion.imagen_url)} alt={promotion.descripcion} />
-          <span className="ht-promotion-copy"><span className="ht-eyebrow">Promocion vigente</span><h2>{promotion.descripcion}</h2></span>
+          <img src={apiAssetUrl(slide.imagen_url)} alt={slide.titulo} />
+          <span className="ht-promotion-copy">
+            {slide.subtitulo && <span className="ht-eyebrow">{slide.subtitulo}</span>}
+            <h2>{slide.titulo}</h2>
+            {slide.descripcion && <p>{slide.descripcion}</p>}
+          </span>
         </div>
       ),
-    })),
-    {
-      key: 'control',
-      className: 'control',
-      content: (
-        <div className="ht-carousel-copy">
-          <span className="ht-eyebrow"><CheckCircle2 size={14} /> Control operativo</span>
-          <h2>Tasas, pedidos y seguimiento en una experiencia consistente.</h2>
-          <p>El mismo lenguaje visual de Perfil, aplicado a toda la operacion diaria.</p>
-          <button className="ht-carousel-cta" type="button" onClick={() => onCreate('transferencia')}>
-            Crear nuevo pedido <ArrowRight size={17} />
-          </button>
-        </div>
-      ),
-    },
-  ];
+    };
+  });
+  const slides = configuredSlides.length ? configuredSlides : [{
+    key: 'empty',
+    className: 'empty',
+    content: <div className="ht-config-slide"><span className="ht-eyebrow"><Sparkles size={14} /> Carrusel</span><h2>Configura tus slides desde Administracion.</h2></div>,
+  }];
   const [active, setActive] = useState(0);
   const [touching, setTouching] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -199,11 +225,12 @@ function HomeTestCarousel({
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
+      <img className="ht-carousel-bg" src={tasasBanner} alt="" aria-hidden="true" />
       <div className={`ht-carousel-slide ${slides[active].className}`} key={slides[active].key}>{slides[active].content}</div>
-      <div className="ht-carousel-controls">
-        <button type="button" onClick={() => move(-1)} aria-label="Anterior"><ChevronLeft size={18} /></button>
-        <div>{slides.map((slide, index) => <button key={slide.key} type="button" className={index === active ? 'active' : ''} onClick={() => setActive(index)} aria-label={`Ver diapositiva ${index + 1}`} />)}</div>
-        <button type="button" onClick={() => move(1)} aria-label="Siguiente"><ChevronRight size={18} /></button>
+      <button className="ht-carousel-edge previous" type="button" onClick={() => move(-1)} aria-label="Diapositiva anterior" />
+      <button className="ht-carousel-edge next" type="button" onClick={() => move(1)} aria-label="Diapositiva siguiente" />
+      <div className="ht-carousel-dots">
+        {slides.map((slide, index) => <button key={slide.key} type="button" className={index === active ? 'active' : ''} onClick={() => setActive(index)} aria-label={`Ver diapositiva ${index + 1}`} />)}
       </div>
       {canSync && (
         <button className="ht-sync-button" type="button" onClick={onRefresh} disabled={loading || syncing}>
