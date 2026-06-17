@@ -438,12 +438,12 @@
 
 @media (max-width: 920px) {
   .orders-view-shell .workspace {
-    padding-bottom: calc(190px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(190px + env(safe-area-inset-bottom));
+    padding-bottom: calc(230px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(230px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .floating-create-wrap {
-    bottom: calc(152px + env(safe-area-inset-bottom));
+    bottom: calc(178px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .orders-status-chips {
@@ -857,8 +857,8 @@
 @media (max-width: 920px) {
 
   .orders-view-shell .workspace {
-    padding-bottom: calc(132px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(132px + env(safe-area-inset-bottom));
+    padding-bottom: calc(230px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(230px + env(safe-area-inset-bottom));
   }
 
   .orders-scope-chips > button {

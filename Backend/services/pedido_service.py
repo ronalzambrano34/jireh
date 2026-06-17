@@ -1079,6 +1079,9 @@ def redirigir_pedido_operador(
         pedido.redirigido_por_operador_id = operador.id
         pedido.redirigido_en = _utcnow()
         pedido.redireccion_mensaje = (mensaje or "").strip() or None
+        _liberar_bloqueo(
+            pedido
+        )
 
     historial = PedidoHistorial(
         pedido_id=pedido.id,

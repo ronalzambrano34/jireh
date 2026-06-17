@@ -233,7 +233,7 @@
 .order-detail-surface {
   display: grid;
   gap: 14px;
-  padding-bottom: 96px;
+  padding-bottom: 128px;
 }
 
 .order-detail-hero,
@@ -737,15 +737,15 @@
 @media (max-width: 760px) {
   .order-detail-page {
     gap: 10px;
-    padding-bottom: 116px;
+    padding-bottom: 150px;
   }
 
   .order-detail-surface {
-    padding-bottom: calc(164px + env(safe-area-inset-bottom));
+    padding-bottom: calc(220px + env(safe-area-inset-bottom));
   }
 
   .order-bottom-actions {
-    bottom: calc(74px + env(safe-area-inset-bottom));
+    bottom: calc(82px + env(safe-area-inset-bottom));
   }
 
   .order-detail-page-header {
