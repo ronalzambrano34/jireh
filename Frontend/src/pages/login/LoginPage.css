@@ -72,6 +72,16 @@
   grid-template-columns: max-content minmax(0, 1fr);
 }
 
+.auth-panel .phone-code-select-floating .floating-select-menu {
+  position: absolute;   /* o fixed si quieres desacoplarlo del modal */
+  top: 100%;            /* justo debajo del botón */
+  left: 0;
+  z-index: 9999;        /* más alto que el modal */
+  background: var(--ui-surface); /* asegúrate de darle fondo */
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+}
+
 .auth-panel .phone-code-select-floating .floating-select-button {
   position: absolute;
   z-index: 3;
