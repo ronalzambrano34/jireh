@@ -260,7 +260,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
                   <strong>{documentoFile?.name ?? (form.documento_identidad_url || 'Seleccionar imagen')}</strong>
                   <small>Opcional para efectivo u otra evidencia</small>
                 </span>
-                <input type="file" accept="image/*,application/*" onChange={handleDocumentoChange} />
+                <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={handleDocumentoChange} />
               </span>
             </label>
             <label>
