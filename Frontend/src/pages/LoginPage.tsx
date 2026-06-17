@@ -9,6 +9,7 @@ import { DismissibleNotice } from '../components/DismissibleNotice';
 import { PageLoader } from '../components/PageLoader';
 import bannerJireh from '../assets/brand/banner-jireh.webp';
 import './login/LoginPage.css';
+import { createPortal } from 'react-dom';
 
 const DEV_LOGIN_TELEFONO = import.meta.env.VITE_TEST_LOGIN_TELEFONO || (import.meta.env.DEV ? '+1234567890' : '');
 const DEV_LOGIN_PASSWORD = import.meta.env.VITE_TEST_LOGIN_PASSWORD || (import.meta.env.DEV ? 'admin' : '');
@@ -53,6 +54,14 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
       setOnline(false);
     }
 
+    function CountryCodeDropdown({ open, children }) {
+      if (!open) return null;
+      return createPortal(
+        <div className="floating-select-menu">{children}</div>,
+        document.body
+      );
+    }
+    
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
