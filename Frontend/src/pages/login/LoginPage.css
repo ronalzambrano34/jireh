@@ -1123,6 +1123,11 @@
   z-index: 1;
 }
 
+.auth-panel .phone-code-select-floating .floating-select-menu {
+  position: absolute; /* o fixed si quieres que se desacople del modal */
+  z-index: 9999;      /* más alto que el modal */
+}
+
 .auth-panel .login-actions {
   width: 50%;
   margin: 14px auto 0;
