@@ -28,6 +28,7 @@ from Backend.models.pedido_otros import PedidoOtros
 from Backend.models.cliente import (
     Cliente
 )
+from Backend.models.operador import Operador
 
 from Backend.services.template_service import (
     render_template,
@@ -38,6 +39,7 @@ from Backend.services.template_service import (
 DEFAULT_TEMPLATES = {
     "template_transferencia": (
         "*Transferencia*\n"
+        "*Operador:* {{operador}}\n"
         "*Tarjeta:* {{numero_tarjeta}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
@@ -46,6 +48,7 @@ DEFAULT_TEMPLATES = {
     ),
     "template_efectivo": (
         "*Efectivo*\n"
+        "*Operador:* {{operador}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Foto documento:* {{documento_identidad_url}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
@@ -54,12 +57,14 @@ DEFAULT_TEMPLATES = {
     ),
     "template_saldo": (
         "*Saldo Movil*\n"
+        "*Operador:* {{operador}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Saldo:* {{saldo_cup}} CUP\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}"
     ),
     "template_divisa": (
         "*Divisa*\n"
+        "*Operador:* {{operador}}\n"
         "*Tipo de tarjeta:* {{tipo_tarjeta}}\n"
         "*Numero de tarjeta:* {{numero_tarjeta}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
@@ -69,6 +74,7 @@ DEFAULT_TEMPLATES = {
     ),
     "template_otros": (
         "*Otros*\n"
+        "*Operador:* {{operador}}\n"
         "*Cliente:* {{cliente_nombre}}\n"
         "*Tarjeta:* {{numero_tarjeta}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
@@ -122,6 +128,18 @@ def generar_mensaje_operacion(
         else ""
     )
 
+    operador = (
+        db.query(
+            Operador
+        )
+        .filter(
+            Operador.id
+            ==
+            pedido.operador_id
+        )
+        .first()
+    )
+
     variables = {
 
         "monto_pago":
@@ -147,7 +165,28 @@ def generar_mensaje_operacion(
         pedido.codigo_operacion,
 
         "cliente_nombre":
-        cliente_nombre
+        cliente_nombre,
+
+        "operador":
+        (
+            operador.nombre
+            if operador
+            else ""
+        ),
+
+        "operador_codigo":
+        (
+            operador.codigo_operador
+            if operador
+            else ""
+        ),
+
+        "operador_telefono":
+        (
+            operador.telefono
+            if operador
+            else ""
+        )
     }
 
     template_key = None

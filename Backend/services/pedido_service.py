@@ -872,6 +872,10 @@ def pedido_dict(
             "codigo_operacion": pedido.codigo_operacion or "",
             "monto_resultado": pedido.monto_resultado,
             "servicio": pedido.servicio or "",
+            "operador": _operador_asignado_nombre(
+                db,
+                pedido.operador_id
+            ) or "",
         }
         try:
             data["mensaje_finalizacion_sin_comprobante"] = render_template(

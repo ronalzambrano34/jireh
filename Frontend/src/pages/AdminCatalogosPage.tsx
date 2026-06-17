@@ -238,6 +238,9 @@ const templateVariablesComunes = [
   'codigo_operacion',
   'servicio',
   'estado',
+  'operador',
+  'operador_codigo',
+  'operador_telefono',
   'cliente_nombre',
   'cliente_telefono',
   'monto_pago',
@@ -251,14 +254,13 @@ const templateVariablesComunes = [
 ];
 
 const templateVariablesPorClave: Record<string, string[]> = {
-  template_transferencia: ['numero_tarjeta', 'telefono_destinatario', 'telefono'],
-  template_efectivo: ['telefono_destinatario', 'telefono', 'documento_identidad_url'],
-  template_saldo: ['telefono_destinatario', 'telefono', 'numero_telefono', 'saldo_cup'],
-  template_divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'telefono', 'monto_divisa'],
+  template_transferencia: ['numero_tarjeta', 'telefono_destinatario'],
+  template_efectivo: ['telefono_destinatario', 'documento_identidad_url'],
+  template_saldo: ['telefono_destinatario', 'saldo_cup'],
+  template_divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'monto_divisa'],
   template_otros: [
     'numero_tarjeta',
     'telefono_destinatario',
-    'telefono',
     'documento_identidad_url',
     'punto_recogida_id',
     'observaciones',

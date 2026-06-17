@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from Backend.models.cliente import Cliente
 from Backend.models.metodo_pago import MetodoPago
+from Backend.models.operador import Operador
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
 from Backend.models.pedido_efectivo import PedidoEfectivo
@@ -46,6 +47,7 @@ DEFAULT_TEMPLATES_ESTADO = {
     "template_grupo_finalizado": (
         "*Operacion finalizada*\n"
         "Codigo: {codigo_operacion}\n"
+        "Operador: {operador}\n"
         "Servicio: {servicio}\n"
         "Cliente: {cliente_nombre} ({cliente_telefono})\n"
         "Pago: {monto_pago} {moneda_pago} por {metodo_pago}\n"
@@ -108,6 +110,12 @@ def _metodo_pago(db: Session, pedido: Pedido):
     return db.query(MetodoPago).filter(MetodoPago.id == pedido.tipo_pago_id).first()
 
 
+def _operador(db: Session, pedido: Pedido):
+    if not pedido.operador_id:
+        return None
+    return db.query(Operador).filter(Operador.id == pedido.operador_id).first()
+
+
 def _detalle(db: Session, pedido: Pedido):
     if pedido.servicio == "transferencia":
         item = db.query(PedidoTransferencia).filter(PedidoTransferencia.pedido_id == pedido.id).first()
@@ -148,6 +156,7 @@ def _detalle(db: Session, pedido: Pedido):
 def contexto_pedido(db: Session, pedido: Pedido):
     cliente = _cliente(db, pedido)
     metodo = _metodo_pago(db, pedido)
+    operador = _operador(db, pedido)
     comprobante_final = (
         db.query(
             ArchivoPedido
@@ -186,6 +195,9 @@ def contexto_pedido(db: Session, pedido: Pedido):
         "estado": pedido.estado or "",
         "cliente_nombre": cliente.nombre if cliente else "Cliente",
         "cliente_telefono": cliente.telefono if cliente else "",
+        "operador": operador.nombre if operador else "",
+        "operador_codigo": operador.codigo_operador if operador else "",
+        "operador_telefono": operador.telefono if operador else "",
         "monto_pago": pedido.monto_pago,
         "moneda_pago": pedido.moneda_pago,
         "monto_resultado": pedido.monto_resultado,
