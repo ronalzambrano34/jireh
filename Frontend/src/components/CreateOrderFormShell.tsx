@@ -60,7 +60,7 @@ export function CreateOrderFormShell({
             <strong>{comprobante?.name ?? 'Seleccionar comprobante'}</strong>
             <small>Opcional. Si lo adjuntas, el pago quedara confirmado al crear el pedido.</small>
           </span>
-          <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={onComprobanteChange} />
+          <input type="file" accept="image/*,.pdf" onChange={onComprobanteChange} />
         </span>
       </label>
       {loading && <PageLoader label={loadingLabel} inline />}

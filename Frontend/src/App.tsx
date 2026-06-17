@@ -1205,7 +1205,7 @@ export function App() {
               <input
                 ref={comprobantePedidoCreadoInputRef}
                 type="file"
-                accept="image/*,application/pdf,.pdf,.doc,.docx"
+                accept="image/*,.pdf"
                 className="visually-hidden-file"
                 onChange={handleComprobantePedidoCreado}
               />

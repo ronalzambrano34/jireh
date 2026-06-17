@@ -2,6 +2,8 @@ PENDIENTES:
 //todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, 
 
 
+//todo en el modal del loguin al desplegar el menu flotante de codigo de pais, esta apareciendo debajo del modal
+
 //todo En detalles del pedido, hay q añadir un poco más de altura a la página, ya que al tener en el pie de página, el nav y el cancelar pedido, los elementos se quedan eclipsados
 
 //todo En los templates añadir {operador} y revisar pq creo que {teléfono_destinatario} y {teléfono son lo mismo}. Y si pongo {observaciones} en el template y está vacío que no se imprima {observaciones}
