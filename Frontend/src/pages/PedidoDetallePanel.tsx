@@ -38,7 +38,53 @@ function tasaAplicadaPedido(pedido: PedidoDetalle) {
 }
 const detallePrioridadOperativa = ['numero_tarjeta', 'telefono_destinatario', ...detalleMontoKeys];
 
-function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string) {
+type WhatsAppAdjuntoTipo = 'comprobante' | 'documento';
+
+type WhatsAppPendiente = {
+  titulo: string;
+  detalle: string;
+  url: string;
+  mensaje: string;
+  adjunto: ArchivoPedido | null;
+  adjuntoTipo: WhatsAppAdjuntoTipo | null;
+};
+
+function escaparRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function archivoDocumentoIdentidad(pedido: PedidoDetalle) {
+  const documentoDetalle = typeof pedido.detalle?.documento_identidad_url === 'string'
+    ? pedido.detalle.documento_identidad_url.trim()
+    : '';
+  const archivos = pedido.archivos ?? [];
+
+  return archivos.find((archivo) => (
+    archivo.tipo === 'documento_identidad'
+    && (!documentoDetalle || archivo.ruta_archivo === documentoDetalle)
+  ))
+    ?? archivos.find((archivo) => archivo.tipo === 'documento_identidad')
+    ?? null;
+}
+
+function mensajeSinUrlDocumento(mensaje: string, pedido: PedidoDetalle, documento: ArchivoPedido | null) {
+  if (!documento) return mensaje;
+
+  const documentoDetalle = typeof pedido.detalle?.documento_identidad_url === 'string'
+    ? pedido.detalle.documento_identidad_url.trim()
+    : '';
+  const rutas = Array.from(new Set([
+    documento.ruta_archivo.trim(),
+    documentoDetalle,
+  ].filter(Boolean)));
+
+  return rutas.reduce(
+    (texto, ruta) => texto.replace(new RegExp(escaparRegExp(ruta), 'g'), 'Adjunto'),
+    mensaje,
+  );
+}
+
+function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string): WhatsAppPendiente | null {
   if (nuevoEstado === 'completado') {
     const comprobante = pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_final')
       ?? pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_cliente')
@@ -49,19 +95,30 @@ function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string) 
           detalle: 'Mensaje listo para el grupo de operaciones finalizadas.',
           url: pedido.whatsapp_grupo_finalizado_url,
           mensaje: pedido.mensaje_grupo_finalizado ?? '',
-          comprobante,
+          adjunto: comprobante,
+          adjuntoTipo: comprobante ? 'comprobante' : null,
         }
       : null;
   }
 
   if (nuevoEstado === 'pago_confirmado') {
+    const documento = archivoDocumentoIdentidad(pedido);
+    const mensaje = mensajeSinUrlDocumento(
+      pedido.mensaje_grupo_pedidos ?? '',
+      pedido,
+      documento,
+    );
+
     return pedido.whatsapp_grupo_pedidos_url
       ? {
           titulo: 'Pago confirmado',
-          detalle: 'Mensaje listo para el grupo de Operaciones.',
+          detalle: documento
+            ? 'Mensaje listo para el grupo de Operaciones con documento adjunto.'
+            : 'Mensaje listo para el grupo de Operaciones.',
           url: pedido.whatsapp_grupo_pedidos_url,
-          mensaje: pedido.mensaje_grupo_pedidos ?? '',
-          comprobante: null,
+          mensaje,
+          adjunto: documento,
+          adjuntoTipo: documento ? 'documento' : null,
         }
       : null;
   }
@@ -265,13 +322,7 @@ export function PedidoDetallePanel({
   const [redireccionAbierta, setRedireccionAbierta] = useState(false);
   const [cancelacionAbierta, setCancelacionAbierta] = useState(false);
   const [confirmarPagoAbierto, setConfirmarPagoAbierto] = useState(false);
-  const [whatsappPendiente, setWhatsappPendiente] = useState<{
-    titulo: string;
-    detalle: string;
-    url: string;
-    mensaje: string;
-    comprobante: ArchivoPedido | null;
-  } | null>(null);
+  const [whatsappPendiente, setWhatsappPendiente] = useState<WhatsAppPendiente | null>(null);
   const [compartiendoComprobante, setCompartiendoComprobante] = useState(false);
   const [finalizacionAbierta, setFinalizacionAbierta] = useState(false);
   const [finalizarSinComprobante, setFinalizarSinComprobante] = useState(false);
@@ -613,9 +664,9 @@ export function PedidoDetallePanel({
 
   async function enviarWhatsAppPendiente() {
     if (!whatsappPendiente || compartiendoComprobante) return;
-    const comprobante = whatsappPendiente.comprobante;
+    const adjunto = whatsappPendiente.adjunto;
 
-    if (!comprobante) {
+    if (!adjunto) {
       abrirWhatsAppUrl(whatsappPendiente.url);
       setWhatsappPendiente(null);
       if (pedido?.estado === 'completado') onClose();
@@ -625,17 +676,17 @@ export function PedidoDetallePanel({
     setCompartiendoComprobante(true);
     setError(null);
     try {
-      const response = await fetch(archivoUrl(comprobante));
-      if (!response.ok) throw new Error('No se pudo descargar el comprobante');
+      const response = await fetch(archivoUrl(adjunto));
+      if (!response.ok) throw new Error('No se pudo descargar el adjunto');
 
       const blob = await response.blob();
-      const nombre = comprobante.nombre_archivo
-        || comprobante.ruta_archivo.split('/').pop()
-        || 'comprobante';
+      const nombre = adjunto.nombre_archivo
+        || adjunto.ruta_archivo.split('/').pop()
+        || (whatsappPendiente.adjuntoTipo === 'documento' ? 'documento' : 'comprobante');
       const file = new File(
         [blob],
         nombre,
-        { type: comprobante.mime_type || blob.type || 'application/octet-stream' },
+        { type: adjunto.mime_type || blob.type || 'application/octet-stream' },
       );
       const shareData: ShareData = {
         title: whatsappPendiente.titulo,
@@ -654,8 +705,8 @@ export function PedidoDetallePanel({
       if (err instanceof DOMException && err.name === 'AbortError') return;
       setError(
         err instanceof Error
-          ? `${err.message}. Abre el comprobante y compartelo manualmente por WhatsApp.`
-          : 'No se pudo compartir el comprobante por WhatsApp',
+          ? `${err.message}. Abre el adjunto y compartelo manualmente por WhatsApp.`
+          : 'No se pudo compartir el adjunto por WhatsApp',
       );
     } finally {
       setCompartiendoComprobante(false);
@@ -1126,17 +1177,21 @@ export function PedidoDetallePanel({
                   rows={8}
                   readOnly
                 />
-                {whatsappPendiente.comprobante && (
+                {whatsappPendiente.adjunto && (
                   <a
                     className="whatsapp-attachment-preview"
-                    href={archivoUrl(whatsappPendiente.comprobante)}
+                    href={archivoUrl(whatsappPendiente.adjunto)}
                     target="_blank"
                     rel="noreferrer"
                   >
                     <FileText size={17} />
                     <span>
-                      <strong>Comprobante adjunto</strong>
-                      <small>{whatsappPendiente.comprobante.nombre_archivo ?? 'Ver archivo'}</small>
+                      <strong>
+                        {whatsappPendiente.adjuntoTipo === 'documento'
+                          ? 'Documento adjunto'
+                          : 'Comprobante adjunto'}
+                      </strong>
+                      <small>{whatsappPendiente.adjunto.nombre_archivo ?? 'Ver archivo'}</small>
                     </span>
                     <ExternalLink size={15} />
                   </a>
@@ -1157,9 +1212,11 @@ export function PedidoDetallePanel({
                   disabled={compartiendoComprobante}
                 >
                   {compartiendoComprobante
-                    ? 'Preparando comprobante...'
-                    : whatsappPendiente.comprobante
-                      ? 'Compartir mensaje y comprobante'
+                    ? 'Preparando adjunto...'
+                    : whatsappPendiente.adjunto
+                      ? whatsappPendiente.adjuntoTipo === 'documento'
+                        ? 'Compartir mensaje y documento'
+                        : 'Compartir mensaje y comprobante'
                       : 'Enviar al grupo por WhatsApp'}
                 </button>
                 <button

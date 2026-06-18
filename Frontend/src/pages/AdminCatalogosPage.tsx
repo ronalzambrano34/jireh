@@ -248,6 +248,10 @@ const templateVariablesComunes = [
   'monto_resultado',
   'tasa_final',
   'metodo_pago',
+  'cuenta_pago',
+  'cuenta_pago_alias',
+  'cuenta_pago_titular',
+  'qr_pago_url',
   'ganancia',
   'comprobante_pago',
   'observaciones',
@@ -334,6 +338,8 @@ export function AdminCatalogosPage() {
   const temaActivoRef = useRef<AdminTema | null>(temaActivo);
   const temasCargadosRef = useRef<Set<AdminTema>>(new Set());
   const temasCargandoRef = useRef<Set<AdminTema>>(new Set());
+  const configModalOpenRef = useRef(false);
+  const templateModalOpenRef = useRef(false);
   const configTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const templateTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const loading = temaActivo ? temasCargando.has(temaActivo) : false;
@@ -456,6 +462,46 @@ export function AdminCatalogosPage() {
   useEffect(() => {
     if (temaActivo) void cargarTema(temaActivo);
   }, []);
+
+  useEffect(() => {
+    configModalOpenRef.current = configModalOpen;
+  }, [configModalOpen]);
+
+  useEffect(() => {
+    templateModalOpenRef.current = templateModalOpen;
+  }, [templateModalOpen]);
+
+  useEffect(() => {
+    function handlePopState(event: PopStateEvent) {
+      const state = event.state as { jirehAdminModal?: string } | null;
+      if (templateModalOpenRef.current && state?.jirehAdminModal !== 'template') {
+        setTemplateModalOpen(false);
+      }
+      if (configModalOpenRef.current && state?.jirehAdminModal !== 'config') {
+        setConfigModalOpen(false);
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  function abrirModalAdmin(tipo: 'config' | 'template') {
+    const state = window.history.state as { jirehAdminModal?: string; jirehView?: string } | null;
+    if (state?.jirehAdminModal !== tipo) {
+      window.history.pushState({ ...state, jirehView: 'admin', jirehAdminModal: tipo }, '');
+    }
+  }
+
+  function cerrarModalAdmin(tipo: 'config' | 'template') {
+    if (tipo === 'template') setTemplateModalOpen(false);
+    if (tipo === 'config') setConfigModalOpen(false);
+
+    const state = window.history.state as { jirehAdminModal?: string } | null;
+    if (state?.jirehAdminModal === tipo) {
+      window.history.back();
+    }
+  }
 
   function abrirTema(tema: AdminTema) {
     temaActivoRef.current = tema;
@@ -767,7 +813,7 @@ export function AdminCatalogosPage() {
     try {
       await guardarConfiguracion(configForm);
       setNotice('Configuracion guardada');
-      setConfigModalOpen(false);
+      cerrarModalAdmin('config');
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la configuracion');
@@ -902,7 +948,7 @@ export function AdminCatalogosPage() {
     try {
       await guardarTemplate(templateForm.clave, templateForm.valor);
       setNotice('Template guardado');
-      setTemplateModalOpen(false);
+      cerrarModalAdmin('template');
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el template');
@@ -916,11 +962,13 @@ export function AdminCatalogosPage() {
 
   function abrirConfig(item: Configuracion) {
     setConfigForm({ clave: item.clave, valor: item.valor });
+    abrirModalAdmin('config');
     setConfigModalOpen(true);
   }
 
   function abrirTemplate(clave: string) {
     seleccionarTemplate(clave);
+    abrirModalAdmin('template');
     setTemplateModalOpen(true);
   }
 
@@ -1408,7 +1456,7 @@ export function AdminCatalogosPage() {
       )}
 
       {temaActivo === 'configuracion' && temasCargados.has('configuracion') && (
-        <AdminSection icono={Settings2} titulo="Configuracion" resumen={configuracionesSistemaTotal} action={<button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); setConfigModalOpen(true); }}>Nueva</button>}>
+        <AdminSection icono={Settings2} titulo="Configuracion" resumen={configuracionesSistemaTotal} action={<button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); abrirModalAdmin('config'); setConfigModalOpen(true); }}>Nueva</button>}>
           <div className="config-list whatsapp-config-list">
             {whatsappConfiguraciones.map((item) => (
               <button type="button" className="config-row whatsapp-config-row" key={item.clave} onClick={() => abrirConfig({ id: 0, clave: item.clave, valor: item.valor, editable: true })}>
@@ -1718,7 +1766,7 @@ export function AdminCatalogosPage() {
       )}
 
       {configModalOpen && (
-        <Modal title="Configuracion" subtitle={configForm.clave || 'Nueva clave'} onClose={() => setConfigModalOpen(false)} wide>
+        <Modal title="Configuracion" subtitle={configForm.clave || 'Nueva clave'} onClose={() => cerrarModalAdmin('config')} wide>
           <form className="stack-form modal-form" onSubmit={guardarConfig}>
             <input value={configForm.clave} onChange={(event) => setConfigForm((current) => ({ ...current, clave: event.target.value }))} placeholder="clave" required />
             <textarea ref={configTextareaRef} value={configForm.valor} onChange={(event) => setConfigForm((current) => ({ ...current, valor: event.target.value }))} placeholder="valor" rows={10} required />
@@ -1734,7 +1782,7 @@ export function AdminCatalogosPage() {
         </Modal>
       )}
       {templateModalOpen && (
-        <Modal title="Template" subtitle={templateForm.clave} onClose={() => setTemplateModalOpen(false)} wide>
+        <Modal title="Template" subtitle={templateForm.clave} onClose={() => cerrarModalAdmin('template')} wide>
           <form className="stack-form modal-form" onSubmit={guardarTemplateActual}>
             <FloatingSelect value={templateForm.clave} onChange={seleccionarTemplate} options={templates.map((template) => ({ value: template.clave, label: template.clave }))} ariaLabel="Template" align="left" />
             <textarea ref={templateTextareaRef} value={templateForm.valor} onChange={(event) => setTemplateForm((current) => ({ ...current, valor: event.target.value }))} rows={12} />

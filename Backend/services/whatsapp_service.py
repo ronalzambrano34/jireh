@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from Backend.models.cliente import Cliente
 from Backend.models.metodo_pago import MetodoPago
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 from Backend.models.operador import Operador
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
@@ -51,6 +52,7 @@ DEFAULT_TEMPLATES_ESTADO = {
         "Servicio: {servicio}\n"
         "Cliente: {cliente_nombre} ({cliente_telefono})\n"
         "Pago: {monto_pago} {moneda_pago} por {metodo_pago}\n"
+        "Cuenta de pago: {cuenta_pago}\n"
         "Recibe: {monto_resultado}\n"
         "Tasa: {tasa_final}\n"
         "Ganancia: {ganancia}\n"
@@ -110,6 +112,12 @@ def _metodo_pago(db: Session, pedido: Pedido):
     return db.query(MetodoPago).filter(MetodoPago.id == pedido.tipo_pago_id).first()
 
 
+def _cuenta_pago(db: Session, pedido: Pedido):
+    if not pedido.cuenta_pago_id:
+        return None
+    return db.query(MetodoPagoCuenta).filter(MetodoPagoCuenta.id == pedido.cuenta_pago_id).first()
+
+
 def _operador(db: Session, pedido: Pedido):
     if not pedido.operador_id:
         return None
@@ -156,6 +164,7 @@ def _detalle(db: Session, pedido: Pedido):
 def contexto_pedido(db: Session, pedido: Pedido):
     cliente = _cliente(db, pedido)
     metodo = _metodo_pago(db, pedido)
+    cuenta_pago = _cuenta_pago(db, pedido)
     operador = _operador(db, pedido)
     comprobante_final = (
         db.query(
@@ -208,6 +217,10 @@ def contexto_pedido(db: Session, pedido: Pedido):
         ),
         "ganancia": pedido.ganancia,
         "metodo_pago": metodo.nombre if metodo else "",
+        "cuenta_pago": cuenta_pago.cuenta if cuenta_pago else "",
+        "cuenta_pago_alias": cuenta_pago.alias if cuenta_pago else "",
+        "cuenta_pago_titular": cuenta_pago.titular if cuenta_pago else "",
+        "qr_pago_url": cuenta_pago.qr_url if cuenta_pago else "",
         "comprobante_pago": comprobante_final_texto,
         "observaciones": pedido.observaciones or "",
     }

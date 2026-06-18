@@ -7,6 +7,7 @@ from sqlalchemy.orm import (
 from Backend.models.metodo_pago import (
     MetodoPago
 )
+from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 
 from Backend.models.pedido_transferencia import (
     PedidoTransferencia
@@ -44,7 +45,8 @@ DEFAULT_TEMPLATES = {
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
-        "*Metodo de pago:* {{metodo_pago}}"
+        "*Metodo de pago:* {{metodo_pago}}\n"
+        "*Cuenta de pago:* {{cuenta_pago}}"
     ),
     "template_efectivo": (
         "*Efectivo*\n"
@@ -53,14 +55,17 @@ DEFAULT_TEMPLATES = {
         "*Foto documento:* {{documento_identidad_url}}\n"
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
-        "*Metodo de pago:* {{metodo_pago}}"
+        "*Metodo de pago:* {{metodo_pago}}\n"
+        "*Cuenta de pago:* {{cuenta_pago}}"
     ),
     "template_saldo": (
         "*Saldo Movil*\n"
         "*Operador:* {{operador}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Saldo:* {{saldo_cup}} CUP\n"
-        "*Pago:* {{monto_pago}} {{moneda_pago}}"
+        "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
+        "*Metodo de pago:* {{metodo_pago}}\n"
+        "*Cuenta de pago:* {{cuenta_pago}}"
     ),
     "template_divisa": (
         "*Divisa*\n"
@@ -70,6 +75,8 @@ DEFAULT_TEMPLATES = {
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Monto divisa:* {{monto_divisa}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
+        "*Metodo de pago:* {{metodo_pago}}\n"
+        "*Cuenta de pago:* {{cuenta_pago}}\n"
         "*Tasa efectiva:* {{tasa_final}}"
     ),
     "template_otros": (
@@ -82,6 +89,7 @@ DEFAULT_TEMPLATES = {
         "*Punto de recogida:* {{punto_recogida_id}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}\n"
+        "*Cuenta de pago:* {{cuenta_pago}}\n"
         "*Info:* {{observaciones}}"
     )
 }
@@ -140,6 +148,20 @@ def generar_mensaje_operacion(
         .first()
     )
 
+    cuenta_pago = (
+        db.query(
+            MetodoPagoCuenta
+        )
+        .filter(
+            MetodoPagoCuenta.id
+            ==
+            pedido.cuenta_pago_id
+        )
+        .first()
+        if pedido.cuenta_pago_id
+        else None
+    )
+
     variables = {
 
         "monto_pago":
@@ -185,6 +207,34 @@ def generar_mensaje_operacion(
         (
             operador.telefono
             if operador
+            else ""
+        ),
+
+        "cuenta_pago":
+        (
+            cuenta_pago.cuenta
+            if cuenta_pago
+            else ""
+        ),
+
+        "cuenta_pago_alias":
+        (
+            cuenta_pago.alias
+            if cuenta_pago
+            else ""
+        ),
+
+        "cuenta_pago_titular":
+        (
+            cuenta_pago.titular
+            if cuenta_pago
+            else ""
+        ),
+
+        "qr_pago_url":
+        (
+            cuenta_pago.qr_url
+            if cuenta_pago
             else ""
         )
     }
