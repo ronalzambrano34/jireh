@@ -665,7 +665,7 @@
   display: grid;
   gap: 8px;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-y: auto;
   padding-right: 3px;
   scrollbar-color: color-mix(in srgb, var(--service-accent) 45%, var(--ui-border)) transparent;
   scrollbar-width: thin;

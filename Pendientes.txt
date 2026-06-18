@@ -5,4 +5,4 @@ PENDIENTES:
 //todo 
 //todo 
 
-//todo en el home test si en las ofertas, ya se llegó al final del scroll que se comience a mover el scroll de la pagina
+//todo  

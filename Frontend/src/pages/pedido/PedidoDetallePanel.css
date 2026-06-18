@@ -233,7 +233,7 @@
 .order-detail-surface {
   display: grid;
   gap: 14px;
-  padding-bottom: 128px;
+  padding-bottom: 180px;
 }
 
 .order-detail-hero,
@@ -737,11 +737,11 @@
 @media (max-width: 760px) {
   .order-detail-page {
     gap: 10px;
-    padding-bottom: 150px;
+    padding-bottom: 210px;
   }
 
   .order-detail-surface {
-    padding-bottom: calc(220px + env(safe-area-inset-bottom));
+    padding-bottom: calc(300px + env(safe-area-inset-bottom));
   }
 
   .order-bottom-actions {
@@ -1234,12 +1234,12 @@
 
 @media (max-width: 720px) {
   .order-detail-view-shell .workspace {
-    padding-bottom: calc(170px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(170px + env(safe-area-inset-bottom));
+    padding-bottom: calc(280px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(280px + env(safe-area-inset-bottom));
   }
 
   .order-detail-view-shell .order-detail-page {
-    padding-bottom: calc(122px + env(safe-area-inset-bottom));
+    padding-bottom: calc(240px + env(safe-area-inset-bottom));
   }
 
   .order-detail-view-shell .order-bottom-actions {
@@ -1942,12 +1942,12 @@
 @media (max-width: 920px) {
 
   .order-detail-view-shell .workspace {
-    padding-bottom: calc(164px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(164px + env(safe-area-inset-bottom));
+    padding-bottom: calc(280px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(280px + env(safe-area-inset-bottom));
   }
 
   .order-detail-view-shell .order-detail-page {
-    padding-bottom: 24px;
+    padding-bottom: calc(240px + env(safe-area-inset-bottom));
   }
 
   :root[data-theme="dark-sidebar"] .order-detail-page-header {
