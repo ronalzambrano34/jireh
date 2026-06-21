@@ -241,7 +241,7 @@ function HomeTestCarousel({
   );
 }
 
-function QuotePanel({ group }: { group: CurrencyGroup }) {
+function QuotePanel({ group, onCreate }: { group: CurrencyGroup; onCreate: HomeTestPageProps['onCreate'] }) {
   const [amount, setAmount] = useState('');
   const numericAmount = Number(amount.replace(',', '.')) || 0;
   const transfer = bestOffer(serviceOffers(group, 'transferencia'), numericAmount);
@@ -271,8 +271,8 @@ function QuotePanel({ group }: { group: CurrencyGroup }) {
           {/* <small>Los resultados se calculan mientras escribes.</small> */}
         </label>
         <div className="ht-quote-results">
-          <article><small>Transferencia</small><strong>{formatNumber(numericAmount * rate(transfer))} <em>CUP</em></strong><span>1 {group.moneda} = {transfer ? formatNumber(transfer.tasa) : '-'} CUP</span></article>
-          <article><small>Efectivo</small><strong>{formatNumber(numericAmount * rate(cash))} <em>CUP</em></strong><span>1 {group.moneda} = {cash ? formatNumber(cash.tasa) : '-'} CUP</span></article>
+          <button type="button" className="ht-quote-result" onClick={() => onCreate('transferencia', { moneda_pago: group.moneda, monto_pago: amount })}><small>Transferencia</small><strong>{formatNumber(numericAmount * rate(transfer))} <em>CUP</em></strong><span>1 {group.moneda} = {transfer ? formatNumber(transfer.tasa) : '-'} CUP</span></button>
+          <button type="button" className="ht-quote-result" onClick={() => onCreate('efectivo', { moneda_pago: group.moneda, monto_pago: amount })}><small>Efectivo</small><strong>{formatNumber(numericAmount * rate(cash))} <em>CUP</em></strong><span>1 {group.moneda} = {cash ? formatNumber(cash.tasa) : '-'} CUP</span></button>
         </div>
       </div>
     </section>
@@ -462,7 +462,7 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
               }))}
             />
           </section>
-          <QuotePanel group={activeGroup} />
+          <QuotePanel group={activeGroup} onCreate={onCreate} />
           <section className="ht-services-section">
             <header><span className="ht-eyebrow">Servicios disponibles</span><h2>Elige cómo quieres operar</h2><p>Cada opción muestra sus tasas y paquetes de forma directa.</p></header>
             <div className="ht-offers-grid">{(['transferencia', 'efectivo', 'saldo', 'divisa'] as InicioServicio[]).map((service) => <OfferCard key={service} service={service} group={activeGroup} onCreate={onCreate} />)}</div>

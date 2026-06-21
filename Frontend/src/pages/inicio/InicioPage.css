@@ -2653,6 +2653,9 @@
   border: 1px solid #dfe7f2;
   border-radius: 10px;
   background: #f8fafc;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 

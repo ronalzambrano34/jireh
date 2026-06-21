@@ -457,7 +457,7 @@
   cursor: text;
 }
 
-.ht-quote-results article {
+.ht-quote-result {
   min-height: 112px;
   display: grid;
   align-content: center;
@@ -467,10 +467,22 @@
   border-radius: var(--ui-radius-md);
   background: var(--ui-surface-raised);
   box-shadow: 0 7px 20px color-mix(in srgb, var(--ui-shadow) 24%, transparent);
+  color: var(--ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.ht-quote-result:hover,
+.ht-quote-result:focus-visible {
+  border-color: color-mix(in srgb, var(--ht-accent) 50%, var(--ui-border));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ht-accent) 16%, var(--ui-shadow));
+  transform: translateY(-1px);
 }
 
 .ht-amount-field > span,
-.ht-quote-results article > small {
+.ht-quote-result > small {
   color: var(--ui-text-muted);
   font-size: 10px;
   font-weight: 850;
@@ -527,18 +539,18 @@
   gap: 10px;
 }
 
-.ht-quote-results article strong {
+.ht-quote-result strong {
   color: var(--ui-text);
   font-size: clamp(22px, 3vw, 30px);
 }
 
-.ht-quote-results article em {
+.ht-quote-result em {
   color: var(--ht-accent);
   font-size: 12px;
   font-style: normal;
 }
 
-.ht-quote-results article > span {
+.ht-quote-result > span {
   color: var(--ui-text-muted);
   font-size: 11px;
   font-weight: 750;
@@ -894,16 +906,16 @@
     gap: 7px;
   }
 
-  .ht-quote-results article {
+  .ht-quote-result {
     min-height: 104px;
     padding: 10px;
   }
 
-  .ht-quote-results article strong {
+  .ht-quote-result strong {
     font-size: clamp(16px, 5vw, 22px);
   }
 
-  .ht-quote-results article > span {
+  .ht-quote-result > span {
     font-size: 9px;
   }
 

@@ -270,17 +270,17 @@ function fechaActualizacion(value?: string) {
   return `Actualizado ${date.toLocaleDateString('es-UY')} ${date.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-function CotizadorResultado({ label, tone, cotizacion, moneda }: { label: string; tone: 'blue' | 'green'; cotizacion: CotizacionOferta; moneda: string }) {
+function CotizadorResultado({ label, tone, cotizacion, moneda, onClick }: { label: string; tone: 'blue' | 'green'; cotizacion: CotizacionOferta; moneda: string; onClick: () => void }) {
   return (
-    <div className={`live-rate-result ${tone}`}>
+    <button type="button" className={`live-rate-result ${tone}`} onClick={onClick}>
       <span>{label}</span>
       <strong>{cotizacion ? formatNumber(cotizacion.total) : '-'} <small>CUP</small></strong>
       <em>{cotizacion ? `1 ${moneda} = ${formatNumber(cotizacion.tasa)} CUP` : 'Sin tasa activa'}</em>
-    </div>
+    </button>
   );
 }
 
-function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
+function CotizadorVivo({ grupo, onCreate }: { grupo: GrupoMoneda; onCreate: InicioPageProps['onCreate'] }) {
   const [monto, setMonto] = useState('100');
   const montoNumerico = Number(monto.replace(',', '.')) || 0;
   const moneda = monedaPago(grupo.moneda);
@@ -312,8 +312,8 @@ function CotizadorVivo({ grupo }: { grupo: GrupoMoneda }) {
         </div>
       </label>
       <div className="live-rate-results">
-        <CotizadorResultado label="Transferencia Cuba" tone="blue" cotizacion={transferencia} moneda={moneda} />
-        <CotizadorResultado label="Efectivo" tone="green" cotizacion={efectivo} moneda={moneda} />
+        <CotizadorResultado label="Transferencia Cuba" tone="blue" cotizacion={transferencia} moneda={moneda} onClick={() => onCreate('transferencia', { moneda_pago: grupo.moneda, monto_pago: monto })} />
+        <CotizadorResultado label="Efectivo" tone="green" cotizacion={efectivo} moneda={moneda} onClick={() => onCreate('efectivo', { moneda_pago: grupo.moneda, monto_pago: monto })} />
       </div>
       {rangoActivo && (
         <div className="wholesale-live-badge">
@@ -680,7 +680,7 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
               </header>
             </section>
 
-            <CotizadorVivo grupo={grupoActivo} />
+            <CotizadorVivo grupo={grupoActivo} onCreate={onCreate} />
 
             <ServicesRatesGrid
               moneda={grupoActivo.moneda}
