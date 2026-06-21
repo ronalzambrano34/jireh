@@ -173,9 +173,9 @@ export function OrdersPage(props: {
 
               <section className="orders-filter-section">
                 <h3>Estado</h3>
-                <div className="orders-filter-options status-options status-filters orders-status-chips">
+                <div className="orders-filter-options status-options status-filters">
                   <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
-                  {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? 'active' : ''} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
+                  {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? `${item.value} active` : item.value} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
                 </div>
               </section>
 
@@ -186,6 +186,10 @@ export function OrdersPage(props: {
             </div>
           </Modal>
         )}
+        <nav className="orders-status-chips orders-status-quickbar" aria-label="Filtrar pedidos por estado">
+          <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
+          {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? `${item.value} active` : item.value} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
+        </nav>
         {props.loading && <PageLoader label="Cargando pedidos" inline />}
         {props.pedidos.length === 0 && !props.loading && <DismissibleNotice className="notice">No hay pedidos para estos filtros</DismissibleNotice>}
 

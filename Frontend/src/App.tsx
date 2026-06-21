@@ -637,6 +637,14 @@ export function App() {
   }, [vista]);
 
   useEffect(() => {
+    const mobileBreakpoint = window.matchMedia('(max-width: 920px)');
+    const closeMenuOnBreakpointChange = () => setMobileMenuOpen(false);
+
+    mobileBreakpoint.addEventListener('change', closeMenuOnBreakpointChange);
+    return () => mobileBreakpoint.removeEventListener('change', closeMenuOnBreakpointChange);
+  }, []);
+
+  useEffect(() => {
     const initialView = historyViewRef.current;
     window.history.replaceState({ ...window.history.state, jirehExitGuard: true }, '');
     window.history.pushState({ jirehView: initialView }, '');

@@ -263,6 +263,10 @@
   scrollbar-width: none;
 }
 
+.orders-status-quickbar {
+  display: none;
+}
+
 .orders-status-chips::-webkit-scrollbar {
   display: none;
 }
