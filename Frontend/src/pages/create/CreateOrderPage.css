@@ -101,33 +101,6 @@
   font-weight: 800;
 }
 
-.form-grid .document-camera-button {
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid #b8c6d6;
-  background: var(--ui-surface);
-  color: var(--ui-primary-strong);
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.document-camera-button:hover,
-.document-camera-button:focus-within {
-  border-color: var(--ui-primary-strong);
-  background: #f1faf6;
-}
-
-.document-camera-button input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .document-upload-field:hover,
 .document-upload-field:focus-within {
   border-color: var(--ui-primary-strong);
@@ -1168,8 +1141,7 @@
   color: var(--ui-text-muted);
 }
 
-:root[data-theme="dark-sidebar"] .document-upload-field,
-:root[data-theme="dark-sidebar"] .document-camera-button {
+:root[data-theme="dark-sidebar"] .document-upload-field {
   color: var(--ui-text-muted);
   background: var(--ui-canvas-soft);
   border-color: var(--ui-border);
@@ -1177,9 +1149,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .document-upload-field:hover,
-:root[data-theme="dark-sidebar"] .document-upload-field:focus-within,
-:root[data-theme="dark-sidebar"] .document-camera-button:hover,
-:root[data-theme="dark-sidebar"] .document-camera-button:focus-within {
+:root[data-theme="dark-sidebar"] .document-upload-field:focus-within {
   color: var(--ui-text);
   background: var(--ui-surface-hover);
   border-color: color-mix(in srgb, var(--ui-primary) 40%, transparent);

@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import { Camera, ImagePlus, MapPin, MessageCircle } from 'lucide-react';
+import { ImagePlus, MapPin, MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
