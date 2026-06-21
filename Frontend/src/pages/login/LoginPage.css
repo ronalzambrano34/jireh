@@ -1186,7 +1186,7 @@
 }
 
 .login-popover-backdrop .login-modal {
-  width: min(480px, 100%);
+  width: min(440px, 100%);
   height: auto;
   max-height: calc(100dvh - 36px - env(safe-area-inset-top));
 }
@@ -1203,7 +1203,7 @@
   }
 
   .login-popover-backdrop .login-modal {
-    width: min(480px, 100%);
+    width: min(440px, 100%);
     height: auto;
     max-height: calc(
       100dvh - 20px - env(safe-area-inset-top) -
