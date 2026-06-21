@@ -43,7 +43,8 @@ type WhatsAppAdjuntoTipo = 'comprobante' | 'documento';
 type WhatsAppPendiente = {
   titulo: string;
   detalle: string;
-  url: string;
+  url: string | null;
+  clienteUrl: string | null;
   mensaje: string;
   adjunto: ArchivoPedido | null;
   adjuntoTipo: WhatsAppAdjuntoTipo | null;
@@ -89,11 +90,12 @@ function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string):
     const comprobante = pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_final')
       ?? pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_cliente')
       ?? null;
-    return pedido.whatsapp_grupo_finalizado_url
+    return pedido.whatsapp_grupo_finalizado_url || pedido.whatsapp_estado_url
       ? {
           titulo: 'Operacion completada',
           detalle: 'Mensaje listo para el grupo de operaciones finalizadas.',
-          url: pedido.whatsapp_grupo_finalizado_url,
+          url: pedido.whatsapp_grupo_finalizado_url ?? null,
+          clienteUrl: pedido.whatsapp_estado_url ?? null,
           mensaje: pedido.mensaje_grupo_finalizado ?? '',
           adjunto: comprobante,
           adjuntoTipo: comprobante ? 'comprobante' : null,
@@ -116,6 +118,7 @@ function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string):
             ? 'Mensaje listo para el grupo de Operaciones con documento adjunto.'
             : 'Mensaje listo para el grupo de Operaciones.',
           url: pedido.whatsapp_grupo_pedidos_url,
+          clienteUrl: null,
           mensaje,
           adjunto: documento,
           adjuntoTipo: documento ? 'documento' : null,
@@ -663,7 +666,7 @@ export function PedidoDetallePanel({
   }
 
   async function enviarWhatsAppPendiente() {
-    if (!whatsappPendiente || compartiendoComprobante) return;
+    if (!whatsappPendiente?.url || compartiendoComprobante) return;
     const adjunto = whatsappPendiente.adjunto;
 
     if (!adjunto) {
@@ -1205,20 +1208,31 @@ export function PedidoDetallePanel({
                 >
                   <Copy size={16} /> Copiar mensaje
                 </button>
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={() => void enviarWhatsAppPendiente()}
-                  disabled={compartiendoComprobante}
-                >
-                  {compartiendoComprobante
-                    ? 'Preparando adjunto...'
-                    : whatsappPendiente.adjunto
-                      ? whatsappPendiente.adjuntoTipo === 'documento'
-                        ? 'Compartir mensaje y documento'
-                        : 'Compartir mensaje y comprobante'
-                      : 'Enviar al grupo por WhatsApp'}
-                </button>
+                {whatsappPendiente.clienteUrl && (
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={() => abrirWhatsAppUrl(whatsappPendiente.clienteUrl)}
+                  >
+                    <MessageCircle size={17} /> Enviar al cliente
+                  </button>
+                )}
+                {whatsappPendiente.url && (
+                  <button
+                    className={whatsappPendiente.clienteUrl ? 'ghost-button' : 'primary-button'}
+                    type="button"
+                    onClick={() => void enviarWhatsAppPendiente()}
+                    disabled={compartiendoComprobante}
+                  >
+                    {compartiendoComprobante
+                      ? 'Preparando adjunto...'
+                      : whatsappPendiente.adjunto
+                        ? whatsappPendiente.adjuntoTipo === 'documento'
+                          ? 'Compartir mensaje y documento'
+                          : 'Compartir mensaje y comprobante'
+                        : 'Enviar al grupo por WhatsApp'}
+                  </button>
+                )}
                 <button
                   className="ghost-button"
                   type="button"

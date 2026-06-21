@@ -1275,10 +1275,11 @@ export function App() {
           </div>
         </Modal>
       )}
-      <nav className="bottom-nav" aria-label="Navegacion principal">
+      <nav className={`bottom-nav${puedeAdmin ? ' has-admin' : ''}`} aria-label="Navegacion principal">
         <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={20} /> Inicio</button>
         <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={20} /> Pedidos</button>
         <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={20} /> Reportes</button>
+        {puedeAdmin && <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')}><Settings size={20} /> Admin</button>}
         <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={20} /> Perfil</button>
       </nav>
     </div>

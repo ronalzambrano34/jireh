@@ -10,6 +10,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
+import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -39,30 +40,53 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [puntos, setPuntos] = useState<PuntoRecogida[]>([]);
   const [cargandoMetodos, setCargandoMetodos] = useState(false);
+  const [cargandoPuntos, setCargandoPuntos] = useState(false);
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
-    () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
+    () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
     [form.moneda_pago, metodosPago],
   );
+  const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
   useEffect(() => {
+    let active = true;
     setCargandoMetodos(true);
-    Promise.all([listarMetodosPago(), listarPuntosRecogida()])
-      .then(([data, puntosData]) => {
+    listarMetodosPago()
+      .then((data) => {
+        if (!active) return;
         setMetodosPago(data);
-        setPuntos(puntosData);
-        const metodoSeleccionado = form.moneda_pago === 'BRL'
-          ? data.find((metodo) => metodo.moneda === 'BRL' && metodo.nombre.toLowerCase() === 'pix')
-          : data.find((metodo) => metodo.moneda === form.moneda_pago);
-        if (metodoSeleccionado) {
-          setForm((current) => ({ ...current, tipo_pago_id: String(metodoSeleccionado.id) }));
-        }
+        const disponibles = monedasDisponibles(data.map((metodo) => metodo.moneda));
+        setForm((current) => {
+          const actual = normalizarMoneda(current.moneda_pago);
+          const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
+          const metodosMoneda = data.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
+          const metodo = moneda === 'BRL'
+            ? metodosMoneda.find((item) => item.nombre.trim().toLowerCase() === 'pix') ?? metodosMoneda[0]
+            : metodosMoneda[0];
+          return { ...current, moneda_pago: moneda, tipo_pago_id: metodo ? String(metodo.id) : '' };
+        });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
-      .finally(() => setCargandoMetodos(false));
+      .finally(() => {
+        if (active) setCargandoMetodos(false);
+      });
+
+    setCargandoPuntos(true);
+    listarPuntosRecogida()
+      .then((data) => {
+        if (active) setPuntos(data);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los puntos de recogida'))
+      .finally(() => {
+        if (active) setCargandoPuntos(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -268,8 +292,8 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
               <FloatingSelect
                 value={form.punto_recogida_id}
                 onChange={(value) => update('punto_recogida_id', value)}
-                disabled={cargandoMetodos}
-                placeholder="Sin punto de recogida"
+                disabled={cargandoPuntos}
+                placeholder={cargandoPuntos ? 'Cargando puntos' : 'Sin punto de recogida'}
                 ariaLabel="Punto de recogida"
                 options={[
                   { value: '', label: 'Sin punto de recogida', icon: <MapPin size={17} /> },
@@ -311,7 +335,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                currencies={['BRL', 'USD', 'EUR', 'UYU']}
+                currencies={monedasPago}
               />
               </span>
             </label>

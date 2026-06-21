@@ -11,6 +11,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
+import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -50,19 +51,23 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
-    () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
+    () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
     [form.moneda_pago, metodosPago],
   );
+  const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
   useEffect(() => {
     setCargandoMetodos(true);
     listarMetodosPago()
       .then((data) => {
         setMetodosPago(data);
-        const primero = data.find((metodo) => metodo.moneda === form.moneda_pago);
-        if (primero) {
-          setForm((current) => ({ ...current, tipo_pago_id: String(primero.id) }));
-        }
+        const disponibles = monedasDisponibles(data.map((metodo) => metodo.moneda));
+        setForm((current) => {
+          const actual = normalizarMoneda(current.moneda_pago);
+          const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
+          const primero = data.find((metodo) => normalizarMoneda(metodo.moneda) === moneda);
+          return { ...current, moneda_pago: moneda, tipo_pago_id: primero ? String(primero.id) : '' };
+        });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
       .finally(() => setCargandoMetodos(false));
@@ -255,7 +260,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                currencies={['BRL', 'USD', 'EUR', 'UYU']}
+                currencies={monedasPago}
               />
               </span>
             </label>

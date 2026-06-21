@@ -1,6 +1,8 @@
-import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, RefreshCw, Search, UserCircle } from 'lucide-react';
+import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, ListFilter, RefreshCw, Search, UserCircle } from 'lucide-react';
+import { useState } from 'react';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
+import { Modal } from '../components/Modal';
 import { PageLoader } from '../components/PageLoader';
 import type { Operador, PedidoResumen } from '../types/api';
 import { formatearNumeroTarjeta } from '../utils/tarjetas';
@@ -103,6 +105,21 @@ export function OrdersPage(props: {
   blockedByOther: (pedido: PedidoResumen) => boolean;
   ownedByMe: (pedido: PedidoResumen) => boolean;
 }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilters = Number(Boolean(props.busqueda))
+    + Number(Boolean(props.estado))
+    + Number(Boolean(props.servicio))
+    + Number(props.scope !== 'mis')
+    + Number(props.period !== 'hoy');
+
+  function clearFilters() {
+    props.onBusqueda('');
+    props.onEstado('');
+    props.onServicio('');
+    props.onScope('mis');
+    props.onPeriod('hoy');
+  }
+
   const orderCardMeta = (pedido: PedidoResumen) => (
     <>
       {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === props.operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
@@ -129,27 +146,46 @@ export function OrdersPage(props: {
 
         <section className="orders-command-panel" aria-label="Busqueda y filtros de pedidos">
           <div className="filters orders-toolbar-row">
-            <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" /></label>
-          </div>
-          <div className="status-filters orders-scope-chips" aria-label="Alcance de ordenes">
-            <button type="button" className={props.scope === 'mis' ? 'active scope-my-orders' : 'scope-my-orders'} onClick={() => props.onScope('mis')}><UserCircle size={16} /><span>Mis pedidos</span><strong>{props.misCount}</strong></button>
-            {props.canViewAll && <button type="button" className={props.scope === 'todas' ? 'active' : ''} onClick={() => props.onScope('todas')}><ClipboardList size={16} /><span>Todas</span><strong>{props.todasCount}</strong></button>}
             <div className="orders-top-actions">
-              <div className="order-filter-field order-filter-floating orders-period-action">
-                <FloatingSelect value={props.period} onChange={(value) => props.onPeriod(value as OrdersPeriod)} options={[{ value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> }, { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> }, { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> }, { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> }]} ariaLabel="Filtrar pedidos por fecha" align="left" buttonClassName="order-filter-button" />
-              </div>
-              <div className="order-filter-field order-filter-floating orders-service-action">
-                <FloatingSelect value={props.servicio} onChange={props.onServicio} options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios' }))} ariaLabel="Filtrar por servicio" align="right" buttonClassName="order-filter-button" />
-              </div>
+              <button type="button" className={activeFilters ? 'view-toggle single-view-toggle orders-filter-toggle active' : 'view-toggle single-view-toggle orders-filter-toggle'} onClick={() => setFiltersOpen(true)} title="Filtrar pedidos" aria-label="Filtrar pedidos"><ListFilter size={18} />{activeFilters > 0 && <span>{activeFilters}</span>}</button>
               <button type="button" className="view-toggle single-view-toggle" onClick={() => props.onView(props.view === 'lista' ? 'kanban' : 'lista')} title={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'} aria-label={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}>{props.view === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}</button>
               <button className="icon-button orders-refresh-button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
             </div>
           </div>
-          <div className="status-filters orders-status-chips" aria-label="Filtros rapidos por estado">
-            <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
-            {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? `active ${item.value}` : item.value} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
-          </div>
         </section>
+        {filtersOpen && (
+          <Modal title="Filtrar pedidos" subtitle={`${props.total} pedidos disponibles`} onClose={() => setFiltersOpen(false)} className="orders-filter-modal">
+            <div className="orders-filter-modal-content orders-filter-grid">
+              <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" /></label>
+
+              <section className="orders-filter-section">
+                <h3>Alcance</h3>
+                <div className="orders-filter-options two-columns orders-scope-chips">
+                  <button type="button" className={props.scope === 'mis' ? 'active' : ''} onClick={() => props.onScope('mis')}><UserCircle size={17} /><span>Mis pedidos</span><strong>{props.misCount}</strong></button>
+                  {props.canViewAll && <button type="button" className={props.scope === 'todas' ? 'active' : ''} onClick={() => props.onScope('todas')}><ClipboardList size={17} /><span>Todos</span><strong>{props.todasCount}</strong></button>}
+                </div>
+              </section>
+
+              <section className="orders-filter-section orders-filter-selects">
+                <div className="order-filter-field order-filter-floating orders-period-action"><h3>Fecha</h3><FloatingSelect value={props.period} onChange={(value) => props.onPeriod(value as OrdersPeriod)} options={[{ value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> }, { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> }, { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> }, { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> }]} ariaLabel="Filtrar pedidos por fecha" align="left" buttonClassName="order-filter-button" /></div>
+                <div className="order-filter-field order-filter-floating orders-service-action"><h3>Servicio</h3><FloatingSelect value={props.servicio} onChange={props.onServicio} options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios' }))} ariaLabel="Filtrar por servicio" align="right" buttonClassName="order-filter-button" /></div>
+              </section>
+
+              <section className="orders-filter-section">
+                <h3>Estado</h3>
+                <div className="orders-filter-options status-options status-filters orders-status-chips">
+                  <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
+                  {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? 'active' : ''} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}
+                </div>
+              </section>
+
+              <div className="orders-filter-modal-actions">
+                <button className="ghost-button" type="button" onClick={clearFilters} disabled={activeFilters === 0}>Limpiar</button>
+                <button className="primary-button" type="button" onClick={() => setFiltersOpen(false)}>Ver pedidos</button>
+              </div>
+            </div>
+          </Modal>
+        )}
         {props.loading && <PageLoader label="Cargando pedidos" inline />}
         {props.pedidos.length === 0 && !props.loading && <DismissibleNotice className="notice">No hay pedidos para estos filtros</DismissibleNotice>}
 

@@ -216,6 +216,33 @@
   gap: 8px;
 }
 
+.orders-filter-toggle {
+  position: relative;
+}
+
+.orders-filter-toggle.active {
+  border-color: color-mix(in srgb, var(--ui-primary) 44%, var(--ui-border));
+  color: var(--ui-primary);
+}
+
+.orders-filter-toggle > span {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ui-surface);
+  border-radius: 999px;
+  padding: 0 4px;
+  background: var(--ui-primary);
+  color: var(--ui-text-on-color);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .orders-service-action {
   width: min(210px, 34vw);
   min-width: 168px;
@@ -1921,6 +1948,102 @@
   box-shadow: 0 12px 34px var(--ui-shadow-faint);
 }
 
+.orders-command-panel .orders-toolbar-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.orders-filter-modal {
+  width: min(680px, 100%);
+}
+
+.orders-filter-modal-content {
+  display: grid;
+  gap: 20px;
+}
+
+.orders-filter-modal .orders-search-box {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+}
+
+.orders-filter-section {
+  display: grid;
+  gap: 10px;
+}
+
+.orders-filter-section h3 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 13px;
+}
+
+.orders-filter-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.orders-filter-options.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.orders-filter-options button {
+  min-width: 0;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  padding: 9px 11px;
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  text-align: left;
+}
+
+.orders-filter-options button.active {
+  border-color: color-mix(in srgb, var(--ui-primary) 48%, var(--ui-border));
+  background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-surface));
+  color: var(--ui-primary);
+}
+
+.orders-filter-options button strong {
+  min-width: 24px;
+  text-align: right;
+}
+
+.orders-filter-selects {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.orders-filter-selects > div {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.orders-filter-selects .floating-select,
+.orders-filter-selects .order-filter-button {
+  width: 100%;
+}
+
+.orders-filter-modal-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: minmax(100px, .4fr) minmax(0, 1fr);
+  gap: 8px;
+  padding-top: 12px;
+  background: var(--ui-surface);
+}
+
+.orders-filter-modal-actions button {
+  min-height: 48px;
+}
+
 .orders-command-panel .orders-toolbar-row,
 .orders-command-panel .orders-scope-chips,
 .orders-command-panel .orders-status-chips {
@@ -2092,6 +2215,15 @@
 
   .orders-command-panel {
     padding: 12px;
+  }
+
+  .orders-filter-selects,
+  .orders-filter-options.status-options {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-filter-modal .modal-body {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
 
   .orders-content-grid .chat-order-card {

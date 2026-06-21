@@ -10,6 +10,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
+import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -48,14 +49,19 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo(
-    () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
+    () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
     [form.moneda_pago, metodosPago],
   );
 
   const paquetesFiltrados = useMemo(
-    () => paquetes.filter((paquete) => paquete.moneda_pago === form.moneda_pago),
+    () => paquetes.filter((paquete) => normalizarMoneda(paquete.moneda_pago) === form.moneda_pago),
     [form.moneda_pago, paquetes],
   );
+
+  const monedasPago = useMemo(() => {
+    const monedasConMetodo = new Set(monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)));
+    return monedasDisponibles(paquetes.map((paquete) => paquete.moneda_pago)).filter((moneda) => monedasConMetodo.has(moneda));
+  }, [metodosPago, paquetes]);
 
   useEffect(() => {
     setCargandoCatalogos(true);
@@ -63,16 +69,25 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       .then(([metodos, paquetesData]) => {
         setMetodosPago(metodos);
         setPaquetes(paquetesData);
-        // Buscar Pix para BRL, sino el primero disponible
-        const metodo = form.moneda_pago === 'BRL'
-          ? metodos.find((item) => item.moneda === 'BRL' && item.nombre.toLowerCase() === 'pix')
-          : metodos.find((item) => item.moneda === form.moneda_pago);
-        const paquete = paquetesData.find((item) => item.moneda_pago === form.moneda_pago);
-        setForm((current) => ({
-          ...current,
-          tipo_pago_id: metodo ? String(metodo.id) : '',
-          paquete_saldo_id: paquete ? String(paquete.id) : '',
-        }));
+        const monedasConMetodo = new Set(monedasDisponibles(metodos.map((metodo) => metodo.moneda)));
+        const disponibles = monedasDisponibles(paquetesData.map((paquete) => paquete.moneda_pago))
+          .filter((moneda) => monedasConMetodo.has(moneda));
+        setForm((current) => {
+          const actual = normalizarMoneda(current.moneda_pago);
+          const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
+          const metodosMoneda = metodos.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
+          const metodo = moneda === 'BRL'
+            ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
+            : metodosMoneda[0];
+          const paqueteActual = paquetesData.find((item) => String(item.id) === current.paquete_saldo_id && normalizarMoneda(item.moneda_pago) === moneda);
+          const paquete = paqueteActual ?? paquetesData.find((item) => normalizarMoneda(item.moneda_pago) === moneda);
+          return {
+            ...current,
+            moneda_pago: moneda,
+            tipo_pago_id: metodo ? String(metodo.id) : '',
+            paquete_saldo_id: paquete ? String(paquete.id) : '',
+          };
+        });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos'))
       .finally(() => setCargandoCatalogos(false));
@@ -270,7 +285,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
                   value={form.moneda_pago}
                   onChange={(value) => update('moneda_pago', value)}
                   ariaLabel="Moneda de pago"
-                  currencies={['BRL', 'USD', 'EUR', 'UYU']}
+                  currencies={monedasPago}
                 />
               </span>
             </label>

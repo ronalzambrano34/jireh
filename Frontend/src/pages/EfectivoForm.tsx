@@ -10,6 +10,7 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
+import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
 
@@ -63,9 +64,10 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   const [comprobante, setComprobante] = useState<File | null>(null);
 
   const metodosFiltrados = useMemo<MetodoPago[]>(
-    () => metodosPago.filter((metodo) => metodo.moneda === form.moneda_pago),
+    () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
     [form.moneda_pago, metodosPago],
   );
+  const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
   useEffect(() => {
     setCargandoCatalogos(true);
@@ -73,15 +75,21 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
       .then(([metodos, puntosData]) => {
         setMetodosPago(metodos);
         setPuntos(puntosData);
-        // Buscar Pix para BRL, sino el primero disponible
-        const metodo = form.moneda_pago === 'BRL'
-          ? metodos.find((item) => item.moneda === 'BRL' && item.nombre.toLowerCase() === 'pix')
-          : metodos.find((item) => item.moneda === form.moneda_pago);
-        setForm((current) => ({
-          ...current,
-          tipo_pago_id: metodo ? String(metodo.id) : '',
-          punto_recogida_id: puntosData[0] ? String(puntosData[0].id) : '',
-        }));
+        setForm((current) => {
+          const disponibles = monedasDisponibles(metodos.map((metodo) => metodo.moneda));
+          const actual = normalizarMoneda(current.moneda_pago);
+          const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
+          const metodosMoneda = metodos.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
+          const metodo = moneda === 'BRL'
+            ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
+            : metodosMoneda[0];
+          return {
+            ...current,
+            moneda_pago: moneda,
+            tipo_pago_id: metodo ? String(metodo.id) : '',
+            punto_recogida_id: puntosData[0] ? String(puntosData[0].id) : '',
+          };
+        });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos'))
       .finally(() => setCargandoCatalogos(false));
@@ -366,7 +374,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
                 value={form.moneda_pago}
                 onChange={(value) => update('moneda_pago', value)}
                 ariaLabel="Moneda de pago"
-                currencies={['BRL', 'USD', 'EUR', 'UYU']}
+                currencies={monedasPago}
               />
               </span>
             </label>

@@ -545,6 +545,10 @@
     box-shadow: 0 -8px 24px var(--ui-shadow-raised);
   }
 
+  .bottom-nav.has-admin {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
   .bottom-nav button {
     min-width: 0;
     min-height: 52px;
