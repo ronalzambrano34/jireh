@@ -25,6 +25,7 @@ from Backend.models.pedido_divisa import (
     PedidoDivisa
 )
 from Backend.models.pedido_otros import PedidoOtros
+from Backend.models.punto_recogida import PuntoRecogida
 
 from Backend.models.cliente import (
     Cliente
@@ -86,11 +87,11 @@ DEFAULT_TEMPLATES = {
         "*Tarjeta:* {{numero_tarjeta}}\n"
         "*Telefono destinatario:* {{telefono_destinatario}}\n"
         "*Foto documento:* {{documento_identidad_url}}\n"
-        "*Punto de recogida:* {{punto_recogida_id}}\n"
+        "*Punto de recogida:* {{punto_recogida}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}\n"
         "*Cuenta de pago:* {{cuenta_pago}}\n"
-        "*Info:* {{observaciones}}"
+        "*Descripcion:* {{descripcion}}"
     )
 }
 
@@ -421,11 +422,29 @@ def generar_mensaje_operacion(
             .first()
         )
 
+        punto_recogida = None
+        if detalle and detalle.punto_recogida_id:
+            punto_recogida = (
+                db.query(PuntoRecogida)
+                .filter(PuntoRecogida.id == detalle.punto_recogida_id)
+                .first()
+            )
+
+        punto_recogida_nombre = (
+            punto_recogida.nombre
+            if punto_recogida
+            else ""
+        )
+
+        descripcion = pedido.observaciones or ""
+
         variables.update({
 
             "observaciones":
-            pedido.observaciones
-            or "",
+            descripcion,
+
+            "descripcion":
+            descripcion,
 
             "numero_tarjeta":
             (detalle.numero_tarjeta if detalle else "") or "",
@@ -440,7 +459,10 @@ def generar_mensaje_operacion(
             (detalle.documento_identidad_url if detalle else "") or "",
 
             "punto_recogida_id":
-            (detalle.punto_recogida_id if detalle else "") or ""
+            punto_recogida_nombre,
+
+            "punto_recogida":
+            punto_recogida_nombre
         })
 
         template_key = (

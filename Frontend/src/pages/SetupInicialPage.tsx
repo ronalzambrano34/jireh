@@ -231,7 +231,7 @@ export function SetupInicialPage({
   if (!estado) return <PageLoader label="Revisando configuracion inicial" />;
 
   return (
-    <section className="setup-page">
+    <section className="setup-page app-page-width">
       <SetupHero />
 
       <div className="setup-layout">

@@ -40,7 +40,7 @@ export function CreateOrderPage({
   ];
 
   return (
-    <section className="create-stack">
+    <section className="create-stack app-page-width">
       <div className="service-tabs">
         {services.map((item) => (
           <button type="button" className={service === item.value ? 'active' : ''} onClick={() => onServiceChange(item.value)} key={item.value}>

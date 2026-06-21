@@ -438,7 +438,7 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
   const activeGroup = groups.find((group) => group.moneda === currency) ?? groups[0];
 
   return (
-    <section className="home-test-page">
+    <section className="home-test-page app-page-width">
       <HomeTestCarousel data={data} group={activeGroup} loading={loading} syncing={syncing} canSync={canSyncTasas} onRefresh={() => void refresh()} onCreate={onCreate} />
       {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
       {loading && !data && <PageLoader label="Cargando tasas" inline />}

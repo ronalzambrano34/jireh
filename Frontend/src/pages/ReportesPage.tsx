@@ -204,7 +204,7 @@ export function ReportesPage() {
   }
 
   return (
-    <section className="reports-page">
+    <section className="reports-page app-page-width">
       <ReportFilters
         periodo={periodo}
         filters={filters}

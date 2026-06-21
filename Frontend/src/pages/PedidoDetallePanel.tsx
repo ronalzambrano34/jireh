@@ -878,7 +878,7 @@ export function PedidoDetallePanel({
 
   return (
     <section
-      className="order-detail-page"
+      className="order-detail-page app-page-width"
       aria-label="Detalle de pedido"
       onTouchStart={iniciarDeslizamiento}
       onTouchEnd={finalizarDeslizamiento}

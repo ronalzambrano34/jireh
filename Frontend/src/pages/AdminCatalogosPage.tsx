@@ -266,8 +266,8 @@ const templateVariablesPorClave: Record<string, string[]> = {
     'numero_tarjeta',
     'telefono_destinatario',
     'documento_identidad_url',
-    'punto_recogida_id',
-    'observaciones',
+    'punto_recogida',
+    'descripcion',
   ],
 };
 
@@ -1251,7 +1251,7 @@ export function AdminCatalogosPage() {
   ];
 
   return (
-    <section className="admin-page admin-surface">
+    <section className="admin-page admin-surface app-page-width">
       <AdminHero
         titulo={tituloTema(temaActivo)}
         subtitulo={temaActivo ? 'Administracion / Catalogos' : 'Administracion'}

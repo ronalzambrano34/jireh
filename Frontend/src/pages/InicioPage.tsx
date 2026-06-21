@@ -653,7 +653,7 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
   })), [data?.promociones]);
 
   return (
-    <section className="home-page">
+    <section className="home-page app-page-width">
       <HeroCarousel grupo={grupoActivo} generatedAt={data?.sync?.last_success_at ?? data?.generated_at} loading={loading} syncing={syncing} canSyncTasas={canSyncTasas} onRefresh={actualizarTasas} onCreate={onCreate} promos={promocionesCarrusel} />
 
       {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}

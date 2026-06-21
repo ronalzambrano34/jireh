@@ -54,6 +54,13 @@ body {
   max-width: 100%;
 }
 
+html body .app-shell .workspace > .app-page-width.app-page-width,
+html body .public-home-shell .workspace > .app-page-width.app-page-width {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
 .toolbar > *,
 .toolbar-actions > *,
 .filters > *,

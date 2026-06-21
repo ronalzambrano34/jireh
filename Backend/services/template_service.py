@@ -162,6 +162,7 @@ LEGACY_OPERATION_TEMPLATES = {
     "template_otros": (
         "*Otros*\n*Cliente:* {cliente_nombre}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Punto de recogida:* {punto_recogida_id}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Info:* {observaciones}",
         "*Otros*\n*Operador:* {operador}\n*Cliente:* {cliente_nombre}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Punto de recogida:* {punto_recogida_id}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Info:* {observaciones}",
+        "*Otros*\n*Operador:* {operador}\n*Cliente:* {cliente_nombre}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Punto de recogida:* {punto_recogida_id}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}\n*Info:* {observaciones}",
     ),
 }
 
@@ -181,7 +182,7 @@ DEFAULT_OPERATION_TEMPLATES = {
     "template_efectivo": "*Efectivo*\n*Operador:* {operador}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Monto CUP:* {monto_resultado}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}",
     "template_saldo": "*Saldo Movil*\n*Operador:* {operador}\n*Telefono destinatario:* {telefono_destinatario}\n*Saldo:* {saldo_cup} CUP\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}",
     "template_divisa": "*Divisa*\n*Operador:* {operador}\n*Tipo de tarjeta:* {tipo_tarjeta}\n*Numero de tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Monto divisa:* {monto_divisa}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}\n*Tasa efectiva:* {tasa_final}",
-    "template_otros": "*Otros*\n*Operador:* {operador}\n*Cliente:* {cliente_nombre}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Punto de recogida:* {punto_recogida_id}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}\n*Info:* {observaciones}",
+    "template_otros": "*Otros*\n*Operador:* {operador}\n*Cliente:* {cliente_nombre}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Punto de recogida:* {punto_recogida}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}\n*Descripcion:* {descripcion}",
 }
 
 

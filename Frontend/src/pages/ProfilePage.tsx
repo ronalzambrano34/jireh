@@ -44,7 +44,7 @@ export function ProfilePage(props: {
   const option = (section: Exclude<ProfileSection, null>) => props.section === section ? 'profile-option active' : 'profile-option';
 
   return (
-    <section className="profile-page">
+    <section className="profile-page app-page-width">
       <div className="profile-hero-card">
         <div className="profile-hero-main">
           <div className="profile-avatar-wrap">

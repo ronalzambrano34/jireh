@@ -129,7 +129,7 @@ export function OrdersPage(props: {
   );
 
   return (
-    <section className="content-grid orders-content-grid">
+    <section className="content-grid orders-content-grid app-page-width">
       <div className="list-panel orders-list-panel">
         <header className="orders-page-hero">
           <div className="orders-page-hero-copy">
