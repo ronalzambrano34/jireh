@@ -1957,6 +1957,28 @@
   justify-content: flex-end;
 }
 
+.orders-command-panel .orders-top-actions,
+:root[data-theme="dark-sidebar"] .orders-command-panel .orders-top-actions {
+  width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: 0;
+}
+
+.orders-command-panel .orders-filter-toggle {
+  margin-right: auto;
+}
+
+.orders-command-panel .single-view-toggle,
+.orders-command-panel .orders-refresh-button {
+  flex: 0 0 42px;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+}
+
 .orders-filter-modal {
   width: min(680px, 100%);
 }
