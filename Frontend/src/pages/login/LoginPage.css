@@ -789,7 +789,9 @@
 }
 
 .auth-panel {
-  width: min(100%, 440px);
+  --login-panel-width: 440px;
+  width: min(100%, var(--login-panel-width));
+  max-width: var(--login-panel-width);
   min-width: 0;
   display: grid;
   align-content: start;
@@ -1186,24 +1188,27 @@
 }
 
 .login-popover-backdrop .login-modal {
-  width: min(440px, 100%);
+  --login-panel-width: 440px;
+  width: min(100%, var(--login-panel-width));
+  max-width: var(--login-panel-width);
   height: auto;
   max-height: calc(100dvh - 36px - env(safe-area-inset-top));
 }
 
 .login-modal .modal-body {
   padding: 0;
+  scrollbar-gutter: auto;
 }
 
 @media (max-width: 640px) {
   .login-popover-backdrop {
     place-items: start center;
-    padding: max(10px, env(safe-area-inset-top)) 10px
-      max(10px, env(safe-area-inset-bottom));
+    padding: max(12px, env(safe-area-inset-top)) 12px
+      max(12px, env(safe-area-inset-bottom));
   }
 
   .login-popover-backdrop .login-modal {
-    width: min(440px, 100%);
+    width: min(100%, var(--login-panel-width));
     height: auto;
     max-height: calc(
       100dvh - 20px - env(safe-area-inset-top) -
