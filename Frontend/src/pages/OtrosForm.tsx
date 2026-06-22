@@ -308,7 +308,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
               />
             </label>
             <label className="wide">
-              Descripcion
+              Observaciones
               <textarea value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} rows={5} placeholder="Detalles exclusivos de esta operacion" required />
             </label>
           </div>

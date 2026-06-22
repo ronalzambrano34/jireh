@@ -20,6 +20,23 @@
   .sidebar.mobile-open,
 :root[data-theme="dark-sidebar"] .sidebar.mobile-open {
     display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  .sidebar.mobile-open .nav-stack,
+:root[data-theme="dark-sidebar"] .sidebar.mobile-open .nav-stack {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .sidebar.mobile-open > .ghost-button,
+:root[data-theme="dark-sidebar"] .sidebar.mobile-open > .ghost-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-self: end;
+    width: 100%;
   }
 
   .workspace,

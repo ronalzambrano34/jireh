@@ -1,9 +1,8 @@
 PENDIENTES:
 //todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, 
 
-
 //todo 
 
 //todo 
 
-//todo  
+//todo añadir notificaciones.para que le suene a los operadores cuando se cree un nuevo o para cuando le transfieran un pedido. 

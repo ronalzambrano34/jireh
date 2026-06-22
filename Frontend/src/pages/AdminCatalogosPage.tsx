@@ -267,7 +267,6 @@ const templateVariablesPorClave: Record<string, string[]> = {
     'telefono_destinatario',
     'documento_identidad_url',
     'punto_recogida',
-    'descripcion',
   ],
 };
 

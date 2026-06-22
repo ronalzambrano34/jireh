@@ -91,7 +91,7 @@ DEFAULT_TEMPLATES = {
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}\n"
         "*Cuenta de pago:* {{cuenta_pago}}\n"
-        "*Descripcion:* {{descripcion}}"
+        "*Observaciones:* {{observaciones}}"
     )
 }
 

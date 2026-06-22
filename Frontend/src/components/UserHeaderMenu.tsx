@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Edit3, HelpCircle, LogOut, Palette, Settings, X } from 'lucide-react';
+import { Edit3, HelpCircle, LogOut, Palette, Settings } from 'lucide-react';
 import { apiAssetUrl } from '../api/client';
 import type { Operador } from '../types/api';
 import { UiSwitch } from './UiSwitch';
@@ -102,8 +102,6 @@ export function UserHeaderMenu(props: UserHeaderMenuProps) {
           aria-haspopup="menu"
         >
           <UserAvatar operador={props.operador} />
-          <span className="user-header-copy"><strong>{props.operador.nombre}</strong><small>{props.operador.rol}</small></span>
-          {open ? <X size={16} /> : <ChevronDown size={16} />}
         </button>
       </div>
     </>

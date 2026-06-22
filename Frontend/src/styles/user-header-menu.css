@@ -6,15 +6,14 @@
 }
 
 .user-header-trigger {
-  width: 156px;
-  max-width: 156px;
-  min-width: 156px;
+  width: 46px;
+  max-width: 46px;
+  min-width: 46px;
   min-height: 46px;
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 16px;
+  display: inline-grid;
+  place-items: center;
   align-items: center;
-  gap: 9px;
-  padding: 5px 10px 5px 6px;
+  padding: 5px;
   overflow: hidden;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
@@ -186,13 +185,11 @@
 
 @media (max-width: 620px) {
   .user-header-trigger {
-    width: 144px;
-    min-width: 144px;
-    max-width: 144px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
     min-height: 44px;
-    grid-template-columns: 33px minmax(0, 1fr) 16px;
-    gap: 8px;
-    padding: 5px 8px 5px 5px;
+    padding: 5px;
   }
 
   .user-header-avatar {
