@@ -106,14 +106,12 @@ export function OrdersPage(props: {
   ownedByMe: (pedido: PedidoResumen) => boolean;
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const activeFilters = Number(Boolean(props.busqueda))
-    + Number(Boolean(props.estado))
+  const activeFilters = Number(Boolean(props.estado))
     + Number(Boolean(props.servicio))
     + Number(props.scope !== 'mis')
     + Number(props.period !== 'hoy');
 
   function clearFilters() {
-    props.onBusqueda('');
     props.onEstado('');
     props.onServicio('');
     props.onScope('mis');
@@ -148,6 +146,7 @@ export function OrdersPage(props: {
           <div className="filters orders-toolbar-row">
             <div className="orders-top-actions">
               <button type="button" className={activeFilters ? 'view-toggle single-view-toggle orders-filter-toggle active' : 'view-toggle single-view-toggle orders-filter-toggle'} onClick={() => setFiltersOpen(true)} title="Filtrar pedidos" aria-label="Filtrar pedidos"><ListFilter size={18} />{activeFilters > 0 && <span>{activeFilters}</span>}</button>
+              <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" aria-label="Buscar pedidos" /></label>
               <button type="button" className="view-toggle single-view-toggle" onClick={() => props.onView(props.view === 'lista' ? 'kanban' : 'lista')} title={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'} aria-label={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}>{props.view === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}</button>
               <button className="icon-button orders-refresh-button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
             </div>
@@ -156,8 +155,6 @@ export function OrdersPage(props: {
         {filtersOpen && (
           <Modal title="Filtrar pedidos" subtitle={`${props.total} pedidos disponibles`} onClose={() => setFiltersOpen(false)} className="orders-filter-modal">
             <div className="orders-filter-modal-content orders-filter-grid">
-              <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" /></label>
-
               <section className="orders-filter-section">
                 <h3>Alcance</h3>
                 <div className="orders-filter-options two-columns orders-scope-chips">

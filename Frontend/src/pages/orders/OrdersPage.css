@@ -1968,7 +1968,7 @@
 }
 
 .orders-command-panel .orders-filter-toggle {
-  margin-right: auto;
+  margin-right: 0;
 }
 
 .orders-command-panel .single-view-toggle,
@@ -2077,9 +2077,11 @@
 }
 
 .orders-command-panel .orders-search-box {
-  width: 100%;
-  max-width: none;
-  min-height: 48px;
+  flex: 1 1 320px;
+  width: auto;
+  max-width: 420px;
+  min-width: 0;
+  min-height: 42px;
   margin: 0;
   border-color: var(--ui-border);
   border-radius: var(--ui-radius-md);
@@ -2232,15 +2234,43 @@
   }
 
   .orders-page-metrics {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 100px);
+    justify-content: space-between;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .orders-page-metrics > span {
-    min-height: 64px;
+    width: 100px;
+    height: 82px;
+    min-height: 82px;
+    box-sizing: border-box;
+    padding: 10px;
+  }
+
+  .orders-page-metrics small,
+  .orders-page-metrics strong,
+  .orders-page-metrics svg {
+    flex-shrink: 0;
+  }
+
+  .orders-page-metrics small {
+    font-size: 8px;
+    white-space: nowrap;
   }
 
   .orders-command-panel {
     padding: 12px;
+  }
+
+  .orders-command-panel .orders-top-actions,
+  :root[data-theme="dark-sidebar"] .orders-command-panel .orders-top-actions {
+    flex-wrap: wrap;
+  }
+
+  .orders-command-panel .orders-search-box {
+    flex-basis: calc(100% - 50px);
+    max-width: none;
   }
 
   .orders-filter-selects,
