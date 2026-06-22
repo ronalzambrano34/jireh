@@ -135,13 +135,11 @@ export function OrdersPage(props: {
             <h2>Pedidos</h2>
             <p>Consulta, filtra y gestiona el flujo completo de las operaciones.</p>
           </div>
-          <div className="orders-page-hero-side">
-            <button className="orders-refresh-button orders-hero-refresh-button" type="button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /><span>Actualizar</span></button>
-            <div className="orders-page-metrics" aria-label="Resumen de pedidos">
-              <span><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></span>
-              <span><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></span>
-              <span><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></span>
-            </div>
+          <button className="admin-refresh-button orders-refresh-button orders-hero-refresh-button" type="button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
+          <div className="orders-page-metrics" aria-label="Resumen de pedidos">
+            <span><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></span>
+            <span><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></span>
+            <span><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></span>
           </div>
         </header>
 
