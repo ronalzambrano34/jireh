@@ -1868,9 +1868,37 @@
 }
 
 .orders-page-hero-copy,
+.orders-page-hero-side,
 .orders-page-metrics {
   position: relative;
   z-index: 1;
+}
+
+.orders-page-hero-side {
+  width: min(100%, 480px);
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.orders-hero-refresh-button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  padding: 8px 13px;
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  font-weight: 800;
+  box-shadow: 0 7px 20px color-mix(in srgb, var(--ui-shadow) 24%, transparent);
+}
+
+.orders-hero-refresh-button:hover:not(:disabled) {
+  border-color: var(--orders-accent);
+  color: var(--orders-accent);
 }
 
 .orders-page-eyebrow {
@@ -1976,8 +2004,7 @@
   margin-right: 0;
 }
 
-.orders-command-panel .single-view-toggle,
-.orders-command-panel .orders-refresh-button {
+.orders-command-panel .single-view-toggle {
   flex: 0 0 42px;
   width: 42px;
   min-width: 42px;
@@ -2094,8 +2121,7 @@
 }
 
 .orders-command-panel .order-filter-field,
-.orders-command-panel .single-view-toggle,
-.orders-command-panel .orders-refresh-button {
+.orders-command-panel .single-view-toggle {
   border-color: var(--ui-border);
   border-radius: var(--ui-radius-md);
   background: var(--ui-surface-raised);
@@ -2224,6 +2250,11 @@
 @media (max-width: 980px) {
   .orders-page-hero {
     grid-template-columns: 1fr;
+  }
+
+  .orders-page-hero-side {
+    width: 100%;
+    justify-items: start;
   }
 
   .orders-page-metrics {

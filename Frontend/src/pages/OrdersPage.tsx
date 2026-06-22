@@ -135,10 +135,13 @@ export function OrdersPage(props: {
             <h2>Pedidos</h2>
             <p>Consulta, filtra y gestiona el flujo completo de las operaciones.</p>
           </div>
-          <div className="orders-page-metrics" aria-label="Resumen de pedidos">
-            <span><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></span>
-            <span><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></span>
-            <span><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></span>
+          <div className="orders-page-hero-side">
+            <button className="orders-refresh-button orders-hero-refresh-button" type="button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /><span>Actualizar</span></button>
+            <div className="orders-page-metrics" aria-label="Resumen de pedidos">
+              <span><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></span>
+              <span><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></span>
+              <span><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></span>
+            </div>
           </div>
         </header>
 
@@ -148,7 +151,6 @@ export function OrdersPage(props: {
               <button type="button" className={activeFilters ? 'view-toggle single-view-toggle orders-filter-toggle active' : 'view-toggle single-view-toggle orders-filter-toggle'} onClick={() => setFiltersOpen(true)} title="Filtrar pedidos" aria-label="Filtrar pedidos"><ListFilter size={18} />{activeFilters > 0 && <span>{activeFilters}</span>}</button>
               <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" aria-label="Buscar pedidos" /></label>
               <button type="button" className="view-toggle single-view-toggle" onClick={() => props.onView(props.view === 'lista' ? 'kanban' : 'lista')} title={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'} aria-label={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}>{props.view === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}</button>
-              <button className="icon-button orders-refresh-button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
             </div>
           </div>
         </section>
