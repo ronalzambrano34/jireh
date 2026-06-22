@@ -1901,6 +1901,7 @@
 }
 
 .orders-page-metrics {
+  width: min(100%, 480px);
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -1908,11 +1909,10 @@
 }
 
 .orders-page-metrics > span {
-  width: 118px;
-  height: 82px;
-  min-width: 118px;
+  min-width: min(100%, 118px);
+  max-width: 180px;
   min-height: 82px;
-  flex: 0 0 118px;
+  flex: 1 1 132px;
   display: grid;
   grid-template-columns: auto 1fr;
   align-content: center;
@@ -2240,7 +2240,7 @@
 
   .orders-page-metrics {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     overflow: visible;
   }
 
