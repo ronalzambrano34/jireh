@@ -1901,13 +1901,18 @@
 }
 
 .orders-page-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(112px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 9px;
 }
 
 .orders-page-metrics > span {
+  width: 118px;
+  height: 82px;
+  min-width: 118px;
   min-height: 82px;
+  flex: 0 0 118px;
   display: grid;
   grid-template-columns: auto 1fr;
   align-content: center;
@@ -2222,7 +2227,7 @@
   }
 
   .orders-page-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: flex-start;
   }
 }
 
@@ -2234,17 +2239,12 @@
   }
 
   .orders-page-metrics {
-    grid-template-columns: repeat(3, 100px);
+    width: 100%;
     justify-content: space-between;
-    overflow-x: auto;
-    padding-bottom: 2px;
+    overflow: visible;
   }
 
   .orders-page-metrics > span {
-    width: 100px;
-    height: 82px;
-    min-height: 82px;
-    box-sizing: border-box;
     padding: 10px;
   }
 
@@ -2255,8 +2255,8 @@
   }
 
   .orders-page-metrics small {
-    font-size: 8px;
-    white-space: nowrap;
+    font-size: 9px;
+    line-height: 1.2;
   }
 
   .orders-command-panel {
