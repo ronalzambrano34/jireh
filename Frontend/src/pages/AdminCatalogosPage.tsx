@@ -259,7 +259,7 @@ const templateVariablesComunes = [
 
 const templateVariablesPorClave: Record<string, string[]> = {
   template_transferencia: ['numero_tarjeta', 'telefono_destinatario'],
-  template_efectivo: ['telefono_destinatario', 'documento_identidad_url'],
+  template_efectivo: ['telefono_destinatario', 'documento_identidad_url', 'punto_recogida'],
   template_saldo: ['telefono_destinatario', 'saldo_cup'],
   template_divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'monto_divisa'],
   template_otros: [

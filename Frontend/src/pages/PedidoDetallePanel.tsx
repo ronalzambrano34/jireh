@@ -88,7 +88,6 @@ function mensajeSinUrlDocumento(mensaje: string, pedido: PedidoDetalle, document
 function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string): WhatsAppPendiente | null {
   if (nuevoEstado === 'completado') {
     const comprobante = pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_final')
-      ?? pedido.archivos?.find((archivo) => archivo.tipo === 'comprobante_cliente')
       ?? null;
     return pedido.whatsapp_grupo_finalizado_url || pedido.whatsapp_estado_url
       ? {
