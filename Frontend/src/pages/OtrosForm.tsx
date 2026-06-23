@@ -11,6 +11,7 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -20,10 +21,12 @@ function telefonoCubaCompleto(value: string) {
   return value.replace(/\D/g, '').length > 2;
 }
 
-export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void }) {
+type OtrosInitialData = { monto_pago?: string; moneda_pago?: string };
+
+export function OtrosForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: OtrosInitialData }) {
   const [form, setForm] = useState({
-    monto_pago: '',
-    moneda_pago: 'BRL',
+    monto_pago: initialData?.monto_pago ?? '',
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
     tipo_pago_id: '1',
     cuenta_pago_id: '',
     cliente_id: '',
@@ -66,7 +69,13 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
           const metodo = moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.trim().toLowerCase() === 'pix') ?? metodosMoneda[0]
             : metodosMoneda[0];
-          return { ...current, moneda_pago: moneda, tipo_pago_id: metodo ? String(metodo.id) : '' };
+          guardarMonedaPedidoPreferida(moneda);
+          return {
+            ...current,
+            moneda_pago: moneda,
+            tipo_pago_id: metodo ? String(metodo.id) : '',
+            numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
+          };
         });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
@@ -116,7 +125,12 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
   }, [documentoFile]);
 
   function update(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'moneda_pago' && !current.cliente_id ? { numero_telefono_cliente: telefonoClienteConMoneda(current.numero_telefono_cliente, value) } : {}),
+    }));
   }
 
   function aplicarContacto(contacto: Contacto) {
@@ -244,6 +258,7 @@ export function OtrosForm({ operadorId, onCreated }: { operadorId: number; onCre
               cliente_id: data.clienteId ?? current.cliente_id,
             }))}
             onError={setError}
+            defaultCode={codigoPaisPorMoneda(form.moneda_pago)}
           />
         </section>
 

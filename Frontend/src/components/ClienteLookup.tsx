@@ -13,21 +13,22 @@ type ClienteLookupProps = {
   clienteId: string;
   onChange: (data: { telefono?: string; nombre?: string; clienteId?: string }) => void;
   onError?: (message: string | null) => void;
+  defaultCode?: string;
 };
 
 function clienteResumen(cliente: Cliente) {
   return [cliente.telefono, cliente.email, cliente.moneda_preferida].filter(Boolean).join(' · ') || `Cliente #${cliente.id}`;
 }
 
-export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }: ClienteLookupProps) {
+export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError, defaultCode = '+55' }: ClienteLookupProps) {
   const [resultados, setResultados] = useState<Cliente[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [busquedaHecha, setBusquedaHecha] = useState(false);
   const [clienteEncontradoOculto, setClienteEncontradoOculto] = useState(false);
   const [campoBusqueda, setCampoBusqueda] = useState<'telefono' | 'nombre'>(() => nombre.trim() ? 'nombre' : 'telefono');
   const telefonoLocal = useMemo(
-    () => separarTelefono(telefono, '+55').local.replace(/\D/g, ''),
-    [telefono],
+    () => separarTelefono(telefono, defaultCode).local.replace(/\D/g, ''),
+    [defaultCode, telefono],
   );
   const termino = campoBusqueda === 'nombre' ? nombre.trim() : telefono.trim();
   const terminoValido = campoBusqueda === 'nombre'
@@ -117,7 +118,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError }
               setCampoBusqueda('telefono');
               onChange({ telefono: value, clienteId: '' });
             }}
-            defaultCode="+55"
+            defaultCode={defaultCode}
             pasteTitle="Pegar telefono del cliente"
             actions={(
               <button type="button" className="icon-button field-action-button" onClick={limpiar} title="Limpiar cliente" aria-label="Limpiar cliente">

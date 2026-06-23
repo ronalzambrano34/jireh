@@ -52,7 +52,7 @@ export function CreateOrderPage({
       {service === 'efectivo' && <EfectivoForm operadorId={operadorId} initialData={draft} onCreated={onCreated} />}
       {service === 'saldo' && <SaldoForm operadorId={operadorId} initialData={draft} onCreated={onCreated} />}
       {service === 'divisa' && <DivisaForm operadorId={operadorId} initialData={draft} onCreated={onCreated} />}
-      {service === 'otros' && <OtrosForm operadorId={operadorId} onCreated={onCreated} />}
+      {service === 'otros' && <OtrosForm operadorId={operadorId} initialData={draft} onCreated={onCreated} />}
     </section>
   );
 }

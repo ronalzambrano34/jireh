@@ -1,12 +1,17 @@
 .ui-switch {
+  box-sizing: border-box;
   width: 34px;
   height: 20px;
   min-width: 34px;
   min-height: 20px;
+  max-width: 34px;
+  max-height: 20px;
   flex: 0 0 34px;
   display: block;
+  align-self: center;
   margin: 0;
   padding: 2px;
+  line-height: 0;
   border: 1px solid var(--ui-border-strong);
   border-radius: 999px;
   background: var(--ui-canvas-soft);
@@ -17,9 +22,14 @@
 }
 
 .ui-switch::after {
+  box-sizing: border-box;
   content: "";
   width: 14px;
   height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
   display: block;
   border-radius: 50%;
   background: var(--ui-text-subtle);

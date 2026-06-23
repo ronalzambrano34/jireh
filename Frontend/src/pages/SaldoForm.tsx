@@ -11,6 +11,7 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -30,7 +31,7 @@ type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
 
 export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: SaldoInitialData }) {
   const [form, setForm] = useState({
-    moneda_pago: initialData?.moneda_pago ?? 'BRL',
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
     tipo_pago_id: '',
     cuenta_pago_id: '',
     paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
@@ -81,11 +82,13 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
             : metodosMoneda[0];
           const paqueteActual = paquetesData.find((item) => String(item.id) === current.paquete_saldo_id && normalizarMoneda(item.moneda_pago) === moneda);
           const paquete = paqueteActual ?? paquetesData.find((item) => normalizarMoneda(item.moneda_pago) === moneda);
+          guardarMonedaPedidoPreferida(moneda);
           return {
             ...current,
             moneda_pago: moneda,
             tipo_pago_id: metodo ? String(metodo.id) : '',
             paquete_saldo_id: paquete ? String(paquete.id) : '',
+            numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
           };
         });
       })
@@ -140,7 +143,12 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   }, [form.bonificacion_manual, paqueteSeleccionado]);
 
   function update(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'moneda_pago' && !current.cliente_id ? { numero_telefono_cliente: telefonoClienteConMoneda(current.numero_telefono_cliente, value) } : {}),
+    }));
   }
 
   function aplicarContacto(contacto: Contacto) {
@@ -237,6 +245,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
               cliente_id: data.clienteId ?? current.cliente_id,
             }))}
             onError={setError}
+            defaultCode={codigoPaisPorMoneda(form.moneda_pago)}
           />
         </section>
 

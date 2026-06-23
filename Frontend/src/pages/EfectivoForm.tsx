@@ -11,6 +11,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
 
@@ -39,7 +40,7 @@ function whatsappHref(phone: string) {
 export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: EfectivoInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? 'BRL',
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
     tipo_pago_id: '',
     cuenta_pago_id: '',
     punto_recogida_id: '',
@@ -83,11 +84,13 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
           const metodo = moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
             : metodosMoneda[0];
+          guardarMonedaPedidoPreferida(moneda);
           return {
             ...current,
             moneda_pago: moneda,
             tipo_pago_id: metodo ? String(metodo.id) : '',
             punto_recogida_id: puntosData[0] ? String(puntosData[0].id) : '',
+            numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
           };
         });
       })
@@ -152,7 +155,12 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   }, [documentoFile]);
 
   function update(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'moneda_pago' && !current.cliente_id ? { numero_telefono_cliente: telefonoClienteConMoneda(current.numero_telefono_cliente, value) } : {}),
+    }));
   }
 
   function aplicarContacto(contacto: Contacto) {
@@ -280,6 +288,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
               cliente_id: data.clienteId ?? current.cliente_id,
             }))}
             onError={setError}
+            defaultCode={codigoPaisPorMoneda(form.moneda_pago)}
           />
         </section>
 

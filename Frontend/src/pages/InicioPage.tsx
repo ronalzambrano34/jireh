@@ -9,6 +9,7 @@ import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
 import { TrackOrderPanel } from './inicio/TrackOrderPanel';
 import { ServicesRatesGrid, type InicioCreateDraft, type InicioServiceCard, type InicioServicio } from './inicio/ServicesRatesGrid';
+import { guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida } from '../utils/preferenciasPedido';
 import './inicio/InicioPage.css';
 
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
@@ -549,7 +550,7 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [monedaSeleccionada, setMonedaSeleccionada] = useState('BRL');
+  const [monedaSeleccionada, setMonedaSeleccionada] = useState(() => leerMonedaPedidoPreferida());
 
   async function cargarTasas(options: { silent?: boolean } = {}) {
     const silent = Boolean(options.silent);
@@ -640,8 +641,14 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
     if (gruposMoneda.length === 0) return;
     if (!gruposMoneda.some((grupo) => grupo.moneda === monedaSeleccionada)) {
       setMonedaSeleccionada(gruposMoneda[0].moneda);
+      guardarMonedaPedidoPreferida(gruposMoneda[0].moneda);
     }
   }, [gruposMoneda, monedaSeleccionada]);
+
+  function cambiarMonedaSeleccionada(moneda: string) {
+    setMonedaSeleccionada(moneda);
+    guardarMonedaPedidoPreferida(moneda);
+  }
 
   const grupoActivo = gruposMoneda.find((grupo) => grupo.moneda === monedaSeleccionada) ?? gruposMoneda[0];
   const promocionesCarrusel = useMemo<PromoBanner[]>(() => (data?.promociones ?? []).filter((promocion) => promocion.tipo === 'promocion' && promocion.imagen_url).map((promocion) => ({
@@ -675,7 +682,7 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
                 <CurrencySelect
                   value={monedaSeleccionada}
                   currencies={gruposMoneda.map((grupo) => grupo.moneda)}
-                  onChange={setMonedaSeleccionada}
+                  onChange={cambiarMonedaSeleccionada}
                 />
               </header>
             </section>

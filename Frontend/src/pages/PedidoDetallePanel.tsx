@@ -60,12 +60,23 @@ function archivoDocumentoIdentidad(pedido: PedidoDetalle) {
     : '';
   const archivos = pedido.archivos ?? [];
 
-  return archivos.find((archivo) => (
+  const archivoRegistrado = archivos.find((archivo) => (
     archivo.tipo === 'documento_identidad'
     && (!documentoDetalle || archivo.ruta_archivo === documentoDetalle)
   ))
     ?? archivos.find((archivo) => archivo.tipo === 'documento_identidad')
     ?? null;
+
+  if (archivoRegistrado) return archivoRegistrado;
+  if (!documentoDetalle || documentoDetalle === 'Documento adjunto en evidencias') return null;
+
+  return {
+    id: -1,
+    pedido_id: pedido.id ?? pedido.pedido_id ?? 0,
+    tipo: 'documento_identidad',
+    ruta_archivo: documentoDetalle,
+    nombre_archivo: 'documento-identidad',
+  };
 }
 
 function mensajeSinUrlDocumento(mensaje: string, pedido: PedidoDetalle, documento: ArchivoPedido | null) {
@@ -77,7 +88,7 @@ function mensajeSinUrlDocumento(mensaje: string, pedido: PedidoDetalle, document
   const rutas = Array.from(new Set([
     documento.ruta_archivo.trim(),
     documentoDetalle,
-  ].filter(Boolean)));
+  ].filter(Boolean).flatMap((ruta) => [ruta, apiAssetUrl(ruta)])));
 
   return rutas.reduce(
     (texto, ruta) => texto.replace(new RegExp(escaparRegExp(ruta), 'g'), 'Adjunto'),

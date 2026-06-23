@@ -19,6 +19,7 @@ import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoResumen, TasaOperativaResponse } from '../types/api';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
+import { guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida } from '../utils/preferenciasPedido';
 import type { InicioCreateDraft, InicioServicio } from './inicio/ServicesRatesGrid';
 import './home-test/HomeTestPage.css';
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
@@ -384,7 +385,7 @@ function HomeTestTracker({ onTrackPedido }: { onTrackPedido: (code: string) => v
 
 export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: HomeTestPageProps) {
   const [data, setData] = useState<TasaOperativaResponse | null>(() => readCache());
-  const [currency, setCurrency] = useState('BRL');
+  const [currency, setCurrency] = useState(() => leerMonedaPedidoPreferida());
   const [loading, setLoading] = useState(!data);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -432,8 +433,16 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
   }, [data]);
 
   useEffect(() => {
-    if (groups.length && !groups.some((group) => group.moneda === currency)) setCurrency(groups[0].moneda);
+    if (groups.length && !groups.some((group) => group.moneda === currency)) {
+      setCurrency(groups[0].moneda);
+      guardarMonedaPedidoPreferida(groups[0].moneda);
+    }
   }, [currency, groups]);
+
+  function changeCurrency(value: string) {
+    setCurrency(value);
+    guardarMonedaPedidoPreferida(value);
+  }
 
   const activeGroup = groups.find((group) => group.moneda === currency) ?? groups[0];
 
@@ -451,7 +460,7 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
               buttonClassName="ht-currency-select-button"
               menuClassName="ht-currency-select-menu"
               value={currency}
-              onChange={setCurrency}
+              onChange={changeCurrency}
               ariaLabel="Seleccionar moneda de pago"
               align="right"
               options={groups.map((group) => ({

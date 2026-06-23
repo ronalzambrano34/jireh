@@ -3,6 +3,12 @@ PENDIENTES:
 
 //todo 
 
-//todo 
+//todo contraseña al crear operador, por defecto es Jireh2026
 
 //todo añadir notificaciones.para que le suene a los operadores cuando se cree un nuevo o para cuando le transfieran un pedido. 
+
+
+
+
+
+

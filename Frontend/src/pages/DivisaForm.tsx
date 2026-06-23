@@ -12,6 +12,7 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -31,7 +32,7 @@ type DivisaInitialData = { monto_pago?: string; moneda_pago?: string; tipo_tarje
 export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: DivisaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? 'BRL',
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
     tipo_pago_id: '',
     cuenta_pago_id: '',
     tipo_tarjeta: initialData?.tipo_tarjeta ?? 'MLC',
@@ -66,7 +67,13 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           const actual = normalizarMoneda(current.moneda_pago);
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
           const primero = data.find((metodo) => normalizarMoneda(metodo.moneda) === moneda);
-          return { ...current, moneda_pago: moneda, tipo_pago_id: primero ? String(primero.id) : '' };
+          guardarMonedaPedidoPreferida(moneda);
+          return {
+            ...current,
+            moneda_pago: moneda,
+            tipo_pago_id: primero ? String(primero.id) : '',
+            numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
+          };
         });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
@@ -106,7 +113,12 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   }, [form.bonificacion_manual, form.monto_pago, form.moneda_pago, form.tipo_tarjeta]);
 
   function update(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'moneda_pago' && !current.cliente_id ? { numero_telefono_cliente: telefonoClienteConMoneda(current.numero_telefono_cliente, value) } : {}),
+    }));
   }
 
   function aplicarContacto(contacto: Contacto) {
@@ -206,6 +218,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
               cliente_id: data.clienteId ?? current.cliente_id,
             }))}
             onError={setError}
+            defaultCode={codigoPaisPorMoneda(form.moneda_pago)}
           />
         </section>
 

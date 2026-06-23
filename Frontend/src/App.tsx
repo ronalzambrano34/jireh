@@ -7,6 +7,7 @@ import { Modal } from './components/Modal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { UserHeaderMenu } from './components/UserHeaderMenu';
 import { copiarAlPortapapeles } from './utils/clipboard';
+import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
 import {
   abrirWhatsAppUrl,
@@ -370,6 +371,7 @@ export function App() {
   }
 
   function abrirCrear(servicio: ServicioCrear, draft: CrearPedidoDraft = {}) {
+    guardarMonedaPedidoPreferida(draft.moneda_pago);
     setServicioCrear(servicio);
     setCrearDraft(draft);
     setVista('crear');

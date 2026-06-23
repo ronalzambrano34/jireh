@@ -10,6 +10,7 @@ import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
@@ -30,7 +31,7 @@ type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
 export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: TransferenciaInitialData }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? 'BRL',
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
     numero_tarjeta: '',
     telefono_destinatario: TELEFONO_CUBA_DEFAULT,
     tipo_pago_id: '1',
@@ -68,7 +69,13 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           const metodo = moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
             : metodosMoneda[0];
-          return { ...current, moneda_pago: moneda, tipo_pago_id: metodo ? String(metodo.id) : '' };
+          guardarMonedaPedidoPreferida(moneda);
+          return {
+            ...current,
+            moneda_pago: moneda,
+            tipo_pago_id: metodo ? String(metodo.id) : '',
+            numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
+          };
         });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
@@ -121,7 +128,12 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
   function update(field: keyof typeof form, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'moneda_pago' && !current.cliente_id ? { numero_telefono_cliente: telefonoClienteConMoneda(current.numero_telefono_cliente, value) } : {}),
+    }));
   }
 
   function aplicarContacto(contacto: Contacto) {
@@ -218,6 +230,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
               cliente_id: data.clienteId ?? current.cliente_id,
             }))}
             onError={setError}
+            defaultCode={codigoPaisPorMoneda(form.moneda_pago)}
           />
         </section>
 

@@ -2726,6 +2726,7 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  justify-items: stretch;
   gap: 10px;
   padding: 9px 10px;
   border: 1px solid var(--ui-border);
@@ -2734,6 +2735,11 @@ body {
   color: var(--ui-text);
   font-size: 13px;
   font-weight: 850;
+}
+
+.permission-switch-row .ui-switch {
+  justify-self: end;
+  align-self: center;
 }
 
 .permission-switch-row span {
