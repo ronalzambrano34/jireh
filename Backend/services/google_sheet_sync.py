@@ -27,7 +27,7 @@ from Backend.config import (
 from Backend.services.monedas import normalizar_moneda
 
 
-DEFAULT_SHEET_ID = "1QZaKLpvi3ZqigaxF1n4sYQ57jO6XY5wW6CiYzWA56OA"
+DEFAULT_SHEET_ID = "1SUvfqKm2f0mnNruwI9qsnSYWiFLhBm6km-_ng6rO_38"
 WORKSHEET_TITLE = GOOGLE_SHEET_WORKSHEET or "Calcular Oferta"
 SHEET_RANGE = GOOGLE_SHEET_RANGE or "A1:L160"
 ORIGEN_GOOGLE_SHEET = "google_sheet"
