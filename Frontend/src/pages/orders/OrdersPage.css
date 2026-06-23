@@ -487,7 +487,7 @@
 
   .orders-view-shell .chat-order-list,
   .orders-view-shell .pedido-board {
-    padding-bottom: 0;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
     scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
 
