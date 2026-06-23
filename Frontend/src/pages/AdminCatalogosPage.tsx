@@ -871,11 +871,15 @@ export function AdminCatalogosPage() {
     event.preventDefault();
     setError(null);
     setNotice(null);
+    if (!operadorForm.password.trim()) {
+      setError('La contraseña inicial es obligatoria');
+      return;
+    }
     try {
       await crearOperador({
         nombre: operadorForm.nombre,
         telefono: operadorForm.telefono,
-        password: operadorForm.password || undefined,
+        password: operadorForm.password,
         rol: operadorForm.rol,
         permisos: operadorForm.permisos,
       });
@@ -1740,7 +1744,7 @@ export function AdminCatalogosPage() {
           <form className="stack-form modal-form" onSubmit={guardarOperador}>
             <input value={operadorForm.nombre} onChange={(event) => setOperadorForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <PhoneInput value={operadorForm.telefono} onChange={(value) => setOperadorForm((current) => ({ ...current, telefono: value }))} defaultCode="+55" required pasteTitle="Pegar telefono de acceso" />
-            <PasswordField value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="contraseña inicial" autoComplete="new-password" />
+            <PasswordField value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Contraseña inicial" autoComplete="new-password" required />
             <FloatingSelect value={operadorForm.rol} onChange={(value) => setOperadorForm((current) => ({ ...current, rol: value, permisos: permisosBaseRol(value) }))} options={rolesOperador.map((rol) => ({ value: rol, label: rol }))} ariaLabel="Rol" align="left" />
             <PermissionSwitches permisos={operadorForm.permisos} onChange={(permisos) => setOperadorForm((current) => ({ ...current, permisos }))} />
             <button className="primary-button"><Save size={18} /> Crear operador</button>

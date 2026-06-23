@@ -32,7 +32,7 @@ class OperadorCreate(
 
     telefono: str
 
-    password: str | None = None
+    password: str
 
     rol: str = "operador"
 

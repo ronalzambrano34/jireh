@@ -6,7 +6,7 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo 
 
-//todo contraseña al crear operador, por defecto es Jireh2026
+//todo
 
 //todo añadir notificaciones.para que le suene a los operadores cuando se cree un nuevo o para cuando le transfieran un pedido. 
 
