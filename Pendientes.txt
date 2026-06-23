@@ -1,4 +1,7 @@
 PENDIENTES:
+
+IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al referir o al registrarse en el sistema, va a ganar unos bonos de un solo uso que podran elegir si usar a la hora de realizar un pedido
+
 //todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, 
 
 //todo 
