@@ -1176,6 +1176,42 @@ export function PedidoDetallePanel({
             </Modal>
           )}
 
+          {cancelacionAbierta && (
+            <Modal
+              title="Cancelar pedido"
+              subtitle={pedido.codigo_operacion}
+              onClose={cerrarCancelacion}
+              className="order-cancel-modal"
+            >
+              <div className="order-cancel-confirm" aria-label="Confirmar cancelacion">
+                <div className="order-cancel-critical">
+                  <ShieldAlert size={18} />
+                  <span>
+                    Esta accion cambiara el pedido a cancelado y puede notificar al cliente.
+                  </span>
+                </div>
+                <label>
+                  Motivo de cancelacion
+                  <textarea
+                    value={motivoCancelacion}
+                    onChange={(event) => setMotivoCancelacion(event.target.value)}
+                    placeholder="Ejemplo: cliente no completo el pago, datos incorrectos, pedido duplicado..."
+                    rows={3}
+                    disabled={saving}
+                  />
+                </label>
+                <div className="order-cancel-confirm-actions">
+                  <button className="ghost-button" type="button" onClick={cerrarCancelacion} disabled={saving}>
+                    No, volver
+                  </button>
+                  <button className="danger-button order-cancel-confirm-button" type="button" onClick={confirmarCancelacion} disabled={saving || cancelCountdown > 0}>
+                    {saving ? 'Cancelando...' : cancelCountdown > 0 ? `Si, cancelar (${cancelCountdown})` : 'Si, cancelar'}
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
           {whatsappPendiente && (
             <Modal
               title={whatsappPendiente.titulo}
@@ -1277,33 +1313,6 @@ export function PedidoDetallePanel({
             estadoLabel={estadoLabel}
             formatoFecha={formatoFecha}
           />
-
-          {cancelacionAbierta && (
-            <section className="order-cancel-confirm" aria-label="Confirmar cancelacion">
-              <div>
-                <strong>Cancelar pedido</strong>
-                <small>Esta accion cambiara el pedido a cancelado y puede notificar al cliente.</small>
-              </div>
-              <label>
-                Motivo de cancelacion
-                <textarea
-                  value={motivoCancelacion}
-                  onChange={(event) => setMotivoCancelacion(event.target.value)}
-                  placeholder="Ejemplo: cliente no completo el pago, datos incorrectos, pedido duplicado..."
-                  rows={3}
-                  disabled={saving}
-                />
-              </label>
-              <div className="order-cancel-confirm-actions">
-                <button className="ghost-button" type="button" onClick={cerrarCancelacion} disabled={saving}>
-                  No, volver
-                </button>
-                <button className="danger-button order-cancel-confirm-button" type="button" onClick={confirmarCancelacion} disabled={saving || cancelCountdown > 0}>
-                  {saving ? 'Cancelando...' : cancelCountdown > 0 ? `Si, cancelar (${cancelCountdown})` : 'Si, cancelar'}
-                </button>
-              </div>
-            </section>
-          )}
 
           <div className="order-bottom-actions" role="group" aria-label="Acciones principales de pedido">
             <button className="danger-button order-cancel-action" type="button" onClick={abrirCancelacion} disabled={bloqueadoPorOtro || saving || pedido.estado === 'cancelado' || pedido.estado === 'completado'} title="Cancelar">

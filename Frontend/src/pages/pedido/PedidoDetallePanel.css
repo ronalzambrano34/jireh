@@ -557,29 +557,51 @@
 
 .order-cancel-confirm {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   border: 1px solid rgba(197, 61, 61, 0.24);
-  border-radius: 8px;
+  border-radius: var(--ui-radius-md);
   padding: 14px;
   background: #fff7f7;
   color: #5f1f1f;
   box-shadow: 0 12px 28px rgba(197, 61, 61, 0.1);
 }
 
-.order-cancel-confirm > div:first-child {
-  display: grid;
-  gap: 4px;
+.order-cancel-modal {
+  width: min(560px, 100%);
 }
 
-.order-cancel-confirm strong {
-  font-size: 15px;
-  font-weight: 950;
+.order-cancel-critical {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(197, 61, 61, 0.26);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff0f0;
+  color: #9b2525;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.order-cancel-critical svg {
+  color: #b42323;
 }
 
 .order-cancel-confirm small {
   color: #8a3c3c;
   font-size: 12px;
   font-weight: 750;
+}
+
+.order-cancel-confirm label {
+  display: grid;
+  gap: 7px;
+  color: #7f2b2b;
+  font-size: 13px;
+  font-weight: 850;
 }
 
 .order-cancel-confirm textarea {
@@ -1360,6 +1382,16 @@
 
 :root[data-theme="dark-sidebar"] .order-cancel-confirm small {
   color: #ffb1b1;
+}
+
+:root[data-theme="dark-sidebar"] .order-cancel-critical {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(220, 90, 99, 0.12);
+  color: #f5c1c5;
+}
+
+:root[data-theme="dark-sidebar"] .order-cancel-critical svg {
+  color: #f87171;
 }
 
 :root[data-theme="dark-sidebar"] .finalization-proof-panel {
