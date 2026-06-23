@@ -78,21 +78,18 @@ export function UserHeaderMenu(props: UserHeaderMenuProps) {
               <Edit3 size={18} /> Modificar usuario
             </button>
             <div className="user-header-theme-row" role="menuitem">
-              <button type="button" onClick={() => run(props.onAppearance)}>
-                <Palette size={18} />
-                <span><strong>Apariencia</strong><small>{props.darkTheme ? 'Oscuro Jireh' : 'Tema claro'}</small></span>
-              </button>
               <button
                 type="button"
-                className="theme-icon-button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  props.onThemeChange(!props.darkTheme);
-                }}
+                className="user-header-theme-trigger"
+                onClick={() => props.onThemeChange(!props.darkTheme)}
                 title={props.darkTheme ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
                 aria-label={props.darkTheme ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
               >
-                {props.darkTheme ? <Sun size={18} /> : <Moon size={18} />}
+                <Palette size={18} />
+                <span><strong>Apariencia</strong><small>{props.darkTheme ? 'Oscuro Jireh' : 'Tema claro'}</small></span>
+                <span className="theme-icon-button" aria-hidden="true">
+                  {props.darkTheme ? <Sun size={18} /> : <Moon size={18} />}
+                </span>
               </button>
             </div>
             {props.canAdmin && <button type="button" role="menuitem" onClick={() => run(props.onAdmin)}><Settings size={18} /> Configuracion Admin</button>}

@@ -113,11 +113,11 @@
 }
 
 .user-header-popover > button,
-.user-header-theme-row > button:not(.theme-icon-button) {
+.user-header-theme-trigger {
   width: 100%;
   min-height: 42px;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
@@ -142,15 +142,10 @@
 
 .user-header-theme-row {
   min-height: 46px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  padding-right: 6px;
   border-radius: var(--ui-radius-sm);
 }
 
-.user-header-theme-row > button:not(.theme-icon-button) > span {
+.user-header-theme-trigger > span:not(.theme-icon-button) {
   min-width: 0;
   display: grid;
   gap: 1px;
@@ -169,7 +164,7 @@
   padding: 0;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-sm);
-  background: var(--ui-surface);
+  background: transparent;
   color: var(--ui-text-muted);
   cursor: pointer;
 }
@@ -177,7 +172,7 @@
 .theme-icon-button:hover,
 .theme-icon-button:focus-visible {
   border-color: var(--ui-border-strong);
-  background: var(--ui-surface-hover);
+  background: transparent;
   color: var(--ui-text);
   outline: 0;
 }
