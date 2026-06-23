@@ -1,5 +1,11 @@
 .ui-switch {
   box-sizing: border-box;
+  inline-size: 34px;
+  block-size: 20px;
+  min-inline-size: 34px;
+  min-block-size: 20px;
+  max-inline-size: 34px;
+  max-block-size: 20px;
   width: 34px;
   height: 20px;
   min-width: 34px;
@@ -7,11 +13,15 @@
   max-width: 34px;
   max-height: 20px;
   flex: 0 0 34px;
-  display: block;
+  display: inline-block;
   align-self: center;
+  place-self: center end;
+  overflow: hidden;
+  position: relative;
   margin: 0;
   padding: 2px;
   line-height: 0;
+  vertical-align: middle;
   border: 1px solid var(--ui-border-strong);
   border-radius: 999px;
   background: var(--ui-canvas-soft);
@@ -24,6 +34,11 @@
 .ui-switch::after {
   box-sizing: border-box;
   content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  inline-size: 14px;
+  block-size: 14px;
   width: 14px;
   height: 14px;
   min-width: 14px;
