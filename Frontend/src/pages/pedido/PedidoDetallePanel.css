@@ -1233,20 +1233,25 @@
 }
 
 @media (max-width: 720px) {
+  .order-detail-view-shell {
+    --order-detail-actions-bottom: calc(84px + env(safe-area-inset-bottom));
+    --order-detail-actions-space: calc(180px + env(safe-area-inset-bottom));
+  }
+
   .order-detail-view-shell .workspace {
-    padding-bottom: calc(220px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(220px + env(safe-area-inset-bottom));
+    padding: 0 12px var(--order-detail-actions-space);
+    scroll-padding-bottom: var(--order-detail-actions-space);
   }
 
   .order-detail-view-shell .order-detail-page {
-    padding-bottom: 24px;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
 
   .order-detail-view-shell .order-bottom-actions {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(72px + env(safe-area-inset-bottom));
+    bottom: var(--order-detail-actions-bottom);
     z-index: 49;
     grid-template-columns: minmax(88px, 0.36fr) minmax(0, 1fr);
     gap: 8px;
@@ -1940,14 +1945,17 @@
 }
 
 @media (max-width: 920px) {
+  .order-detail-view-shell {
+    --order-detail-actions-space: calc(180px + env(safe-area-inset-bottom));
+  }
 
   .order-detail-view-shell .workspace {
-    padding-bottom: calc(220px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(220px + env(safe-area-inset-bottom));
+    padding-bottom: var(--order-detail-actions-space);
+    scroll-padding-bottom: var(--order-detail-actions-space);
   }
 
   .order-detail-view-shell .order-detail-page {
-    padding-bottom: 24px;
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
 
   :root[data-theme="dark-sidebar"] .order-detail-page-header {
@@ -2311,7 +2319,7 @@
 
   .order-detail-view-shell .order-detail-page .order-bottom-actions,
   :root[data-theme="dark-sidebar"] .order-detail-view-shell .order-detail-page .order-bottom-actions {
-    bottom: calc(72px + env(safe-area-inset-bottom));
+    bottom: var(--order-detail-actions-bottom, calc(84px + env(safe-area-inset-bottom)));
     z-index: 55;
     border-top-color: var(--ui-border);
     background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
