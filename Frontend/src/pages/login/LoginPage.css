@@ -1220,12 +1220,12 @@
 }
 
 @media (max-width: 560px) {
-  .modal-backdrop:not(.login-popover-backdrop) {
+  .modal-backdrop:not(.login-popover-backdrop):not(:has(.orders-filter-modal)) {
     place-items: stretch;
     padding: 0;
   }
 
-  .modal-backdrop:not(.login-popover-backdrop) .modal-panel {
+  .modal-backdrop:not(.login-popover-backdrop):not(:has(.orders-filter-modal)) .modal-panel {
     width: 100vw;
     height: 100dvh;
     max-height: 100dvh;
