@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Edit3, HelpCircle, LogOut, Palette, Settings } from 'lucide-react';
+import { Edit3, HelpCircle, LogOut, Moon, Palette, Settings, Sun } from 'lucide-react';
 import { apiAssetUrl } from '../api/client';
 import type { Operador } from '../types/api';
-import { UiSwitch } from './UiSwitch';
 import '../styles/user-header-menu.css';
 
 type UserHeaderMenuProps = {
@@ -83,9 +82,18 @@ export function UserHeaderMenu(props: UserHeaderMenuProps) {
                 <Palette size={18} />
                 <span><strong>Apariencia</strong><small>{props.darkTheme ? 'Oscuro Jireh' : 'Tema claro'}</small></span>
               </button>
-              <label onClick={(event) => event.stopPropagation()}>
-                <UiSwitch checked={props.darkTheme} onChange={props.onThemeChange} ariaLabel="Activar tema oscuro" />
-              </label>
+              <button
+                type="button"
+                className="theme-icon-button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  props.onThemeChange(!props.darkTheme);
+                }}
+                title={props.darkTheme ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+                aria-label={props.darkTheme ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+              >
+                {props.darkTheme ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
             </div>
             {props.canAdmin && <button type="button" role="menuitem" onClick={() => run(props.onAdmin)}><Settings size={18} /> Configuracion Admin</button>}
             <button type="button" role="menuitem" onClick={() => run(props.onSupport)}><HelpCircle size={18} /> Soporte</button>

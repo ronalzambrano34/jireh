@@ -113,7 +113,7 @@
 }
 
 .user-header-popover > button,
-.user-header-theme-row > button {
+.user-header-theme-row > button:not(.theme-icon-button) {
   width: 100%;
   min-height: 42px;
   display: grid;
@@ -150,16 +150,36 @@
   border-radius: var(--ui-radius-sm);
 }
 
-.user-header-theme-row > button > span {
+.user-header-theme-row > button:not(.theme-icon-button) > span {
   min-width: 0;
   display: grid;
   gap: 1px;
 }
 
-.user-header-theme-row > label {
-  display: inline-flex;
-  align-items: center;
+.theme-icon-button {
+  box-sizing: border-box;
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface);
+  color: var(--ui-text-muted);
   cursor: pointer;
+}
+
+.theme-icon-button:hover,
+.theme-icon-button:focus-visible {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+  outline: 0;
 }
 
 @keyframes user-header-menu-enter {

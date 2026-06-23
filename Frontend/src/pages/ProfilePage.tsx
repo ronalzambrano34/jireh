@@ -1,8 +1,7 @@
 import type { FormEvent } from 'react';
-import { ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Palette, Percent, ShieldCheck, UserCircle } from 'lucide-react';
+import { ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Moon, Palette, Percent, ShieldCheck, Sun, UserCircle } from 'lucide-react';
 import { apiAssetUrl } from '../api/client';
 import { PasswordField } from '../components/PasswordField';
-import { UiSwitch } from '../components/UiSwitch';
 import type { Operador } from '../types/api';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
 import './profile/ProfilePage.css';
@@ -86,13 +85,24 @@ export function ProfilePage(props: {
         <button className={option('permisos')} type="button" onClick={() => props.onSectionChange('permisos')} aria-expanded={props.section === 'permisos'}><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown className={props.section === 'permisos' ? 'chevron-open' : ''} size={18} /></button>
         {props.section === 'permisos' && <div className="profile-inline-panel"><div className="profile-role-pill"><ShieldCheck size={18} /> {props.operador.rol}</div><div className="profile-permission-list">{props.operador.permisos.length ? props.operador.permisos.map((permiso) => <span key={permiso}>{permiso}</span>) : <span>Sin permisos especiales</span>}</div></div>}
 
-        <label className="profile-appearance-row">
+        <div className="profile-appearance-row">
           <span className="profile-appearance-icon" aria-hidden="true"><Palette size={22} /></span>
           <div className="profile-appearance-copy">
-            <div className="profile-appearance-title"><strong>Apariencia</strong><span className="theme-switch"><UiSwitch checked={props.theme !== 'light'} onChange={(checked) => props.onThemeChange(checked ? 'dark-sidebar' : 'light')} ariaLabel="Activar tema oscuro" /><span>Oscuro</span></span></div>
+            <div className="profile-appearance-title">
+              <strong>Apariencia</strong>
+              <button
+                type="button"
+                className="theme-icon-button profile-theme-icon-button"
+                onClick={() => props.onThemeChange(props.theme === 'light' ? 'dark-sidebar' : 'light')}
+                title={props.theme === 'light' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
+                aria-label={props.theme === 'light' ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
+              >
+                {props.theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
+            </div>
             <small>{props.theme === 'light' ? 'Tema claro' : 'Oscuro Jireh predeterminado'}</small>
           </div>
-        </label>
+        </div>
       </section>
 
       <section className="profile-section">
