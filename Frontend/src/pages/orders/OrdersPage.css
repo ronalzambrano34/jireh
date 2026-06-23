@@ -468,9 +468,19 @@
 }
 
 @media (max-width: 920px) {
+  .orders-view-shell .orders-content-grid {
+    padding-bottom: calc(260px + env(safe-area-inset-bottom));
+  }
+
+  .orders-view-shell .orders-list-panel::after {
+    content: "";
+    display: block;
+    height: calc(240px + env(safe-area-inset-bottom));
+  }
+
   .orders-view-shell .workspace {
-    padding-bottom: calc(360px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(360px + env(safe-area-inset-bottom));
+    padding-bottom: calc(420px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(420px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .orders-list-panel {
@@ -479,8 +489,8 @@
 
   .orders-view-shell .chat-order-list,
   .orders-view-shell .pedido-board {
-    padding-bottom: calc(172px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(172px + env(safe-area-inset-bottom));
+    padding-bottom: calc(260px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(260px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .floating-create-wrap {
@@ -501,10 +511,10 @@
     padding: 9px 12px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    border-top: 1px solid #d1d5db;
-    background: rgba(255, 255, 255, 0.97);
-    box-shadow: 0 -12px 28px var(--ui-shadow-medium);
-    backdrop-filter: blur(14px) saturate(1.05);
+    border-top: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .orders-view-shell .orders-status-chips button {
@@ -543,9 +553,10 @@
 }
 
 :root[data-theme="dark-sidebar"] .orders-view-shell .orders-status-chips {
-  border-color: var(--menu-line, var(--jireh-line));
-  background: rgba(10, 16, 32, 0.96);
-  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.34);
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .orders-scope-chips {
@@ -898,8 +909,8 @@
 @media (max-width: 920px) {
 
   .orders-view-shell .workspace {
-    padding-bottom: calc(360px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(360px + env(safe-area-inset-bottom));
+    padding-bottom: calc(420px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(420px + env(safe-area-inset-bottom));
   }
 
   .orders-scope-chips > button {
