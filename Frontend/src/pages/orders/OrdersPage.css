@@ -477,8 +477,8 @@
   }
 
   .orders-view-shell .workspace {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(160px + env(safe-area-inset-bottom));
+    padding-bottom: calc(360px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(360px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .orders-list-panel {
