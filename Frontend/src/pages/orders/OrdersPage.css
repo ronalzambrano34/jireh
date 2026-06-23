@@ -477,8 +477,8 @@
   }
 
   .orders-view-shell .workspace {
-    padding-bottom: calc(360px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(360px + env(safe-area-inset-bottom));
+    padding: 0 12px calc(150px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .orders-list-panel {
@@ -488,7 +488,7 @@
   .orders-view-shell .chat-order-list,
   .orders-view-shell .pedido-board {
     padding-bottom: 0;
-    scroll-padding-bottom: calc(160px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
 
   .orders-view-shell .floating-create-wrap {
@@ -907,8 +907,8 @@
 @media (max-width: 920px) {
 
   .orders-view-shell .workspace {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(160px + env(safe-area-inset-bottom));
+    padding: 0 12px calc(150px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom));
   }
 
   .orders-scope-chips > button {
