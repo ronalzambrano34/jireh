@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 
@@ -43,58 +43,8 @@ export function FloatingSelect({ value, options, onChange, disabled = false, pla
   const enabledOptions = options.filter((option) => !option.disabled);
   const label = selected?.label ?? placeholder;
 
-  useEffect(() => {
-    if (!open) return undefined;
-
-    function closeFromOutside(target: EventTarget | null) {
-      if (!(target instanceof Node)) return;
-      if (target instanceof HTMLElement && target.classList.contains('floating-select-backdrop')) {
-        setOpen(false);
-        return;
-      }
-      if (rootRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setOpen(false);
-    }
-
-    function handlePointerDown(event: PointerEvent) {
-      closeFromOutside(event.target);
-    }
-
-    function handleMouseDown(event: MouseEvent) {
-      closeFromOutside(event.target);
-    }
-
-    function handleTouchStart(event: TouchEvent) {
-      closeFromOutside(event.target);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
-    }
-
-    function handleScroll() {
-      setOpen(false);
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown, true);
-    document.addEventListener('mousedown', handleMouseDown, true);
-    document.addEventListener('touchstart', handleTouchStart, true);
-    document.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleScroll);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, true);
-      document.removeEventListener('mousedown', handleMouseDown, true);
-      document.removeEventListener('touchstart', handleTouchStart, true);
-      document.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, [open]);
-
-  useLayoutEffect(() => {
-    if (!open || !rootRef.current || !menuRef.current) return;
+  const updateMenuPosition = useCallback(() => {
+    if (!rootRef.current || !menuRef.current) return;
 
     const rootRect = rootRef.current.getBoundingClientRect();
     const menuHeight = menuRef.current.scrollHeight;
@@ -132,7 +82,69 @@ export function FloatingSelect({ value, options, onChange, disabled = false, pla
       width: Math.round(nextWidth),
       maxHeight: nextMaxHeight,
     });
-  }, [align, open, options.length]);
+  }, [align]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function closeFromOutside(target: EventTarget | null) {
+      if (!(target instanceof Node)) return;
+      if (target instanceof HTMLElement && target.classList.contains('floating-select-backdrop')) {
+        setOpen(false);
+        return;
+      }
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      closeFromOutside(event.target);
+    }
+
+    function handleMouseDown(event: MouseEvent) {
+      closeFromOutside(event.target);
+    }
+
+    function handleTouchStart(event: TouchEvent) {
+      closeFromOutside(event.target);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false);
+    }
+
+    function handleResize() {
+      setOpen(false);
+    }
+
+    let animationFrame = 0;
+    function handleScroll() {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(updateMenuPosition);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('mousedown', handleMouseDown, true);
+    document.addEventListener('touchstart', handleTouchStart, true);
+    document.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('mousedown', handleMouseDown, true);
+      document.removeEventListener('touchstart', handleTouchStart, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [open, updateMenuPosition]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updateMenuPosition();
+  }, [open, options.length, updateMenuPosition]);
 
   function selectValue(nextValue: string) {
     onChange(nextValue);

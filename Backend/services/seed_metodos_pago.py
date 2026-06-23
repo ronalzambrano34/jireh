@@ -36,6 +36,22 @@ def seed_metodos_pago(db: Session):
         {
             "nombre": "MiDinero",
             "moneda": "UYU"
+        },
+        {
+            "nombre": "OCA",
+            "moneda": "UYU"
+        },
+        {
+            "nombre": "Scotiabank",
+            "moneda": "UYU"
+        },
+        {
+            "nombre": "Santander",
+            "moneda": "UYU"
+        },
+        {
+            "nombre": "BBVA",
+            "moneda": "UYU"
         }
     ]
 
