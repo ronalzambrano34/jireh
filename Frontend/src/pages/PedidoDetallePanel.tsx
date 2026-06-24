@@ -139,6 +139,45 @@ function notificacionWhatsAppEstado(pedido: PedidoDetalle, nuevoEstado: string):
   return null;
 }
 
+function reenvioWhatsAppGrupoPedido(pedido: PedidoDetalle): WhatsAppPendiente | null {
+  const url = pedido.whatsapp_grupo_pedidos_url ?? pedido.whatsapp_url ?? null;
+  const mensajeBase = pedido.mensaje_grupo_pedidos ?? pedido.mensaje_operacion ?? '';
+  if (!url || !mensajeBase) return null;
+
+  const documento = archivoDocumentoIdentidad(pedido);
+  const mensaje = mensajeSinUrlDocumento(
+    mensajeBase,
+    pedido,
+    documento,
+  );
+
+  return {
+    titulo: 'Reenviar WhatsApp',
+    detalle: documento
+      ? 'Mensaje listo para reenviar al grupo con documento adjunto.'
+      : 'Mensaje listo para reenviar por WhatsApp.',
+    url,
+    clienteUrl: null,
+    mensaje,
+    adjunto: documento,
+    adjuntoTipo: documento ? 'documento' : null,
+  };
+}
+
+function reenvioWhatsAppCliente(pedido: PedidoDetalle): WhatsAppPendiente | null {
+  if (!pedido.whatsapp_estado_url || !pedido.mensaje_cliente_estado) return null;
+
+  return {
+    titulo: 'Reenviar al cliente',
+    detalle: 'Mensaje de estado listo para reenviar al cliente.',
+    url: null,
+    clienteUrl: pedido.whatsapp_estado_url,
+    mensaje: pedido.mensaje_cliente_estado,
+    adjunto: null,
+    adjuntoTipo: null,
+  };
+}
+
 const detalleLabels: Record<string, string> = {
   numero_tarjeta: 'Tarjeta',
   telefono_destinatario: 'Telefono',
@@ -624,6 +663,36 @@ export function PedidoDetallePanel({
     onClose();
   }
 
+  function abrirReenvioGrupoWhatsApp() {
+    if (!pedido) return;
+    const reenvio = reenvioWhatsAppGrupoPedido(pedido);
+    if (!reenvio) {
+      setError('No hay enlace de WhatsApp disponible para reenviar este mensaje');
+      return;
+    }
+    setWhatsappPendiente(reenvio);
+  }
+
+  function abrirReenvioClienteWhatsApp() {
+    if (!pedido) return;
+    const reenvio = reenvioWhatsAppCliente(pedido);
+    if (!reenvio) {
+      setError('No hay WhatsApp de cliente disponible para este pedido');
+      return;
+    }
+    setWhatsappPendiente(reenvio);
+  }
+
+  function abrirReenvioFinalizadoWhatsApp() {
+    if (!pedido) return;
+    const reenvio = notificacionWhatsAppEstado(pedido, 'completado');
+    if (!reenvio) {
+      setError('No hay mensaje de finalizacion disponible para reenviar');
+      return;
+    }
+    setWhatsappPendiente(reenvio);
+  }
+
   function cerrarFinalizacion() {
     if (saving || uploading) return;
     setFinalizacionAbierta(false);
@@ -1063,6 +1132,21 @@ export function PedidoDetallePanel({
                     <button className="ghost-button" type="button" onClick={() => copiarCampo(pedido.mensaje_operacion ?? '', 'Mensaje')}>
                       <Copy size={16} /> Copiar mensaje
                     </button>
+                    {(pedido.whatsapp_grupo_pedidos_url || pedido.whatsapp_url) && (
+                      <button className="primary-button" type="button" onClick={abrirReenvioGrupoWhatsApp}>
+                        <MessageCircle size={16} /> Reenviar WhatsApp
+                      </button>
+                    )}
+                    {pedido.whatsapp_estado_url && pedido.mensaje_cliente_estado && (
+                      <button className="ghost-button" type="button" onClick={abrirReenvioClienteWhatsApp}>
+                        <MessageCircle size={16} /> Reenviar al cliente
+                      </button>
+                    )}
+                    {pedido.estado === 'completado' && pedido.whatsapp_grupo_finalizado_url && (
+                      <button className="ghost-button" type="button" onClick={abrirReenvioFinalizadoWhatsApp}>
+                        <MessageCircle size={16} /> Reenviar finalizado
+                      </button>
+                    )}
                   </div>
                   <pre>{pedido.mensaje_operacion}</pre>
                 </>

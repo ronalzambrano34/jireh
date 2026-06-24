@@ -234,6 +234,17 @@ function estadoPromocion(item: Promocion) {
   return 'activa';
 }
 
+function resumenOperacionesCliente(cliente: Cliente) {
+  const total = cliente.total_operaciones ?? 0;
+  const desglose = Object.entries(cliente.operaciones_por_servicio ?? {})
+    .filter(([, cantidad]) => cantidad > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([servicio, cantidad]) => `${servicio}: ${cantidad}`)
+    .join(' · ');
+
+  return `${total} ${total === 1 ? 'operacion' : 'operaciones'}${desglose ? ` · ${desglose}` : ''}`;
+}
+
 const templateVariablesComunes = [
   'codigo_operacion',
   'servicio',
@@ -1416,6 +1427,7 @@ export function AdminCatalogosPage() {
               <button type="button" className="config-row admin-config-card" key={cliente.id} onClick={() => setClienteForm({ nombre: cliente.nombre, telefono: cliente.telefono ?? '', email: cliente.email ?? '', pais: cliente.pais ?? 'br', moneda_preferida: cliente.moneda_preferida ?? 'BRL' })}>
                 <strong>{cliente.nombre} #{cliente.id}</strong>
                 <span>{cliente.telefono ?? 'sin telefono'} · {cliente.moneda_preferida ?? 'sin moneda'}</span>
+                <span>{resumenOperacionesCliente(cliente)}</span>
                 <span className={cliente.activo ? 'status completado' : 'status cancelado'}>{cliente.activo ? 'activo' : 'inactivo'}</span>
               </button>
             ))}

@@ -17,7 +17,10 @@ type ClienteLookupProps = {
 };
 
 function clienteResumen(cliente: Cliente) {
-  return [cliente.telefono, cliente.email, cliente.moneda_preferida].filter(Boolean).join(' · ') || `Cliente #${cliente.id}`;
+  const operaciones = cliente.total_operaciones !== undefined
+    ? `${cliente.total_operaciones} ${cliente.total_operaciones === 1 ? 'operacion' : 'operaciones'}`
+    : null;
+  return [cliente.telefono, cliente.email, cliente.moneda_preferida, operaciones].filter(Boolean).join(' · ') || `Cliente #${cliente.id}`;
 }
 
 export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError, defaultCode = '+55' }: ClienteLookupProps) {

@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -40,6 +41,65 @@ def _aplicar_pais_por_telefono(
     return obtener_nombre_pais(
         pais_detectado
     )
+
+
+def _adjuntar_conteos_operaciones(
+    db: Session,
+    clientes: list[Cliente]
+):
+    ids = [
+        cliente.id
+        for cliente in clientes
+        if cliente.id is not None
+    ]
+
+    if not ids:
+        return clientes
+
+    rows = (
+        db.query(
+            Pedido.cliente_id,
+            Pedido.servicio,
+            func.count(Pedido.id)
+        )
+        .filter(
+            Pedido.cliente_id.in_(
+                ids
+            )
+        )
+        .group_by(
+            Pedido.cliente_id,
+            Pedido.servicio
+        )
+        .all()
+    )
+
+    conteos: dict[int, dict[str, int]] = {
+        cliente_id: {}
+        for cliente_id in ids
+    }
+
+    for cliente_id, servicio, total in rows:
+        if cliente_id is None:
+            continue
+        conteos.setdefault(
+            cliente_id,
+            {}
+        )[servicio or "otros"] = int(
+            total or 0
+        )
+
+    for cliente in clientes:
+        por_servicio = conteos.get(
+            cliente.id,
+            {}
+        )
+        cliente.operaciones_por_servicio = por_servicio
+        cliente.total_operaciones = sum(
+            por_servicio.values()
+        )
+
+    return clientes
 
 
 def obtener_o_crear_cliente_por_telefono(
@@ -146,7 +206,7 @@ def listar_clientes(
         0
     )
 
-    return (
+    clientes = (
         query
         .order_by(
             Cliente.created_at.desc(),
@@ -159,6 +219,11 @@ def listar_clientes(
             limit_seguro
         )
         .all()
+    )
+
+    return _adjuntar_conteos_operaciones(
+        db,
+        clientes
     )
 
 
@@ -182,7 +247,12 @@ def obtener_cliente(
             "Cliente no encontrado"
         )
 
-    return cliente
+    return _adjuntar_conteos_operaciones(
+        db,
+        [
+            cliente
+        ]
+    )[0]
 
 
 def buscar_cliente_por_telefono(
@@ -211,7 +281,12 @@ def buscar_cliente_por_telefono(
             "Cliente no encontrado"
         )
 
-    return cliente
+    return _adjuntar_conteos_operaciones(
+        db,
+        [
+            cliente
+        ]
+    )[0]
 
 
 def crear_cliente(
@@ -287,7 +362,12 @@ def crear_cliente(
         cliente
     )
 
-    return cliente
+    return _adjuntar_conteos_operaciones(
+        db,
+        [
+            cliente
+        ]
+    )[0]
 
 
 def actualizar_cliente(
@@ -385,7 +465,12 @@ def actualizar_cliente(
         cliente
     )
 
-    return cliente
+    return _adjuntar_conteos_operaciones(
+        db,
+        [
+            cliente
+        ]
+    )[0]
 
 
 def eliminar_cliente(
@@ -404,7 +489,12 @@ def eliminar_cliente(
         cliente
     )
 
-    return cliente
+    return _adjuntar_conteos_operaciones(
+        db,
+        [
+            cliente
+        ]
+    )[0]
 
 
 def listar_contactos_cliente(

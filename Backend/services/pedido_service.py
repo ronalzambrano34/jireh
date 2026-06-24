@@ -508,8 +508,8 @@ def listar_historial_dict(
             PedidoHistorial.pedido_id == pedido_id
         )
         .order_by(
-            PedidoHistorial.created_at.desc(),
-            PedidoHistorial.id.desc()
+            PedidoHistorial.created_at.asc(),
+            PedidoHistorial.id.asc()
         )
         .limit(
             limit
@@ -888,6 +888,35 @@ def pedido_dict(
                 DEFAULT_FINALIZACION_SIN_COMPROBANTE,
                 variables_finalizacion
             )
+
+        mensaje_operacion = generar_mensaje_operacion(
+            db=db,
+            pedido=pedido
+        )
+        mensaje_cliente = generar_notificacion_estado_cliente(
+            db,
+            pedido
+        )
+        mensaje_grupo_pedido = generar_notificacion_grupo_pedido(
+            db=db,
+            mensaje_operacion=mensaje_operacion["mensaje"]
+        )
+        mensaje_finalizado = generar_notificacion_grupo_finalizado(
+            db,
+            pedido
+        )
+        data.update(
+            {
+                "mensaje_operacion": mensaje_operacion["mensaje"],
+                "whatsapp_url": mensaje_operacion["whatsapp_url"],
+                "mensaje_cliente_estado": mensaje_cliente["mensaje"],
+                "whatsapp_estado_url": mensaje_cliente["whatsapp_url"],
+                "mensaje_grupo_pedidos": mensaje_grupo_pedido["mensaje"],
+                "whatsapp_grupo_pedidos_url": mensaje_grupo_pedido["whatsapp_url"],
+                "mensaje_grupo_finalizado": mensaje_finalizado["mensaje"],
+                "whatsapp_grupo_finalizado_url": mensaje_finalizado["whatsapp_url"],
+            }
+        )
 
     data.update(
         _lock_dict(

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 
 
 class ClienteBase(
@@ -76,6 +77,12 @@ class ClienteResponse(
     perfil_completo: bool
 
     activo: bool
+
+    total_operaciones: int = 0
+
+    operaciones_por_servicio: dict[str, int] = Field(
+        default_factory=dict
+    )
 
 
     created_at: datetime | None = None

@@ -289,6 +289,8 @@ export type Cliente = {
   codigo_referido?: string | null;
   perfil_completo: boolean;
   activo: boolean;
+  total_operaciones?: number;
+  operaciones_por_servicio?: Record<string, number>;
 };
 
 export type ReporteResumen = {

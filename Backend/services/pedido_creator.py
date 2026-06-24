@@ -3,6 +3,7 @@ from urllib.parse import quote
 from sqlalchemy.orm import Session
 
 from Backend.models.pedido import Pedido
+from Backend.models.pedido_historial import PedidoHistorial
 from Backend.models.pedido_transferencia import (
     PedidoTransferencia
 )
@@ -1091,6 +1092,16 @@ def crear_pedido(
         cliente,
         data,
         contacto
+    )
+
+    db.add(
+        PedidoHistorial(
+            pedido_id=pedido.id,
+            estado_anterior=None,
+            estado_nuevo=pedido.estado,
+            usuario=operador.nombre,
+            comentario="Pedido creado"
+        )
     )
 
     db.commit()
