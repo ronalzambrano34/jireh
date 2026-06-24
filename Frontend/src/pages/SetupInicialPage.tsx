@@ -11,7 +11,6 @@ import {
   listarProvinciasServicio,
   obtenerEstadoConfiguracionInicial,
 } from '../api/client';
-import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingToast } from '../components/FloatingToast';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
@@ -240,7 +239,7 @@ export function SetupInicialPage({
 
         <div className="setup-card">
           {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
-          {notice && <DismissibleNotice className="notice" onDismiss={() => setNotice(null)}>{notice}</DismissibleNotice>}
+          {notice && <FloatingToast kind="success" onDismiss={() => setNotice(null)}>{notice}</FloatingToast>}
 
           {paso === 0 && (
             <>

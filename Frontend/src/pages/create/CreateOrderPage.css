@@ -130,6 +130,18 @@
   font-weight: 800;
 }
 
+.payment-proof-container {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-muted);
+}
+
+.payment-proof-container .payment-proof-field {
+  margin-top: 0;
+}
+
 .document-upload-field small {
   margin-top: 3px;
   color: var(--ui-text-muted);
@@ -556,6 +568,10 @@
   grid-column: 1 / -1;
   display: grid;
   gap: 8px;
+}
+
+.lookup-suggestions-above-phone {
+  width: 100%;
 }
 
 .lookup-suggestions button {
@@ -1292,6 +1308,10 @@
 .payment-proof-field {
   gap: 6px;
   margin-top: 10px;
+}
+
+.payment-proof-container .payment-proof-field {
+  margin-top: 0;
 }
 
 .document-upload-field {

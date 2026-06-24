@@ -5,40 +5,20 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 //todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, Métodos de pago, Cuenta de pago,
 
 
-//todo en la vista perfil, donde aparece el Código que se pueda copiar con solo presionar el componente , y el mismo flujo para el  componente telefono
+//todo 
 
-en la vista perfil, añadir un botón icono para copiar el código de referido.
-//todo en los permisos, añadir reportes
+//todo
 
-//todo en nuevo pedido, los clientes encontrados, se mostrarún encima de número de teléfono del cliente.
+//todo 
 
-en nuevo pedido, comprobante de pago, encierra lo dentro de un contenedor externo.
 
-cuando se crea una operación y aparece la vista con la info para realizar el pago, el componente Pix y el componente titular, tienen el texto y el icono de copiar, fuera de estilo
 
-añadir el campo observaciones para nuevo pedido transferencia 
 
-el botón BUSCAR, que tenga la X para borrar.
 
-en los permisos, añadir reportes
 
-en la vista detalle pedidos, que el acordeón "mensaje operativo" sea también un botón icono reenviar en otro lugar de la vista detalle pedido, que abra un modal con esa info.
 
-en la vista detalles pedidosl, la X del cartel informativo "Has tomado este pedido...." no est fijo a la derecha del cartel, comprueba ese detalle en los dems carteles.
 
-el cartel Succes, que sea tipo toast
 
-en la vista pedidos, el filtro todos los pedidos es el filtro por defecto, no mis pedidos.
-
-hay un problema en la lógica con las notificaciones. cuando se crea una orden y se est en la ventana de confirmar pedido, ya aparece en notificaciones y los dems operarios pueden interactuar con el pedido mientras que el que lo creó, aún est confirmando el pedido.
-
-también añade a las notificaciones, que si un pedido ya est tomado por otro operador, ya no puedas acceder a él. que en vez de mandarte al detalles del pedido, te mandé a la vista pedidos.
-
-al cerrar o liberar o cancelar o etcétera; un pedido, que se elimine el filtro que se queda activo en la pgina pedidos.
-
-en la vista pedidos. los componentes del Hero que muestran "Mis pedidos", "En proceso", "Completados" que sean botones que activen el filtro correspondiente a ese botón (y lógicamente borren el filtro anterior)
-
-en la vista pedidos, cambiar el contador de tiempos ("hace instantes") por los minutos. Después de 10 minutos que el texto se ponga en rojo, ponga q est atrasado y aparezca en Notificaciones.
 
 
 

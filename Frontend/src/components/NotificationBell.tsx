@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Bell, CheckCheck, ClipboardList, Send, Trash2 } from 'lucide-react';
 import '../styles/notification-bell.css';
 
-export type AppNotificationKind = 'nuevo_pedido' | 'pedido_transferido';
+export type AppNotificationKind = 'nuevo_pedido' | 'pedido_transferido' | 'pedido_atrasado';
 
 export type AppNotification = {
   id: string;
@@ -23,6 +23,7 @@ type NotificationBellProps = {
 };
 
 function notificationIcon(kind: AppNotificationKind) {
+  if (kind === 'pedido_atrasado') return <Bell size={17} />;
   return kind === 'pedido_transferido' ? <Send size={17} /> : <ClipboardList size={17} />;
 }
 

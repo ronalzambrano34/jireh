@@ -181,6 +181,7 @@ export type CrearTransferenciaPayload = {
   nombre_cliente?: string;
   numero_telefono_cliente?: string;
   bonificacion_manual?: number;
+  observaciones?: string;
 };
 
 

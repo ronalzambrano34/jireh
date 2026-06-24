@@ -382,6 +382,7 @@ export function PedidoDetallePanel({
   const [finalizarSinComprobante, setFinalizarSinComprobante] = useState(false);
   const [motivoSinComprobante, setMotivoSinComprobante] = useState('');
   const [mensajeAbierto, setMensajeAbierto] = useState(false);
+  const [mensajeOperativoModalAbierto, setMensajeOperativoModalAbierto] = useState(false);
   const [evidenciasAbiertas, setEvidenciasAbiertas] = useState(false);
   const [historialAbierto, setHistorialAbierto] = useState(false);
   const [ownLockNoticeHidden, setOwnLockNoticeHidden] = useState(false);
@@ -995,6 +996,20 @@ export function PedidoDetallePanel({
             onRelease={canManage ? () => void liberarPedidoActual() : () => undefined}
           />
 
+          {pedido.mensaje_operacion && (
+            <div className="order-detail-icon-actions" aria-label="Acciones rapidas del pedido">
+              <button
+                className="order-detail-icon-action"
+                type="button"
+                onClick={() => setMensajeOperativoModalAbierto(true)}
+                title="Reenviar mensaje operativo"
+                aria-label="Reenviar mensaje operativo"
+              >
+                <Send size={17} />
+              </button>
+            </div>
+          )}
+
           {copyFeedback && (
             <div className="copy-toast" role="status">
               <span>{copyFeedback}</span>
@@ -1005,8 +1020,10 @@ export function PedidoDetallePanel({
           )}
           {bloqueoPropio && !ownLockNoticeHidden && (
             <div className="notice warning own-lock-notice compact-notice dismissible-notice">
-              <Lock size={17} />
-              <span>Has tomado este pedido. Seguirá bloqueado para los demás hasta que lo liberes o lo completes.</span>
+              <span className="dismissible-notice-content">
+                <Lock size={17} />
+                <span>Has tomado este pedido. Seguirá bloqueado para los demás hasta que lo liberes o lo completes.</span>
+              </span>
               <button type="button" onClick={() => setOwnLockNoticeHidden(true)} title="Cerrar notificacion" aria-label="Cerrar notificacion">
                 <X size={15} />
               </button>
@@ -1368,6 +1385,44 @@ export function PedidoDetallePanel({
                 >
                   Enviar despues
                 </button>
+              </div>
+            </Modal>
+          )}
+
+          {pedido.mensaje_operacion && mensajeOperativoModalAbierto && (
+            <Modal
+              title="Mensaje operativo"
+              subtitle={pedido.codigo_operacion}
+              onClose={() => setMensajeOperativoModalAbierto(false)}
+            >
+              <div className="whatsapp-message-preview operational-message-modal">
+                <label htmlFor="mensaje-operativo-reenvio">Mensaje operativo</label>
+                <textarea
+                  id="mensaje-operativo-reenvio"
+                  value={pedido.mensaje_operacion}
+                  rows={8}
+                  readOnly
+                />
+              </div>
+              <div className="message-actions payment-modal-actions">
+                <button className="ghost-button" type="button" onClick={() => copiarCampo(pedido.mensaje_operacion ?? '', 'Mensaje')}>
+                  <Copy size={16} /> Copiar mensaje
+                </button>
+                {(pedido.whatsapp_grupo_pedidos_url || pedido.whatsapp_url) && (
+                  <button className="primary-button" type="button" onClick={() => { setMensajeOperativoModalAbierto(false); abrirReenvioGrupoWhatsApp(); }}>
+                    <MessageCircle size={16} /> Reenviar WhatsApp
+                  </button>
+                )}
+                {pedido.whatsapp_estado_url && pedido.mensaje_cliente_estado && (
+                  <button className="ghost-button" type="button" onClick={() => { setMensajeOperativoModalAbierto(false); abrirReenvioClienteWhatsApp(); }}>
+                    <MessageCircle size={16} /> Reenviar al cliente
+                  </button>
+                )}
+                {pedido.estado === 'completado' && pedido.whatsapp_grupo_finalizado_url && (
+                  <button className="ghost-button" type="button" onClick={() => { setMensajeOperativoModalAbierto(false); abrirReenvioFinalizadoWhatsApp(); }}>
+                    <MessageCircle size={16} /> Reenviar finalizado
+                  </button>
+                )}
               </div>
             </Modal>
           )}

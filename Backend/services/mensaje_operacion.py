@@ -47,7 +47,8 @@ DEFAULT_TEMPLATES = {
         "*Monto CUP:* {{monto_resultado}}\n"
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}\n"
-        "*Cuenta de pago:* {{cuenta_pago}}"
+        "*Cuenta de pago:* {{cuenta_pago}}\n"
+        "*Observaciones:* {{observaciones}}"
     ),
     "template_efectivo": (
         "*Efectivo*\n"

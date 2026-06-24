@@ -38,6 +38,8 @@ export function ProfilePage(props: {
   onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
   onSavePassword: (event: FormEvent<HTMLFormElement>) => void;
   onCopyCode: () => void;
+  onCopyPhone: () => void;
+  onCopyReferralCode: () => void;
   onLogout: () => void;
 }) {
   const option = (section: Exclude<ProfileSection, null>) => props.section === section ? 'profile-option active' : 'profile-option';
@@ -58,10 +60,18 @@ export function ProfilePage(props: {
             <h2>{props.operador.nombre}</h2>
             <p>Administra tus datos, seguridad, apariencia y accesos personales.</p>
             <div className="profile-hero-meta">
-              <span><small>Telefono</small><strong>{props.operador.telefono}</strong></span>
+              <button className="profile-copy-chip" type="button" onClick={props.onCopyPhone} title="Copiar telefono" aria-label="Copiar telefono">
+                <span><small>Telefono</small><strong>{props.operador.telefono}</strong></span>
+                <Copy size={16} />
+              </button>
               <span><small>Rol</small><strong>{props.operador.rol}</strong></span>
-              <span className="profile-code-chip"><small>Codigo</small><strong>{props.operador.codigo_operador}</strong></span>
-              <button className="profile-copy-button" onClick={props.onCopyCode} title="Copiar codigo" aria-label="Copiar codigo"><Copy size={17} /></button>
+              <button className="profile-copy-chip profile-code-chip" type="button" onClick={props.onCopyCode} title="Copiar codigo" aria-label="Copiar codigo">
+                <span><small>Codigo</small><strong>{props.operador.codigo_operador}</strong></span>
+                <Copy size={16} />
+              </button>
+              <button className="profile-referral-copy-button" type="button" onClick={props.onCopyReferralCode} title="Copiar codigo de referido" aria-label="Copiar codigo de referido">
+                <Copy size={17} />
+              </button>
             </div>
           </div>
           <div className="profile-hero-mark" aria-hidden="true"><UserCircle size={104} strokeWidth={1.05} /></div>

@@ -46,21 +46,23 @@ export function CreateOrderFormShell({
       {error && (
         <FloatingToast onDismiss={onDismissError}>{error}</FloatingToast>
       )}
-      <label className="payment-proof-field">
-        <span>Comprobante de pago</span>
-        <span className="document-upload-field">
-          <span className="document-preview">
-            {comprobantePreview
-              ? <img src={comprobantePreview} alt="Vista previa del comprobante" />
-              : <ImagePlus size={24} />}
+      <div className="payment-proof-container">
+        <label className="payment-proof-field">
+          <span>Comprobante de pago</span>
+          <span className="document-upload-field">
+            <span className="document-preview">
+              {comprobantePreview
+                ? <img src={comprobantePreview} alt="Vista previa del comprobante" />
+                : <ImagePlus size={24} />}
+            </span>
+            <span>
+              <strong>{comprobante?.name ?? 'Seleccionar comprobante'}</strong>
+              <small>Opcional. Si lo adjuntas, el pago quedara confirmado al crear el pedido.</small>
+            </span>
+            <input type="file" accept="image/*,.pdf" onChange={onComprobanteChange} />
           </span>
-          <span>
-            <strong>{comprobante?.name ?? 'Seleccionar comprobante'}</strong>
-            <small>Opcional. Si lo adjuntas, el pago quedara confirmado al crear el pedido.</small>
-          </span>
-          <input type="file" accept="image/*,.pdf" onChange={onComprobanteChange} />
-        </span>
-      </label>
+        </label>
+      </div>
       {loading && <PageLoader label={loadingLabel} inline />}
       <button className="primary-button create-submit-button" type="submit" disabled={loading}>
         {loading ? 'Creando...' : submitLabel}

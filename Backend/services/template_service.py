@@ -179,7 +179,7 @@ DEFAULT_NOTIFICATION_TEMPLATES = {
 }
 
 DEFAULT_OPERATION_TEMPLATES = {
-    "template_transferencia": "*Transferencia*\n*Operador:* {operador}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Monto CUP:* {monto_resultado}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}",
+    "template_transferencia": "*Transferencia*\n*Operador:* {operador}\n*Tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Monto CUP:* {monto_resultado}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}\n*Observaciones:* {observaciones}",
     "template_efectivo": "*Efectivo*\n*Operador:* {operador}\n*Telefono destinatario:* {telefono_destinatario}\n*Foto documento:* {documento_identidad_url}\n*Monto CUP:* {monto_resultado}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}",
     "template_saldo": "*Saldo Movil*\n*Operador:* {operador}\n*Telefono destinatario:* {telefono_destinatario}\n*Saldo:* {saldo_cup} CUP\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}",
     "template_divisa": "*Divisa*\n*Operador:* {operador}\n*Tipo de tarjeta:* {tipo_tarjeta}\n*Numero de tarjeta:* {numero_tarjeta}\n*Telefono destinatario:* {telefono_destinatario}\n*Monto divisa:* {monto_divisa}\n*Pago:* {monto_pago} {moneda_pago}\n*Metodo de pago:* {metodo_pago}\n*Cuenta de pago:* {cuenta_pago}\n*Tasa efectiva:* {tasa_final}",

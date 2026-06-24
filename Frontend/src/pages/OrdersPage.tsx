@@ -1,4 +1,4 @@
-import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, ListFilter, RefreshCw, Search, UserCircle } from 'lucide-react';
+import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, ListFilter, RefreshCw, Search, UserCircle, X } from 'lucide-react';
 import { useState } from 'react';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
@@ -66,11 +66,23 @@ function tiempoRelativo(value: string | undefined, now: number) {
   if (!value) return null;
   const diff = Math.max(0, now - new Date(value).getTime());
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'hace instantes';
-  if (minutes < 60) return `hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `hace ${hours} h`;
-  return `hace ${Math.floor(hours / 24)} d`;
+  return `${minutes} min`;
+}
+
+function minutosPedido(value: string | undefined, now: number) {
+  if (!value) return 0;
+  return Math.max(0, Math.floor((now - new Date(value).getTime()) / 60000));
+}
+
+function pedidoAtrasado(pedido: PedidoResumen, now: number) {
+  if (pedido.estado === 'completado' || pedido.estado === 'cancelado') return false;
+  return minutosPedido(pedido.created_at, now) > 10;
+}
+
+function etiquetaTiempoPedido(pedido: PedidoResumen, now: number) {
+  const tiempo = tiempoRelativo(pedido.created_at, now);
+  if (!tiempo) return null;
+  return pedidoAtrasado(pedido, now) ? `Atrasado ${tiempo}` : tiempo;
 }
 
 export function OrdersPage(props: {
@@ -108,14 +120,21 @@ export function OrdersPage(props: {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilters = Number(Boolean(props.estado))
     + Number(Boolean(props.servicio))
-    + Number(props.scope !== 'mis')
+    + Number(props.canViewAll ? props.scope !== 'todas' : props.scope !== 'mis')
     + Number(props.period !== 'hoy');
 
   function clearFilters() {
     props.onEstado('');
     props.onServicio('');
-    props.onScope('mis');
+    props.onScope(props.canViewAll ? 'todas' : 'mis');
     props.onPeriod('hoy');
+  }
+
+  function applyHeroFilter(scope: OrdersScope, estado: string) {
+    props.onScope(scope);
+    props.onEstado(estado);
+    props.onServicio('');
+    props.onBusqueda('');
   }
 
   const orderCardMeta = (pedido: PedidoResumen) => (
@@ -137,9 +156,9 @@ export function OrdersPage(props: {
           </div>
           <button className="admin-refresh-button orders-refresh-button orders-hero-refresh-button" type="button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
           <div className="orders-page-metrics" aria-label="Resumen de pedidos">
-            <span><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></span>
-            <span><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></span>
-            <span><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></span>
+            <button type="button" className={props.scope === 'mis' && !props.estado && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter('mis', '')}><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></button>
+            <button type="button" className={props.estado === 'en_proceso' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'en_proceso')}><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></button>
+            <button type="button" className={props.estado === 'completado' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'completado')}><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></button>
           </div>
         </header>
 
@@ -147,7 +166,15 @@ export function OrdersPage(props: {
           <div className="filters orders-toolbar-row">
             <div className="orders-top-actions">
               <button type="button" className={activeFilters ? 'view-toggle single-view-toggle orders-filter-toggle active' : 'view-toggle single-view-toggle orders-filter-toggle'} onClick={() => setFiltersOpen(true)} title="Filtrar pedidos" aria-label="Filtrar pedidos"><ListFilter size={18} />{activeFilters > 0 && <span>{activeFilters}</span>}</button>
-              <label className="search-box orders-search-box"><Search size={18} /><input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" aria-label="Buscar pedidos" /></label>
+              <label className="search-box orders-search-box">
+                <Search size={18} />
+                <input value={props.busqueda} onChange={(event) => props.onBusqueda(event.target.value)} placeholder="Buscar codigo, tarjeta o telefono" aria-label="Buscar pedidos" />
+                {props.busqueda && (
+                  <button className="orders-search-clear" type="button" onClick={() => props.onBusqueda('')} title="Borrar busqueda" aria-label="Borrar busqueda">
+                    <X size={16} />
+                  </button>
+                )}
+              </label>
               <button type="button" className="view-toggle single-view-toggle" onClick={() => props.onView(props.view === 'lista' ? 'kanban' : 'lista')} title={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'} aria-label={props.view === 'lista' ? 'Cambiar a cuadricula' : 'Cambiar a lista'}>{props.view === 'lista' ? <LayoutGrid size={18} /> : <LayoutList size={18} />}</button>
             </div>
           </div>
@@ -193,7 +220,7 @@ export function OrdersPage(props: {
         {props.view === 'lista' ? (
           <div className="chat-order-list">
             {props.lista.map((pedido) => <button key={pedido.codigo_operacion} className={props.classNameFor(pedido, 'chat-order-card')} onClick={() => props.onSelect(pedido.codigo_operacion)} disabled={props.blockedByOther(pedido)}>
-              <span className="chat-card-main"><span className="pedido-card-head"><strong>{pedido.servicio}</strong><small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, props.clock) ? `- ${tiempoRelativo(pedido.created_at, props.clock)}` : ''}</small></span><span className="pedido-card-fields compact">{resumen(pedido).map((field) => <span className="pedido-card-field" key={field.label}><small>{field.label}</small><strong>{field.value}</strong></span>)}</span></span>
+              <span className="chat-card-main"><span className="pedido-card-head"><strong>{pedido.servicio}</strong><small>{pedido.codigo_operacion} {etiquetaTiempoPedido(pedido, props.clock) ? <span className={pedidoAtrasado(pedido, props.clock) ? 'order-delay-chip delayed inline' : 'order-delay-chip inline'}>{etiquetaTiempoPedido(pedido, props.clock)}</span> : null}</small></span><span className="pedido-card-fields compact">{resumen(pedido).map((field) => <span className="pedido-card-field" key={field.label}><small>{field.label}</small><strong>{field.value}</strong></span>)}</span></span>
               <span className="chat-card-side"><span className={`status ${pedido.estado}`}>{estadoLabel(pedido.estado)}</span>{orderCardMeta(pedido)}<strong>{pedido.monto_pago} {pedido.moneda_pago}</strong><small>Recibe {pedido.monto_resultado} {monedaEntrega(pedido)}</small></span>
             </button>)}
           </div>
@@ -204,7 +231,7 @@ export function OrdersPage(props: {
               return <section className={colapsado ? 'pedido-column collapsed' : 'pedido-column'} key={grupo.value} style={{ order: grupo.orden }}>
                 <header className="pedido-column-header"><button className="pedido-column-toggle" type="button" onClick={() => props.onToggleGroup(grupo.value)} aria-expanded={!colapsado}><ChevronDown className={colapsado ? 'collapsed' : ''} size={18} /><span className={`status ${grupo.value}`}>{grupo.label}</span></button><strong>{grupo.pedidos.length}</strong></header>
                 {!colapsado && <div className="pedido-list">{grupo.pedidos.map((pedido) => <button key={pedido.codigo_operacion} className={props.classNameFor(pedido, 'pedido-row')} onClick={() => props.onSelect(pedido.codigo_operacion)} disabled={props.blockedByOther(pedido)}>
-                  <span className="kanban-card-top"><span className="pedido-card-head"><strong>{pedido.servicio}</strong><small>{pedido.codigo_operacion} {tiempoRelativo(pedido.created_at, props.clock) ? `- ${tiempoRelativo(pedido.created_at, props.clock)}` : ''}</small>{orderCardMeta(pedido)}</span><strong>{pedido.monto_pago} {pedido.moneda_pago}</strong></span>
+                  <span className="kanban-card-top"><span className="pedido-card-head"><strong>{pedido.servicio}</strong><small>{pedido.codigo_operacion} {etiquetaTiempoPedido(pedido, props.clock) ? <span className={pedidoAtrasado(pedido, props.clock) ? 'order-delay-chip delayed inline' : 'order-delay-chip inline'}>{etiquetaTiempoPedido(pedido, props.clock)}</span> : null}</small>{orderCardMeta(pedido)}</span><strong>{pedido.monto_pago} {pedido.moneda_pago}</strong></span>
                   <span className="pedido-card-fields compact">{resumen(pedido).map((field) => <span className="pedido-card-field" key={field.label}><small>{field.label}</small><strong>{field.value}</strong></span>)}</span>
                   <span className="pedido-card-pay compact-pay"><small>Recibe {pedido.monto_resultado} {monedaEntrega(pedido)}</small><small>Tasa {tasaAplicada(pedido)}</small></span>
                 </button>)}</div>}

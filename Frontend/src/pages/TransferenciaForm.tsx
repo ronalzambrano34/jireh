@@ -40,6 +40,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     nombre_cliente: '',
     numero_telefono_cliente: '',
     bonificacion_manual: '',
+    observaciones: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -177,6 +178,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
         numero_telefono_cliente: form.numero_telefono_cliente || undefined,
         bonificacion_manual: Number(form.bonificacion_manual) || undefined,
+        observaciones: form.observaciones.trim() || undefined,
       });
       let comprobanteCargado = false;
       let advertencia: string | undefined;
@@ -250,6 +252,10 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
             <label>
               Telefono destinatario Cuba
               <PhoneInput value={form.telefono_destinatario} onChange={(value) => update('telefono_destinatario', value)} defaultCode="+53" codeLocked pasteTitle="Pegar telefono destinatario" />
+            </label>
+            <label className="wide">
+              Observaciones
+              <textarea value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} rows={3} placeholder="Detalles adicionales de la transferencia" />
             </label>
           </div>
           <ContactosRecientes clienteId={form.cliente_id} onSelect={aplicarContacto} onError={setError} />

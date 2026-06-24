@@ -33,6 +33,7 @@ PERMISOS_POR_ROL = {
         "operadores:crear",
         "operadores:editar",
         "operadores:desactivar",
+        "reportes:ver",
         "empresa:control_total",
         "pedidos:gestionar",
         "clientes:gestionar",

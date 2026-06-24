@@ -112,6 +112,19 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError, 
         <strong>Buscar o registrar cliente</strong>
         <small>{buscando ? `Buscando por ${campoBusqueda}...` : clienteId ? resumen : 'Busca por nombre o telefono; si no existe, se registra al crear el pedido'}</small>
       </div>
+      {resultados.length > 0 && (
+        <div className="lookup-suggestions lookup-suggestions-above-phone" role="listbox" aria-label="Clientes encontrados">
+          {resultados.map((cliente) => (
+            <button type="button" key={cliente.id} onClick={() => seleccionar(cliente)} role="option">
+              <span className="lookup-suggestion-copy">
+                <strong>{cliente.nombre}</strong>
+                <span>{clienteResumen(cliente)}</span>
+              </span>
+              <small>Usar cliente</small>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="client-lookup">
         <label>
           Telefono / WhatsApp
@@ -150,19 +163,6 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError, 
             />
           </span>
         </label>
-        {resultados.length > 0 && (
-          <div className="lookup-suggestions" role="listbox" aria-label="Clientes encontrados">
-            {resultados.map((cliente) => (
-              <button type="button" key={cliente.id} onClick={() => seleccionar(cliente)} role="option">
-                <span className="lookup-suggestion-copy">
-                  <strong>{cliente.nombre}</strong>
-                  <span>{clienteResumen(cliente)}</span>
-                </span>
-                <small>Usar cliente</small>
-              </button>
-            ))}
-          </div>
-        )}
         {clienteId && !clienteEncontradoOculto && (
           <div className="lookup-hit lookup-client-found dismissible-notice">
             <CheckCircle2 size={18} />

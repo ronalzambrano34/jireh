@@ -4,7 +4,6 @@ import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
 import { PhoneInput } from '../components/PhoneInput';
-import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
@@ -95,6 +94,7 @@ const permisosOperador = [
   { value: 'operadores:crear', label: 'Crear operadores', group: 'Operadores' },
   { value: 'operadores:editar', label: 'Editar operadores', group: 'Operadores' },
   { value: 'operadores:desactivar', label: 'Desactivar operadores', group: 'Operadores' },
+  { value: 'reportes:ver', label: 'Ver reportes', group: 'Reportes' },
   { value: 'configuracion:gestionar', label: 'Gestionar configuracion', group: 'Configuracion' },
   { value: 'empresa:control_total', label: 'Control total', group: 'Configuracion' },
 ];
@@ -102,7 +102,7 @@ const permisosOperador = [
 const permisosPorRol: Record<string, string[]> = {
   consultor: ['pedidos:ver', 'clientes:ver', 'contactos:ver'],
   operador: ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar', 'clientes:ver', 'clientes:crear', 'clientes:gestionar', 'contactos:ver', 'contactos:gestionar'],
-  admin: ['pedidos:ver', 'clientes:ver', 'contactos:ver', 'operadores:ver', 'operadores:crear', 'operadores:editar', 'operadores:desactivar', 'empresa:control_total', 'pedidos:gestionar', 'clientes:gestionar', 'configuracion:gestionar'],
+  admin: ['pedidos:ver', 'clientes:ver', 'contactos:ver', 'operadores:ver', 'operadores:crear', 'operadores:editar', 'operadores:desactivar', 'reportes:ver', 'empresa:control_total', 'pedidos:gestionar', 'clientes:gestionar', 'configuracion:gestionar'],
 };
 
 type OperadorFormState = {
@@ -287,7 +287,7 @@ const templateVariablesComunes = [
 ];
 
 const templateVariablesPorClave: Record<string, string[]> = {
-  template_transferencia: ['numero_tarjeta', 'telefono_destinatario'],
+  template_transferencia: ['numero_tarjeta', 'telefono_destinatario', 'observaciones'],
   template_efectivo: ['telefono_destinatario', 'documento_identidad_url', 'punto_recogida'],
   template_saldo: ['telefono_destinatario', 'saldo_cup'],
   template_divisa: ['tipo_tarjeta', 'numero_tarjeta', 'telefono_destinatario', 'monto_divisa'],
@@ -1401,7 +1401,7 @@ export function AdminCatalogosPage() {
       />
 
       {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
-      {notice && <DismissibleNotice className="notice">{notice}</DismissibleNotice>}
+      {notice && <FloatingToast kind="success" onDismiss={() => setNotice(null)}>{notice}</FloatingToast>}
       {loading && temaActivo && !temasCargados.has(temaActivo) && (
         <PageLoader label={`Cargando ${tituloTema(temaActivo).toLowerCase()}`} inline />
       )}

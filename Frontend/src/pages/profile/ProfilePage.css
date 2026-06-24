@@ -989,7 +989,8 @@
   background: transparent;
 }
 
-.profile-page .profile-hero-meta > span {
+.profile-page .profile-hero-meta > span,
+.profile-page .profile-copy-chip {
   min-height: 48px;
   display: grid;
   align-content: center;
@@ -999,6 +1000,41 @@
   border-radius: 13px;
   background: color-mix(in srgb, var(--ui-surface-raised) 88%, transparent);
   backdrop-filter: blur(10px);
+}
+
+.profile-page .profile-copy-chip {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.profile-page .profile-copy-chip:hover {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
+}
+
+.profile-page .profile-copy-chip svg {
+  color: var(--profile-accent);
+}
+
+.profile-page .profile-referral-copy-button {
+  width: 48px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--ui-surface-raised) 88%, transparent);
+  color: var(--profile-accent);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.profile-page .profile-referral-copy-button:hover {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
 }
 
 .profile-page .profile-hero-meta small {
@@ -1015,24 +1051,7 @@
 }
 
 .profile-page .profile-code-chip {
-  border-radius: 13px 4px 4px 13px;
-}
-
-.profile-page .profile-copy-button {
-  width: 46px;
-  min-height: 48px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--ui-border);
-  border-radius: 4px 13px 13px 4px;
-  background: var(--ui-surface-raised);
-  color: var(--profile-accent);
-  cursor: pointer;
-}
-
-.profile-page .profile-copy-button:hover {
-  border-color: var(--ui-border-strong);
-  background: var(--ui-surface-hover);
+  border-radius: 13px;
 }
 
 .profile-page .profile-hero-mark {
@@ -1276,11 +1295,7 @@
     margin-top: 14px;
   }
 
-  .profile-page .profile-code-chip {
-    border-radius: 13px 4px 4px 13px;
-  }
-
-  .profile-page .profile-copy-button {
+  .profile-page .profile-copy-chip {
     width: 100%;
   }
 

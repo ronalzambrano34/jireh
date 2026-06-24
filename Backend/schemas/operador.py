@@ -22,6 +22,7 @@ PERMISOS_OPERADOR = (
     "operadores:crear",
     "operadores:editar",
     "operadores:desactivar",
+    "reportes:ver",
     "configuracion:gestionar",
     "empresa:control_total"
 )

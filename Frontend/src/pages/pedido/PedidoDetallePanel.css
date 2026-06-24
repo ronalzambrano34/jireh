@@ -428,6 +428,31 @@
   justify-self: start;
 }
 
+.order-detail-icon-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.order-detail-icon-action {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface-raised);
+  color: var(--ui-primary-strong);
+  cursor: pointer;
+}
+
+.order-detail-icon-action:hover,
+.order-detail-icon-action:focus-visible {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
+  outline: 0;
+}
+
 .liquidation-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr);

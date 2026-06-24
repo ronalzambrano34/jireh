@@ -45,6 +45,24 @@
   margin-left: auto;
 }
 
+.orders-search-clear {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ui-text-muted);
+  cursor: pointer;
+}
+
+.orders-search-clear:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+}
+
 .orders-filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
@@ -1955,7 +1973,7 @@
   gap: 9px;
 }
 
-.orders-page-metrics > span {
+.orders-page-metrics > button {
   min-width: min(100%, 118px);
   max-width: 180px;
   min-height: 82px;
@@ -1968,8 +1986,17 @@
   border: 1px solid var(--ui-border);
   border-radius: 14px;
   background: color-mix(in srgb, var(--ui-surface-raised) 88%, transparent);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--ui-shadow) 28%, transparent);
   backdrop-filter: blur(10px);
+}
+
+.orders-page-metrics > button:hover,
+.orders-page-metrics > button.active {
+  border-color: color-mix(in srgb, var(--orders-accent) 46%, var(--ui-border));
+  background: color-mix(in srgb, var(--orders-accent) 10%, var(--ui-surface-raised));
 }
 
 .orders-page-metrics svg {
@@ -2226,6 +2253,10 @@
 
 .orders-content-grid .pedido-card-head > small {
   margin-top: 3px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
   color: var(--ui-text-muted);
   font-size: 11px;
   font-weight: 750;
@@ -2308,7 +2339,7 @@
     overflow: visible;
   }
 
-  .orders-page-metrics > span {
+  .orders-page-metrics > button {
     padding: 10px;
   }
 

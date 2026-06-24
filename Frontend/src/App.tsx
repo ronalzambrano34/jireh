@@ -52,6 +52,7 @@ const estadosBandeja = estados.filter((item) => item.value);
 const PULL_REFRESH_THRESHOLD = 64;
 const EXIT_BACK_WINDOW_MS = 2000;
 const NOTIFICATION_LIMIT = 50;
+const ORDER_DELAY_MINUTES = 10;
 
 type WebAudioWindow = Window & typeof globalThis & {
   webkitAudioContext?: typeof AudioContext;
@@ -76,6 +77,14 @@ function intervaloRefrescoPedidos() {
 
 function estadoFaseUno(value: string) {
   return value === 'en_operacion' ? 'pago_confirmado' : value;
+}
+
+function estadoCoincideFiltro(value: string, filtro: string) {
+  const estadoVisible = estadoFaseUno(value);
+  if (filtro === 'en_proceso') {
+    return estadoVisible === 'pendiente_pago' || estadoVisible === 'pago_confirmado';
+  }
+  return estadoVisible === filtro;
 }
 
 function notificationStorageKey(operadorId: number) {
@@ -136,7 +145,7 @@ export function App() {
   const [alcanceConteos, setAlcanceConteos] = useState({ mis: 0, todas: 0 });
   const [estado, setEstado] = useState('');
   const [servicio, setServicio] = useState('');
-  const [alcancePedidos, setAlcancePedidos] = useState<AlcancePedidos>('mis');
+  const [alcancePedidos, setAlcancePedidos] = useState<AlcancePedidos>('todas');
   const [periodoPedidos, setPeriodoPedidos] = useState<PeriodoPedidos>('hoy');
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
@@ -184,6 +193,7 @@ export function App() {
   const notificationSnapshotReadyRef = useRef(false);
   const knownPedidoCodesRef = useRef<Set<string>>(new Set());
   const knownTransferKeysRef = useRef<Map<string, string>>(new Map());
+  const delayedNotificationCodesRef = useRef<Set<string>>(new Set());
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -191,7 +201,7 @@ export function App() {
   );
 
   const puedeReportes = useMemo(
-    () => operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    () => operador?.permisos.includes('reportes:ver') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
     [operador],
   );
 
@@ -329,6 +339,10 @@ export function App() {
       const creadoReciente = Number.isNaN(createdAt) || now - createdAt <= 10 * 60 * 1000;
       const transferidoReciente = Number.isNaN(transferAt) || now - transferAt <= 30 * 60 * 1000;
       const transferidoAMi = pedido.redirigido_a_operador_id === operador.id;
+      const estaAtrasado = !Number.isNaN(createdAt)
+        && now - createdAt > ORDER_DELAY_MINUTES * 60 * 1000
+        && pedido.estado !== 'completado'
+        && pedido.estado !== 'cancelado';
 
       if (transferidoAMi && transferKey && knownTransferKeysRef.current.get(codigo) !== transferKey && transferidoReciente) {
         nuevas.push({
@@ -354,6 +368,19 @@ export function App() {
           read: false,
         });
       }
+
+      if (estaAtrasado && !delayedNotificationCodesRef.current.has(codigo)) {
+        nuevas.push({
+          id: `atrasado:${codigo}`,
+          kind: 'pedido_atrasado',
+          codigo,
+          title: 'Pedido atrasado',
+          body: `${codigo} lleva mas de ${ORDER_DELAY_MINUTES} min sin completarse`,
+          createdAt: now,
+          read: false,
+        });
+        delayedNotificationCodesRef.current.add(codigo);
+      }
     }
 
     knownPedidoCodesRef.current = nextCodes;
@@ -369,7 +396,7 @@ export function App() {
     const term = busqueda.trim().toLowerCase();
 
     return pedidos.filter((pedido) => {
-      if (estado && estadoFaseUno(pedido.estado) !== estado) return false;
+      if (estado && !estadoCoincideFiltro(pedido.estado, estado)) return false;
       if (servicio && pedido.servicio !== servicio) return false;
       if (!term) return true;
 
@@ -444,6 +471,12 @@ export function App() {
     return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operador.id);
   }
 
+  function pedidoAtrasado(pedido: PedidoResumen) {
+    if (pedido.estado === 'completado' || pedido.estado === 'cancelado') return false;
+    const createdAt = pedido.created_at ? Date.parse(pedido.created_at) : Number.NaN;
+    return !Number.isNaN(createdAt) && pedidosClock - createdAt > ORDER_DELAY_MINUTES * 60 * 1000;
+  }
+
   function disponibilidadPedidoClass(pedido: PedidoResumen, base: string, selected: boolean, delayed: boolean) {
     return [
       selected ? `${base} selected` : base,
@@ -456,7 +489,7 @@ export function App() {
 
   const pedidosPorEstado = useMemo(() => {
     return estadosBandeja
-      .filter((item) => !estado || item.value === estado)
+      .filter((item) => !estado || estado === 'en_proceso' || item.value === estado)
       .map((item, index) => ({
         ...item,
         orden: index,
@@ -779,6 +812,12 @@ export function App() {
     }
   }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
+  useEffect(() => {
+    if (!puedeVerTodasLasOrdenes && alcancePedidos === 'todas') {
+      setAlcancePedidos('mis');
+    }
+  }, [alcancePedidos, puedeVerTodasLasOrdenes]);
+
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -878,12 +917,14 @@ export function App() {
       notificationSnapshotReadyRef.current = false;
       knownPedidoCodesRef.current = new Set();
       knownTransferKeysRef.current = new Map();
+      delayedNotificationCodesRef.current = new Set();
       return;
     }
 
     notificationSnapshotReadyRef.current = false;
     knownPedidoCodesRef.current = new Set();
     knownTransferKeysRef.current = new Map();
+    delayedNotificationCodesRef.current = new Set();
 
     try {
       const saved = localStorage.getItem(notificationStorageKey(operador.id));
@@ -1284,6 +1325,8 @@ export function App() {
             onSaveProfile={guardarPerfil}
             onSavePassword={guardarPassword}
             onCopyCode={() => void copiarPago(operador.codigo_operador)}
+            onCopyPhone={() => void copiarPago(operador.telefono)}
+            onCopyReferralCode={() => void copiarPago(operador.codigo_operador)}
             onLogout={cerrarSesion}
           />
         ) : vista === 'crear' ? (
@@ -1328,7 +1371,7 @@ export function App() {
             onRefresh={() => void cargarPedidos()}
             onToggleGroup={toggleEstadoPedido}
             onSelect={setSeleccionado}
-            classNameFor={(pedido, base) => disponibilidadPedidoClass(pedido, base, false, false)}
+            classNameFor={(pedido, base) => disponibilidadPedidoClass(pedido, base, false, pedidoAtrasado(pedido))}
             blockedByOther={pedidoBloqueadoPorOtro}
             ownedByMe={pedidoTomadoPorMi}
           />
