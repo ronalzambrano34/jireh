@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export const ERROR_TOAST_DURATION_MS = 7000;
@@ -59,9 +60,11 @@ export function FloatingToast({
 
   if (hidden) return null;
 
-  return (
+  const toast = (
     <div className="app-toast-stack" aria-live={ariaLive}>
       <ToastMessage kind={kind} message={children} onClose={onDismiss ?? (() => setHidden(true))} />
     </div>
   );
+
+  return createPortal(toast, document.body);
 }
