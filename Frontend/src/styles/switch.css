@@ -1,4 +1,4 @@
-.ui-switch {
+input[type="checkbox"].ui-switch.ui-switch.ui-switch {
   box-sizing: border-box;
   inline-size: 34px;
   block-size: 20px;
@@ -31,7 +31,7 @@
   transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
 }
 
-.ui-switch::after {
+input[type="checkbox"].ui-switch.ui-switch.ui-switch::after {
   box-sizing: border-box;
   content: "";
   position: absolute;
@@ -51,22 +51,22 @@
   transition: transform 160ms ease, background 160ms ease;
 }
 
-.ui-switch:checked {
+input[type="checkbox"].ui-switch.ui-switch.ui-switch:checked {
   border-color: var(--ui-primary);
   background: color-mix(in srgb, var(--ui-primary) 28%, var(--ui-surface));
 }
 
-.ui-switch:checked::after {
+input[type="checkbox"].ui-switch.ui-switch.ui-switch:checked::after {
   background: var(--ui-primary-hover);
   transform: translateX(14px);
 }
 
-.ui-switch:focus-visible {
+input[type="checkbox"].ui-switch.ui-switch.ui-switch:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--ui-primary) 22%, transparent);
   outline-offset: 2px;
 }
 
-.ui-switch:disabled {
+input[type="checkbox"].ui-switch.ui-switch.ui-switch:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
