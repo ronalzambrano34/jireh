@@ -1,8 +1,9 @@
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ChangeEventHandler, FormEventHandler, ReactNode } from 'react';
-import { DismissibleNotice } from './DismissibleNotice';
 import { PageLoader } from './PageLoader';
+
+const ERROR_TOAST_DURATION_MS = 5200;
 
 type CreateOrderFormShellProps = {
   children: ReactNode;
@@ -40,13 +41,24 @@ export function CreateOrderFormShell({
     return () => URL.revokeObjectURL(previewUrl);
   }, [comprobante]);
 
+  useEffect(() => {
+    if (!error) return undefined;
+    const timeoutId = window.setTimeout(onDismissError, ERROR_TOAST_DURATION_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [error, onDismissError]);
+
   return (
     <form className="create-form-panel" onSubmit={onSubmit} noValidate>
       <div className="form-flow">{children}</div>
       {error && (
-        <DismissibleNotice className="notice error" role="alert" onDismiss={onDismissError}>
-          {error}
-        </DismissibleNotice>
+        <div className="app-toast-stack" aria-live="polite">
+          <div className="app-toast error" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={onDismissError} title="Cerrar notificacion" aria-label="Cerrar notificacion">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
       )}
       <label className="payment-proof-field">
         <span>Comprobante de pago</span>
