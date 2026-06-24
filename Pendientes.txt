@@ -12,7 +12,7 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 //todo 
 
 
-
+cuando abres la vista pedidos, debe aparecerte todos los pedidos, la condicional de solo ver los pedidos tuyos es para los clientes
 
 
 
