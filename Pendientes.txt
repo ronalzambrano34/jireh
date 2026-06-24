@@ -20,6 +20,14 @@ añadir el campo observaciones para nuevo pedido transferencia
 
 el botón BUSCAR, que tenga la X para borrar.
 
+en los permisos, añadir reportes
+
+en la vista detalle pedidos, que el acordeón "mensaje operativo" sea también un botón icono reenviar en otro lugar de la vista detalle pedido, que abra un modal con esa info.
+
+en la vista detalles pedidosl, la X del cartel informativo "Has tomado este pedido...." no est fijo a la derecha del cartel, comprueba ese detalle en los dems carteles.
+
+el cartel Succes, que sea tipo toast
+
 en la vista pedidos, el filtro todos los pedidos es el filtro por defecto, no mis pedidos.
 
 hay un problema en la lógica con las notificaciones. cuando se crea una orden y se est en la ventana de confirmar pedido, ya aparece en notificaciones y los dems operarios pueden interactuar con el pedido mientras que el que lo creó, aún est confirmando el pedido.
