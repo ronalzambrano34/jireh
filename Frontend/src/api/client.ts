@@ -42,6 +42,10 @@ const CONFIGURED_API_IS_LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)
 const API_URL = (USING_REMOTE_HOST && CONFIGURED_API_IS_LOOPBACK ? DEFAULT_API_URL : CONFIGURED_API_URL || DEFAULT_API_URL).replace(/\/$/, '');
 const TOKEN_KEY = 'jireh.auth.token';
 
+function networkErrorMessage() {
+  return `No se pudo conectar con el servidor (${API_URL}). Revisa que el backend este encendido y que VITE_API_URL apunte a la API correcta.`;
+}
+
 function addTunnelHeaders(headers: Headers) {
   if (/^https:\/\/[^/]+\.loca\.lt$/i.test(API_URL)) {
     headers.set('bypass-tunnel-reminder', 'true');
@@ -75,10 +79,16 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
   }
   addTunnelHeaders(headers);
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new Error(networkErrorMessage());
+  }
 
   if (!response.ok) {
     throw new Error(`Error ${response.status}`);
@@ -102,7 +112,12 @@ export async function obtenerAssetBlob(path: string): Promise<Blob> {
   if (token) headers.set('Authorization', `Bearer ${token}`);
   addTunnelHeaders(headers);
 
-  const response = await fetch(url, { headers });
+  let response: Response;
+  try {
+    response = await fetch(url, { headers });
+  } catch {
+    throw new Error(networkErrorMessage());
+  }
   if (!response.ok) throw new Error(`Error ${response.status}`);
   return response.blob();
 }
@@ -120,10 +135,16 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   addTunnelHeaders(headers);
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new Error(networkErrorMessage());
+  }
 
   if (!response.ok) {
     let message = `Error ${response.status}`;

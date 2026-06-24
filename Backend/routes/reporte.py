@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import require_any_permission
+from Backend.services.auth_service import require_permission
 from Backend.services.reporte_service import reporte_general
 from Backend.services.reporte_service import historial_operaciones
 from Backend.schemas.extraccion_cuenta import ExtraccionCuentaCreate
