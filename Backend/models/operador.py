@@ -10,7 +10,25 @@ from Backend.database import Base
 
 
 PERMISOS_POR_ROL = {
+    "consultor": [
+        "pedidos:ver",
+        "clientes:ver",
+        "contactos:ver"
+    ],
+    "operador": [
+        "pedidos:ver",
+        "pedidos:crear",
+        "pedidos:gestionar",
+        "clientes:ver",
+        "clientes:crear",
+        "clientes:gestionar",
+        "contactos:ver",
+        "contactos:gestionar"
+    ],
     "admin": [
+        "pedidos:ver",
+        "clientes:ver",
+        "contactos:ver",
         "operadores:ver",
         "operadores:crear",
         "operadores:editar",
@@ -19,16 +37,6 @@ PERMISOS_POR_ROL = {
         "pedidos:gestionar",
         "clientes:gestionar",
         "configuracion:gestionar"
-    ],
-    "supervisor": [
-        "pedidos:gestionar",
-        "clientes:gestionar",
-        "operadores:ver"
-    ],
-    "operador": [
-        "pedidos:crear",
-        "clientes:crear",
-        "contactos:gestionar"
     ]
 }
 
@@ -121,4 +129,3 @@ class Operador(Base):
             self.rol,
             PERMISOS_POR_ROL["operador"]
         )
-

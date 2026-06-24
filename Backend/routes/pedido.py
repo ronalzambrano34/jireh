@@ -63,6 +63,7 @@ def crear_transferencia(
     _operador = Depends(
         require_any_permission(
             [
+                "pedidos:ver",
                 "pedidos:crear",
                 "pedidos:gestionar"
             ]
@@ -101,6 +102,7 @@ def listar(
     operador = Depends(
         require_any_permission(
             [
+                "pedidos:ver",
                 "pedidos:crear",
                 "pedidos:gestionar"
             ]
@@ -111,7 +113,8 @@ def listar(
     if alcance_normalizado not in ("mis", "todas"):
         alcance_normalizado = "mis"
     puede_ver_todas = (
-        operador.rol in ("admin", "supervisor")
+        operador.rol == "admin"
+        or "pedidos:ver" in operador.permisos
         or "pedidos:gestionar" in operador.permisos
         or "empresa:control_total" in operador.permisos
     )
@@ -151,6 +154,7 @@ def rastrear_por_cliente(
     _operador = Depends(
         require_any_permission(
             [
+                "pedidos:ver",
                 "pedidos:crear",
                 "pedidos:gestionar"
             ]

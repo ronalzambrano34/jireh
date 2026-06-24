@@ -20,16 +20,30 @@ from Backend.services.generador_operador import (
 from Backend.services.auth_service import (
     hash_password
 )
+from Backend.services.operador_rol_service import asegurar_roles_default
+from Backend.services.operador_rol_service import permisos_por_rol
+from Backend.services.operador_rol_service import rol_existe
 
 
 def _validar_rol(
-    rol: str | None
+    rol: str | None,
+    db: Session | None = None
 ):
 
     rol_normalizado = (
         rol
         or "operador"
     ).strip().lower()
+
+    if db is not None:
+        if not rol_existe(
+            db,
+            rol_normalizado
+        ):
+            raise Exception(
+                "Rol de operador invalido"
+            )
+        return rol_normalizado
 
     if rol_normalizado not in ROLES_OPERADOR:
         raise Exception(
@@ -75,11 +89,18 @@ def _validar_permisos(
 
 
 def _permisos_por_rol(
-    rol: str | None
+    rol: str | None,
+    db: Session | None = None
 ):
     rol_normalizado = _validar_rol(
-        rol
+        rol,
+        db
     )
+    if db is not None:
+        return permisos_por_rol(
+            db,
+            rol_normalizado
+        )
     return PERMISOS_POR_ROL.get(
         rol_normalizado,
         PERMISOS_POR_ROL["operador"]
@@ -163,6 +184,8 @@ def listar_operadores(
     offset: int = 0
 ):
 
+    asegurar_roles_default(db)
+
     query = db.query(
         Operador
     )
@@ -177,7 +200,8 @@ def listar_operadores(
         query = query.filter(
             Operador.rol
             == _validar_rol(
-                rol
+                rol,
+                db
             )
         )
 
@@ -254,6 +278,8 @@ def crear_operador(
     data
 ):
 
+    asegurar_roles_default(db)
+
     existe = (
         db.query(
             Operador
@@ -307,7 +333,8 @@ def crear_operador(
         telefono=data.telefono,
 
         rol=_validar_rol(
-            data.rol
+            data.rol,
+            db
         ),
 
         password_hash=(
@@ -322,7 +349,8 @@ def crear_operador(
             data.permisos
             if data.permisos is not None
             else _permisos_por_rol(
-                data.rol
+                data.rol,
+                db
             )
         ),
 
@@ -348,6 +376,8 @@ def actualizar_operador(
     data,
     operador_actual: Operador | None = None
 ):
+
+    asegurar_roles_default(db)
 
     operador = obtener_operador(
         db,
@@ -385,7 +415,8 @@ def actualizar_operador(
 
     if "rol" in cambios:
         cambios["rol"] = _validar_rol(
-            cambios["rol"]
+            cambios["rol"],
+            db
         )
 
     if "permisos" in cambios:

@@ -49,6 +49,7 @@ def listar_clientes_route(
     _operador = Depends(
         require_any_permission(
             [
+                "clientes:ver",
                 "pedidos:crear",
                 "pedidos:gestionar",
                 "clientes:gestionar"
@@ -78,6 +79,7 @@ def buscar_cliente_route(
     _operador = Depends(
         require_any_permission(
             [
+                "clientes:ver",
                 "pedidos:crear",
                 "pedidos:gestionar",
                 "clientes:gestionar"
@@ -110,6 +112,7 @@ def obtener_cliente_route(
     _operador = Depends(
         require_any_permission(
             [
+                "clientes:ver",
                 "pedidos:crear",
                 "pedidos:gestionar",
                 "clientes:gestionar"
@@ -143,6 +146,8 @@ def listar_contactos_cliente_route(
     _operador = Depends(
         require_any_permission(
             [
+                "contactos:ver",
+                "clientes:ver",
                 "pedidos:crear",
                 "pedidos:gestionar",
                 "clientes:gestionar"
@@ -178,6 +183,7 @@ def listar_pedidos_cliente_route(
     _operador = Depends(
         require_any_permission(
             [
+                "pedidos:ver",
                 "pedidos:gestionar",
                 "clientes:gestionar"
             ]

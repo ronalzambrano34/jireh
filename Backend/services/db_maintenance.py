@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
+from Backend.models.operador_rol import OperadorRol
 from Backend.models.pedido_otros import PedidoOtros
 from Backend.models.provincia_servicio import ProvinciaServicio
 
@@ -126,6 +127,10 @@ def ensure_runtime_columns(
 ):
     ensure_runtime_tables(
         db
+    )
+    OperadorRol.__table__.create(
+        db.get_bind(),
+        checkfirst=True
     )
     _rename_column_if_needed(
         db,

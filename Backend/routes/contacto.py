@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from Backend.database import get_db
 from Backend.services.auth_service import (
+    require_any_permission,
     require_permission
 )
 
@@ -24,14 +25,7 @@ from Backend.services.contacto_service import (
 
 router = APIRouter(
     prefix="/contactos",
-    tags=["Contactos"],
-    dependencies=[
-        Depends(
-            require_permission(
-                "contactos:gestionar"
-            )
-        )
-    ]
+    tags=["Contactos"]
 )
 
 
@@ -43,9 +37,8 @@ def listar_contactos_route(
     cliente_id: int | None = None,
     busqueda: str | None = None,
     incluir_inactivos: bool = False,
-    db: Session = Depends(
-        get_db
-    )
+    db: Session = Depends(get_db),
+    _operador = Depends(require_any_permission(["contactos:ver", "contactos:gestionar"]))
 ):
 
     return listar_contactos(
@@ -62,9 +55,8 @@ def listar_contactos_route(
 )
 def obtener_contacto_route(
     contacto_id: int,
-    db: Session = Depends(
-        get_db
-    )
+    db: Session = Depends(get_db),
+    _operador = Depends(require_any_permission(["contactos:ver", "contactos:gestionar"]))
 ):
 
     try:
@@ -85,9 +77,8 @@ def obtener_contacto_route(
 )
 def crear_contacto_route(
     data: ContactoCreate,
-    db: Session = Depends(
-        get_db
-    )
+    db: Session = Depends(get_db),
+    _operador = Depends(require_permission("contactos:gestionar"))
 ):
 
     try:
@@ -109,9 +100,8 @@ def crear_contacto_route(
 def actualizar_contacto_route(
     contacto_id: int,
     data: ContactoUpdate,
-    db: Session = Depends(
-        get_db
-    )
+    db: Session = Depends(get_db),
+    _operador = Depends(require_permission("contactos:gestionar"))
 ):
 
     try:
@@ -133,9 +123,8 @@ def actualizar_contacto_route(
 )
 def eliminar_contacto_route(
     contacto_id: int,
-    db: Session = Depends(
-        get_db
-    )
+    db: Session = Depends(get_db),
+    _operador = Depends(require_permission("contactos:gestionar"))
 ):
 
     try:

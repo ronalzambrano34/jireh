@@ -18,6 +18,7 @@ from Backend.database import SessionLocal
 from Backend.models.cliente import Cliente
 from Backend.models.configuracion import Configuracion
 from Backend.models.operador import Operador
+from Backend.models.operador_rol import OperadorRol
 from Backend.models.metodo_pago import MetodoPago
 from Backend.models.metodo_pago_cuenta import MetodoPagoCuenta
 from Backend.models.extraccion_cuenta import ExtraccionCuenta
@@ -37,6 +38,7 @@ from Backend.models.pedido_otros import PedidoOtros
 
 from Backend.routes.pedido import (router as pedido_router)
 from Backend.routes.operador import (router as operador_router)
+from Backend.routes.operador_rol import router as operador_rol_router
 from Backend.routes.pedido_efectivo import (router as efectivo_router)
 from Backend.routes.pedido_saldo import (router as saldo_router)
 from Backend.routes.pedido_divisa import (router as divisa_router)
@@ -64,6 +66,7 @@ from Backend.services.seed_admin import seed_admin_operador
 from Backend.services.seed_admin import seed_cliente_generico
 from Backend.services.seed_admin import seed_test_admin_operador
 from Backend.services.seed_metodos_pago import (seed_metodos_pago)
+from Backend.services.operador_rol_service import asegurar_roles_default
 from Backend.services.promocion_service import asegurar_slides_carrusel_default
 from Backend.services.provincia_servicio_service import seed_provincias_servicio
 from Backend.services.oferta_sync_control import detener_scheduler_sync_ofertas
@@ -102,6 +105,9 @@ if RUN_DB_BOOTSTRAP:
         seed_cliente_generico(
             _db
         )
+        asegurar_roles_default(
+            _db
+        )
         seed_admin_operador(
             _db
         )
@@ -122,6 +128,7 @@ if RUN_DB_BOOTSTRAP:
 
 app.include_router(pedido_router)
 app.include_router(operador_router)
+app.include_router(operador_rol_router)
 app.include_router(efectivo_router)
 app.include_router(saldo_router)
 app.include_router(divisa_router)

@@ -16,6 +16,9 @@ import type {
   Oferta,
   Operador,
   OperadorCreatePayload,
+  OperadorRol,
+  OperadorRolCreatePayload,
+  OperadorRolUpdatePayload,
   OperadorUpdatePayload,
   PedidoDetalle,
   PaqueteSaldo,
@@ -225,6 +228,32 @@ export function actualizarOperador(id: number, payload: OperadorUpdatePayload) {
 
 export function eliminarOperador(id: number) {
   return request<Operador>(`/operador/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function listarRolesOperador(incluirInactivos = false) {
+  const query = new URLSearchParams();
+  if (incluirInactivos) query.set('incluir_inactivos', 'true');
+  return request<OperadorRol[]>(`/operador-roles/?${query.toString()}`);
+}
+
+export function crearRolOperador(payload: OperadorRolCreatePayload) {
+  return request<OperadorRol>('/operador-roles/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function actualizarRolOperador(id: number, payload: OperadorRolUpdatePayload) {
+  return request<OperadorRol>(`/operador-roles/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function eliminarRolOperador(id: number) {
+  return request<OperadorRol>(`/operador-roles/${id}`, {
     method: 'DELETE',
   });
 }

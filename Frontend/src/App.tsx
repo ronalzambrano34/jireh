@@ -196,7 +196,7 @@ export function App() {
   );
 
   const puedeVerTodasLasOrdenes = useMemo(
-    () => operador?.rol === 'admin' || operador?.rol === 'supervisor' || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    () => operador?.rol === 'admin' || operador?.permisos.includes('pedidos:ver') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
     [operador],
   );
 
@@ -1293,6 +1293,7 @@ export function App() {
             codigo={seleccionado}
             pedidoInicial={pedidoSeleccionadoInicial}
             operadorId={operador.id}
+            canManage={Boolean(operador.permisos.includes('pedidos:gestionar') || operador.permisos.includes('empresa:control_total'))}
             onChanged={cargarPedidos}
             onClose={() => setSeleccionado(null)}
             codigosNavegacion={codigosPedidosTomadosPorMi}

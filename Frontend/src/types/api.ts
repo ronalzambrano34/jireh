@@ -9,6 +9,31 @@ export type Operador = {
   activo: boolean;
 };
 
+export type OperadorRol = {
+  id: number;
+  clave: string;
+  nombre: string;
+  descripcion?: string | null;
+  permisos: string[];
+  activo: boolean;
+  protegido: boolean;
+};
+
+export type OperadorRolCreatePayload = {
+  clave?: string | null;
+  nombre: string;
+  descripcion?: string | null;
+  permisos: string[];
+  activo?: boolean;
+};
+
+export type OperadorRolUpdatePayload = {
+  nombre?: string;
+  descripcion?: string | null;
+  permisos?: string[];
+  activo?: boolean;
+};
+
 
 export type OperadorCreatePayload = {
   nombre: string;

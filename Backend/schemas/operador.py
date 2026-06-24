@@ -4,16 +4,19 @@ from pydantic import Field
 
 
 ROLES_OPERADOR = (
+    "consultor",
+    "operador",
     "admin",
-    "supervisor",
-    "operador"
 )
 
 PERMISOS_OPERADOR = (
+    "pedidos:ver",
     "pedidos:crear",
     "pedidos:gestionar",
+    "clientes:ver",
     "clientes:crear",
     "clientes:gestionar",
+    "contactos:ver",
     "contactos:gestionar",
     "operadores:ver",
     "operadores:crear",

@@ -1,5 +1,5 @@
 import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CalendarClock, Edit3, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, Tags, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { Banknote, CalendarClock, Edit3, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, ShieldCheck, Tags, Trash2, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
@@ -21,11 +21,14 @@ import {
   actualizarProvinciaServicio,
   actualizarPuntoRecogida,
   actualizarPromocion,
+  actualizarRolOperador,
   crearCliente,
   crearContacto,
   crearMetodoPago,
   crearOperador,
+  crearRolOperador,
   eliminarOperador,
+  eliminarRolOperador,
   guardarConfiguracion,
   guardarTemplate,
   crearOferta,
@@ -40,6 +43,7 @@ import {
   listarMetodosPago,
   listarOfertas,
   listarOperadores,
+  listarRolesOperador,
   listarPaquetesSaldo,
   listarProvinciasServicio,
   listarPuntosRecogida,
@@ -48,14 +52,14 @@ import {
   subirImagenMetodoPago,
   subirImagenPromocion,
 } from '../api/client';
-import type { Cliente, Configuracion, Contacto, MetodoPago, MetodoPagoCuenta, Oferta, Operador, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
+import type { Cliente, Configuracion, Contacto, MetodoPago, MetodoPagoCuenta, Oferta, Operador, OperadorRol, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
 import { metodoPagoVisual } from '../utils/metodosPago';
 import { AdminEmpty, AdminHero, AdminMenu, AdminSection, AdminStateSwitch, type AdminEstadoVista, type AdminMenuGroup } from './admin/AdminCatalogosLayout';
 import './admin/AdminCatalogosPage.css';
 
 const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 const servicios = ['transferencia', 'efectivo', 'saldo', 'mlc', 'usd', 'clasica', 'divisa'];
-const rolesOperador = ['operador', 'supervisor', 'admin'];
+const rolesOperador = ['consultor', 'operador', 'admin'];
 const tiposSlide = [
   { value: 'promocion', label: 'Promocion con imagen' },
   { value: 'precios', label: 'Precios destacados' },
@@ -79,10 +83,13 @@ function esMetodoEfectivo(nombre: string) {
 }
 
 const permisosOperador = [
+  { value: 'pedidos:ver', label: 'Ver pedidos', group: 'Pedidos' },
   { value: 'pedidos:crear', label: 'Crear pedidos', group: 'Pedidos' },
   { value: 'pedidos:gestionar', label: 'Gestionar pedidos', group: 'Pedidos' },
+  { value: 'clientes:ver', label: 'Ver clientes', group: 'Clientes' },
   { value: 'clientes:crear', label: 'Crear clientes', group: 'Clientes' },
   { value: 'clientes:gestionar', label: 'Gestionar clientes', group: 'Clientes' },
+  { value: 'contactos:ver', label: 'Ver contactos', group: 'Clientes' },
   { value: 'contactos:gestionar', label: 'Gestionar contactos', group: 'Clientes' },
   { value: 'operadores:ver', label: 'Ver operadores', group: 'Operadores' },
   { value: 'operadores:crear', label: 'Crear operadores', group: 'Operadores' },
@@ -93,9 +100,9 @@ const permisosOperador = [
 ];
 
 const permisosPorRol: Record<string, string[]> = {
-  operador: ['pedidos:crear', 'clientes:crear', 'contactos:gestionar'],
-  supervisor: ['pedidos:gestionar', 'clientes:gestionar', 'operadores:ver'],
-  admin: ['operadores:ver', 'operadores:crear', 'operadores:editar', 'operadores:desactivar', 'empresa:control_total', 'pedidos:gestionar', 'clientes:gestionar', 'configuracion:gestionar'],
+  consultor: ['pedidos:ver', 'clientes:ver', 'contactos:ver'],
+  operador: ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar', 'clientes:ver', 'clientes:crear', 'clientes:gestionar', 'contactos:ver', 'contactos:gestionar'],
+  admin: ['pedidos:ver', 'clientes:ver', 'contactos:ver', 'operadores:ver', 'operadores:crear', 'operadores:editar', 'operadores:desactivar', 'empresa:control_total', 'pedidos:gestionar', 'clientes:gestionar', 'configuracion:gestionar'],
 };
 
 type OperadorFormState = {
@@ -103,6 +110,14 @@ type OperadorFormState = {
   telefono: string;
   password: string;
   rol: string;
+  activo: boolean;
+  permisos: string[];
+};
+
+type RolFormState = {
+  clave: string;
+  nombre: string;
+  descripcion: string;
   activo: boolean;
   permisos: string[];
 };
@@ -156,9 +171,9 @@ function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChan
   );
 }
 
-type AdminTema = 'metodos' | 'provincias' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'configuracion' | 'templates';
+type AdminTema = 'metodos' | 'provincias' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'roles' | 'configuracion' | 'templates';
 const ADMIN_THEME_KEY = 'jireh.adminTema';
-const ADMIN_THEMES = new Set<AdminTema>(['metodos', 'provincias', 'puntos', 'ofertas', 'paquetes', 'promociones', 'clientes', 'contactos', 'operadores', 'configuracion', 'templates']);
+const ADMIN_THEMES = new Set<AdminTema>(['metodos', 'provincias', 'puntos', 'ofertas', 'paquetes', 'promociones', 'clientes', 'contactos', 'operadores', 'roles', 'configuracion', 'templates']);
 
 function temaAdminGuardado(): AdminTema | null {
   if (typeof sessionStorage === 'undefined') return null;
@@ -176,6 +191,7 @@ function tituloTema(tema: AdminTema | null) {
   if (tema === 'clientes') return 'Clientes';
   if (tema === 'contactos') return 'Contactos';
   if (tema === 'operadores') return 'Operadores';
+  if (tema === 'roles') return 'Roles';
   if (tema === 'configuracion') return 'Configuracion';
   if (tema === 'templates') return 'Templates';
   return 'Catalogos';
@@ -191,6 +207,7 @@ const adminTemaVisual: Record<AdminTema, { descripcion: string; icono: typeof Se
   clientes: { descripcion: 'Consulta y administra las personas que solicitan o pagan operaciones.', icono: UsersRound },
   contactos: { descripcion: 'Mantiene los destinatarios frecuentes y sus datos operativos.', icono: UserRound },
   operadores: { descripcion: 'Controla accesos, roles, permisos y disponibilidad del equipo.', icono: UsersRound },
+  roles: { descripcion: 'Define permisos base para consultores, operadores y administradores.', icono: ShieldCheck },
   configuracion: { descripcion: 'Centraliza enlaces, claves y valores que definen el comportamiento del sistema.', icono: Settings2 },
   templates: { descripcion: 'Edita los mensajes utilizados en operaciones, estados y notificaciones.', icono: FileText },
 };
@@ -316,6 +333,7 @@ export function AdminCatalogosPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
+  const [roles, setRoles] = useState<OperadorRol[]>([]);
   const [metodoForm, setMetodoForm] = useState({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
   const [puntoForm, setPuntoForm] = useState({ nombre: '', direccion: '', telefono: '', provincia_id: '', activo: true });
   const [provinciaForm, setProvinciaForm] = useState({ nombre: '', activo: false });
@@ -331,7 +349,9 @@ export function AdminCatalogosPage() {
   const [clienteForm, setClienteForm] = useState({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: 'BRL' });
   const [contactoForm, setContactoForm] = useState({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
   const [operadorForm, setOperadorForm] = useState<OperadorFormState>({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
+  const [rolForm, setRolForm] = useState<RolFormState>({ clave: '', nombre: '', descripcion: '', activo: true, permisos: permisosBaseRol('operador') });
   const [operadorEditando, setOperadorEditando] = useState<Operador | null>(null);
+  const [rolEditando, setRolEditando] = useState<OperadorRol | null>(null);
   const [puntoEditando, setPuntoEditando] = useState<PuntoRecogida | null>(null);
   const [provinciaEditando, setProvinciaEditando] = useState<ProvinciaServicio | null>(null);
   const [metodoEditando, setMetodoEditando] = useState<MetodoPago | null>(null);
@@ -378,6 +398,17 @@ export function AdminCatalogosPage() {
   const clientesVisibles = useMemo(() => clientes.filter((cliente) => cliente.activo === mostrarActivos), [clientes, mostrarActivos]);
   const contactosVisibles = useMemo(() => contactos.filter((contacto) => contacto.activo === mostrarActivos), [contactos, mostrarActivos]);
   const operadoresVisibles = useMemo(() => operadores.filter((item) => item.activo === mostrarActivos), [operadores, mostrarActivos]);
+  const rolesVisibles = useMemo(() => roles.filter((item) => item.activo === mostrarActivos), [roles, mostrarActivos]);
+  const rolesActivos = useMemo(() => roles.filter((item) => item.activo), [roles]);
+  const permisosPorRolConfigurado = useMemo(() => {
+    const map = new Map<string, string[]>();
+    roles.forEach((rol) => map.set(rol.clave, rol.permisos));
+    return map;
+  }, [roles]);
+  const opcionesRolOperador = rolesActivos.length
+    ? rolesActivos.map((rol) => ({ value: rol.clave, label: rol.nombre, description: rol.descripcion ?? undefined }))
+    : rolesOperador.map((rol) => ({ value: rol, label: rol }));
+  const permisosBaseRolActual = (rol: string) => [...(permisosPorRolConfigurado.get(rol) ?? permisosPorRol[rol] ?? permisosPorRol.operador)];
   const whatsappConfiguraciones = useMemo(() => [
     {
       clave: 'whatsapp_grupo_pedidos_url',
@@ -425,7 +456,18 @@ export function AdminCatalogosPage() {
       if (tema === 'paquetes') setPaquetes(await listarPaquetesSaldo(undefined, true));
       if (tema === 'promociones') setPromociones(await listarPromociones(true));
       if (tema === 'clientes') setClientes(await listarClientes(undefined, true));
-      if (tema === 'operadores') setOperadores(await listarOperadores(true));
+      if (tema === 'roles') setRoles(await listarRolesOperador(true));
+      if (tema === 'operadores') {
+        const [operadoresData, rolesData] = await Promise.all([
+          listarOperadores(true),
+          temasCargadosRef.current.has('roles') ? Promise.resolve(null) : listarRolesOperador(true),
+        ]);
+        setOperadores(operadoresData);
+        if (rolesData) {
+          setRoles(rolesData);
+          marcarTemasCargados('roles');
+        }
+      }
       if (tema === 'configuracion') setConfiguraciones(await listarConfiguraciones());
 
       if (tema === 'puntos') {
@@ -555,7 +597,11 @@ export function AdminCatalogosPage() {
     if (tema === 'promociones') { setPromoForm(nuevoSlideForm()); setPromoFile(null); setPromoFilePreview(''); }
     if (tema === 'clientes') setClienteForm({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: 'BRL' });
     if (tema === 'contactos') setContactoForm({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
-    if (tema === 'operadores') setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
+    if (tema === 'operadores') setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRolActual('operador') });
+    if (tema === 'roles') {
+      setRolEditando(null);
+      setRolForm({ clave: '', nombre: '', descripcion: '', activo: true, permisos: permisosBaseRol('operador') });
+    }
     setError(null);
     setNotice(null);
     setCrearModalTema(tema);
@@ -903,7 +949,7 @@ export function AdminCatalogosPage() {
         rol: operadorForm.rol,
         permisos: operadorForm.permisos,
       });
-      setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
+      setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRolActual('operador') });
       setNotice('Operador creado');
       setCrearModalTema(null);
       setEstadoVista('activos');
@@ -921,7 +967,7 @@ export function AdminCatalogosPage() {
       password: '',
       rol: item.rol,
       activo: item.activo,
-      permisos: item.permisos.length ? item.permisos : permisosBaseRol(item.rol),
+      permisos: item.permisos.length ? item.permisos : permisosBaseRolActual(item.rol),
     });
     setError(null);
     setNotice(null);
@@ -961,6 +1007,73 @@ export function AdminCatalogosPage() {
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado del operador');
+    }
+  }
+
+  function abrirEditarRol(item: OperadorRol) {
+    setRolEditando(item);
+    setRolForm({
+      clave: item.clave,
+      nombre: item.nombre,
+      descripcion: item.descripcion ?? '',
+      activo: item.activo,
+      permisos: item.permisos,
+    });
+    setError(null);
+    setNotice(null);
+  }
+
+  async function guardarRol(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setNotice(null);
+    try {
+      await crearRolOperador({
+        clave: rolForm.clave || undefined,
+        nombre: rolForm.nombre,
+        descripcion: rolForm.descripcion || null,
+        activo: rolForm.activo,
+        permisos: rolForm.permisos,
+      });
+      setRolForm({ clave: '', nombre: '', descripcion: '', activo: true, permisos: permisosBaseRol('operador') });
+      setNotice('Rol creado');
+      setCrearModalTema(null);
+      setEstadoVista('activos');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear el rol');
+    }
+  }
+
+  async function guardarRolEditado(event: FormEvent) {
+    event.preventDefault();
+    if (!rolEditando) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await actualizarRolOperador(rolEditando.id, {
+        nombre: rolForm.nombre,
+        descripcion: rolForm.descripcion || null,
+        activo: rolForm.activo,
+        permisos: rolForm.permisos,
+      });
+      setNotice('Rol actualizado');
+      setRolEditando(null);
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar el rol');
+    }
+  }
+
+  async function eliminarRol(item: OperadorRol) {
+    setError(null);
+    setNotice(null);
+    try {
+      await eliminarRolOperador(item.id);
+      setNotice('Rol eliminado');
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar el rol');
     }
   }
 
@@ -1262,6 +1375,7 @@ export function AdminCatalogosPage() {
         { tema: 'clientes', titulo: 'Clientes', resumen: resumenCarga(temasCargados.has('clientes'), `${clientes.filter((item) => item.activo).length} activos · ${clientes.filter((item) => !item.activo).length} inactivos`), icono: UsersRound },
         { tema: 'contactos', titulo: 'Contactos', resumen: resumenCarga(temasCargados.has('contactos'), `${contactos.filter((item) => item.activo).length} activos · ${contactos.filter((item) => !item.activo).length} inactivos`), icono: UserRound },
         { tema: 'operadores', titulo: 'Operadores', resumen: resumenCarga(temasCargados.has('operadores'), `${operadores.filter((item) => item.activo).length} activos · ${operadores.filter((item) => !item.activo).length} inactivos`), icono: UsersRound },
+        { tema: 'roles', titulo: 'Roles', resumen: resumenCarga(temasCargados.has('roles'), `${roles.filter((item) => item.activo).length} activos · ${roles.filter((item) => !item.activo).length} inactivos`), icono: ShieldCheck },
       ],
     },
     {
@@ -1473,6 +1587,25 @@ export function AdminCatalogosPage() {
                 </button>
                 <span className={item.activo ? 'status completado' : 'status cancelado'}>{item.activo ? 'activo' : 'inactivo'}</span>
                 <button className="ghost-button catalog-toggle-action" onClick={() => toggleOperador(item)}><Power size={18} /> {item.activo ? 'Desactivar' : 'Activar'}</button>
+              </div>
+            ))}
+          </div>
+        </AdminSection>
+      )}
+
+      {temaActivo === 'roles' && temasCargados.has('roles') && (
+        <AdminSection icono={ShieldCheck} titulo="Roles" resumen={`${rolesVisibles.length} de ${roles.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('roles')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} ariaLabel="Vista de roles" />
+          <div className="admin-card-list">
+            {rolesVisibles.length === 0 && <AdminEmpty>Sin registros {estadoVista}</AdminEmpty>}
+            {rolesVisibles.map((rol) => (
+              <div className="catalog-row operator-admin-row" key={rol.id}>
+                <button type="button" className="operator-admin-main" onClick={() => abrirEditarRol(rol)}>
+                  <span><strong>{rol.nombre}</strong><small>{rol.clave} · {rol.permisos.length} permisos</small></span>
+                  <span className="operator-role-pill">{rol.protegido ? 'base' : 'custom'}</span>
+                </button>
+                <span className={rol.activo ? 'status completado' : 'status cancelado'}>{rol.activo ? 'activo' : 'inactivo'}</span>
+                {!rol.protegido && <button className="ghost-button catalog-toggle-action" type="button" onClick={() => eliminarRol(rol)}><Trash2 size={18} /> Eliminar</button>}
               </div>
             ))}
           </div>
@@ -1766,7 +1899,7 @@ export function AdminCatalogosPage() {
             <input value={operadorForm.nombre} onChange={(event) => setOperadorForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <PhoneInput value={operadorForm.telefono} onChange={(value) => setOperadorForm((current) => ({ ...current, telefono: value }))} defaultCode="+55" required pasteTitle="Pegar telefono de acceso" />
             <PasswordField value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Contraseña inicial" autoComplete="new-password" required />
-            <FloatingSelect value={operadorForm.rol} onChange={(value) => setOperadorForm((current) => ({ ...current, rol: value, permisos: permisosBaseRol(value) }))} options={rolesOperador.map((rol) => ({ value: rol, label: rol }))} ariaLabel="Rol" align="left" />
+            <FloatingSelect value={operadorForm.rol} onChange={(value) => setOperadorForm((current) => ({ ...current, rol: value, permisos: permisosBaseRolActual(value) }))} options={opcionesRolOperador} ariaLabel="Rol" align="left" />
             <PermissionSwitches permisos={operadorForm.permisos} onChange={(permisos) => setOperadorForm((current) => ({ ...current, permisos }))} />
             <button className="primary-button"><Save size={18} /> Crear operador</button>
           </form>
@@ -1780,11 +1913,43 @@ export function AdminCatalogosPage() {
             <PhoneInput value={operadorForm.telefono} onChange={(value) => setOperadorForm((current) => ({ ...current, telefono: value }))} defaultCode="+55" required pasteTitle="Pegar telefono de acceso" />
             <PasswordField value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Nueva contraseña opcional" autoComplete="new-password" />
             <div className="inline-form two operator-edit-inline">
-              <FloatingSelect value={operadorForm.rol} onChange={(value) => setOperadorForm((current) => ({ ...current, rol: value, permisos: permisosBaseRol(value) }))} options={rolesOperador.map((rol) => ({ value: rol, label: rol }))} ariaLabel="Rol" align="left" />
+              <FloatingSelect value={operadorForm.rol} onChange={(value) => setOperadorForm((current) => ({ ...current, rol: value, permisos: permisosBaseRolActual(value) }))} options={opcionesRolOperador} ariaLabel="Rol" align="left" />
               <FloatingSelect value={operadorForm.activo ? 'activo' : 'inactivo'} onChange={(value) => setOperadorForm((current) => ({ ...current, activo: value === 'activo' }))} options={[{ value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} ariaLabel="Estado" align="left" />
             </div>
             <PermissionSwitches permisos={operadorForm.permisos} onChange={(permisos) => setOperadorForm((current) => ({ ...current, permisos }))} />
             <button className="primary-button"><Save size={18} /> Guardar</button>
+          </form>
+        </Modal>
+      )}
+
+      {crearModalTema === 'roles' && (
+        <Modal title="Crear rol" subtitle="Administracion / Roles" onClose={() => setCrearModalTema(null)} wide>
+          <form className="stack-form modal-form" onSubmit={guardarRol}>
+            <input value={rolForm.nombre} onChange={(event) => setRolForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre del rol" required />
+            <input value={rolForm.clave} onChange={(event) => setRolForm((current) => ({ ...current, clave: event.target.value }))} placeholder="Clave opcional, ej. auditor" />
+            <textarea value={rolForm.descripcion} onChange={(event) => setRolForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion" rows={3} />
+            <label className="permission-switch-row">
+              <span>Activo<small>Disponible para asignar a operadores.</small></span>
+              <UiSwitch checked={rolForm.activo} onChange={(checked) => setRolForm((current) => ({ ...current, activo: checked }))} ariaLabel="Activar rol" />
+            </label>
+            <PermissionSwitches permisos={rolForm.permisos} onChange={(permisos) => setRolForm((current) => ({ ...current, permisos }))} />
+            <button className="primary-button"><Save size={18} /> Crear rol</button>
+          </form>
+        </Modal>
+      )}
+
+      {rolEditando && (
+        <Modal title="Editar rol" subtitle={`${rolEditando.nombre} · ${rolEditando.clave}`} onClose={() => setRolEditando(null)} wide>
+          <form className="stack-form modal-form" onSubmit={guardarRolEditado}>
+            <input value={rolForm.nombre} onChange={(event) => setRolForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre del rol" required />
+            <input value={rolForm.clave} disabled placeholder="Clave" />
+            <textarea value={rolForm.descripcion} onChange={(event) => setRolForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion" rows={3} />
+            <label className="permission-switch-row">
+              <span>Activo<small>{rolEditando.protegido ? 'Los roles base no se pueden desactivar.' : 'Disponible para asignar a operadores.'}</small></span>
+              <UiSwitch checked={rolForm.activo} disabled={rolEditando.protegido} onChange={(checked) => setRolForm((current) => ({ ...current, activo: checked }))} ariaLabel="Activar rol" />
+            </label>
+            <PermissionSwitches permisos={rolForm.permisos} onChange={(permisos) => setRolForm((current) => ({ ...current, permisos }))} />
+            <button className="primary-button"><Save size={18} /> Guardar rol</button>
           </form>
         </Modal>
       )}

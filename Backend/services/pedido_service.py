@@ -110,6 +110,7 @@ def _operador_puede_ver_todos_los_pedidos(
 
     return (
         operador.rol in ("admin", "supervisor")
+        or "pedidos:ver" in operador.permisos
         or "pedidos:gestionar" in operador.permisos
         or "empresa:control_total" in operador.permisos
     )

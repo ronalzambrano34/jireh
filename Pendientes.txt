@@ -4,9 +4,11 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, Métodos de pago, Cuenta de pago,
 
-//todo 
 
-//todo
+//todo en la vista perfil, donde aparece el Código que se pueda copiar con solo presionar el componente , y el mismo flujo para el  componente telefono
+
+en la vista perfil, añadir un botón icono para copiar el código de referido.
+//todo en los permisos, añadir reportes
 
 //todo 
 

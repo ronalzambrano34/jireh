@@ -345,6 +345,7 @@ export function PedidoDetallePanel({
   codigo,
   pedidoInicial,
   operadorId,
+  canManage = true,
   onChanged,
   onClose,
   codigosNavegacion,
@@ -353,6 +354,7 @@ export function PedidoDetallePanel({
   codigo: string | null;
   pedidoInicial?: PedidoResumen | null;
   operadorId: number;
+  canManage?: boolean;
   onChanged: () => void;
   onClose: () => void;
   codigosNavegacion?: string[];
@@ -494,7 +496,7 @@ export function PedidoDetallePanel({
         if (!active) return;
         setPedido(data);
         setLoading(false);
-        if (ESTADOS_TERMINALES.has(data.estado)) {
+        if (!canManage || ESTADOS_TERMINALES.has(data.estado)) {
           return;
         }
 
@@ -525,7 +527,7 @@ export function PedidoDetallePanel({
     return () => {
       active = false;
     };
-  }, [codigo]);
+  }, [canManage, codigo]);
 
   function navegarPedidoTomado(direccion: -1 | 1) {
     if (!puedeNavegarPedidos || !codigosNavegacion || !onNavigate) return;
@@ -712,7 +714,7 @@ export function PedidoDetallePanel({
   }
 
   async function cambiarEstadoRapido(nuevoEstado: string, observaciones?: string) {
-    if (!pedido || bloqueadoPorOtro || saving || pedido.estado === nuevoEstado) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || saving || pedido.estado === nuevoEstado) return;
     if (nuevoEstado === 'pago_confirmado' && !tieneComprobantePago) {
       setError(null);
       setConfirmarPagoAbierto(true);
@@ -813,7 +815,7 @@ export function PedidoDetallePanel({
   }
 
   async function liberarPedidoActual() {
-    if (!pedido || !bloqueoPropio || saving) return;
+    if (!canManage || !pedido || !bloqueoPropio || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -829,7 +831,7 @@ export function PedidoDetallePanel({
   }
 
   async function guardarRedireccion() {
-    if (!pedido) return;
+    if (!canManage || !pedido) return;
     setRedirigiendo(true);
     setError(null);
     try {
@@ -849,7 +851,7 @@ export function PedidoDetallePanel({
   }
 
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
     setUploading(true);
     setError(null);
     const form = new FormData();
@@ -868,7 +870,7 @@ export function PedidoDetallePanel({
   }
 
   async function handleComprobantePagoConfirmado(event: ChangeEvent<HTMLInputElement>) {
-    if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
     setUploading(true);
     setSaving(true);
     setError(null);
@@ -893,7 +895,7 @@ export function PedidoDetallePanel({
   }
 
   async function handleComprobanteFinal(event: ChangeEvent<HTMLInputElement>) {
-    if (!pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
     setUploading(true);
     setSaving(true);
     setError(null);
@@ -922,7 +924,7 @@ export function PedidoDetallePanel({
   }
 
   async function confirmarFinalizacionSinComprobante() {
-    if (!pedido || bloqueadoPorOtro || saving) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || saving) return;
     const motivo = motivoSinComprobante.trim();
     if (motivo.length < 10) {
       setError('Explica brevemente por que no se pudo obtener el comprobante');
@@ -990,7 +992,7 @@ export function PedidoDetallePanel({
             bloqueoPropio={bloqueoPropio}
             bloqueadoPorOtro={bloqueadoPorOtro}
             saving={saving}
-            onRelease={() => void liberarPedidoActual()}
+            onRelease={canManage ? () => void liberarPedidoActual() : () => undefined}
           />
 
           {copyFeedback && (
@@ -1096,7 +1098,7 @@ export function PedidoDetallePanel({
             </section>
           )}
 
-          <CollapsibleOrderSection open={redireccionAbierta} className="order-redirect-section" icon={<Send size={17} />} label="Transferir a..." onToggle={() => setRedireccionAbierta((current) => !current)}>
+          {canManage && <CollapsibleOrderSection open={redireccionAbierta} className="order-redirect-section" icon={<Send size={17} />} label="Transferir a..." onToggle={() => setRedireccionAbierta((current) => !current)}>
               <div className="order-redirect-grid">
                 <FloatingSelect
                   value={operadorDestino}
@@ -1116,7 +1118,7 @@ export function PedidoDetallePanel({
                   {operadorDestino ? 'Marcar' : 'Transferir'}
                 </button>
               </div>
-          </CollapsibleOrderSection>
+          </CollapsibleOrderSection>}
 
           {pedido.mensaje_operacion && (
             <CollapsibleOrderSection open={mensajeAbierto} className="message-box order-message-box" icon={<MessageCircle size={17} />} label="Mensaje operativo" onToggle={() => setMensajeAbierto((current) => !current)}>
@@ -1374,7 +1376,7 @@ export function PedidoDetallePanel({
             open={evidenciasAbiertas}
             archivos={pedido.archivos ?? []}
             uploading={uploading}
-            disabled={bloqueadoPorOtro}
+            disabled={!canManage || bloqueadoPorOtro}
             onToggle={() => setEvidenciasAbiertas((current) => !current)}
             onUpload={handleUpload}
             archivoUrl={archivoUrl}
@@ -1391,7 +1393,7 @@ export function PedidoDetallePanel({
             formatoFecha={formatoFecha}
           />
 
-          <div className="order-bottom-actions" role="group" aria-label="Acciones principales de pedido">
+          {canManage && <div className="order-bottom-actions" role="group" aria-label="Acciones principales de pedido">
             <button className="danger-button order-cancel-action" type="button" onClick={abrirCancelacion} disabled={bloqueadoPorOtro || saving || pedido.estado === 'cancelado' || pedido.estado === 'completado'} title="Cancelar">
               <X size={20} />
               <span>Cancelar</span>
@@ -1400,7 +1402,7 @@ export function PedidoDetallePanel({
               {saving ? <RefreshCw size={18} /> : <CheckCircle2 size={18} />}
               {saving ? 'Procesando...' : accionPrincipalLabel}
             </button>
-          </div>
+          </div>}
           </div>
         )}
       </div>
