@@ -1764,7 +1764,7 @@
 .app-toast-stack {
   position: fixed;
   right: 20px;
-  top: calc(18px + env(safe-area-inset-top));
+  top: calc(92px + env(safe-area-inset-top));
   z-index: 1400;
   width: min(360px, calc(100vw - 28px));
   display: grid;
@@ -1878,7 +1878,7 @@
   .app-toast-stack {
     left: 14px;
     right: 14px;
-    top: calc(12px + env(safe-area-inset-top));
+    top: calc(78px + env(safe-area-inset-top));
     width: auto;
   }
 }

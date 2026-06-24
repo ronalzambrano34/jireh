@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { CheckCircle2, ClipboardList, Clock3, Search } from 'lucide-react';
 import { obtenerPedido, rastrearPedidosPorCliente } from '../../api/client';
+import { FloatingToast } from '../../components/FloatingToast';
 import type { PedidoResumen } from '../../types/api';
 
 function estadoLabel(value: string) {
@@ -68,7 +69,7 @@ export function TrackOrderPanel({ onTrackPedido }: { onTrackPedido: (codigo: str
         </label>
         <button className="primary-button" type="submit" disabled={!terminoLimpio || loading}>{loading ? 'Buscando...' : 'Rastrear'}</button>
       </form>
-      {error && <div className="track-order-result error">{error}</div>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {pedidos.map((pedido) => {
         const activeIndex = stepIndex(pedido);
         const completado = pedido.estado === 'completado';

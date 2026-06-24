@@ -4,6 +4,7 @@ import { ArrowRight, Banknote, Calculator, ChevronDown, MousePointerClick, Refre
 import { apiAssetUrl, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
 import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingToast } from '../components/FloatingToast';
 import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
@@ -663,7 +664,7 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
     <section className="home-page app-page-width">
       <HeroCarousel grupo={grupoActivo} generatedAt={data?.sync?.last_success_at ?? data?.generated_at} loading={loading} syncing={syncing} canSyncTasas={canSyncTasas} onRefresh={actualizarTasas} onCreate={onCreate} promos={promocionesCarrusel} />
 
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {!error && !loading && data && gruposMoneda.length === 0 && (
         <DismissibleNotice className="notice warning">No hay tasas activas configuradas</DismissibleNotice>
       )}

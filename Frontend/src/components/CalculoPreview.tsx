@@ -1,9 +1,11 @@
 import type { CalculoOperacionResponse } from '../types/api';
+import { FloatingToast } from './FloatingToast';
 
 type CalculoPreviewProps = {
   calculo: CalculoOperacionResponse | null;
   loading?: boolean;
   error?: string | null;
+  onDismissError?: () => void;
   monedaResultado?: string;
   tasaLabel?: string;
 };
@@ -13,9 +15,9 @@ function formatValue(value?: number) {
   return Number(value).toLocaleString('es-UY', { maximumFractionDigits: 2 });
 }
 
-export function CalculoPreview({ calculo, loading, error, monedaResultado = 'CUP', tasaLabel = 'Tasa aplicada' }: CalculoPreviewProps) {
+export function CalculoPreview({ calculo, loading, error, onDismissError, monedaResultado = 'CUP', tasaLabel = 'Tasa aplicada' }: CalculoPreviewProps) {
   return (
-    <div className={error ? 'payment-preview error' : 'payment-preview'}>
+    <div className="payment-preview">
       <div>
         <span>Recibe destinatario</span>
         <strong>{loading ? 'Calculando...' : calculo ? `${formatValue(calculo.monto_resultado)} ${monedaResultado}` : '-'}</strong>
@@ -24,7 +26,7 @@ export function CalculoPreview({ calculo, loading, error, monedaResultado = 'CUP
         <span>{tasaLabel}</span>
         <strong>{loading ? '-' : formatValue(calculo?.tasa_final ?? calculo?.tasa)}</strong>
       </div>
-      {error && <small>{error}</small>}
+      {error && <FloatingToast onDismiss={onDismissError}>{error}</FloatingToast>}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   obtenerEstadoConfiguracionInicial,
 } from '../api/client';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingToast } from '../components/FloatingToast';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { PhoneInput } from '../components/PhoneInput';
@@ -238,7 +239,7 @@ export function SetupInicialPage({
         <SetupSteps steps={pasos} active={paso} onChange={(index) => { setPaso(index); setError(null); setNotice(null); }} />
 
         <div className="setup-card">
-          {error && <DismissibleNotice className="notice error" role="alert" onDismiss={() => setError(null)}>{error}</DismissibleNotice>}
+          {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
           {notice && <DismissibleNotice className="notice" onDismiss={() => setNotice(null)}>{notice}</DismissibleNotice>}
 
           {paso === 0 && (

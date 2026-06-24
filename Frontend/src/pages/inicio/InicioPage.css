@@ -2407,20 +2407,11 @@
 }
 
 
-.track-order-result.cancelado,
-.track-order-result.error {
+.track-order-result.cancelado {
   border-color: #efb8b8;
   background: #fff0f0;
   color: #9b2525;
 }
-
-
-.track-order-result.error {
-  grid-template-columns: 1fr;
-  font-size: 13px;
-  font-weight: 800;
-}
-
 
 @media (max-width: 1040px) {
   .home-action-grid {
@@ -2519,8 +2510,7 @@
 }
 
 
-:root[data-theme="dark-sidebar"] .track-order-result.cancelado,
-:root[data-theme="dark-sidebar"] .track-order-result.error {
+:root[data-theme="dark-sidebar"] .track-order-result.cancelado {
   border-color: rgba(248, 113, 113, 0.42);
   background: rgba(248, 113, 113, 0.1);
   color: #f87171;

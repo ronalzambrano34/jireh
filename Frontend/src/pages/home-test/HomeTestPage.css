@@ -817,17 +817,6 @@
   cursor: pointer;
 }
 
-.ht-tracker-error {
-  margin-top: 10px;
-  border: 1px solid color-mix(in srgb, var(--ui-danger) 30%, var(--ui-border));
-  border-radius: var(--ui-radius-md);
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--ui-danger) 8%, var(--ui-surface));
-  color: var(--ui-danger-text);
-  font-size: 12px;
-  font-weight: 750;
-}
-
 .ht-tracker-result {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) auto;

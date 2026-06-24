@@ -13,7 +13,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { apiAssetUrl, obtenerPedido, obtenerTasasOperativas, rastrearPedidosPorCliente, sincronizarOfertas } from '../api/client';
-import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingToast } from '../components/FloatingToast';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
@@ -371,7 +371,7 @@ function HomeTestTracker({ onTrackPedido }: { onTrackPedido: (code: string) => v
     <section className="ht-panel ht-tracker">
       <header className="ht-section-heading"><span><ClipboardList size={21} /></span><div><h3>Rastrea un pedido</h3><p>Busca por codigo de operacion o numero de cliente.</p></div></header>
       <form onSubmit={submit}><label><Search size={18} /><input value={term} onChange={(event) => setTerm(event.target.value)} placeholder="Ej. JH-3204-CUBA o 125" /></label><button type="submit" disabled={!term.trim() || loading}>{loading ? 'Buscando...' : 'Rastrear'}</button></form>
-      {error && <div className="ht-tracker-error">{error}</div>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {orders.map((order) => (
         <article className="ht-tracker-result" key={order.codigo_operacion}>
           <span><Clock3 size={18} /><small>Estado</small><strong>{order.estado.replaceAll('_', ' ')}</strong></span>
@@ -449,7 +449,7 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
   return (
     <section className="home-test-page app-page-width">
       <HomeTestCarousel data={data} group={activeGroup} loading={loading} syncing={syncing} canSync={canSyncTasas} onRefresh={() => void refresh()} onCreate={onCreate} />
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {loading && !data && <PageLoader label="Cargando tasas" inline />}
       {activeGroup && (
         <>

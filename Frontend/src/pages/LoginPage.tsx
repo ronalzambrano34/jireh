@@ -5,7 +5,7 @@ import type { Operador } from '../types/api';
 import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import { PhoneInput } from '../components/PhoneInput';
 import { PasswordField } from '../components/PasswordField';
-import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import bannerJireh from '../assets/brand/banner-jireh.webp';
 import './login/LoginPage.css';
@@ -131,7 +131,7 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
         <span>Contraseña</span>
         <PasswordField id="login-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
       </label>
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {loading && <PageLoader inline label={progressLabel} />}
       <div className="login-actions">
         <button type="submit" className="primary-button" disabled={loading || !online} aria-busy={loading ? 'true' : 'false'}>{loading ? `Entrando... ${elapsedSeconds}s` : 'Entrar'}</button>

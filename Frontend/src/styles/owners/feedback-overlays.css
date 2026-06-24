@@ -94,7 +94,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .app-toast-stack {
-  top: calc(18px + env(safe-area-inset-top));
+  top: calc(92px + env(safe-area-inset-top));
   gap: 8px;
 }
 
@@ -246,7 +246,7 @@
 @media (max-width: 560px) {
 
   :root[data-theme="dark-sidebar"] .app-toast-stack {
-    top: calc(12px + env(safe-area-inset-top));
+    top: calc(78px + env(safe-area-inset-top));
     right: 14px;
     width: auto;
   }

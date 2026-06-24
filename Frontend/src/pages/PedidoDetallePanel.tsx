@@ -4,6 +4,7 @@ import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
 import { UiSwitch } from '../components/UiSwitch';
+import { ERROR_TOAST_DURATION_MS, FloatingToast } from '../components/FloatingToast';
 import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerAssetBlob, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
 import type { ArchivoPedido, Operador, PedidoDetalle, PedidoResumen } from '../types/api';
 import {
@@ -199,7 +200,6 @@ const camposCopiables = new Set([
   'monto_divisa',
 ]);
 const COPY_FEEDBACK_DURATION_MS = 2600;
-const ERROR_TOAST_DURATION_MS = 5200;
 const ESTADOS_TERMINALES = new Set(['completado', 'cancelado']);
 
 function estadoLabel(value: string) {
@@ -964,14 +964,7 @@ export function PedidoDetallePanel({
       onWheel={desplazarHorizontalmente}
     >
       {error && (
-        <div className="app-toast-stack" aria-live="polite">
-          <div className="app-toast error" role="alert">
-            <span>{error}</span>
-            <button type="button" onClick={cerrarError} title="Cerrar notificacion" aria-label="Cerrar notificacion">
-              <X size={16} />
-            </button>
-          </div>
-        </div>
+        <FloatingToast onDismiss={cerrarError}>{error}</FloatingToast>
       )}
       <PedidoDetailHeader
         codigo={pedido?.codigo_operacion ?? codigo}

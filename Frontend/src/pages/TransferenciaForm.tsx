@@ -295,7 +295,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
               Cupon o bono
               <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>
-            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} />
+            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} onDismissError={() => setCalculoError(null)} />
           </div>
         </section>
     </CreateOrderFormShell>

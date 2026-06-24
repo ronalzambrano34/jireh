@@ -5,6 +5,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
 import { PhoneInput } from '../components/PhoneInput';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
 import { UiSwitch } from '../components/UiSwitch';
@@ -1277,7 +1278,7 @@ export function AdminCatalogosPage() {
         onRefresh={() => void cargar()}
       />
 
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {notice && <DismissibleNotice className="notice">{notice}</DismissibleNotice>}
       {loading && temaActivo && !temasCargados.has(temaActivo) && (
         <PageLoader label={`Cargando ${tituloTema(temaActivo).toLowerCase()}`} inline />

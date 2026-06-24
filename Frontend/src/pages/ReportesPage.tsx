@@ -3,6 +3,7 @@ import { Landmark, MinusCircle } from 'lucide-react';
 import { crearExtraccionCuenta, descargarOperacionesExcel, descargarReporteCsv, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
 import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, SaldoCuenta } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
+import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { ReportFilters, type ReportFilterState, type ReportPeriod } from './reportes/ReportFilters';
@@ -219,7 +220,7 @@ export function ReportesPage() {
         onExportExcel={() => void exportarExcel()}
       />
 
-      {error && <DismissibleNotice className="notice error" role="alert">{error}</DismissibleNotice>}
+      {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
       {loading && !reporte && <PageLoader label="Buscando datos del reporte" inline />}
       {loading && reporte && <PageLoader label="Actualizando reporte" inline />}
       {!loading && !error && !reporte && (

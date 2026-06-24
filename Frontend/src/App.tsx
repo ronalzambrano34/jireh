@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { Modal } from './components/Modal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { UserHeaderMenu } from './components/UserHeaderMenu';
+import { ERROR_TOAST_DURATION_MS, INFO_TOAST_DURATION_MS, PROFILE_TOAST_DURATION_MS, ToastMessage } from './components/FloatingToast';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
@@ -37,7 +38,6 @@ type AppTheme = 'light' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
-type AppToastKind = 'success' | 'error';
 type AppView = 'inicio' | 'home-test' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'perfil';
 type PendingAuthAction =
   | { type: 'crear'; servicio: ServicioCrear; draft: CrearPedidoDraft }
@@ -48,9 +48,6 @@ const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
 const APP_VIEWS = new Set<AppView>(['inicio', 'home-test', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'perfil']);
 const estadosBandeja = estados.filter((item) => item.value);
-const INFO_TOAST_DURATION_MS = 3800;
-const PROFILE_TOAST_DURATION_MS = 5600;
-const ERROR_TOAST_DURATION_MS = 5200;
 const PULL_REFRESH_THRESHOLD = 64;
 const EXIT_BACK_WINDOW_MS = 2000;
 
@@ -73,17 +70,6 @@ function intervaloRefrescoPedidos() {
 
 function estadoFaseUno(value: string) {
   return value === 'en_operacion' ? 'pago_confirmado' : value;
-}
-
-function AppToast({ kind, message, onClose }: { kind: AppToastKind; message: string; onClose: () => void }) {
-  return (
-    <div className={`app-toast ${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
-      <span>{message}</span>
-      <button type="button" onClick={onClose} title="Cerrar notificacion" aria-label="Cerrar notificacion">
-        <X size={16} />
-      </button>
-    </div>
-  );
 }
 
 function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
@@ -963,10 +949,10 @@ export function App() {
     <div className={appShellClassName}>
       {(copyToast || error || profileMessage || profileError) && (
         <div className="app-toast-stack" aria-live="polite">
-          {copyToast && <AppToast kind="success" message={copyToast} onClose={cerrarCopyToast} />}
-          {profileMessage && <AppToast kind="success" message={profileMessage} onClose={cerrarProfileMessage} />}
-          {error && <AppToast kind="error" message={error} onClose={cerrarError} />}
-          {profileError && <AppToast kind="error" message={profileError} onClose={cerrarProfileError} />}
+          {copyToast && <ToastMessage kind="success" message={copyToast} onClose={cerrarCopyToast} />}
+          {profileMessage && <ToastMessage kind="success" message={profileMessage} onClose={cerrarProfileMessage} />}
+          {error && <ToastMessage kind="error" message={error} onClose={cerrarError} />}
+          {profileError && <ToastMessage kind="error" message={profileError} onClose={cerrarProfileError} />}
         </div>
       )}
       <PwaInstallPrompt />

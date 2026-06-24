@@ -398,7 +398,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
               Cupon o bono
               <input value={form.bonificacion_manual} onChange={(event) => update('bonificacion_manual', event.target.value)} inputMode="decimal" placeholder="Bono de tasa opcional" />
             </label>
-            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} />
+            <CalculoPreview calculo={calculo} loading={calculando} error={calculoError} onDismissError={() => setCalculoError(null)} />
             <label className="wide">
               Observaciones
               <input value={form.observaciones} onChange={(event) => update('observaciones', event.target.value)} />
