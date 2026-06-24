@@ -289,6 +289,10 @@ const configuracionesDestacadas = new Set([
   'carousel_slides_seeded_v1',
 ]);
 
+const configuracionesOcultasPorPrefijo = [
+  'ofertas_sync',
+];
+
 const todasLasVariablesTemplate = Array.from(new Set([
   ...templateVariablesComunes,
   ...Object.values(templateVariablesPorClave).flat(),
@@ -390,7 +394,11 @@ export function AdminCatalogosPage() {
     valor: configuraciones.find((config) => config.clave === item.clave)?.valor ?? '',
   })), [configuraciones]);
   const configuracionesSistema = useMemo(
-    () => configuraciones.filter((item) => !item.clave.startsWith('template_') && !configuracionesDestacadas.has(item.clave)),
+    () => configuraciones.filter((item) => (
+      !item.clave.startsWith('template_')
+      && !configuracionesDestacadas.has(item.clave)
+      && !configuracionesOcultasPorPrefijo.some((prefijo) => item.clave.startsWith(prefijo))
+    )),
     [configuraciones]
   );
   const configuracionesSistemaTotal = configuracionesSistema.length + whatsappConfiguraciones.length;
