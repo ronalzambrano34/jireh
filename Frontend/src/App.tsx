@@ -87,6 +87,20 @@ function estadoCoincideFiltro(value: string, filtro: string) {
   return estadoVisible === filtro;
 }
 
+function pedidoDisponibleParaNotificacion(pedido: PedidoResumen) {
+  return estadoFaseUno(pedido.estado) === 'pago_confirmado';
+}
+
+function pedidoTomadoPorOtroOperador(pedido: PedidoResumen | undefined, operador: Operador | null) {
+  return Boolean(
+    pedido
+    && operador
+    && pedido.lock_activo
+    && pedido.operador_asignado_id
+    && pedido.operador_asignado_id !== operador.id
+  );
+}
+
 function notificationStorageKey(operadorId: number) {
   return `jireh.notifications.${operadorId}`;
 }
@@ -325,7 +339,8 @@ export function App() {
 
     for (const pedido of data) {
       const codigo = pedido.codigo_operacion;
-      nextCodes.add(codigo);
+      const disponibleParaNotificar = pedidoDisponibleParaNotificacion(pedido);
+      if (disponibleParaNotificar) nextCodes.add(codigo);
 
       const transferKey = pedido.redirigido_a_operador_id
         ? `${pedido.redirigido_a_operador_id}:${pedido.redirigido_por_operador_id ?? ''}:${pedido.redirigido_en ?? ''}`
@@ -335,11 +350,13 @@ export function App() {
       if (!notificationSnapshotReadyRef.current) continue;
 
       const createdAt = pedido.created_at ? Date.parse(pedido.created_at) : now;
+      const confirmedAt = pedido.fecha_pago_confirmado ? Date.parse(pedido.fecha_pago_confirmado) : createdAt;
       const transferAt = pedido.redirigido_en ? Date.parse(pedido.redirigido_en) : now;
-      const creadoReciente = Number.isNaN(createdAt) || now - createdAt <= 10 * 60 * 1000;
+      const confirmadoReciente = Number.isNaN(confirmedAt) || now - confirmedAt <= 30 * 60 * 1000;
       const transferidoReciente = Number.isNaN(transferAt) || now - transferAt <= 30 * 60 * 1000;
       const transferidoAMi = pedido.redirigido_a_operador_id === operador.id;
-      const estaAtrasado = !Number.isNaN(createdAt)
+      const estaAtrasado = disponibleParaNotificar
+        && !Number.isNaN(createdAt)
         && now - createdAt > ORDER_DELAY_MINUTES * 60 * 1000
         && pedido.estado !== 'completado'
         && pedido.estado !== 'cancelado';
@@ -357,14 +374,14 @@ export function App() {
         continue;
       }
 
-      if (!knownPedidoCodesRef.current.has(codigo) && pedido.operador_id !== operador.id && creadoReciente) {
+      if (disponibleParaNotificar && !knownPedidoCodesRef.current.has(codigo) && pedido.operador_id !== operador.id && confirmadoReciente) {
         nuevas.push({
           id: `nuevo:${codigo}`,
           kind: 'nuevo_pedido',
           codigo,
           title: 'Nuevo pedido',
           body: `${codigo} · ${servicioNotificacionLabel(pedido.servicio)} · ${pedido.moneda_pago}`,
-          createdAt: Number.isNaN(createdAt) ? now : createdAt,
+          createdAt: Number.isNaN(confirmedAt) ? now : confirmedAt,
           read: false,
         });
       }
@@ -677,7 +694,25 @@ export function App() {
     setNotificaciones([]);
   }
 
-  function abrirNotificacion(id: string) {
+  function limpiarFiltrosPedidos() {
+    setBusqueda('');
+    setEstado('');
+    setServicio('');
+    setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
+    setPeriodoPedidos('hoy');
+  }
+
+  function cerrarDetallePedido() {
+    setSeleccionado(null);
+    limpiarFiltrosPedidos();
+  }
+
+  function actualizarPedidosDesdeDetalle() {
+    limpiarFiltrosPedidos();
+    void cargarPedidos();
+  }
+
+  async function abrirNotificacion(id: string) {
     const notificacion = notificacionesRef.current.find((item) => item.id === id);
     setNotificaciones((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
     if (!notificacion?.codigo) return;
@@ -685,12 +720,37 @@ export function App() {
     setBusqueda(notificacion.codigo);
     setEstado('');
     setServicio('');
-    setSeleccionado(notificacion.codigo);
+    setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
+    setSeleccionado(null);
     setVista('bandeja');
     setMobileMenuOpen(false);
     setQuickCreateOpen(false);
     setProfileSection(null);
-    void cargarPedidos();
+    try {
+      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+      const data = await listarPedidos({
+        limit: 200,
+        alcance: alcanceCarga,
+        ...rangoPeriodoPedidos(periodoPedidos),
+      });
+      revisarNotificacionesPedidos(data);
+      if (puedeVerTodasLasOrdenes) {
+        aplicarPedidosPorAlcance(data);
+      } else {
+        setAlcanceConteos({ mis: data.length, todas: data.length });
+        setPedidos(data);
+      }
+
+      const pedidoActual = data.find((pedido) => pedido.codigo_operacion === notificacion.codigo);
+      if (pedidoTomadoPorOtroOperador(pedidoActual, operador)) {
+        setError('Este pedido ya esta tomado por otro operador');
+        return;
+      }
+      if (!pedidoActual || !pedidoDisponibleParaNotificacion(pedidoActual)) return;
+      setSeleccionado(notificacion.codigo);
+    } catch {
+      void cargarPedidos();
+    }
   }
 
   function abrirUrlPago(url?: string | null) {
@@ -1337,8 +1397,8 @@ export function App() {
             pedidoInicial={pedidoSeleccionadoInicial}
             operadorId={operador.id}
             canManage={Boolean(operador.permisos.includes('pedidos:gestionar') || operador.permisos.includes('empresa:control_total'))}
-            onChanged={cargarPedidos}
-            onClose={() => setSeleccionado(null)}
+            onChanged={actualizarPedidosDesdeDetalle}
+            onClose={cerrarDetallePedido}
             codigosNavegacion={codigosPedidosTomadosPorMi}
             onNavigate={setSeleccionado}
           />
