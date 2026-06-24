@@ -7,6 +7,7 @@ import { Modal } from './components/Modal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { UserHeaderMenu } from './components/UserHeaderMenu';
 import { ERROR_TOAST_DURATION_MS, INFO_TOAST_DURATION_MS, PROFILE_TOAST_DURATION_MS, ToastMessage } from './components/FloatingToast';
+import { NotificationBell, type AppNotification } from './components/NotificationBell';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
@@ -50,6 +51,11 @@ const APP_VIEWS = new Set<AppView>(['inicio', 'home-test', 'bandeja', 'crear', '
 const estadosBandeja = estados.filter((item) => item.value);
 const PULL_REFRESH_THRESHOLD = 64;
 const EXIT_BACK_WINDOW_MS = 2000;
+const NOTIFICATION_LIMIT = 50;
+
+type WebAudioWindow = Window & typeof globalThis & {
+  webkitAudioContext?: typeof AudioContext;
+};
 
 function vistaGuardada(): AppView {
   if (typeof sessionStorage === 'undefined') return 'inicio';
@@ -70,6 +76,21 @@ function intervaloRefrescoPedidos() {
 
 function estadoFaseUno(value: string) {
   return value === 'en_operacion' ? 'pago_confirmado' : value;
+}
+
+function notificationStorageKey(operadorId: number) {
+  return `jireh.notifications.${operadorId}`;
+}
+
+function servicioNotificacionLabel(value: string) {
+  const labels: Record<string, string> = {
+    transferencia: 'Transferencia',
+    efectivo: 'Entrega de efectivo',
+    saldo: 'Saldo',
+    divisa: 'Divisa',
+    otros: 'Otros',
+  };
+  return labels[value] ?? value;
 }
 
 function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
@@ -154,9 +175,15 @@ export function App() {
   const pullStartRef = useRef<{ x: number; y: number } | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
   const [pullRefreshing, setPullRefreshing] = useState(false);
+  const [notificaciones, setNotificaciones] = useState<AppNotification[]>([]);
   const historyViewRef = useRef<AppView>(vista);
   const handlingPopStateRef = useRef(false);
   const lastExitBackRef = useRef(0);
+  const notificationAudioContextRef = useRef<AudioContext | null>(null);
+  const notificacionesRef = useRef<AppNotification[]>([]);
+  const notificationSnapshotReadyRef = useRef(false);
+  const knownPedidoCodesRef = useRef<Set<string>>(new Set());
+  const knownTransferKeysRef = useRef<Map<string, string>>(new Map());
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -181,6 +208,11 @@ export function App() {
   const puedeSincronizarTasas = useMemo(
     () => operador?.rol !== 'cliente' && (puedeCrear || puedeReportes || puedeAdmin),
     [operador, puedeAdmin, puedeCrear, puedeReportes],
+  );
+
+  const notificacionesSinLeer = useMemo(
+    () => notificaciones.filter((notificacion) => !notificacion.read).length,
+    [notificaciones],
   );
 
   function iniciarPullRefresh(event: TouchEvent<HTMLElement>) {
@@ -225,6 +257,113 @@ export function App() {
     pullStartRef.current = null;
     setPullDistance(0);
   }
+
+  const reproducirSonidoNotificacion = useCallback(() => {
+    try {
+      const AudioContextCtor = window.AudioContext ?? (window as WebAudioWindow).webkitAudioContext;
+      if (!AudioContextCtor) return;
+
+      const audioContext = notificationAudioContextRef.current ?? new AudioContextCtor();
+      notificationAudioContextRef.current = audioContext;
+
+      const play = () => {
+        const start = audioContext.currentTime;
+        [880, 1175].forEach((frequency, index) => {
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          const toneStart = start + index * 0.16;
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(frequency, toneStart);
+          gain.gain.setValueAtTime(0.0001, toneStart);
+          gain.gain.exponentialRampToValueAtTime(0.18, toneStart + 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.0001, toneStart + 0.14);
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.start(toneStart);
+          oscillator.stop(toneStart + 0.15);
+        });
+      };
+
+      if (audioContext.state === 'suspended') {
+        void audioContext.resume().then(play).catch(() => {});
+        return;
+      }
+      play();
+    } catch {
+    }
+  }, []);
+
+  const agregarNotificaciones = useCallback((items: AppNotification[]) => {
+    if (!items.length) return;
+
+    setNotificaciones((current) => {
+      const ids = new Set(current.map((item) => item.id));
+      const nuevas = items.filter((item) => !ids.has(item.id));
+      if (!nuevas.length) return current;
+      return [...nuevas, ...current].slice(0, NOTIFICATION_LIMIT);
+    });
+    reproducirSonidoNotificacion();
+  }, [reproducirSonidoNotificacion]);
+
+  const revisarNotificacionesPedidos = useCallback((data: PedidoResumen[]) => {
+    if (!operador) return;
+
+    const nextCodes = new Set<string>();
+    const nextTransferKeys = new Map<string, string>();
+    const nuevas: AppNotification[] = [];
+    const now = Date.now();
+
+    for (const pedido of data) {
+      const codigo = pedido.codigo_operacion;
+      nextCodes.add(codigo);
+
+      const transferKey = pedido.redirigido_a_operador_id
+        ? `${pedido.redirigido_a_operador_id}:${pedido.redirigido_por_operador_id ?? ''}:${pedido.redirigido_en ?? ''}`
+        : '';
+      if (transferKey) nextTransferKeys.set(codigo, transferKey);
+
+      if (!notificationSnapshotReadyRef.current) continue;
+
+      const createdAt = pedido.created_at ? Date.parse(pedido.created_at) : now;
+      const transferAt = pedido.redirigido_en ? Date.parse(pedido.redirigido_en) : now;
+      const creadoReciente = Number.isNaN(createdAt) || now - createdAt <= 10 * 60 * 1000;
+      const transferidoReciente = Number.isNaN(transferAt) || now - transferAt <= 30 * 60 * 1000;
+      const transferidoAMi = pedido.redirigido_a_operador_id === operador.id;
+
+      if (transferidoAMi && transferKey && knownTransferKeysRef.current.get(codigo) !== transferKey && transferidoReciente) {
+        nuevas.push({
+          id: `transferido:${codigo}:${transferKey}`,
+          kind: 'pedido_transferido',
+          codigo,
+          title: 'Pedido transferido',
+          body: `${codigo} para ti${pedido.redireccion_mensaje ? ` · ${pedido.redireccion_mensaje}` : ''}`,
+          createdAt: Number.isNaN(transferAt) ? now : transferAt,
+          read: false,
+        });
+        continue;
+      }
+
+      if (!knownPedidoCodesRef.current.has(codigo) && pedido.operador_id !== operador.id && creadoReciente) {
+        nuevas.push({
+          id: `nuevo:${codigo}`,
+          kind: 'nuevo_pedido',
+          codigo,
+          title: 'Nuevo pedido',
+          body: `${codigo} · ${servicioNotificacionLabel(pedido.servicio)} · ${pedido.moneda_pago}`,
+          createdAt: Number.isNaN(createdAt) ? now : createdAt,
+          read: false,
+        });
+      }
+    }
+
+    knownPedidoCodesRef.current = nextCodes;
+    knownTransferKeysRef.current = nextTransferKeys;
+    if (!notificationSnapshotReadyRef.current) {
+      notificationSnapshotReadyRef.current = true;
+      return;
+    }
+    agregarNotificaciones(nuevas);
+  }, [agregarNotificaciones, operador]);
 
   const pedidosFiltrados = useMemo(() => {
     const term = busqueda.trim().toLowerCase();
@@ -497,6 +636,30 @@ export function App() {
     setProfileError(null);
   }
 
+  function marcarTodasNotificacionesLeidas() {
+    setNotificaciones((current) => current.map((item) => ({ ...item, read: true })));
+  }
+
+  function limpiarNotificaciones() {
+    setNotificaciones([]);
+  }
+
+  function abrirNotificacion(id: string) {
+    const notificacion = notificacionesRef.current.find((item) => item.id === id);
+    setNotificaciones((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
+    if (!notificacion?.codigo) return;
+
+    setBusqueda(notificacion.codigo);
+    setEstado('');
+    setServicio('');
+    setSeleccionado(notificacion.codigo);
+    setVista('bandeja');
+    setMobileMenuOpen(false);
+    setQuickCreateOpen(false);
+    setProfileSection(null);
+    void cargarPedidos();
+  }
+
   function abrirUrlPago(url?: string | null) {
     abrirWhatsAppUrl(url);
   }
@@ -582,6 +745,7 @@ export function App() {
         alcance: alcanceCarga,
         ...rangoPeriodoPedidos(periodoPedidos),
       });
+      revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
         aplicarPedidosPorAlcance(data);
       } else {
@@ -593,7 +757,7 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos]);
+  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
   const refrescarPedidosSilencioso = useCallback(async () => {
     try {
@@ -603,6 +767,7 @@ export function App() {
         alcance: alcanceCarga,
         ...rangoPeriodoPedidos(periodoPedidos),
       });
+      revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
         aplicarPedidosPorAlcance(data);
       } else {
@@ -612,7 +777,7 @@ export function App() {
     } catch {
       // El refresco silencioso no debe interrumpir al operador si falla una vuelta.
     }
-  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos]);
+  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
 
   useEffect(() => {
@@ -707,6 +872,57 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (!operador) {
+      setNotificaciones([]);
+      notificacionesRef.current = [];
+      notificationSnapshotReadyRef.current = false;
+      knownPedidoCodesRef.current = new Set();
+      knownTransferKeysRef.current = new Map();
+      return;
+    }
+
+    notificationSnapshotReadyRef.current = false;
+    knownPedidoCodesRef.current = new Set();
+    knownTransferKeysRef.current = new Map();
+
+    try {
+      const saved = localStorage.getItem(notificationStorageKey(operador.id));
+      const parsed = saved ? JSON.parse(saved) : [];
+      setNotificaciones(Array.isArray(parsed) ? parsed.slice(0, NOTIFICATION_LIMIT) : []);
+    } catch {
+      setNotificaciones([]);
+    }
+  }, [operador]);
+
+  useEffect(() => {
+    notificacionesRef.current = notificaciones;
+    if (!operador) return;
+    localStorage.setItem(notificationStorageKey(operador.id), JSON.stringify(notificaciones.slice(0, NOTIFICATION_LIMIT)));
+  }, [notificaciones, operador]);
+
+  useEffect(() => {
+    if (!operador) return undefined;
+
+    function unlockAudio() {
+      try {
+        const AudioContextCtor = window.AudioContext ?? (window as WebAudioWindow).webkitAudioContext;
+        if (!AudioContextCtor) return;
+        const audioContext = notificationAudioContextRef.current ?? new AudioContextCtor();
+        notificationAudioContextRef.current = audioContext;
+        if (audioContext.state === 'suspended') void audioContext.resume();
+      } catch {
+      }
+    }
+
+    window.addEventListener('pointerdown', unlockAudio, true);
+    window.addEventListener('keydown', unlockAudio, true);
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio, true);
+      window.removeEventListener('keydown', unlockAudio, true);
+    };
+  }, [operador]);
+
+  useEffect(() => {
     if (operador) void cargarPedidos();
   }, [cargarPedidos, operador]);
 
@@ -723,13 +939,12 @@ export function App() {
   }, [operador, puedeAdmin, setupRevisado]);
 
   useEffect(() => {
-    if (!operador || vista !== 'bandeja' || !online) return undefined;
+    if (!operador || !online) return undefined;
     const interval = window.setInterval(() => {
-      if (document.hidden) return;
       void refrescarPedidosSilencioso();
     }, intervaloRefrescoPedidos());
     return () => window.clearInterval(interval);
-  }, [online, operador, refrescarPedidosSilencioso, vista]);
+  }, [online, operador, refrescarPedidosSilencioso]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setPedidosClock(Date.now()), 60000);
@@ -1018,6 +1233,13 @@ export function App() {
             <p>{vista === 'inicio' ? 'Tasas activas y accesos rapidos' : vista === 'home-test' ? 'Nueva propuesta visual del inicio' : vista === 'crear' ? 'Registro rapido para operacion interna' : vista === 'reportes' ? 'Resumen operativo por filtros' : vista === 'admin' ? 'Catalogos operativos' : vista === 'setup' ? 'Guia para preparar una instalacion nueva' : vista === 'perfil' ? 'Datos del operador activo' : 'Seguimiento simple, familiar y movil'}</p>
           </div>
           <div className="toolbar-actions">
+            <NotificationBell
+              notifications={notificaciones}
+              unreadCount={notificacionesSinLeer}
+              onSelect={abrirNotificacion}
+              onMarkAllRead={marcarTodasNotificacionesLeidas}
+              onClear={limpiarNotificaciones}
+            />
             <UserHeaderMenu
               operador={operador}
               darkTheme={theme !== 'light'}
