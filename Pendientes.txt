@@ -30,7 +30,7 @@ al cerrar o liberar o cancelar o etcétera; un pedido, que se elimine el filtro 
 
 en la vista pedidos. los componentes del Hero que muestran "Mis pedidos", "En proceso", "Completados" que sean botones que activen el filtro correspondiente a ese botón (y lógicamente borren el filtro anterior)
 
-
+en la vista pedidos, cambiar el contador de tiempos ("hace instantes") por los minutos. Después de 10 minutos que el texto se ponga en rojo, ponga q est atrasado y aparezca en Notificaciones.
 
 
 
