@@ -539,6 +539,9 @@ export function App() {
 
   function navegar(nextVista: typeof vista) {
     if (nextVista !== 'crear') setCrearDraft({});
+    if (nextVista === 'bandeja') {
+      setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
+    }
     setVista(nextVista);
     setMobileMenuOpen(false);
     setQuickCreateOpen(false);
@@ -662,7 +665,7 @@ export function App() {
       setPedidoPagoModal(pedido);
     }
     setSeleccionado(null);
-    setAlcancePedidos('mis');
+    setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
     setVista('bandeja');
     void cargarPedidos();
     if (advertencia) setError(advertencia);

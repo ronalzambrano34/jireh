@@ -993,22 +993,10 @@ export function PedidoDetallePanel({
             bloqueoPropio={bloqueoPropio}
             bloqueadoPorOtro={bloqueadoPorOtro}
             saving={saving}
+            hasMensajeOperativo={Boolean(pedido.mensaje_operacion)}
+            onOpenMensajeOperativo={() => setMensajeOperativoModalAbierto(true)}
             onRelease={canManage ? () => void liberarPedidoActual() : () => undefined}
           />
-
-          {pedido.mensaje_operacion && (
-            <div className="order-detail-icon-actions" aria-label="Acciones rapidas del pedido">
-              <button
-                className="order-detail-icon-action"
-                type="button"
-                onClick={() => setMensajeOperativoModalAbierto(true)}
-                title="Reenviar mensaje operativo"
-                aria-label="Reenviar mensaje operativo"
-              >
-                <Send size={17} />
-              </button>
-            </div>
-          )}
 
           {copyFeedback && (
             <div className="copy-toast" role="status">

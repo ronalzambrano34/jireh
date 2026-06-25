@@ -147,12 +147,33 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 430px) {
+@media (max-width: 720px) {
   .order-control-head {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .order-management-actions {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    justify-content: stretch;
+  }
+
+  .desktop-message-action {
+    display: none;
+  }
+
+  .mobile-message-action {
+    grid-column: 2;
+    display: grid;
+    justify-self: end;
+  }
+
   .release-order-button {
+    grid-column: 1 / -1;
     width: 100%;
     min-height: 42px;
   }
@@ -428,29 +449,37 @@
   justify-self: start;
 }
 
-.order-detail-icon-actions {
+.order-management-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: flex;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.order-detail-icon-action {
-  width: 42px;
-  height: 42px;
+.order-message-icon-action {
+  width: 34px;
+  min-width: 34px;
+  height: 30px;
   display: grid;
   place-items: center;
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--ui-surface-raised);
   color: var(--ui-primary-strong);
   cursor: pointer;
 }
 
-.order-detail-icon-action:hover,
-.order-detail-icon-action:focus-visible {
+.order-message-icon-action:hover,
+.order-message-icon-action:focus-visible {
   border-color: var(--ui-border-strong);
   background: var(--ui-surface-hover);
   outline: 0;
+}
+
+.mobile-message-action {
+  display: none;
 }
 
 .liquidation-card {

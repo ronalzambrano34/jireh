@@ -1,5 +1,5 @@
 import type { ChangeEvent, ReactNode } from 'react';
-import { ChevronDown, Copy, ExternalLink, FileText, History, Lock, ShieldAlert, Unlock, Upload, X } from 'lucide-react';
+import { ChevronDown, Copy, ExternalLink, FileText, History, Lock, MessageCircle, ShieldAlert, Unlock, Upload, X } from 'lucide-react';
 import type { ArchivoPedido, PedidoDetalle } from '../../types/api';
 
 export function PedidoDetailHeader({ codigo, servicio, moneda, onClose }: { codigo: string; servicio?: string; moneda?: string; onClose: () => void }) {
@@ -24,6 +24,8 @@ export function OrderControlHead({
   bloqueoPropio,
   bloqueadoPorOtro,
   saving,
+  hasMensajeOperativo,
+  onOpenMensajeOperativo,
   onRelease,
 }: {
   pedido: PedidoDetalle;
@@ -32,6 +34,8 @@ export function OrderControlHead({
   bloqueoPropio: boolean;
   bloqueadoPorOtro: boolean;
   saving: boolean;
+  hasMensajeOperativo: boolean;
+  onOpenMensajeOperativo: () => void;
   onRelease: () => void;
 }) {
   return (
@@ -44,9 +48,19 @@ export function OrderControlHead({
         <span className={`status ${pedido.estado}`}>{estado}</span>
         {bloqueoPropio && <span className="lock-chip own"><Lock size={14} /> Tomado por ti</span>}
         {bloqueadoPorOtro && <span className="lock-chip blocked"><ShieldAlert size={14} /> En uso</span>}
+        {hasMensajeOperativo && (
+          <button className="order-message-icon-action desktop-message-action" type="button" onClick={onOpenMensajeOperativo} title="Mensaje operativo" aria-label="Mensaje operativo">
+            <MessageCircle size={16} />
+          </button>
+        )}
       </div>
       {bloqueoPropio && (
         <div className="order-management-actions" aria-label="Acciones de gestion del pedido">
+          {hasMensajeOperativo && (
+            <button className="order-message-icon-action mobile-message-action" type="button" onClick={onOpenMensajeOperativo} title="Mensaje operativo" aria-label="Mensaje operativo">
+              <MessageCircle size={16} />
+            </button>
+          )}
           <button className="release-order-button" type="button" onClick={onRelease} disabled={saving}>
             <Unlock size={15} /> Liberar pedido
           </button>
