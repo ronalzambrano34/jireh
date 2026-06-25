@@ -9,7 +9,7 @@ import { formatearNumeroTarjeta } from '../utils/tarjetas';
 import './orders/OrdersPage.css';
 
 export type OrdersScope = 'mis' | 'todas';
-export type OrdersPeriod = 'hoy' | '7_dias' | 'mes' | 'todos';
+export type OrdersPeriod = 'hoy' | 'ayer' | '7_dias' | 'mes' | 'todos';
 export type OrdersView = 'lista' | 'kanban';
 export type OrdersGroup = { value: string; label: string; orden: number; pedidos: PedidoResumen[] };
 
@@ -191,9 +191,11 @@ export function OrdersPage(props: {
         </section>
         {filtersOpen && (
           <Modal title="Filtrar pedidos" subtitle={`${props.total} pedidos disponibles`} onClose={() => setFiltersOpen(false)} className="orders-filter-modal">
-            <div className="orders-filter-modal-content orders-filter-grid">
-              <section className="orders-filter-section">
-                <h3>Alcance</h3>
+            <div className="orders-filter-modal-content">
+              <section className="orders-filter-section orders-filter-scope-section">
+                <header className="orders-filter-section-header">
+                  <h3>Alcance</h3>
+                </header>
                 <div className="orders-filter-options two-columns orders-scope-chips">
                   <button type="button" className={props.scope === 'mis' ? 'active' : ''} onClick={() => props.onScope('mis')}><UserCircle size={17} /><span>Mis pedidos</span><strong>{props.misCount}</strong></button>
                   {props.canViewAll && <button type="button" className={props.scope === 'todas' ? 'active' : ''} onClick={() => props.onScope('todas')}><ClipboardList size={17} /><span>Todos</span><strong>{props.todasCount}</strong></button>}
@@ -201,12 +203,14 @@ export function OrdersPage(props: {
               </section>
 
               <section className="orders-filter-section orders-filter-selects">
-                <div className="order-filter-field order-filter-floating orders-period-action"><h3>Fecha</h3><FloatingSelect value={props.period} onChange={(value) => props.onPeriod(value as OrdersPeriod)} options={[{ value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> }, { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> }, { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> }, { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> }]} ariaLabel="Filtrar pedidos por fecha" align="left" buttonClassName="order-filter-button" /></div>
+                <div className="order-filter-field order-filter-floating orders-period-action"><h3>Fecha</h3><FloatingSelect value={props.period} onChange={(value) => props.onPeriod(value as OrdersPeriod)} options={[{ value: 'hoy', label: 'Hoy', icon: <CalendarRange size={17} /> }, { value: 'ayer', label: 'Ayer', icon: <CalendarRange size={17} /> }, { value: '7_dias', label: '7 dias', icon: <CalendarRange size={17} /> }, { value: 'mes', label: 'Este mes', icon: <CalendarRange size={17} /> }, { value: 'todos', label: 'Todos', icon: <CalendarRange size={17} /> }]} ariaLabel="Filtrar pedidos por fecha" align="left" buttonClassName="order-filter-button" /></div>
                 <div className="order-filter-field order-filter-floating orders-service-action"><h3>Servicio</h3><FloatingSelect value={props.servicio} onChange={props.onServicio} options={servicios.map((item) => ({ value: item.value, label: item.value ? item.label : 'Todos los servicios' }))} ariaLabel="Filtrar por servicio" align="right" buttonClassName="order-filter-button" /></div>
               </section>
 
               <section className="orders-filter-section">
-                <h3>Estado</h3>
+                <header className="orders-filter-section-header">
+                  <h3>Estado</h3>
+                </header>
                 <div className="orders-filter-options status-options status-filters">
                   <button type="button" className={!props.estado ? 'active' : ''} onClick={() => props.onEstado('')}><span>Todos</span><strong>{props.total}</strong></button>
                   {estados.map((item) => <button type="button" key={item.value} className={props.estado === item.value ? `${item.value} active` : item.value} onClick={() => props.onEstado(item.value)}><span>{item.label}</span><strong>{props.counts.get(item.value) ?? 0}</strong></button>)}

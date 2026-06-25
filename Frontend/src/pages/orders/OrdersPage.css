@@ -63,17 +63,6 @@
   color: var(--ui-text);
 }
 
-.orders-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
-  gap: 8px;
-  margin: 0 0 10px;
-  padding: 10px;
-  border: 1px solid var(--ui-border);
-  border-radius: 8px;
-  background: var(--ui-surface-raised);
-}
-
 .order-filter-field {
   position: relative;
   gap: 0;
@@ -143,9 +132,6 @@
     order: -1;
   }
 
-  .orders-filter-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
 }
 
 .single-view-toggle {
@@ -193,9 +179,6 @@
 
 @media (max-width: 520px) {
 
-  .orders-filter-grid {
-    padding: 8px;
-  }
 }
 
 :root[data-theme="dark-sidebar"] .order-filter-button {
@@ -204,8 +187,7 @@
   color: var(--jireh-ink);
 }
 
-:root[data-theme="dark-sidebar"] .order-filter-field,
-:root[data-theme="dark-sidebar"] .orders-filter-grid {
+:root[data-theme="dark-sidebar"] .order-filter-field {
   border-color: var(--jireh-line);
   background: #121c28;
   color: var(--jireh-ink);
@@ -435,8 +417,7 @@
   color: var(--ui-primary-strong);
 }
 
-:root[data-theme="dark-sidebar"] .order-filter-field,
-:root[data-theme="dark-sidebar"] .orders-filter-grid {
+:root[data-theme="dark-sidebar"] .order-filter-field {
   border-color: var(--menu-line);
   background: linear-gradient(180deg, var(--menu-card) 0%, var(--ui-surface-raised) 100%);
   color: var(--menu-text);
@@ -550,10 +531,6 @@
 }
 
 @media (max-width: 720px) {
-
-  .orders-view-shell .orders-filter-grid {
-    grid-template-columns: 1fr 1fr;
-  }
 
   .orders-view-shell .order-filter-button,
 .orders-view-shell .orders-search-box,
@@ -2360,12 +2337,24 @@
 
   .orders-command-panel .orders-top-actions,
   :root[data-theme="dark-sidebar"] .orders-command-panel .orders-top-actions {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 8px;
   }
 
   .orders-command-panel .orders-search-box {
-    flex-basis: calc(100% - 50px);
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
     max-width: none;
+  }
+
+  .orders-command-panel .orders-filter-toggle,
+  .orders-command-panel .single-view-toggle {
+    width: 42px;
+    min-width: 42px;
+    max-width: 42px;
   }
 
   .orders-filter-selects,
@@ -2380,5 +2369,219 @@
   .orders-content-grid .chat-order-card {
     min-height: 0;
     padding: 14px 14px 14px 17px;
+  }
+}
+
+.orders-filter-modal {
+  width: min(640px, calc(100vw - 28px));
+  max-height: min(720px, calc(100dvh - 28px));
+  overflow: hidden;
+  border-radius: var(--ui-radius-lg);
+}
+
+.orders-filter-modal .modal-header {
+  align-items: start;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.orders-filter-modal .modal-header h2,
+.orders-filter-modal .modal-header p {
+  margin: 0;
+}
+
+.orders-filter-modal .modal-body {
+  max-height: calc(min(720px, 100dvh - 28px) - 84px);
+  overflow: auto;
+  padding: 16px 18px 0;
+}
+
+.orders-filter-modal-content {
+  display: grid;
+  gap: 14px;
+}
+
+.orders-filter-section {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.orders-filter-section-header {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.orders-filter-section h3 {
+  margin: 0;
+  color: var(--ui-text-muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.orders-filter-options {
+  display: grid;
+  gap: 8px;
+}
+
+.orders-filter-options.two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.orders-filter-options.status-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.orders-filter-options button {
+  min-width: 0;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  padding: 10px 12px;
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  text-align: left;
+}
+
+.orders-filter-options button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.orders-filter-options button strong {
+  min-width: 28px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  justify-self: end;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: var(--ui-canvas-soft);
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.orders-filter-options button.active {
+  border-color: color-mix(in srgb, var(--orders-accent, var(--ui-primary)) 44%, var(--ui-border));
+  background: color-mix(in srgb, var(--orders-accent, var(--ui-primary)) 10%, var(--ui-surface));
+  color: var(--orders-accent, var(--ui-primary));
+}
+
+.orders-filter-options button.active strong {
+  background: color-mix(in srgb, var(--orders-accent, var(--ui-primary)) 14%, var(--ui-surface));
+  color: inherit;
+}
+
+.orders-filter-selects {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.orders-filter-selects > div {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.orders-filter-selects .floating-select,
+.orders-filter-selects .order-filter-button {
+  width: 100%;
+}
+
+.orders-filter-selects .order-filter-button {
+  min-height: 50px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-raised);
+}
+
+.orders-filter-modal-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: minmax(104px, 0.42fr) minmax(0, 1fr);
+  gap: 8px;
+  margin: 2px -18px 0;
+  padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ui-border);
+  background: color-mix(in srgb, var(--ui-surface) 96%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.orders-filter-modal-actions button {
+  min-height: 48px;
+  border-radius: var(--ui-radius-md);
+}
+
+:root[data-theme="dark-sidebar"] .orders-filter-modal {
+  background: var(--ui-surface);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .orders-filter-modal .modal-header,
+:root[data-theme="dark-sidebar"] .orders-filter-modal-actions {
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .orders-filter-modal-actions {
+  background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
+}
+
+@media (max-width: 560px) {
+  .modal-backdrop:has(.orders-filter-modal) {
+    place-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+
+  .orders-filter-modal {
+    width: min(430px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    border-radius: 18px;
+  }
+
+  .orders-filter-modal .modal-header {
+    padding: 16px 16px 12px;
+  }
+
+  .orders-filter-modal .modal-body {
+    max-height: calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 14px 16px 0;
+  }
+
+  .orders-filter-modal-content {
+    gap: 12px;
+  }
+
+  .orders-filter-options.two-columns,
+  .orders-filter-options.status-options,
+  .orders-filter-selects {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-filter-options button,
+  .orders-filter-selects .order-filter-button {
+    min-height: 48px;
+  }
+
+  .orders-filter-modal-actions {
+    grid-template-columns: 1fr 1.25fr;
+    margin-right: -16px;
+    margin-left: -16px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 }

@@ -37,7 +37,7 @@ const estados = [
 type ProfileSection = 'editar' | 'permisos' | 'notificaciones' | 'password' | 'ayuda' | null;
 type AppTheme = 'light' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
-type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
+type PeriodoPedidos = 'hoy' | 'ayer' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 type AppView = 'inicio' | 'home-test' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'perfil';
 type PendingAuthAction =
@@ -136,7 +136,10 @@ function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
 
   const desde = new Date(ahora);
   desde.setHours(0, 0, 0, 0);
-  if (periodo === '7_dias') {
+  if (periodo === 'ayer') {
+    hasta.setHours(0, 0, 0, 0);
+    desde.setDate(desde.getDate() - 1);
+  } else if (periodo === '7_dias') {
     desde.setDate(desde.getDate() - 6);
   } else if (periodo === 'mes') {
     desde.setDate(1);
