@@ -62,21 +62,31 @@ function resumen(pedido: PedidoResumen) {
   return fields.filter((field) => field.value).slice(0, 2);
 }
 
+function parseBackendTime(value?: string) {
+  if (!value) return Number.NaN;
+  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  return Date.parse(normalized);
+}
+
 function tiempoRelativo(value: string | undefined, now: number) {
   if (!value) return null;
-  const diff = Math.max(0, now - new Date(value).getTime());
+  const parsed = parseBackendTime(value);
+  if (Number.isNaN(parsed)) return null;
+  const diff = Math.max(0, now - parsed);
   const minutes = Math.floor(diff / 60000);
   return `${minutes} min`;
 }
 
 function minutosPedido(value: string | undefined, now: number) {
   if (!value) return 0;
-  return Math.max(0, Math.floor((now - new Date(value).getTime()) / 60000));
+  const parsed = parseBackendTime(value);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.max(0, Math.floor((now - parsed) / 60000));
 }
 
 function pedidoAtrasado(pedido: PedidoResumen, now: number) {
   if (pedido.estado === 'completado' || pedido.estado === 'cancelado') return false;
-  return minutosPedido(pedido.created_at, now) > 10;
+  return minutosPedido(pedido.created_at, now) >= 10;
 }
 
 function etiquetaTiempoPedido(pedido: PedidoResumen, now: number) {

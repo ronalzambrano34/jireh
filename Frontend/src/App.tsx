@@ -7,7 +7,7 @@ import { Modal } from './components/Modal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { UserHeaderMenu } from './components/UserHeaderMenu';
 import { ERROR_TOAST_DURATION_MS, INFO_TOAST_DURATION_MS, PROFILE_TOAST_DURATION_MS, ToastMessage } from './components/FloatingToast';
-import { NotificationBell, type AppNotification } from './components/NotificationBell';
+import { NotificationBell, defaultNotificationSoundPreferences, notificationKindLabels, type AppNotification, type AppNotificationKind, type NotificationSoundPreferences } from './components/NotificationBell';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
@@ -34,7 +34,7 @@ const estados = [
   { value: 'cancelado', label: 'Cancelado' },
 ];
 
-type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
+type ProfileSection = 'editar' | 'permisos' | 'notificaciones' | 'password' | 'ayuda' | null;
 type AppTheme = 'light' | 'dark-sidebar';
 type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | '7_dias' | 'mes' | 'todos';
@@ -105,6 +105,17 @@ function notificationStorageKey(operadorId: number) {
   return `jireh.notifications.${operadorId}`;
 }
 
+function notificationPreferencesStorageKey(operadorId: number) {
+  return `jireh.notificationPreferences.${operadorId}`;
+}
+
+function normalizeNotificationPreferences(value: unknown): NotificationSoundPreferences {
+  return {
+    ...defaultNotificationSoundPreferences,
+    ...(value && typeof value === 'object' ? value as Partial<NotificationSoundPreferences> : {}),
+  };
+}
+
 function servicioNotificacionLabel(value: string) {
   const labels: Record<string, string> = {
     transferencia: 'Transferencia',
@@ -135,6 +146,12 @@ function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
     fecha_desde: desde.toISOString(),
     fecha_hasta: hasta.toISOString(),
   };
+}
+
+function parseBackendTime(value?: string | null) {
+  if (!value) return Number.NaN;
+  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  return Date.parse(normalized);
 }
 
 export function App() {
@@ -199,6 +216,7 @@ export function App() {
   const [pullDistance, setPullDistance] = useState(0);
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const [notificaciones, setNotificaciones] = useState<AppNotification[]>([]);
+  const [notificationSoundPreferences, setNotificationSoundPreferences] = useState<NotificationSoundPreferences>(defaultNotificationSoundPreferences);
   const historyViewRef = useRef<AppView>(vista);
   const handlingPopStateRef = useRef(false);
   const lastExitBackRef = useRef(0);
@@ -320,14 +338,17 @@ export function App() {
   const agregarNotificaciones = useCallback((items: AppNotification[]) => {
     if (!items.length) return;
 
+    const currentIds = new Set(notificacionesRef.current.map((item) => item.id));
+    const incoming = items.filter((item) => !currentIds.has(item.id));
+    const shouldPlaySound = incoming.some((item) => notificationSoundPreferences[item.kind] !== false);
     setNotificaciones((current) => {
       const ids = new Set(current.map((item) => item.id));
       const nuevas = items.filter((item) => !ids.has(item.id));
       if (!nuevas.length) return current;
       return [...nuevas, ...current].slice(0, NOTIFICATION_LIMIT);
     });
-    reproducirSonidoNotificacion();
-  }, [reproducirSonidoNotificacion]);
+    if (shouldPlaySound) reproducirSonidoNotificacion();
+  }, [notificationSoundPreferences, reproducirSonidoNotificacion]);
 
   const revisarNotificacionesPedidos = useCallback((data: PedidoResumen[]) => {
     if (!operador) return;
@@ -347,21 +368,19 @@ export function App() {
         : '';
       if (transferKey) nextTransferKeys.set(codigo, transferKey);
 
-      if (!notificationSnapshotReadyRef.current) continue;
-
-      const createdAt = pedido.created_at ? Date.parse(pedido.created_at) : now;
-      const confirmedAt = pedido.fecha_pago_confirmado ? Date.parse(pedido.fecha_pago_confirmado) : createdAt;
-      const transferAt = pedido.redirigido_en ? Date.parse(pedido.redirigido_en) : now;
+      const createdAt = parseBackendTime(pedido.created_at);
+      const confirmedAt = Number.isNaN(parseBackendTime(pedido.fecha_pago_confirmado)) ? createdAt : parseBackendTime(pedido.fecha_pago_confirmado);
+      const transferAt = Number.isNaN(parseBackendTime(pedido.redirigido_en)) ? now : parseBackendTime(pedido.redirigido_en);
       const confirmadoReciente = Number.isNaN(confirmedAt) || now - confirmedAt <= 30 * 60 * 1000;
       const transferidoReciente = Number.isNaN(transferAt) || now - transferAt <= 30 * 60 * 1000;
       const transferidoAMi = pedido.redirigido_a_operador_id === operador.id;
       const estaAtrasado = disponibleParaNotificar
         && !Number.isNaN(createdAt)
-        && now - createdAt > ORDER_DELAY_MINUTES * 60 * 1000
+        && now - createdAt >= ORDER_DELAY_MINUTES * 60 * 1000
         && pedido.estado !== 'completado'
         && pedido.estado !== 'cancelado';
 
-      if (transferidoAMi && transferKey && knownTransferKeysRef.current.get(codigo) !== transferKey && transferidoReciente) {
+      if (notificationSnapshotReadyRef.current && transferidoAMi && transferKey && knownTransferKeysRef.current.get(codigo) !== transferKey && transferidoReciente) {
         nuevas.push({
           id: `transferido:${codigo}:${transferKey}`,
           kind: 'pedido_transferido',
@@ -374,7 +393,7 @@ export function App() {
         continue;
       }
 
-      if (disponibleParaNotificar && !knownPedidoCodesRef.current.has(codigo) && pedido.operador_id !== operador.id && confirmadoReciente) {
+      if (notificationSnapshotReadyRef.current && disponibleParaNotificar && !knownPedidoCodesRef.current.has(codigo) && pedido.operador_id !== operador.id && confirmadoReciente) {
         nuevas.push({
           id: `nuevo:${codigo}`,
           kind: 'nuevo_pedido',
@@ -404,7 +423,6 @@ export function App() {
     knownTransferKeysRef.current = nextTransferKeys;
     if (!notificationSnapshotReadyRef.current) {
       notificationSnapshotReadyRef.current = true;
-      return;
     }
     agregarNotificaciones(nuevas);
   }, [agregarNotificaciones, operador]);
@@ -490,8 +508,8 @@ export function App() {
 
   function pedidoAtrasado(pedido: PedidoResumen) {
     if (pedido.estado === 'completado' || pedido.estado === 'cancelado') return false;
-    const createdAt = pedido.created_at ? Date.parse(pedido.created_at) : Number.NaN;
-    return !Number.isNaN(createdAt) && pedidosClock - createdAt > ORDER_DELAY_MINUTES * 60 * 1000;
+    const createdAt = parseBackendTime(pedido.created_at);
+    return !Number.isNaN(createdAt) && pedidosClock - createdAt >= ORDER_DELAY_MINUTES * 60 * 1000;
   }
 
   function disponibilidadPedidoClass(pedido: PedidoResumen, base: string, selected: boolean, delayed: boolean) {
@@ -668,6 +686,21 @@ export function App() {
     setCopyToast(null);
   }
 
+  function mostrarInfoToast(message: string) {
+    setCopyToast(message);
+    if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
+    copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), INFO_TOAST_DURATION_MS);
+  }
+
+  function cambiarSonidoNotificacion(kind: AppNotificationKind, enabled: boolean) {
+    setNotificationSoundPreferences((current) => ({ ...current, [kind]: enabled }));
+    mostrarInfoToast(`${notificationKindLabels[kind]} ${enabled ? 'con sonido' : 'silenciada'}`);
+  }
+
+  function silenciarTipoNotificacion(kind: AppNotificationKind) {
+    cambiarSonidoNotificacion(kind, false);
+  }
+
   function cerrarProfileMessage() {
     if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
     profileMessageTimeoutRef.current = null;
@@ -688,6 +721,14 @@ export function App() {
 
   function marcarTodasNotificacionesLeidas() {
     setNotificaciones((current) => current.map((item) => ({ ...item, read: true })));
+  }
+
+  function marcarNotificacionLeida(id: string) {
+    setNotificaciones((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
+  }
+
+  function eliminarNotificacion(id: string) {
+    setNotificaciones((current) => current.filter((item) => item.id !== id));
   }
 
   function limpiarNotificaciones() {
@@ -973,6 +1014,7 @@ export function App() {
   useEffect(() => {
     if (!operador) {
       setNotificaciones([]);
+      setNotificationSoundPreferences(defaultNotificationSoundPreferences);
       notificacionesRef.current = [];
       notificationSnapshotReadyRef.current = false;
       knownPedidoCodesRef.current = new Set();
@@ -993,6 +1035,13 @@ export function App() {
     } catch {
       setNotificaciones([]);
     }
+
+    try {
+      const savedPreferences = localStorage.getItem(notificationPreferencesStorageKey(operador.id));
+      setNotificationSoundPreferences(normalizeNotificationPreferences(savedPreferences ? JSON.parse(savedPreferences) : null));
+    } catch {
+      setNotificationSoundPreferences(defaultNotificationSoundPreferences);
+    }
   }, [operador]);
 
   useEffect(() => {
@@ -1000,6 +1049,11 @@ export function App() {
     if (!operador) return;
     localStorage.setItem(notificationStorageKey(operador.id), JSON.stringify(notificaciones.slice(0, NOTIFICATION_LIMIT)));
   }, [notificaciones, operador]);
+
+  useEffect(() => {
+    if (!operador) return;
+    localStorage.setItem(notificationPreferencesStorageKey(operador.id), JSON.stringify(notificationSoundPreferences));
+  }, [notificationSoundPreferences, operador]);
 
   useEffect(() => {
     if (!operador) return undefined;
@@ -1337,7 +1391,11 @@ export function App() {
             <NotificationBell
               notifications={notificaciones}
               unreadCount={notificacionesSinLeer}
+              soundPreferences={notificationSoundPreferences}
               onSelect={abrirNotificacion}
+              onMuteKind={silenciarTipoNotificacion}
+              onMarkRead={marcarNotificacionLeida}
+              onDelete={eliminarNotificacion}
               onMarkAllRead={marcarTodasNotificacionesLeidas}
               onClear={limpiarNotificaciones}
             />
@@ -1375,12 +1433,14 @@ export function App() {
             nombre={profileNombre}
             password={profilePassword}
             theme={theme}
+            notificationSoundPreferences={notificationSoundPreferences}
             saving={profileSaving}
             photoSaving={profilePhotoSaving}
             onSectionChange={abrirPerfilSeccion}
             onNombreChange={setProfileNombre}
             onPasswordChange={setProfilePassword}
             onThemeChange={setTheme}
+            onNotificationSoundChange={cambiarSonidoNotificacion}
             onPhoto={(file) => void subirFotoPerfil(file)}
             onSaveProfile={guardarPerfil}
             onSavePassword={guardarPassword}

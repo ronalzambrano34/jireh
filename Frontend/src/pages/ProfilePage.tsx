@@ -1,13 +1,16 @@
 import type { FormEvent } from 'react';
-import { ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Moon, Palette, Percent, ShieldCheck, Sun, UserCircle } from 'lucide-react';
+import { Bell, ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Moon, Palette, Percent, ShieldCheck, Sun, UserCircle, Volume2, VolumeX } from 'lucide-react';
 import { apiAssetUrl } from '../api/client';
 import { PasswordField } from '../components/PasswordField';
+import { notificationKindLabels, type AppNotificationKind, type NotificationSoundPreferences } from '../components/NotificationBell';
 import type { Operador } from '../types/api';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
 import './profile/ProfilePage.css';
 
-export type ProfileSection = 'editar' | 'permisos' | 'password' | 'ayuda' | null;
+export type ProfileSection = 'editar' | 'permisos' | 'notificaciones' | 'password' | 'ayuda' | null;
 export type ProfilePassword = { actual: string; nueva: string; confirmar: string };
+
+const notificationKinds: AppNotificationKind[] = ['nuevo_pedido', 'pedido_transferido', 'pedido_atrasado'];
 
 function iniciales(operador: Operador) {
   return operador.nombre.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -28,12 +31,14 @@ export function ProfilePage(props: {
   nombre: string;
   password: ProfilePassword;
   theme: 'light' | 'dark-sidebar';
+  notificationSoundPreferences: NotificationSoundPreferences;
   saving: boolean;
   photoSaving: boolean;
   onSectionChange: (section: Exclude<ProfileSection, null>) => void;
   onNombreChange: (value: string) => void;
   onPasswordChange: (value: ProfilePassword) => void;
   onThemeChange: (theme: 'light' | 'dark-sidebar') => void;
+  onNotificationSoundChange: (kind: AppNotificationKind, enabled: boolean) => void;
   onPhoto: (file: File) => void;
   onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
   onSavePassword: (event: FormEvent<HTMLFormElement>) => void;
@@ -94,6 +99,27 @@ export function ProfilePage(props: {
 
         <button className={option('permisos')} type="button" onClick={() => props.onSectionChange('permisos')} aria-expanded={props.section === 'permisos'}><Percent size={22} /><span>Mis permisos y rol</span><ChevronDown className={props.section === 'permisos' ? 'chevron-open' : ''} size={18} /></button>
         {props.section === 'permisos' && <div className="profile-inline-panel"><div className="profile-role-pill"><ShieldCheck size={18} /> {props.operador.rol}</div><div className="profile-permission-list">{props.operador.permisos.length ? props.operador.permisos.map((permiso) => <span key={permiso}>{permiso}</span>) : <span>Sin permisos especiales</span>}</div></div>}
+
+        <button className={option('notificaciones')} type="button" onClick={() => props.onSectionChange('notificaciones')} aria-expanded={props.section === 'notificaciones'}><Bell size={22} /><span>Notificaciones</span><ChevronDown className={props.section === 'notificaciones' ? 'chevron-open' : ''} size={18} /></button>
+        {props.section === 'notificaciones' && <div className="profile-inline-panel profile-notification-settings">
+          {notificationKinds.map((kind) => {
+            const enabled = props.notificationSoundPreferences[kind] !== false;
+            return (
+              <div className="profile-notification-row" key={kind}>
+                <span><strong>{notificationKindLabels[kind]}</strong><small>{enabled ? 'Con sonido' : 'Silenciada'}</small></span>
+                <button
+                  className={enabled ? 'profile-notification-toggle active' : 'profile-notification-toggle'}
+                  type="button"
+                  onClick={() => props.onNotificationSoundChange(kind, !enabled)}
+                  title={enabled ? 'Silenciar' : 'Activar sonido'}
+                  aria-label={enabled ? `Silenciar ${notificationKindLabels[kind]}` : `Activar sonido ${notificationKindLabels[kind]}`}
+                >
+                  {enabled ? <Volume2 size={17} /> : <VolumeX size={17} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>}
 
         <button
           type="button"

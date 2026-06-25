@@ -1234,6 +1234,65 @@
   color: var(--ui-text-muted);
 }
 
+.profile-page .profile-notification-settings {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-page .profile-notification-row {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-raised);
+}
+
+.profile-page .profile-notification-row > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.profile-page .profile-notification-row strong,
+.profile-page .profile-notification-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-page .profile-notification-row strong {
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.profile-page .profile-notification-row small {
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.profile-page .profile-notification-toggle {
+  width: 42px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface);
+  color: var(--ui-text-muted);
+}
+
+.profile-page .profile-notification-toggle.active {
+  border-color: color-mix(in srgb, var(--ui-primary) 36%, var(--ui-border));
+  background: color-mix(in srgb, var(--ui-primary) 10%, var(--ui-surface));
+  color: var(--ui-primary-strong);
+}
+
 .profile-page .profile-support-panel {
   width: 100%;
   grid-template-columns: 1fr;
@@ -1447,6 +1506,24 @@
   color: var(--ui-text-muted);
   background: var(--ui-surface-raised);
   border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .profile-notification-row {
+  color: var(--ui-text);
+  background: var(--ui-surface-raised);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .profile-notification-toggle {
+  color: var(--ui-text-muted);
+  background: var(--ui-surface);
+  border-color: var(--ui-border);
+}
+
+:root[data-theme="dark-sidebar"] .profile-notification-toggle.active {
+  color: var(--ui-success-text);
+  background: rgba(47, 166, 111, 0.12);
+  border-color: rgba(47, 166, 111, 0.32);
 }
 
 :root[data-theme="dark-sidebar"] .profile-appearance-copy strong {

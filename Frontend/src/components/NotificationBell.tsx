@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CheckCheck, ClipboardList, Send, Trash2 } from 'lucide-react';
+import { Bell, CheckCheck, ClipboardList, Send, Trash2, VolumeX } from 'lucide-react';
 import '../styles/notification-bell.css';
 
 export type AppNotificationKind = 'nuevo_pedido' | 'pedido_transferido' | 'pedido_atrasado';
+export type NotificationSoundPreferences = Record<AppNotificationKind, boolean>;
+
+export const notificationKindLabels: Record<AppNotificationKind, string> = {
+  nuevo_pedido: 'Nuevo pedido',
+  pedido_transferido: 'Pedido transferido',
+  pedido_atrasado: 'Pedido atrasado',
+};
+
+export const defaultNotificationSoundPreferences: NotificationSoundPreferences = {
+  nuevo_pedido: true,
+  pedido_transferido: true,
+  pedido_atrasado: true,
+};
 
 export type AppNotification = {
   id: string;
@@ -17,7 +30,11 @@ export type AppNotification = {
 type NotificationBellProps = {
   notifications: AppNotification[];
   unreadCount: number;
+  soundPreferences: NotificationSoundPreferences;
   onSelect: (id: string) => void;
+  onMuteKind: (kind: AppNotificationKind) => void;
+  onMarkRead: (id: string) => void;
+  onDelete: (id: string) => void;
   onMarkAllRead: () => void;
   onClear: () => void;
 };
@@ -40,12 +57,18 @@ function timeLabel(value: number) {
 export function NotificationBell({
   notifications,
   unreadCount,
+  soundPreferences,
   onSelect,
+  onMuteKind,
+  onMarkRead,
+  onDelete,
   onMarkAllRead,
   onClear,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const longPressTimeoutRef = useRef<number | null>(null);
+  const longPressTriggeredRef = useRef(false);
   const badgeLabel = unreadCount > 99 ? '99+' : String(unreadCount);
 
   useEffect(() => {
@@ -69,9 +92,31 @@ export function NotificationBell({
   }, [open]);
 
   function select(id: string) {
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
     setOpen(false);
     onSelect(id);
   }
+
+  function clearLongPress() {
+    if (longPressTimeoutRef.current) {
+      window.clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  }
+
+  function startLongPress(kind: AppNotificationKind) {
+    clearLongPress();
+    longPressTriggeredRef.current = false;
+    longPressTimeoutRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      onMuteKind(kind);
+    }, 650);
+  }
+
+  useEffect(() => clearLongPress, []);
 
   return (
     <div ref={rootRef} className={open ? 'notification-bell open' : 'notification-bell'}>
@@ -109,22 +154,65 @@ export function NotificationBell({
             {notifications.length === 0 && (
               <p className="notification-bell-empty">Sin notificaciones</p>
             )}
-            {notifications.map((notification) => (
-              <button
-                key={notification.id}
-                className={notification.read ? 'notification-bell-item' : 'notification-bell-item unread'}
-                type="button"
-                role="menuitem"
-                onClick={() => select(notification.id)}
-              >
-                <span className="notification-bell-icon" aria-hidden="true">{notificationIcon(notification.kind)}</span>
-                <span>
-                  <strong>{notification.title}</strong>
-                  <small>{notification.body}</small>
-                </span>
-                <time>{timeLabel(notification.createdAt)}</time>
-              </button>
-            ))}
+            {notifications.map((notification) => {
+              const muted = soundPreferences[notification.kind] === false;
+              return (
+                <div
+                  key={notification.id}
+                  className={['notification-bell-item', notification.kind, notification.read ? '' : 'unread', muted ? 'sound-muted' : ''].filter(Boolean).join(' ')}
+                  role="menuitem"
+                  onPointerDown={() => startLongPress(notification.kind)}
+                  onPointerUp={clearLongPress}
+                  onPointerCancel={clearLongPress}
+                  onPointerLeave={clearLongPress}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    clearLongPress();
+                    onMuteKind(notification.kind);
+                  }}
+                  title={`Abrir ${notificationKindLabels[notification.kind]}`}
+                >
+                  <button className="notification-bell-open" type="button" onClick={() => select(notification.id)}>
+                    <span className="notification-bell-icon" aria-hidden="true">{notificationIcon(notification.kind)}</span>
+                  </button>
+                  <button className="notification-bell-copy" type="button" onClick={() => select(notification.id)}>
+                    <strong>{notification.title}</strong>
+                    <small>{notification.body}</small>
+                  </button>
+                  <span className="notification-bell-meta">
+                    <time>{timeLabel(notification.createdAt)}</time>
+                    {muted && <VolumeX size={13} aria-label="Sonido silenciado" />}
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        clearLongPress();
+                        onMarkRead(notification.id);
+                      }}
+                      disabled={notification.read}
+                      title="Marcar leida"
+                      aria-label="Marcar leida"
+                    >
+                      <CheckCheck size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        clearLongPress();
+                        onDelete(notification.id);
+                      }}
+                      title="Eliminar"
+                      aria-label="Eliminar"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

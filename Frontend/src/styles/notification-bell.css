@@ -149,6 +149,31 @@
   text-align: left;
 }
 
+.notification-bell-open,
+.notification-bell-copy,
+.notification-bell-meta button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.notification-bell-open {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.notification-bell-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 0;
+  text-align: left;
+}
+
 .notification-bell-item:hover,
 .notification-bell-item:focus-visible {
   border-color: var(--ui-border);
@@ -160,6 +185,27 @@
   background: color-mix(in srgb, var(--ui-primary) 8%, var(--ui-surface));
 }
 
+.notification-bell-item.pedido_atrasado,
+.notification-bell-item.pedido_atrasado.unread {
+  border-color: color-mix(in srgb, var(--ui-danger) 38%, var(--ui-border));
+  background: color-mix(in srgb, var(--ui-danger) 11%, var(--ui-surface));
+  color: var(--ui-danger-text);
+}
+
+.notification-bell-item.pedido_atrasado .notification-bell-icon {
+  background: color-mix(in srgb, var(--ui-danger) 16%, var(--ui-surface));
+  color: var(--ui-danger-text);
+}
+
+.notification-bell-item.pedido_atrasado small,
+.notification-bell-item.pedido_atrasado time {
+  color: color-mix(in srgb, var(--ui-danger-text) 76%, var(--ui-text-muted));
+}
+
+.notification-bell-item.sound-muted {
+  opacity: 0.88;
+}
+
 .notification-bell-icon {
   width: 34px;
   height: 34px;
@@ -168,12 +214,6 @@
   border-radius: var(--ui-radius-sm);
   background: color-mix(in srgb, var(--ui-primary) 13%, var(--ui-surface));
   color: var(--ui-primary-hover);
-}
-
-.notification-bell-item > span:nth-child(2) {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
 }
 
 .notification-bell-item strong,
@@ -193,6 +233,39 @@
   font-size: 11px;
   font-weight: 720;
   line-height: 1.2;
+}
+
+.notification-bell-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--ui-text-muted);
+  white-space: nowrap;
+}
+
+.notification-bell-meta > svg {
+  color: var(--ui-text-muted);
+}
+
+.notification-bell-meta button {
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-text-muted);
+}
+
+.notification-bell-meta button:hover:not(:disabled) {
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+}
+
+.notification-bell-meta button:disabled {
+  opacity: 0.38;
+  cursor: default;
 }
 
 .notification-bell-item time {
