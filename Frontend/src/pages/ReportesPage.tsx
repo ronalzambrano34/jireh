@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Landmark, MinusCircle } from 'lucide-react';
-import { crearExtraccionCuenta, descargarOperacionesExcel, descargarReporteCsv, listarCuentasMetodoPago, listarExtraccionesCuenta, listarMetodosPago, listarOperadores, listarSaldosCuenta, obtenerReporte } from '../api/client';
+import { crearExtraccionCuenta, descargarOperacionesExcel, descargarReporteCsv, listarExtraccionesCuenta, listarSaldosCuenta, obtenerReporte } from '../api/client';
+import {
+  listarCuentasMetodoPagoDedup,
+  listarExtraccionesCuentaDedup,
+  listarMetodosPagoDedup,
+  listarOperadoresDedup,
+  listarSaldosCuentaDedup,
+  obtenerReporteDedup,
+} from '../api/dedupedReads';
 import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, SaldoCuenta } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import { FloatingSelect } from '../components/FloatingSelect';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { ReportFilters, type ReportFilterState, type ReportPeriod } from './reportes/ReportFilters';
 import { ReportBarChart, ReportSummary, ReportTable, reportMoney } from './reportes/ReportViews';
 import './reportes/ReportesPage.css';
@@ -70,47 +79,48 @@ export function ReportesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function cargarOperadores() {
+  async function cargarOperadores(signal?: AbortSignal) {
     setOperadoresLoading(true);
     try {
-      setOperadores(await listarOperadores(true));
-    } catch {
-      setOperadores([]);
+      setOperadores(await listarOperadoresDedup(true, { signal }));
+    } catch (err) {
+      if (!isAbortError(err)) setOperadores([]);
     } finally {
-      setOperadoresLoading(false);
+      if (!signal?.aborted) setOperadoresLoading(false);
     }
   }
 
-  useEffect(() => {
-    void cargarOperadores();
-    listarMetodosPago()
+  useAbortableEffect((signal) => {
+    void cargarOperadores(signal);
+    listarMetodosPagoDedup(undefined, false, { signal })
       .then(async (metodos) => {
         setMetodosPago(metodos);
         const cuentas = await Promise.all(
-          metodos.map((metodo) => listarCuentasMetodoPago(metodo.id, false)),
+          metodos.map((metodo) => listarCuentasMetodoPagoDedup(metodo.id, false, { signal })),
         );
         setCuentasPago(cuentas.flat());
       })
-      .catch(() => {
+      .catch((err) => {
+        if (isAbortError(err)) return;
         setMetodosPago([]);
         setCuentasPago([]);
       });
   }, []);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     let active = true;
 
     async function cargarReporteActual() {
       setLoading(true);
       setError(null);
       try {
-        const data = await obtenerReporte(filters);
+        const data = await obtenerReporteDedup(filters, { signal });
         const [saldos, movimientos] = await Promise.all([
-          listarSaldosCuenta({
+          listarSaldosCuentaDedup({
             metodo_pago_id: filters.metodo_pago_id,
             cuenta_pago_id: filters.cuenta_pago_id,
-          }),
-          listarExtraccionesCuenta(filters.cuenta_pago_id),
+          }, { signal }),
+          listarExtraccionesCuentaDedup(filters.cuenta_pago_id, { signal }),
         ]);
         if (active) {
           setReporte(data);
@@ -118,9 +128,9 @@ export function ReportesPage() {
           setExtracciones(movimientos);
         }
       } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
+        if (active && !isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudo cargar el reporte');
       } finally {
-        if (active) setLoading(false);
+        if (active && !signal.aborted) setLoading(false);
       }
     }
 

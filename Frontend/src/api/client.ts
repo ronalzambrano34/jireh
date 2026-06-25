@@ -42,8 +42,84 @@ const CONFIGURED_API_IS_LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)
 const API_URL = (USING_REMOTE_HOST && CONFIGURED_API_IS_LOOPBACK ? DEFAULT_API_URL : CONFIGURED_API_URL || DEFAULT_API_URL).replace(/\/$/, '');
 const TOKEN_KEY = 'jireh.auth.token';
 
+export type ApiRequestOptions = {
+  signal?: AbortSignal;
+};
+
+type ApiRequestInit = RequestInit & {
+  offlinePolicy?: 'auto' | 'allow';
+  retryReads?: boolean;
+};
+
+const SAFE_READ_RETRY_DELAYS_MS = [700, 1600];
+
+export function isAbortError(err: unknown) {
+  return err instanceof DOMException && err.name === 'AbortError';
+}
+
+function isOffline() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+function isUnsafeRequest(method?: string) {
+  const normalized = (method ?? 'GET').toUpperCase();
+  return normalized !== 'GET' && normalized !== 'HEAD';
+}
+
+function shouldRetryRead(options: ApiRequestInit) {
+  return options.retryReads !== false && !isUnsafeRequest(options.method) && !isOffline();
+}
+
+function shouldRetryResponse(response: Response) {
+  return response.status === 408 || response.status === 429 || response.status >= 500;
+}
+
+function waitForRetry(ms: number, signal?: AbortSignal) {
+  if (!signal) return new Promise((resolve) => window.setTimeout(resolve, ms));
+  if (signal.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
+
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      signal.removeEventListener('abort', handleAbort);
+      resolve();
+    }, ms);
+
+    function handleAbort() {
+      window.clearTimeout(timeoutId);
+      reject(new DOMException('Aborted', 'AbortError'));
+    }
+
+    signal.addEventListener('abort', handleAbort, { once: true });
+  });
+}
+
+async function fetchWithReadRetries(url: string, options: ApiRequestInit = {}) {
+  const canRetry = shouldRetryRead(options);
+  const maxAttempts = canRetry ? SAFE_READ_RETRY_DELAYS_MS.length + 1 : 1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(url, options);
+      if (canRetry && shouldRetryResponse(response) && attempt < maxAttempts - 1) {
+        await waitForRetry(SAFE_READ_RETRY_DELAYS_MS[attempt], options.signal ?? undefined);
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (isAbortError(err) || !canRetry || attempt >= maxAttempts - 1) throw err;
+      await waitForRetry(SAFE_READ_RETRY_DELAYS_MS[attempt], options.signal ?? undefined);
+    }
+  }
+
+  throw new Error(networkErrorMessage());
+}
+
 function networkErrorMessage() {
   return `No se pudo conectar con el servidor (${API_URL}). Revisa que el backend este encendido y que VITE_API_URL apunte a la API correcta.`;
+}
+
+export function offlineCriticalActionMessage() {
+  return 'No hay conexion. Esta accion modifica datos y queda bloqueada para evitar duplicados o estados inconsistentes. Vuelve a intentarlo cuando la senal regrese.';
 }
 
 function addTunnelHeaders(headers: Headers) {
@@ -70,7 +146,7 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-async function requestBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+async function requestBlob(path: string, options: ApiRequestInit = {}): Promise<Blob> {
   const headers = new Headers(options.headers);
   const token = getToken();
 
@@ -81,12 +157,12 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
 
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetchWithReadRetries(`${API_URL}${path}`, {
       ...options,
       headers,
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    if (isAbortError(err)) throw err;
     throw new Error(networkErrorMessage());
   }
 
@@ -97,9 +173,9 @@ async function requestBlob(path: string, options: RequestInit = {}): Promise<Blo
   return response.blob();
 }
 
-export async function obtenerAssetBlob(path: string): Promise<Blob> {
+export async function obtenerAssetBlob(path: string, options: ApiRequestOptions = {}): Promise<Blob> {
   if (/^(data:|blob:)/i.test(path)) {
-    const response = await fetch(path);
+    const response = await fetchWithReadRetries(path, { signal: options.signal });
     return response.blob();
   }
 
@@ -114,17 +190,23 @@ export async function obtenerAssetBlob(path: string): Promise<Blob> {
 
   let response: Response;
   try {
-    response = await fetch(url, { headers });
-  } catch {
+    response = await fetchWithReadRetries(url, { headers, signal: options.signal });
+  } catch (err) {
+    if (isAbortError(err)) throw err;
     throw new Error(networkErrorMessage());
   }
   if (!response.ok) throw new Error(`Error ${response.status}`);
   return response.blob();
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, options: ApiRequestInit = {}): Promise<T> {
+  const { offlinePolicy = 'auto', ...requestOptions } = options;
   const headers = new Headers(options.headers);
   const token = getToken();
+
+  if (offlinePolicy !== 'allow' && isUnsafeRequest(options.method) && isOffline()) {
+    throw new Error(offlineCriticalActionMessage());
+  }
 
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -137,12 +219,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
-      ...options,
+    response = await fetchWithReadRetries(`${API_URL}${path}`, {
+      ...requestOptions,
       headers,
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    if (isAbortError(err)) throw err;
     throw new Error(networkErrorMessage());
   }
 
@@ -169,9 +251,10 @@ export async function login(telefono: string, password: string) {
       method: 'POST',
       body: JSON.stringify({ telefono, password }),
       signal: controller.signal,
+      offlinePolicy: 'allow',
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
+    if (isAbortError(err)) {
       throw new Error('La conexion sigue muy lenta. Revisa la senal e intenta entrar otra vez.');
     }
     if (err instanceof TypeError) {
@@ -183,8 +266,8 @@ export async function login(telefono: string, password: string) {
   }
 }
 
-export function getMe() {
-  return request<AuthMeResponse>('/auth/me').then((data) => data.operador);
+export function getMe(options: ApiRequestOptions = {}) {
+  return request<AuthMeResponse>('/auth/me', { signal: options.signal }).then((data) => data.operador);
 }
 
 export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
@@ -195,6 +278,8 @@ export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
 }
 
 export async function subirMiFotoPerfil(file: File) {
+  if (isOffline()) throw new Error(offlineCriticalActionMessage());
+
   const formData = new FormData();
   formData.append('archivo', await compressImage(file));
 
@@ -211,26 +296,28 @@ export function cambiarMiPassword(payload: PasswordChangePayload) {
   });
 }
 
-export function obtenerTasasOperativas() {
-  return request<TasaOperativaResponse>('/tasas-operativas/');
+export function obtenerTasasOperativas(options: ApiRequestOptions = {}) {
+  return request<TasaOperativaResponse>('/tasas-operativas/', { signal: options.signal });
 }
 
-export function calcularOperacion(payload: { servicio: string; moneda_pago: string; monto_pago: number; bonificacion_manual?: number }) {
+export function calcularOperacion(payload: { servicio: string; moneda_pago: string; monto_pago: number; bonificacion_manual?: number }, options: ApiRequestOptions = {}) {
   return request<CalculoOperacionResponse>('/calculadora/', {
     method: 'POST',
     body: JSON.stringify(payload),
+    signal: options.signal,
+    offlinePolicy: 'allow',
   });
 }
 
-export function listarOperadores(incluirInactivos = false) {
+export function listarOperadores(incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('limit', '100');
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<Operador[]>(`/operador/?${query.toString()}`);
+  return request<Operador[]>(`/operador/?${query.toString()}`, { signal: options.signal });
 }
 
-export function listarOperadoresActivos() {
-  return request<Operador[]>('/operador/activos');
+export function listarOperadoresActivos(options: ApiRequestOptions = {}) {
+  return request<Operador[]>('/operador/activos', { signal: options.signal });
 }
 
 export function crearOperador(payload: OperadorCreatePayload) {
@@ -253,10 +340,10 @@ export function eliminarOperador(id: number) {
   });
 }
 
-export function listarRolesOperador(incluirInactivos = false) {
+export function listarRolesOperador(incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<OperadorRol[]>(`/operador-roles/?${query.toString()}`);
+  return request<OperadorRol[]>(`/operador-roles/?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearRolOperador(payload: OperadorRolCreatePayload) {
@@ -286,27 +373,27 @@ export function sincronizarOfertas() {
   });
 }
 
-export function listarPaquetesSaldo(monedaPago?: string, incluirInactivos = false) {
+export function listarPaquetesSaldo(monedaPago?: string, incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   if (monedaPago) query.set('moneda_pago', monedaPago);
   query.set('limit', '100');
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<PaqueteSaldo[]>(`/paquetes-saldo/?${query.toString()}`);
+  return request<PaqueteSaldo[]>(`/paquetes-saldo/?${query.toString()}`, { signal: options.signal });
 }
 
-export function listarPuntosRecogida(incluirInactivos = false) {
+export function listarPuntosRecogida(incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('limit', '100');
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<PuntoRecogida[]>(`/puntos-recogida/?${query.toString()}`);
+  return request<PuntoRecogida[]>(`/puntos-recogida/?${query.toString()}`, { signal: options.signal });
 }
 
-export function listarMetodosPago(moneda?: string, incluirInactivos = false) {
+export function listarMetodosPago(moneda?: string, incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   if (moneda) query.set('moneda', moneda);
   query.set('limit', '100');
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<MetodoPago[]>(`/metodos-pago/?${query.toString()}`);
+  return request<MetodoPago[]>(`/metodos-pago/?${query.toString()}`, { signal: options.signal });
 }
 
 export function buscarClientePorTelefono(telefono: string, pais = 'br') {
@@ -321,7 +408,7 @@ export function listarPedidos(params: {
   alcance?: 'mis' | 'todas';
   fecha_desde?: string;
   fecha_hasta?: string;
-} = {}) {
+} = {}, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   if (params.estado) query.set('estado', params.estado);
   if (params.servicio) query.set('servicio', params.servicio);
@@ -329,11 +416,11 @@ export function listarPedidos(params: {
   if (params.fecha_desde) query.set('fecha_desde', params.fecha_desde);
   if (params.fecha_hasta) query.set('fecha_hasta', params.fecha_hasta);
   query.set('limit', String(params.limit ?? 200));
-  return request<PedidoResumen[]>(`/pedido/?${query.toString()}`);
+  return request<PedidoResumen[]>(`/pedido/?${query.toString()}`, { signal: options.signal });
 }
 
-export function obtenerPedido(codigo: string) {
-  return request<PedidoDetalle>(`/pedido/${codigo}`);
+export function obtenerPedido(codigo: string, options: ApiRequestOptions = {}) {
+  return request<PedidoDetalle>(`/pedido/${codigo}`, { signal: options.signal });
 }
 
 export function rastrearPedidosPorCliente(clienteId: number) {
@@ -413,6 +500,8 @@ export function actualizarEstado(
 }
 
 export async function subirArchivo(codigo: string, formData: FormData) {
+  if (isOffline()) throw new Error(offlineCriticalActionMessage());
+
   return request(`/pedido/${codigo}/upload`, {
     method: 'POST',
     body: await compressImagesInFormData(formData),
@@ -420,12 +509,12 @@ export async function subirArchivo(codigo: string, formData: FormData) {
 }
 
 
-export function obtenerReporte(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string; metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
+export function obtenerReporte(params: { fecha_desde?: string; fecha_hasta?: string; estado?: string; servicio?: string; moneda_pago?: string; operador_id?: string; metodo_pago_id?: string; cuenta_pago_id?: string } = {}, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) query.set(key, value);
   });
-  return request<ReporteGeneral>(`/reportes/resumen?${query.toString()}`);
+  return request<ReporteGeneral>(`/reportes/resumen?${query.toString()}`, { signal: options.signal });
 }
 
 
@@ -445,12 +534,12 @@ export function descargarReporteCsv(params: { fecha_desde?: string; fecha_hasta?
   return requestBlob(`/reportes/resumen.csv?${query.toString()}`);
 }
 
-export function listarSaldosCuenta(params: { metodo_pago_id?: string; cuenta_pago_id?: string } = {}) {
+export function listarSaldosCuenta(params: { metodo_pago_id?: string; cuenta_pago_id?: string } = {}, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value) query.set(key, value);
   });
-  return request<import('../types/api').SaldoCuenta[]>(`/reportes/cuentas/saldos?${query.toString()}`);
+  return request<import('../types/api').SaldoCuenta[]>(`/reportes/cuentas/saldos?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearExtraccionCuenta(payload: { cuenta_pago_id: number; monto: number; motivo: string }) {
@@ -460,10 +549,10 @@ export function crearExtraccionCuenta(payload: { cuenta_pago_id: number; monto: 
   });
 }
 
-export function listarExtraccionesCuenta(cuentaPagoId?: string) {
+export function listarExtraccionesCuenta(cuentaPagoId?: string, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   if (cuentaPagoId) query.set('cuenta_pago_id', cuentaPagoId);
-  return request<import('../types/api').ExtraccionCuenta[]>(`/reportes/extracciones?${query.toString()}`);
+  return request<import('../types/api').ExtraccionCuenta[]>(`/reportes/extracciones?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearMetodoPago(payload: { nombre: string; moneda: string; imagen_url?: string }) {
@@ -481,10 +570,10 @@ export function actualizarMetodoPago(id: number, payload: { nombre?: string; mon
 }
 
 
-export function listarCuentasMetodoPago(metodoId: number, incluirInactivas = true) {
+export function listarCuentasMetodoPago(metodoId: number, incluirInactivas = true, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('incluir_inactivas', incluirInactivas ? 'true' : 'false');
-  return request<MetodoPagoCuenta[]>(`/metodos-pago/${metodoId}/cuentas?${query.toString()}`);
+  return request<MetodoPagoCuenta[]>(`/metodos-pago/${metodoId}/cuentas?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearCuentaMetodoPago(metodoId: number, payload: { alias: string; cuenta: string; titular: string; qr_url?: string | null; predeterminada?: boolean; activa?: boolean }) {
@@ -514,6 +603,8 @@ export function eliminarMetodoPago(id: number) {
 }
 
 export async function subirImagenMetodoPago(id: number, file: File) {
+  if (isOffline()) throw new Error(offlineCriticalActionMessage());
+
   const formData = new FormData();
   formData.append('archivo', await compressImage(file));
 
@@ -523,10 +614,10 @@ export async function subirImagenMetodoPago(id: number, file: File) {
   });
 }
 
-export function listarProvinciasServicio(incluirInactivas = true) {
+export function listarProvinciasServicio(incluirInactivas = true, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('incluir_inactivas', incluirInactivas ? 'true' : 'false');
-  return request<ProvinciaServicio[]>(`/provincias-servicio/?${query.toString()}`);
+  return request<ProvinciaServicio[]>(`/provincias-servicio/?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearProvinciaServicio(payload: { nombre: string; activo?: boolean }) {
@@ -563,11 +654,11 @@ export function eliminarPuntoRecogida(id: number) {
   });
 }
 
-export function listarOfertas(incluirInactivas = false) {
+export function listarOfertas(incluirInactivas = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('limit', '100');
   if (incluirInactivas) query.set('incluir_inactivas', 'true');
-  return request<Oferta[]>(`/ofertas/?${query.toString()}`);
+  return request<Oferta[]>(`/ofertas/?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearOferta(payload: { servicio: string; nombre?: string; tasa: number; minimo_pago: number; moneda_pago: string; origen?: string; activa?: boolean }) {
@@ -611,11 +702,11 @@ export function eliminarPaqueteSaldo(id: number) {
 }
 
 
-export function listarPromociones(incluirInactivas = false) {
+export function listarPromociones(incluirInactivas = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('limit', '100');
   if (incluirInactivas) query.set('incluir_inactivas', 'true');
-  return request<Promocion[]>(`/promociones/?${query.toString()}`);
+  return request<Promocion[]>(`/promociones/?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearPromocion(payload: { tipo: Promocion['tipo']; titulo: string; subtitulo?: string; descripcion: string; orden?: number; fecha_desde: string; fecha_hasta: string; imagen_url?: string; activa?: boolean }) {
@@ -639,6 +730,8 @@ export function eliminarPromocion(id: number) {
 }
 
 export async function subirImagenPromocion(id: number, file: File) {
+  if (isOffline()) throw new Error(offlineCriticalActionMessage());
+
   const formData = new FormData();
   formData.append('archivo', await compressImage(file));
 
@@ -648,8 +741,8 @@ export async function subirImagenPromocion(id: number, file: File) {
   });
 }
 
-export function listarConfiguraciones() {
-  return request<Configuracion[]>('/configuracion/');
+export function listarConfiguraciones(options: ApiRequestOptions = {}) {
+  return request<Configuracion[]>('/configuracion/', { signal: options.signal });
 }
 
 export function guardarConfiguracion(payload: { clave: string; valor: string }) {
@@ -659,19 +752,19 @@ export function guardarConfiguracion(payload: { clave: string; valor: string }) 
   });
 }
 
-export async function obtenerEstadoConfiguracionInicial(): Promise<ConfiguracionInicialEstado> {
+export async function obtenerEstadoConfiguracionInicial(options: ApiRequestOptions = {}): Promise<ConfiguracionInicialEstado> {
   const [configuraciones, metodos, ofertas, puntos, paquetes] = await Promise.all([
-    listarConfiguraciones(),
-    listarMetodosPago(undefined, true),
-    listarOfertas(true),
-    listarPuntosRecogida(true),
-    listarPaquetesSaldo(undefined, true),
+    listarConfiguraciones(options),
+    listarMetodosPago(undefined, true, options),
+    listarOfertas(true, options),
+    listarPuntosRecogida(true, options),
+    listarPaquetesSaldo(undefined, true, options),
   ]);
   const cuentas = (
     await Promise.all(
       metodos
         .filter((metodo) => metodo.activo)
-        .map((metodo) => listarCuentasMetodoPago(metodo.id, false)),
+        .map((metodo) => listarCuentasMetodoPago(metodo.id, false, options)),
     )
   ).flat();
   const marcada = configuraciones.some(
@@ -689,8 +782,8 @@ export async function obtenerEstadoConfiguracionInicial(): Promise<Configuracion
   };
 }
 
-export function listarTemplates() {
-  return request<TemplateConfig[]>('/templates/');
+export function listarTemplates(options: ApiRequestOptions = {}) {
+  return request<TemplateConfig[]>('/templates/', { signal: options.signal });
 }
 
 export function guardarTemplate(clave: string, valor: string) {
@@ -700,12 +793,12 @@ export function guardarTemplate(clave: string, valor: string) {
   });
 }
 
-export function listarClientes(busqueda?: string, incluirInactivos = false) {
+export function listarClientes(busqueda?: string, incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   query.set('limit', '100');
   if (busqueda) query.set('busqueda', busqueda);
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
-  return request<Cliente[]>(`/clientes/?${query.toString()}`);
+  return request<Cliente[]>(`/clientes/?${query.toString()}`, { signal: options.signal });
 }
 
 export function crearCliente(payload: { nombre: string; email?: string; telefono?: string; pais?: string; moneda_preferida?: string }) {
@@ -715,16 +808,16 @@ export function crearCliente(payload: { nombre: string; email?: string; telefono
   });
 }
 
-export function listarContactos(clienteId?: string, incluirInactivos = false) {
+export function listarContactos(clienteId?: string, incluirInactivos = false, options: ApiRequestOptions = {}) {
   const query = new URLSearchParams();
   if (incluirInactivos) query.set('incluir_inactivos', 'true');
   const suffix = query.toString();
 
   if (clienteId) {
-    return request<Contacto[]>(`/clientes/${clienteId}/contactos${suffix ? `?${suffix}` : ''}`);
+    return request<Contacto[]>(`/clientes/${clienteId}/contactos${suffix ? `?${suffix}` : ''}`, { signal: options.signal });
   }
 
-  return request<Contacto[]>(`/contactos/${suffix ? `?${suffix}` : ''}`);
+  return request<Contacto[]>(`/contactos/${suffix ? `?${suffix}` : ''}`, { signal: options.signal });
 }
 
 export function crearContacto(payload: { cliente_id?: number | null; nombre: string; telefono?: string; numero_tarjeta?: string; tipo_tarjeta?: string; documento_identidad_url?: string; pais?: string; notas?: string }) {

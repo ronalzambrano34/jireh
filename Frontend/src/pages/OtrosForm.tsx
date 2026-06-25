@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ImagePlus, MapPin } from 'lucide-react';
-import { crearOtros, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
+import { crearOtros, subirArchivo } from '../api/client';
+import { listarMetodosPagoDedup, listarPuntosRecogidaDedup } from '../api/dedupedReads';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
@@ -10,6 +11,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -55,10 +57,10 @@ export function OtrosForm({ operadorId, onCreated, initialData }: { operadorId: 
   );
   const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     let active = true;
     setCargandoMetodos(true);
-    listarMetodosPago()
+    listarMetodosPagoDedup(undefined, false, { signal })
       .then((data) => {
         if (!active) return;
         setMetodosPago(data);
@@ -79,17 +81,21 @@ export function OtrosForm({ operadorId, onCreated, initialData }: { operadorId: 
           };
         });
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
+      .catch((err) => {
+        if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago');
+      })
       .finally(() => {
         if (active) setCargandoMetodos(false);
       });
 
     setCargandoPuntos(true);
-    listarPuntosRecogida()
+    listarPuntosRecogidaDedup(false, { signal })
       .then((data) => {
         if (active) setPuntos(data);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los puntos de recogida'))
+      .catch((err) => {
+        if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los puntos de recogida');
+      })
       .finally(() => {
         if (active) setCargandoPuntos(false);
       });

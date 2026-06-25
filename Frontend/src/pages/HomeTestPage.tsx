@@ -13,10 +13,12 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { apiAssetUrl, obtenerPedido, obtenerTasasOperativas, rastrearPedidosPorCliente, sincronizarOfertas } from '../api/client';
+import { obtenerTasasOperativasDedup } from '../api/dedupedReads';
 import { FloatingToast } from '../components/FloatingToast';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoResumen, TasaOperativaResponse } from '../types/api';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import { guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida } from '../utils/preferenciasPedido';
@@ -390,17 +392,17 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function load(silent = false) {
+  async function load(silent = false, deduped = true, signal?: AbortSignal) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const response = await obtenerTasasOperativas();
+      const response = deduped ? await obtenerTasasOperativasDedup({ signal }) : await obtenerTasasOperativas({ signal });
       setData(response);
       localStorage.setItem(CACHE_KEY, JSON.stringify(response));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar las tasas');
+      if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar las tasas');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }
 
@@ -409,14 +411,14 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
     setError(null);
     try {
       if (canSyncTasas) await sincronizarOfertas();
-      await load(true);
+      await load(true, false);
     } finally {
       setSyncing(false);
     }
   }
 
-  useEffect(() => {
-    void load(Boolean(data));
+  useAbortableEffect((signal) => {
+    void load(Boolean(data), true, signal);
   }, []);
 
   const groups = useMemo(() => {

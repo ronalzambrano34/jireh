@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { CreditCard } from 'lucide-react';
-import { calcularOperacion, crearDivisa, listarMetodosPago, subirArchivo } from '../api/client';
+import { crearDivisa, subirArchivo } from '../api/client';
+import { calcularOperacionDedup, listarMetodosPagoDedup } from '../api/dedupedReads';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -11,6 +12,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -58,9 +60,9 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
   );
   const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     setCargandoMetodos(true);
-    listarMetodosPago()
+    listarMetodosPagoDedup(undefined, false, { signal })
       .then((data) => {
         setMetodosPago(data);
         const disponibles = monedasDisponibles(data.map((metodo) => metodo.moneda));
@@ -77,8 +79,12 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           };
         });
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
-      .finally(() => setCargandoMetodos(false));
+      .catch((err) => {
+        if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago');
+      })
+      .finally(() => {
+        if (!signal.aborted) setCargandoMetodos(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -93,7 +99,7 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     const montoPago = Number(form.monto_pago);
     if (!montoPago || montoPago <= 0) {
       setCalculo(null);
@@ -101,14 +107,16 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
     }
 
     let activo = true;
-    calcularOperacion({
+    calcularOperacionDedup({
       servicio: form.tipo_tarjeta.toLowerCase(),
       moneda_pago: form.moneda_pago,
       monto_pago: montoPago,
       bonificacion_manual: Number(form.bonificacion_manual) || 0,
-    })
+    }, { signal })
       .then((data) => { if (activo) setCalculo(data); })
-      .catch(() => { if (activo) setCalculo(null); });
+      .catch((err) => {
+        if (!isAbortError(err) && activo) setCalculo(null);
+      });
 
     return () => { activo = false; };
   }, [form.bonificacion_manual, form.monto_pago, form.moneda_pago, form.tipo_tarjeta]);

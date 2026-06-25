@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { calcularOperacion, crearTransferencia, listarMetodosPago, subirArchivo } from '../api/client';
+import { crearTransferencia, subirArchivo } from '../api/client';
+import { calcularOperacionDedup, listarMetodosPagoDedup } from '../api/dedupedReads';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -9,6 +10,7 @@ import { CurrencySelect } from '../components/CurrencySelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -58,9 +60,9 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   );
   const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     setCargandoMetodos(true);
-    listarMetodosPago()
+    listarMetodosPagoDedup(undefined, false, { signal })
       .then((data) => {
         setMetodosPago(data);
         const disponibles = monedasDisponibles(data.map((metodo) => metodo.moneda));
@@ -80,11 +82,15 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           };
         });
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago'))
-      .finally(() => setCargandoMetodos(false));
+      .catch((err) => {
+        if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago');
+      })
+      .finally(() => {
+        if (!signal.aborted) setCargandoMetodos(false);
+      });
   }, []);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     const monto = Number(form.monto_pago);
     if (!monto || monto <= 0) {
       setCalculo(null);
@@ -95,14 +101,15 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     let activo = true;
     setCalculando(true);
     setCalculoError(null);
-    calcularOperacion({
+    calcularOperacionDedup({
       servicio: 'transferencia',
       moneda_pago: form.moneda_pago,
       monto_pago: monto,
       bonificacion_manual: Number(form.bonificacion_manual) || 0,
-    })
+    }, { signal })
       .then((data) => { if (activo) setCalculo(data); })
       .catch((err) => {
+        if (isAbortError(err)) return;
         if (activo) {
           setCalculo(null);
           setCalculoError(err instanceof Error ? err.message : 'No se pudo calcular');

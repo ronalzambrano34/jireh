@@ -8,8 +8,10 @@ import { CurrencySelect } from '../components/CurrencySelect';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
-import { calcularOperacion, crearEfectivo, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
+import { crearEfectivo, subirArchivo } from '../api/client';
+import { calcularOperacionDedup, listarMetodosPagoDedup, listarPuntosRecogidaDedup } from '../api/dedupedReads';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -71,9 +73,9 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   );
   const monedasPago = useMemo(() => monedasDisponibles(metodosPago.map((metodo) => metodo.moneda)), [metodosPago]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     setCargandoCatalogos(true);
-    Promise.all([listarMetodosPago(), listarPuntosRecogida()])
+    Promise.all([listarMetodosPagoDedup(undefined, false, { signal }), listarPuntosRecogidaDedup(false, { signal })])
       .then(([metodos, puntosData]) => {
         setMetodosPago(metodos);
         setPuntos(puntosData);
@@ -95,11 +97,15 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
           };
         });
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos'))
-      .finally(() => setCargandoCatalogos(false));
+      .catch((err) => {
+        if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos');
+      })
+      .finally(() => {
+        if (!signal.aborted) setCargandoCatalogos(false);
+      });
   }, []);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     const monto = Number(form.monto_pago);
     if (!monto || monto <= 0) {
       setCalculo(null);
@@ -110,14 +116,15 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
     let activo = true;
     setCalculando(true);
     setCalculoError(null);
-    calcularOperacion({
+    calcularOperacionDedup({
       servicio: 'efectivo',
       moneda_pago: form.moneda_pago,
       monto_pago: monto,
       bonificacion_manual: Number(form.bonificacion_manual) || 0,
-    })
+    }, { signal })
       .then((data) => { if (activo) setCalculo(data); })
       .catch((err) => {
+        if (isAbortError(err)) return;
         if (activo) {
           setCalculo(null);
           setCalculoError(err instanceof Error ? err.message : 'No se pudo calcular');

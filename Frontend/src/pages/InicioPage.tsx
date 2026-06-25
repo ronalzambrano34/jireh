@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent, ReactNode, TouchEvent } from 'react';
 import { ArrowRight, Banknote, Calculator, ChevronDown, MousePointerClick, RefreshCw, Smartphone, WalletCards } from 'lucide-react';
 import { apiAssetUrl, obtenerTasasOperativas, sincronizarOfertas } from '../api/client';
+import { obtenerTasasOperativasDedup } from '../api/dedupedReads';
 import type { OfertaOperativa, PaqueteSaldoOperativo, TasaOperativaResponse } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingToast } from '../components/FloatingToast';
 import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { TrackOrderPanel } from './inicio/TrackOrderPanel';
 import { ServicesRatesGrid, type InicioCreateDraft, type InicioServiceCard, type InicioServicio } from './inicio/ServicesRatesGrid';
 import { guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida } from '../utils/preferenciasPedido';
@@ -553,18 +555,19 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
   const [error, setError] = useState<string | null>(null);
   const [monedaSeleccionada, setMonedaSeleccionada] = useState(() => leerMonedaPedidoPreferida());
 
-  async function cargarTasas(options: { silent?: boolean } = {}) {
+  async function cargarTasas(options: { silent?: boolean; deduped?: boolean; signal?: AbortSignal } = {}) {
     const silent = Boolean(options.silent);
+    const deduped = options.deduped ?? true;
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const nextData = await obtenerTasasOperativas();
+      const nextData = deduped ? await obtenerTasasOperativasDedup({ signal: options.signal }) : await obtenerTasasOperativas({ signal: options.signal });
       setData(nextData);
       guardarTasasCache(nextData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar las tasas');
+      if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar las tasas');
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && !options.signal?.aborted) setLoading(false);
     }
   }
 
@@ -590,9 +593,9 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
     }
   }
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!canLoadTasas) return;
-    void cargarTasas({ silent: Boolean(data) });
+    void cargarTasas({ silent: Boolean(data), signal });
   }, [canLoadTasas]);
 
   const gruposMoneda = useMemo(() => {

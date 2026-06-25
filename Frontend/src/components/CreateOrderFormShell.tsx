@@ -1,6 +1,8 @@
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { ChangeEventHandler, FormEventHandler, ReactNode } from 'react';
+import type { ChangeEventHandler, FormEvent, FormEventHandler, ReactNode } from 'react';
+import { offlineCriticalActionMessage } from '../api/client';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { FloatingToast } from './FloatingToast';
 import { PageLoader } from './PageLoader';
 
@@ -28,6 +30,8 @@ export function CreateOrderFormShell({
   onDismissError,
 }: CreateOrderFormShellProps) {
   const [comprobantePreview, setComprobantePreview] = useState<string | null>(null);
+  const online = useOnlineStatus();
+  const offline = !online;
 
   useEffect(() => {
     if (!comprobante?.type.startsWith('image/')) {
@@ -40,11 +44,25 @@ export function CreateOrderFormShell({
     return () => URL.revokeObjectURL(previewUrl);
   }, [comprobante]);
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (offline) {
+      event.preventDefault();
+      return;
+    }
+    onSubmit(event);
+  }
+
   return (
-    <form className="create-form-panel" onSubmit={onSubmit} noValidate>
+    <form className="create-form-panel" onSubmit={handleSubmit} noValidate>
       <div className="form-flow">{children}</div>
       {error && (
         <FloatingToast onDismiss={onDismissError}>{error}</FloatingToast>
+      )}
+      {offline && (
+        <div className="notice warning compact-notice create-offline-notice">
+          <WifiOff size={17} />
+          <span>{offlineCriticalActionMessage()}</span>
+        </div>
       )}
       <div className="payment-proof-container">
         <label className="payment-proof-field">
@@ -64,8 +82,8 @@ export function CreateOrderFormShell({
         </label>
       </div>
       {loading && <PageLoader label={loadingLabel} inline />}
-      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
-        {loading ? 'Creando...' : submitLabel}
+      <button className="primary-button create-submit-button" type="submit" disabled={loading || offline}>
+        {offline ? 'Sin conexion' : loading ? 'Creando...' : submitLabel}
       </button>
     </form>
   );

@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Smartphone } from 'lucide-react';
-import { crearSaldo, listarMetodosPago, listarPaquetesSaldo, subirArchivo } from '../api/client';
+import { crearSaldo, subirArchivo } from '../api/client';
+import { listarMetodosPagoDedup, listarPaquetesSaldoDedup } from '../api/dedupedReads';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
 import { ContactosRecientes } from '../components/ContactosRecientes';
@@ -10,6 +11,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { MetodoPagoSelect } from '../components/MetodoPagoSelect';
 import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
@@ -65,9 +67,9 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     return monedasDisponibles(paquetes.map((paquete) => paquete.moneda_pago)).filter((moneda) => monedasConMetodo.has(moneda));
   }, [metodosPago, paquetes]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     setCargandoCatalogos(true);
-    Promise.all([listarMetodosPago(), listarPaquetesSaldo()])
+    Promise.all([listarMetodosPagoDedup(undefined, false, { signal }), listarPaquetesSaldoDedup(undefined, false, { signal })])
       .then(([metodos, paquetesData]) => {
         setMetodosPago(metodos);
         setPaquetes(paquetesData);
@@ -93,8 +95,12 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           };
         });
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos'))
-      .finally(() => setCargandoCatalogos(false));
+      .catch((err) => {
+        if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los catalogos');
+      })
+      .finally(() => {
+        if (!signal.aborted) setCargandoCatalogos(false);
+      });
   }, []);
 
   useEffect(() => {

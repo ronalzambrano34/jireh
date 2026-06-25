@@ -8,6 +8,7 @@ import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
 import { UiSwitch } from '../components/UiSwitch';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import {
   apiAssetUrl,
   actualizarMetodoPago,
@@ -443,24 +444,24 @@ export function AdminCatalogosPage() {
     setTemasCargados(new Set(temasCargadosRef.current));
   }
 
-  async function cargarTema(tema: AdminTema, force = false) {
-    if ((!force && temasCargadosRef.current.has(tema)) || temasCargandoRef.current.has(tema)) return;
+  async function cargarTema(tema: AdminTema, force = false, signal?: AbortSignal) {
+    if ((!force && temasCargadosRef.current.has(tema)) || (!signal && temasCargandoRef.current.has(tema))) return;
 
     temasCargandoRef.current.add(tema);
     setTemasCargando(new Set(temasCargandoRef.current));
     setError(null);
     try {
-      if (tema === 'metodos') setMetodos(await listarMetodosPago(undefined, true));
-      if (tema === 'provincias') setProvincias(await listarProvinciasServicio(true));
-      if (tema === 'ofertas') setOfertas(await listarOfertas(true));
-      if (tema === 'paquetes') setPaquetes(await listarPaquetesSaldo(undefined, true));
-      if (tema === 'promociones') setPromociones(await listarPromociones(true));
-      if (tema === 'clientes') setClientes(await listarClientes(undefined, true));
-      if (tema === 'roles') setRoles(await listarRolesOperador(true));
+      if (tema === 'metodos') setMetodos(await listarMetodosPago(undefined, true, { signal }));
+      if (tema === 'provincias') setProvincias(await listarProvinciasServicio(true, { signal }));
+      if (tema === 'ofertas') setOfertas(await listarOfertas(true, { signal }));
+      if (tema === 'paquetes') setPaquetes(await listarPaquetesSaldo(undefined, true, { signal }));
+      if (tema === 'promociones') setPromociones(await listarPromociones(true, { signal }));
+      if (tema === 'clientes') setClientes(await listarClientes(undefined, true, { signal }));
+      if (tema === 'roles') setRoles(await listarRolesOperador(true, { signal }));
       if (tema === 'operadores') {
         const [operadoresData, rolesData] = await Promise.all([
-          listarOperadores(true),
-          temasCargadosRef.current.has('roles') ? Promise.resolve(null) : listarRolesOperador(true),
+          listarOperadores(true, { signal }),
+          temasCargadosRef.current.has('roles') ? Promise.resolve(null) : listarRolesOperador(true, { signal }),
         ]);
         setOperadores(operadoresData);
         if (rolesData) {
@@ -468,12 +469,12 @@ export function AdminCatalogosPage() {
           marcarTemasCargados('roles');
         }
       }
-      if (tema === 'configuracion') setConfiguraciones(await listarConfiguraciones());
+      if (tema === 'configuracion') setConfiguraciones(await listarConfiguraciones({ signal }));
 
       if (tema === 'puntos') {
         const [puntosData, provinciasData] = await Promise.all([
-          listarPuntosRecogida(true),
-          temasCargadosRef.current.has('provincias') ? Promise.resolve(null) : listarProvinciasServicio(true),
+          listarPuntosRecogida(true, { signal }),
+          temasCargadosRef.current.has('provincias') ? Promise.resolve(null) : listarProvinciasServicio(true, { signal }),
         ]);
         setPuntos(puntosData);
         if (provinciasData) {
@@ -484,8 +485,8 @@ export function AdminCatalogosPage() {
 
       if (tema === 'contactos') {
         const [contactosData, clientesData] = await Promise.all([
-          listarContactos(undefined, true),
-          temasCargadosRef.current.has('clientes') ? Promise.resolve(null) : listarClientes(undefined, true),
+          listarContactos(undefined, true, { signal }),
+          temasCargadosRef.current.has('clientes') ? Promise.resolve(null) : listarClientes(undefined, true, { signal }),
         ]);
         setContactos(contactosData);
         if (clientesData) {
@@ -495,7 +496,7 @@ export function AdminCatalogosPage() {
       }
 
       if (tema === 'templates') {
-        const templatesData = await listarTemplates();
+        const templatesData = await listarTemplates({ signal });
         setTemplates(templatesData);
         if (templatesData.length) {
           setTemplateForm((current) => {
@@ -507,12 +508,12 @@ export function AdminCatalogosPage() {
 
       marcarTemasCargados(tema);
     } catch (err) {
-      if (temaActivoRef.current === tema) {
+      if (!isAbortError(err) && temaActivoRef.current === tema) {
         setError(err instanceof Error ? err.message : `No se pudo cargar ${tituloTema(tema).toLowerCase()}`);
       }
     } finally {
       temasCargandoRef.current.delete(tema);
-      setTemasCargando(new Set(temasCargandoRef.current));
+      if (!signal?.aborted) setTemasCargando(new Set(temasCargandoRef.current));
     }
   }
 
@@ -520,8 +521,8 @@ export function AdminCatalogosPage() {
     if (temaActivo) await cargarTema(temaActivo, true);
   }
 
-  useEffect(() => {
-    if (temaActivo) void cargarTema(temaActivo);
+  useAbortableEffect((signal) => {
+    if (temaActivo) void cargarTema(temaActivo, false, signal);
   }, []);
 
   useEffect(() => {

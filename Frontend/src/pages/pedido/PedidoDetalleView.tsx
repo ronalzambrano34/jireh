@@ -24,6 +24,7 @@ export function OrderControlHead({
   bloqueoPropio,
   bloqueadoPorOtro,
   saving,
+  offlineActionsBlocked,
   hasMensajeOperativo,
   onOpenMensajeOperativo,
   onRelease,
@@ -34,6 +35,7 @@ export function OrderControlHead({
   bloqueoPropio: boolean;
   bloqueadoPorOtro: boolean;
   saving: boolean;
+  offlineActionsBlocked: boolean;
   hasMensajeOperativo: boolean;
   onOpenMensajeOperativo: () => void;
   onRelease: () => void;
@@ -61,7 +63,7 @@ export function OrderControlHead({
               <MessageCircle size={16} />
             </button>
           )}
-          <button className="release-order-button" type="button" onClick={onRelease} disabled={saving}>
+          <button className="release-order-button" type="button" onClick={onRelease} disabled={saving || offlineActionsBlocked} title={offlineActionsBlocked ? 'Sin conexion' : 'Liberar pedido'}>
             <Unlock size={15} /> Liberar pedido
           </button>
         </div>

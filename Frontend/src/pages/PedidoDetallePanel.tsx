@@ -1,12 +1,15 @@
 import { ChangeEvent, TouchEvent, WheelEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, ExternalLink, FileText, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Upload, X } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, FileText, Lock, MessageCircle, RefreshCw, Send, ShieldAlert, Upload, WifiOff, X } from 'lucide-react';
 import { PageLoader } from '../components/PageLoader';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
 import { UiSwitch } from '../components/UiSwitch';
 import { ERROR_TOAST_DURATION_MS, FloatingToast } from '../components/FloatingToast';
-import { actualizarEstado, apiAssetUrl, liberarOperacion, listarOperadoresActivos, obtenerAssetBlob, obtenerPedido, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
+import { actualizarEstado, apiAssetUrl, liberarOperacion, obtenerPedido, offlineCriticalActionMessage, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
+import { listarOperadoresActivosDedup, obtenerAssetBlobDedup, obtenerPedidoDedup } from '../api/dedupedReads';
 import type { ArchivoPedido, Operador, PedidoDetalle, PedidoResumen } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import {
   abrirWhatsAppUrl,
 } from '../utils/whatsapp';
@@ -395,6 +398,8 @@ export function PedidoDetallePanel({
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const lastHorizontalNavigationRef = useRef(0);
   const mutationInFlightRef = useRef(false);
+  const online = useOnlineStatus();
+  const offlineActionsBlocked = !online;
 
   const bloqueoPropio = Boolean(pedido?.lock_activo && pedido.operador_asignado_id === operadorId);
   const bloqueadoPorOtro = Boolean(pedido?.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operadorId);
@@ -422,7 +427,7 @@ export function PedidoDetallePanel({
     .map((archivo) => `${archivo.id}:${archivo.ruta_archivo}`)
     .join('|');
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     let activo = true;
     const urlsCreadas: string[] = [];
     const archivos = pedido?.archivos ?? [];
@@ -430,7 +435,7 @@ export function PedidoDetallePanel({
     setArchivoBlobUrls({});
     void Promise.all(archivos.map(async (archivo) => {
       try {
-        const blob = await obtenerAssetBlob(archivo.ruta_archivo);
+        const blob = await obtenerAssetBlobDedup(archivo.ruta_archivo, { signal });
         const url = URL.createObjectURL(blob);
         urlsCreadas.push(url);
         return [archivo.id, url] as const;
@@ -475,7 +480,7 @@ export function PedidoDetallePanel({
     return 'Confirmar';
   }, [pedido]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!codigo) {
       setPedido(null);
       return;
@@ -493,7 +498,7 @@ export function PedidoDetallePanel({
     setFinalizarSinComprobante(false);
     setMotivoSinComprobante('');
     setOwnLockNoticeHidden(false);
-    obtenerPedido(codigo)
+    obtenerPedidoDedup(codigo, { signal })
       .then(async (data) => {
         if (!active) return;
         setPedido(data);
@@ -510,15 +515,17 @@ export function PedidoDetallePanel({
         }
       })
       .catch(async (err) => {
+        if (isAbortError(err)) return;
         if (!active) return;
         try {
-          const data = await obtenerPedido(codigo);
+          const data = await obtenerPedido(codigo, { signal });
           if (!active) return;
           setPedido(data);
           if (!ESTADOS_TERMINALES.has(data.estado)) {
             setError(err instanceof Error ? err.message : 'No se pudo tomar la operacion');
           }
         } catch (detalleErr) {
+          if (isAbortError(detalleErr)) return;
           setError(detalleErr instanceof Error ? detalleErr.message : 'No se pudo cargar el pedido');
         }
       })
@@ -578,16 +585,16 @@ export function PedidoDetallePanel({
     setOwnLockNoticeHidden(false);
   }, [pedido?.redirigido_a_operador_id, pedido?.redireccion_mensaje]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!redireccionAbierta || operadores.length > 0) return;
 
     let active = true;
-    listarOperadoresActivos()
+    listarOperadoresActivosDedup({ signal })
       .then((items) => {
         if (active) setOperadores(items.filter((item) => item.id !== operadorId && item.activo));
       })
-      .catch(() => {
-        if (active) setOperadores([]);
+      .catch((err) => {
+        if (active && !isAbortError(err)) setOperadores([]);
       });
 
     return () => {
@@ -646,6 +653,11 @@ export function PedidoDetallePanel({
     if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
     errorTimeoutRef.current = null;
     setError(null);
+  }
+
+  function bloquearAccionSinConexion() {
+    setError(offlineCriticalActionMessage());
+    return true;
   }
 
   function copiarCampo(value: unknown, label = 'Dato') {
@@ -715,7 +727,7 @@ export function PedidoDetallePanel({
   }
 
   function alternarFinalizacionSinComprobante(checked: boolean) {
-    if (saving || uploading) return;
+    if (saving || uploading || offlineActionsBlocked) return;
     setFinalizarSinComprobante(checked);
     if (checked && !motivoSinComprobante.trim()) {
       setMotivoSinComprobante(
@@ -727,6 +739,10 @@ export function PedidoDetallePanel({
 
   async function cambiarEstadoRapido(nuevoEstado: string, observaciones?: string) {
     if (!canManage || !pedido || bloqueadoPorOtro || saving || pedido.estado === nuevoEstado) return;
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
     if (nuevoEstado === 'pago_confirmado' && !tieneComprobantePago) {
       setError(null);
       setConfirmarPagoAbierto(true);
@@ -812,6 +828,10 @@ export function PedidoDetallePanel({
   }
 
   function abrirCancelacion() {
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
     setError(null);
     setCancelacionAbierta(true);
   }
@@ -824,12 +844,20 @@ export function PedidoDetallePanel({
   }
 
   function confirmarCancelacion() {
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
     const motivo = motivoCancelacion.trim();
     void cambiarEstadoRapido('cancelado', motivo || 'Cancelado por operador sin motivo especifico');
   }
 
   async function liberarPedidoActual() {
     if (!canManage || !pedido || !bloqueoPropio || saving) return;
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
     if (!iniciarMutacionPedido()) return;
     setSaving(true);
     setError(null);
@@ -848,6 +876,10 @@ export function PedidoDetallePanel({
 
   async function guardarRedireccion() {
     if (!canManage || !pedido || redirigiendo) return;
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
     if (!iniciarMutacionPedido()) return;
     setRedirigiendo(true);
     setError(null);
@@ -870,6 +902,11 @@ export function PedidoDetallePanel({
 
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
+    if (offlineActionsBlocked) {
+      event.target.value = '';
+      bloquearAccionSinConexion();
+      return;
+    }
     if (!iniciarMutacionPedido()) return;
     setUploading(true);
     setError(null);
@@ -891,6 +928,11 @@ export function PedidoDetallePanel({
 
   async function handleComprobantePagoConfirmado(event: ChangeEvent<HTMLInputElement>) {
     if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
+    if (offlineActionsBlocked) {
+      event.target.value = '';
+      bloquearAccionSinConexion();
+      return;
+    }
     if (!iniciarMutacionPedido()) return;
     setUploading(true);
     setSaving(true);
@@ -918,6 +960,11 @@ export function PedidoDetallePanel({
 
   async function handleComprobanteFinal(event: ChangeEvent<HTMLInputElement>) {
     if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
+    if (offlineActionsBlocked) {
+      event.target.value = '';
+      bloquearAccionSinConexion();
+      return;
+    }
     if (!iniciarMutacionPedido()) return;
     setUploading(true);
     setSaving(true);
@@ -949,6 +996,10 @@ export function PedidoDetallePanel({
 
   async function confirmarFinalizacionSinComprobante() {
     if (!canManage || !pedido || bloqueadoPorOtro || saving) return;
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
     const motivo = motivoSinComprobante.trim();
     if (motivo.length < 10) {
       setError('Explica brevemente por que no se pudo obtener el comprobante');
@@ -1018,6 +1069,7 @@ export function PedidoDetallePanel({
             bloqueoPropio={bloqueoPropio}
             bloqueadoPorOtro={bloqueadoPorOtro}
             saving={saving}
+            offlineActionsBlocked={offlineActionsBlocked}
             hasMensajeOperativo={Boolean(pedido.mensaje_operacion)}
             onOpenMensajeOperativo={() => setMensajeOperativoModalAbierto(true)}
             onRelease={canManage ? () => void liberarPedidoActual() : () => undefined}
@@ -1046,6 +1098,12 @@ export function PedidoDetallePanel({
             <DismissibleNotice className="notice warning compact-notice" role="alert">
               <><ShieldAlert size={17} /> En uso por {pedido.operador_asignado_nombre ?? 'otro operador'}. Puedes revisar, pero no editar.</>
             </DismissibleNotice>
+          )}
+          {offlineActionsBlocked && (
+            <div className="notice warning compact-notice order-offline-action-notice" role="alert">
+              <WifiOff size={17} />
+              <span>Sin conexion. Las acciones que modifican este pedido estan bloqueadas.</span>
+            </div>
           )}
           {pedido.redirigido_a_operador_id && (
             <DismissibleNotice className={pedido.redirigido_a_operador_id === operadorId ? 'notice redirected own compact-notice' : 'notice redirected compact-notice'}>
@@ -1136,14 +1194,15 @@ export function PedidoDetallePanel({
                   options={[{ value: '', label: 'Sin redireccion' }, ...operadores.map((item) => ({ value: String(item.id), label: item.nombre, description: item.rol }))]}
                   ariaLabel="Operador destino"
                   align="left"
+                  disabled={offlineActionsBlocked}
                 />
                 <input
                   value={mensajeRedireccion}
                   onChange={(event) => setMensajeRedireccion(event.target.value)}
                   placeholder="Nota breve"
-                  disabled={redirigiendo}
+                  disabled={redirigiendo || offlineActionsBlocked}
                 />
-                <button className="ghost-button" type="button" onClick={guardarRedireccion} disabled={redirigiendo || (!operadorDestino && !pedido.redirigido_a_operador_id)}>
+                <button className="ghost-button" type="button" onClick={guardarRedireccion} disabled={offlineActionsBlocked || redirigiendo || (!operadorDestino && !pedido.redirigido_a_operador_id)}>
                   {redirigiendo ? <RefreshCw size={16} /> : <Send size={16} />}
                   {operadorDestino ? 'Marcar' : 'Transferir'}
                 </button>
@@ -1187,14 +1246,14 @@ export function PedidoDetallePanel({
                   <small>Sube el comprobante para marcar el pago como recibido.</small>
                 </div>
               </div>
-              <label className={bloqueadoPorOtro ? 'upload-button disabled-upload' : 'upload-button'}>
+              <label className={bloqueadoPorOtro || offlineActionsBlocked ? 'upload-button disabled-upload' : 'upload-button'}>
                 <Upload size={16} /> {uploading ? 'Subiendo...' : 'Seleccionar comprobante'}
                 <input
                   ref={comprobantePagoInputRef}
                   type="file"
                   accept="image/*,application/pdf,.pdf,.doc,.docx"
                   onChange={handleComprobantePagoConfirmado}
-                  disabled={bloqueadoPorOtro || uploading || saving}
+                  disabled={bloqueadoPorOtro || offlineActionsBlocked || uploading || saving}
                 />
               </label>
               <button className="ghost-button" type="button" onClick={() => setConfirmarPagoAbierto(false)} disabled={uploading || saving}>
@@ -1218,14 +1277,14 @@ export function PedidoDetallePanel({
                 </div>
               </div>
 
-              <label className={bloqueadoPorOtro ? 'upload-button disabled-upload' : 'upload-button'}>
+              <label className={bloqueadoPorOtro || offlineActionsBlocked ? 'upload-button disabled-upload' : 'upload-button'}>
                 <Upload size={16} /> {uploading ? 'Subiendo...' : 'Subir comprobante de exito'}
                 <input
                   ref={comprobanteFinalInputRef}
                   type="file"
                   accept="image/*,application/pdf,.pdf,.doc,.docx"
                   onChange={handleComprobanteFinal}
-                  disabled={bloqueadoPorOtro || uploading || saving}
+                  disabled={bloqueadoPorOtro || offlineActionsBlocked || uploading || saving}
                 />
               </label>
 
@@ -1242,7 +1301,7 @@ export function PedidoDetallePanel({
                   checked={finalizarSinComprobante}
                   onChange={alternarFinalizacionSinComprobante}
                   ariaLabel="Finalizar sin comprobante"
-                  disabled={saving || uploading}
+                  disabled={saving || uploading || offlineActionsBlocked}
                 />
               </label>
 
@@ -1255,7 +1314,7 @@ export function PedidoDetallePanel({
                       onChange={(event) => setMotivoSinComprobante(event.target.value)}
                       placeholder="Explicacion que quedara registrada en el historial."
                       rows={3}
-                      disabled={saving}
+                      disabled={saving || offlineActionsBlocked}
                     />
                   </label>
                   <div className="notice warning compact-notice">
@@ -1266,7 +1325,7 @@ export function PedidoDetallePanel({
                     className="primary-button"
                     type="button"
                     onClick={() => void confirmarFinalizacionSinComprobante()}
-                    disabled={saving || motivoSinComprobante.trim().length < 10}
+                    disabled={offlineActionsBlocked || saving || motivoSinComprobante.trim().length < 10}
                   >
                     <CheckCircle2 size={17} /> {saving ? 'Finalizando...' : 'Confirmar sin comprobante'}
                   </button>
@@ -1306,14 +1365,14 @@ export function PedidoDetallePanel({
                     onChange={(event) => setMotivoCancelacion(event.target.value)}
                     placeholder="Ejemplo: cliente no completo el pago, datos incorrectos, pedido duplicado..."
                     rows={3}
-                    disabled={saving}
+                    disabled={saving || offlineActionsBlocked}
                   />
                 </label>
                 <div className="order-cancel-confirm-actions">
                   <button className="ghost-button" type="button" onClick={cerrarCancelacion} disabled={saving}>
                     No, volver
                   </button>
-                  <button className="danger-button order-cancel-confirm-button" type="button" onClick={confirmarCancelacion} disabled={saving || cancelCountdown > 0}>
+                  <button className="danger-button order-cancel-confirm-button" type="button" onClick={confirmarCancelacion} disabled={offlineActionsBlocked || saving || cancelCountdown > 0}>
                     {saving ? 'Cancelando...' : cancelCountdown > 0 ? `Si, cancelar (${cancelCountdown})` : 'Si, cancelar'}
                   </button>
                 </div>
@@ -1444,7 +1503,7 @@ export function PedidoDetallePanel({
             open={evidenciasAbiertas}
             archivos={pedido.archivos ?? []}
             uploading={uploading}
-            disabled={!canManage || bloqueadoPorOtro}
+            disabled={!canManage || bloqueadoPorOtro || offlineActionsBlocked}
             onToggle={() => setEvidenciasAbiertas((current) => !current)}
             onUpload={handleUpload}
             archivoUrl={archivoUrl}
@@ -1462,11 +1521,11 @@ export function PedidoDetallePanel({
           />
 
           {canManage && <div className="order-bottom-actions" role="group" aria-label="Acciones principales de pedido">
-            <button className="danger-button order-cancel-action" type="button" onClick={abrirCancelacion} disabled={bloqueadoPorOtro || saving || pedido.estado === 'cancelado' || pedido.estado === 'completado'} title="Cancelar">
+            <button className="danger-button order-cancel-action" type="button" onClick={abrirCancelacion} disabled={offlineActionsBlocked || bloqueadoPorOtro || saving || pedido.estado === 'cancelado' || pedido.estado === 'completado'} title={offlineActionsBlocked ? 'Sin conexion' : 'Cancelar'}>
               <X size={20} />
               <span>Cancelar</span>
             </button>
-            <button className="primary-button order-primary-action" type="button" onClick={() => void cambiarEstadoRapido(proximoEstadoPrincipal)} disabled={bloqueadoPorOtro || saving || pedido.estado === 'completado' || pedido.estado === 'cancelado'}>
+            <button className="primary-button order-primary-action" type="button" onClick={() => void cambiarEstadoRapido(proximoEstadoPrincipal)} disabled={offlineActionsBlocked || bloqueadoPorOtro || saving || pedido.estado === 'completado' || pedido.estado === 'cancelado'} title={offlineActionsBlocked ? 'Sin conexion' : accionPrincipalLabel}>
               {saving ? <RefreshCw size={18} /> : <CheckCircle2 size={18} />}
               {saving ? 'Procesando...' : accionPrincipalLabel}
             </button>

@@ -1,6 +1,7 @@
 import { lazy, type ChangeEvent, type FormEvent, type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, BarChart3, BriefcaseBusiness, CheckCircle2, ClipboardList, Copy, Home, LogOut, Menu, MessageCircle, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Sparkles, Upload, UserCircle, UsersRound, WalletCards, WifiOff, X } from 'lucide-react';
-import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getMe, getToken, listarPedidos, obtenerEstadoConfiguracionInicial, subirArchivo, subirMiFotoPerfil } from './api/client';
+import { Banknote, BarChart3, BriefcaseBusiness, CheckCircle2, ClipboardList, Copy, Home, LogOut, Menu, MessageCircle, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Sparkles, Upload, UserCircle, UsersRound, WalletCards, Wifi, WifiOff, X } from 'lucide-react';
+import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getToken, listarPedidos, subirArchivo, subirMiFotoPerfil } from './api/client';
+import { getMeDedup, obtenerEstadoConfiguracionInicialDedup } from './api/dedupedReads';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
 import { Modal } from './components/Modal';
@@ -8,6 +9,7 @@ import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { UserHeaderMenu } from './components/UserHeaderMenu';
 import { ERROR_TOAST_DURATION_MS, INFO_TOAST_DURATION_MS, PROFILE_TOAST_DURATION_MS, ToastMessage } from './components/FloatingToast';
 import { NotificationBell, defaultNotificationSoundPreferences, notificationKindLabels, type AppNotification, type AppNotificationKind, type NotificationSoundPreferences } from './components/NotificationBell';
+import { isAbortError, useAbortableEffect } from './hooks/useAbortableEffect';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
@@ -44,6 +46,24 @@ type PendingAuthAction =
   | { type: 'crear'; servicio: ServicioCrear; draft: CrearPedidoDraft }
   | { type: 'rastrear'; codigo: string }
   | null;
+type NetworkStatusKind = 'online' | 'slow' | 'offline' | 'reconnecting';
+type NetworkStatus = {
+  kind: NetworkStatusKind;
+  online: boolean;
+  label: string;
+  detail: string;
+};
+type NavigatorWithConnection = Navigator & {
+  connection?: NetworkInformationLike;
+};
+type NetworkInformationLike = EventTarget & {
+  effectiveType?: string;
+  saveData?: boolean;
+  downlink?: number;
+  rtt?: number;
+  addEventListener?: EventTarget['addEventListener'];
+  removeEventListener?: EventTarget['removeEventListener'];
+};
 
 const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
@@ -58,6 +78,11 @@ type WebAudioWindow = Window & typeof globalThis & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+function getConnectionInfo() {
+  if (typeof navigator === 'undefined') return undefined;
+  return (navigator as NavigatorWithConnection).connection;
+}
+
 function vistaGuardada(): AppView {
   if (typeof sessionStorage === 'undefined') return 'inicio';
   const saved = sessionStorage.getItem(VIEW_KEY) as AppView | null;
@@ -65,14 +90,75 @@ function vistaGuardada(): AppView {
 }
 
 function intervaloRefrescoPedidos() {
-  const connection = (navigator as Navigator & {
-    connection?: { effectiveType?: string; saveData?: boolean };
-  }).connection;
+  const connection = getConnectionInfo();
 
   if (connection?.saveData || connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g') {
     return 60000;
   }
   return 30000;
+}
+
+function connectionIsSlow(connection?: NetworkInformationLike) {
+  return Boolean(
+    connection?.saveData
+    || connection?.effectiveType === 'slow-2g'
+    || connection?.effectiveType === '2g'
+    || (typeof connection?.downlink === 'number' && connection.downlink > 0 && connection.downlink <= 0.8)
+    || (typeof connection?.rtt === 'number' && connection.rtt >= 1500)
+  );
+}
+
+function readNetworkStatus(reconnecting = false): NetworkStatus {
+  const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+  const connection = getConnectionInfo();
+
+  if (!online) {
+    return {
+      kind: 'offline',
+      online: false,
+      label: 'Sin conexion',
+      detail: 'Conservamos los datos visibles. Las acciones que requieren internet pueden fallar.',
+    };
+  }
+
+  if (reconnecting) {
+    return {
+      kind: 'reconnecting',
+      online: true,
+      label: 'Reconectando',
+      detail: 'Estamos recuperando los datos y notificaciones.',
+    };
+  }
+
+  if (connectionIsSlow(connection)) {
+    return {
+      kind: 'slow',
+      online: true,
+      label: 'Conexion lenta',
+      detail: 'Las cargas pueden tardar mas. Evitamos refrescos agresivos.',
+    };
+  }
+
+  return {
+    kind: 'online',
+    online: true,
+    label: 'Conectado',
+    detail: '',
+  };
+}
+
+function NetworkStatusBanner({ status }: { status: NetworkStatus }) {
+  if (status.kind === 'online') return null;
+  const Icon = status.kind === 'offline' ? WifiOff : status.kind === 'reconnecting' ? RefreshCw : Wifi;
+  return (
+    <div className={`network-banner ${status.kind}`} role={status.kind === 'offline' ? 'alert' : 'status'} aria-live="polite">
+      <Icon size={18} />
+      <span>
+        <strong>{status.label}</strong>
+        <small>{status.detail}</small>
+      </span>
+    </div>
+  );
 }
 
 function estadoFaseUno(value: string) {
@@ -189,7 +275,8 @@ export function App() {
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [networkStatus, setNetworkStatus] = useState<NetworkStatus>(() => readNetworkStatus());
+  const online = networkStatus.online;
   const [pedidosClock, setPedidosClock] = useState(() => Date.now());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -215,6 +302,7 @@ export function App() {
   const profileMessageTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
   const profileErrorTimeoutRef = useRef<number | null>(null);
+  const reconnectingTimeoutRef = useRef<number | null>(null);
   const pullStartRef = useRef<{ x: number; y: number } | null>(null);
   const [pullDistance, setPullDistance] = useState(0);
   const [pullRefreshing, setPullRefreshing] = useState(false);
@@ -229,6 +317,7 @@ export function App() {
   const knownPedidoCodesRef = useRef<Set<string>>(new Set());
   const knownTransferKeysRef = useRef<Map<string, string>>(new Map());
   const delayedNotificationCodesRef = useRef<Set<string>>(new Set());
+  const pedidosRequestKeysRef = useRef<Set<string>>(new Set());
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -875,16 +964,21 @@ export function App() {
     setPedidos(alcancePedidos === 'mis' ? misPedidos : data);
   }, [alcancePedidos, operador]);
 
-  const cargarPedidos = useCallback(async () => {
+  const cargarPedidos = useCallback(async (signal?: AbortSignal) => {
+    const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+    const cargaKey = `pedidos:${operador?.id ?? 'anon'}:${alcanceCarga}:${alcancePedidos}:${periodoPedidos}`;
+    const usarGuarda = !signal;
+    if (usarGuarda && pedidosRequestKeysRef.current.has(cargaKey)) return;
+
+    if (usarGuarda) pedidosRequestKeysRef.current.add(cargaKey);
     setLoading(true);
     setError(null);
     try {
-      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
       const data = await listarPedidos({
         limit: 200,
         alcance: alcanceCarga,
         ...rangoPeriodoPedidos(periodoPedidos),
-      });
+      }, { signal });
       revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
         aplicarPedidosPorAlcance(data);
@@ -893,20 +987,26 @@ export function App() {
         setPedidos(data);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron cargar los pedidos');
+      if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los pedidos');
     } finally {
-      setLoading(false);
+      if (usarGuarda) pedidosRequestKeysRef.current.delete(cargaKey);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [alcancePedidos, aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
+  }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
-  const refrescarPedidosSilencioso = useCallback(async () => {
+  const refrescarPedidosSilencioso = useCallback(async (signal?: AbortSignal) => {
+    const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
+    const cargaKey = `pedidos:${operador?.id ?? 'anon'}:${alcanceCarga}:${alcancePedidos}:${periodoPedidos}`;
+    const usarGuarda = !signal;
+    if (usarGuarda && pedidosRequestKeysRef.current.has(cargaKey)) return;
+
+    if (usarGuarda) pedidosRequestKeysRef.current.add(cargaKey);
     try {
-      const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
       const data = await listarPedidos({
         limit: 200,
         alcance: alcanceCarga,
         ...rangoPeriodoPedidos(periodoPedidos),
-      });
+      }, { signal });
       revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
         aplicarPedidosPorAlcance(data);
@@ -916,8 +1016,10 @@ export function App() {
       }
     } catch {
       // El refresco silencioso no debe interrumpir al operador si falla una vuelta.
+    } finally {
+      if (usarGuarda) pedidosRequestKeysRef.current.delete(cargaKey);
     }
-  }, [aplicarPedidosPorAlcance, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
+  }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
   useEffect(() => {
     if (!puedeVerTodasLasOrdenes && alcancePedidos === 'todas') {
@@ -1004,11 +1106,12 @@ export function App() {
     }
   }, [vista]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!getToken()) return;
-    getMe()
+    getMeDedup({ signal })
       .then(setOperador)
       .catch((err) => {
+        if (isAbortError(err)) return;
         const message = err instanceof Error ? err.message.toLowerCase() : '';
         if (message.includes('401') || message.includes('token')) {
           clearToken();
@@ -1083,26 +1186,26 @@ export function App() {
     };
   }, [operador]);
 
-  useEffect(() => {
-    if (operador) void cargarPedidos();
+  useAbortableEffect((signal) => {
+    if (operador) void cargarPedidos(signal);
   }, [cargarPedidos, operador]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!operador || !puedeAdmin || setupRevisado) return;
-    setSetupRevisado(true);
-    obtenerEstadoConfiguracionInicial()
+    obtenerEstadoConfiguracionInicialDedup({ signal })
       .then((estadoSetup) => {
         if (!estadoSetup.completada) setVista('setup');
       })
-      .catch(() => {
-        // La configuracion inicial no debe impedir entrar a una instalacion existente.
+      .catch(() => {})
+      .finally(() => {
+        if (!signal.aborted) setSetupRevisado(true);
       });
   }, [operador, puedeAdmin, setupRevisado]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!operador || !online) return undefined;
     const interval = window.setInterval(() => {
-      void refrescarPedidosSilencioso();
+      void refrescarPedidosSilencioso(signal);
     }, intervaloRefrescoPedidos());
     return () => window.clearInterval(interval);
   }, [online, operador, refrescarPedidosSilencioso]);
@@ -1155,15 +1258,45 @@ export function App() {
   }, [operador]);
 
   useEffect(() => {
-    function syncOnline() {
-      setOnline(navigator.onLine);
+    const connection = getConnectionInfo();
+
+    function clearReconnectingTimeout() {
+      if (reconnectingTimeoutRef.current) window.clearTimeout(reconnectingTimeoutRef.current);
+      reconnectingTimeoutRef.current = null;
     }
 
-    window.addEventListener('online', syncOnline);
-    window.addEventListener('offline', syncOnline);
+    function finishReconnecting() {
+      reconnectingTimeoutRef.current = window.setTimeout(() => {
+        setNetworkStatus(readNetworkStatus(false));
+        reconnectingTimeoutRef.current = null;
+      }, 4500);
+    }
+
+    function handleOnline() {
+      clearReconnectingTimeout();
+      setNetworkStatus(readNetworkStatus(true));
+      finishReconnecting();
+    }
+
+    function handleOffline() {
+      clearReconnectingTimeout();
+      setNetworkStatus(readNetworkStatus(false));
+    }
+
+    function handleConnectionChange() {
+      setNetworkStatus((current) => readNetworkStatus(current.kind === 'reconnecting'));
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    connection?.addEventListener?.('change', handleConnectionChange);
+    setNetworkStatus(readNetworkStatus(false));
+
     return () => {
-      window.removeEventListener('online', syncOnline);
-      window.removeEventListener('offline', syncOnline);
+      clearReconnectingTimeout();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      connection?.removeEventListener?.('change', handleConnectionChange);
     };
   }, []);
 
@@ -1208,6 +1341,7 @@ export function App() {
       if (profileMessageTimeoutRef.current) window.clearTimeout(profileMessageTimeoutRef.current);
       if (errorTimeoutRef.current) window.clearTimeout(errorTimeoutRef.current);
       if (profileErrorTimeoutRef.current) window.clearTimeout(profileErrorTimeoutRef.current);
+      if (reconnectingTimeoutRef.current) window.clearTimeout(reconnectingTimeoutRef.current);
     };
   }, []);
 
@@ -1295,6 +1429,7 @@ export function App() {
               </button>
             </div>
           </header>
+          <NetworkStatusBanner status={networkStatus} />
           <InicioPage
             onCreate={(nextServicio, draft) => solicitarLogin({ type: 'crear', servicio: nextServicio, draft: draft ?? {} })}
             onTrackPedido={(codigo) => solicitarLogin({ type: 'rastrear', codigo })}
@@ -1379,11 +1514,7 @@ export function App() {
           <RefreshCw size={17} />
           <span>{pullRefreshing ? 'Actualizando...' : pullDistance >= PULL_REFRESH_THRESHOLD ? 'Suelta para actualizar' : 'Desliza para actualizar'}</span>
         </div>
-        {!online && (
-          <div className="offline-banner">
-            <WifiOff size={18} /> Sin conexion, los datos del formulario se conservan en esta pantalla.
-          </div>
-        )}
+        <NetworkStatusBanner status={networkStatus} />
         <header className="toolbar">
           <button className="icon-button mobile-header-menu" onClick={() => setMobileMenuOpen(true)} title="Abrir menu" aria-label="Abrir menu">
             <Menu size={20} />

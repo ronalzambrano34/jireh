@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { CreditCard, Phone, X } from 'lucide-react';
-import { eliminarContacto, listarContactos } from '../api/client';
+import { eliminarContacto } from '../api/client';
+import { listarContactosDedup } from '../api/dedupedReads';
 import type { Contacto } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { formatearNumeroTarjeta } from '../utils/tarjetas';
 
 type ContactosRecientesProps = {
@@ -15,7 +17,7 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
   const [loading, setLoading] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<number>>(() => new Set());
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (!clienteId) {
       setContactos([]);
       return;
@@ -23,15 +25,15 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
 
     let active = true;
     setLoading(true);
-    listarContactos(clienteId)
+    listarContactosDedup(clienteId, false, { signal })
       .then((data) => {
         if (active) setContactos(data.filter((contacto) => contacto.activo).slice(0, 12));
       })
       .catch((err) => {
-        if (active) onError?.(err instanceof Error ? err.message : 'No se pudieron cargar los contactos');
+        if (active && !isAbortError(err)) onError?.(err instanceof Error ? err.message : 'No se pudieron cargar los contactos');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active && !signal.aborted) setLoading(false);
       });
 
     return () => {

@@ -84,13 +84,31 @@
   background: rgba(255, 255, 255, 0.11);
 }
 
-:root[data-theme="dark-sidebar"] .offline-banner {
+:root[data-theme="dark-sidebar"] .network-banner {
   min-height: 42px;
   color: var(--ui-warning-text);
   background: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-surface));
   border: 1px solid color-mix(in srgb, var(--ui-warning) 38%, var(--ui-border));
   border-radius: var(--ui-radius-md);
   box-shadow: none;
+}
+
+:root[data-theme="dark-sidebar"] .network-banner.offline {
+  color: #ffb1b1;
+  background: color-mix(in srgb, var(--ui-danger) 13%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-danger) 38%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .network-banner.reconnecting {
+  color: #b9d7ff;
+  background: color-mix(in srgb, #60a5fa 14%, var(--ui-surface));
+  border-color: color-mix(in srgb, #60a5fa 36%, var(--ui-border));
+}
+
+:root[data-theme="dark-sidebar"] .network-banner.slow {
+  color: var(--ui-warning-text);
+  background: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-surface));
+  border-color: color-mix(in srgb, var(--ui-warning) 38%, var(--ui-border));
 }
 
 :root[data-theme="dark-sidebar"] .app-toast-stack {

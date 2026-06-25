@@ -1,7 +1,8 @@
 import { createElement, useEffect, useState } from 'react';
 import { FloatingSelect } from './FloatingSelect';
-import { listarCuentasMetodoPago } from '../api/client';
+import { listarCuentasMetodoPagoDedup } from '../api/dedupedReads';
 import type { MetodoPago, MetodoPagoCuenta } from '../types/api';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { metodoPagoVisual } from '../utils/metodosPago';
 
 type MetodoPagoSelectProps = {
@@ -34,7 +35,7 @@ export function MetodoPagoSelect({
 }: MetodoPagoSelectProps) {
   const [cuentas, setCuentas] = useState<MetodoPagoCuenta[]>([]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     let active = true;
     if (!value || !onCuentaChange) {
       setCuentas([]);
@@ -43,7 +44,7 @@ export function MetodoPagoSelect({
     }
 
     onCuentaChange('');
-    listarCuentasMetodoPago(Number(value), false)
+    listarCuentasMetodoPagoDedup(Number(value), false, { signal })
       .then((data) => {
         if (!active) return;
         setCuentas(data);
@@ -53,7 +54,8 @@ export function MetodoPagoSelect({
           onCuentaChange(predeterminada ? String(predeterminada.id) : '');
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        if (isAbortError(err)) return;
         if (active) {
           setCuentas([]);
           onCuentaChange('');

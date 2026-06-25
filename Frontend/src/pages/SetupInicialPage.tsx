@@ -7,14 +7,17 @@ import {
   crearPaqueteSaldo,
   crearPuntoRecogida,
   guardarConfiguracion,
-  listarMetodosPago,
-  listarProvinciasServicio,
-  obtenerEstadoConfiguracionInicial,
 } from '../api/client';
+import {
+  listarMetodosPagoDedup,
+  listarProvinciasServicioDedup,
+  obtenerEstadoConfiguracionInicialDedup,
+} from '../api/dedupedReads';
 import { FloatingToast } from '../components/FloatingToast';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { PhoneInput } from '../components/PhoneInput';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import type { ConfiguracionInicialEstado, MetodoPago, ProvinciaServicio } from '../types/api';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import { SetupActions, SetupCardHeader, SetupHero, SetupSteps, type SetupStep } from './setup/SetupLayout';
@@ -67,12 +70,12 @@ export function SetupInicialPage({
     saldo_cup: '',
   });
 
-  async function cargar() {
+  async function cargar(signal?: AbortSignal) {
     setError(null);
     const [estadoData, metodosData, provinciasData] = await Promise.all([
-      obtenerEstadoConfiguracionInicial(),
-      listarMetodosPago(undefined, true),
-      listarProvinciasServicio(true),
+      obtenerEstadoConfiguracionInicialDedup({ signal }),
+      listarMetodosPagoDedup(undefined, true, { signal }),
+      listarProvinciasServicioDedup(true, { signal }),
     ]);
     const activos = metodosData.filter((item) => item.activo);
     setEstado(estadoData);
@@ -90,8 +93,10 @@ export function SetupInicialPage({
     }));
   }
 
-  useEffect(() => {
-    cargar().catch((err) => setError(err instanceof Error ? err.message : 'No se pudo revisar la configuracion'));
+  useAbortableEffect((signal) => {
+    cargar(signal).catch((err) => {
+      if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudo revisar la configuracion');
+    });
   }, []);
 
   const pasos = useMemo<SetupStep[]>(() => [

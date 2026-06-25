@@ -8,11 +8,7 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 //todo 
 
 //todo REVISION GENERAL - CONECTIVIDAD, PETICIONES Y ESTABILIDAD:
-- Revisar todos los useEffect que llaman APIs para evitar dobles cargas por cambios de estado, StrictMode o dependencias inestables.
-- Centralizar cancelacion de peticiones con AbortController cuando se cambia de vista o se desmonta un componente.
-- Implementar reintentos controlados solo en peticiones seguras de lectura, no en acciones que modifican datos.
-- Mostrar estados claros de conexion lenta, sin conexion y reconectando.
-- Mantener cola local para acciones criticas cuando no haya conexion, o bloquearlas claramente si no se pueden garantizar.
+
 - Guardar borradores de nuevo pedido localmente para no perder datos si se cae internet.
 - Revisar que los uploads de imagenes/documentos indiquen progreso, error y reintento manual.
 - Evitar subir dos veces el mismo archivo si el operador toca varias veces el selector o el boton.
@@ -39,6 +35,11 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 - Validar que la vista Pedidos cargue todos los pedidos por defecto para operadores y solo mis pedidos para clientes.
 - Revisar idempotencia en crear pedido, confirmar pago, tomar, liberar, transferir, cancelar y finalizar.
 - Revisado: bloquear doble click/tap en botones criticos mientras la peticion este en proceso.
+- Revisado: useEffect con llamadas API para evitar dobles cargas por StrictMode o dependencias repetidas.
+- Revisado: cancelar peticiones de lectura con AbortController al desmontar o cambiar de vista.
+- Revisado: mostrar estados claros de conexion lenta, sin conexion y reconectando.
+- Revisado: bloquear claramente acciones criticas sin conexion para evitar duplicados o estados inconsistentes.
+- Revisado: reintentos controlados solo en peticiones seguras de lectura, no en acciones que modifican datos.
 - Confirmar que no se duplique historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
 - Probar baja conectividad: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
 - Definir comportamiento offline de la PWA: que abre sin internet, que queda bloqueado y que conserva datos.
@@ -63,11 +64,5 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 - Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
 //todo 
-
-
-
-
-
-
 
 

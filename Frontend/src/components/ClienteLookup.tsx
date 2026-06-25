@@ -5,6 +5,7 @@ import type { Cliente } from '../types/api';
 import { DismissibleNotice } from './DismissibleNotice';
 import { PhoneInput } from './PhoneInput';
 import { PasteButton } from './PasteButton';
+import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { separarTelefono } from '../utils/telefonos';
 
 type ClienteLookupProps = {
@@ -47,7 +48,7 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError, 
     setClienteEncontradoOculto(false);
   }, [clienteId]);
 
-  useEffect(() => {
+  useAbortableEffect((signal) => {
     if (clienteId) {
       setResultados([]);
       setBuscando(false);
@@ -67,13 +68,14 @@ export function ClienteLookup({ telefono, nombre, clienteId, onChange, onError, 
     setBuscando(true);
     const timer = window.setTimeout(async () => {
       try {
-        const clientes = await listarClientes(termino, false);
+        const clientes = await listarClientes(termino, false, { signal });
         if (cancelado) return;
         setResultados(clientes.slice(0, 5));
         setBusquedaHecha(true);
         onError?.(clientes.length ? null : 'Cliente nuevo: se registrara al crear el pedido sin interrumpir la orden');
-      } catch {
+      } catch (err) {
         if (cancelado) return;
+        if (isAbortError(err)) return;
         setResultados([]);
         setBusquedaHecha(true);
         onError?.('No se pudo buscar clientes ahora');
