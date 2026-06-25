@@ -116,6 +116,18 @@
   font-weight: 750;
 }
 
+.primary-button:not(:disabled) {
+  opacity: 1;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--ui-primary-strong) 26%, transparent);
+}
+
+.primary-button:disabled {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-muted);
+  color: var(--ui-text-muted);
+  box-shadow: none;
+}
+
 .icon-button {
   width: 42px;
   background: var(--ui-surface);

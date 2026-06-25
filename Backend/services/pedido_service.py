@@ -943,7 +943,7 @@ def listar_pedidos(
     servicio: str | None = None,
     limit: int = 50,
     offset: int = 0,
-    alcance: str = "mis",
+    alcance: str = "todas",
     operador: Operador | None = None,
     fecha_desde: datetime | None = None,
     fecha_hasta: datetime | None = None
@@ -954,10 +954,10 @@ def listar_pedidos(
 
     alcance_normalizado = (
         alcance
-        or "mis"
+        or "todas"
     ).strip().lower()
     if alcance_normalizado not in ("mis", "todas"):
-        alcance_normalizado = "mis"
+        alcance_normalizado = "todas"
 
     if alcance_normalizado == "mis" and operador:
         query = query.filter(

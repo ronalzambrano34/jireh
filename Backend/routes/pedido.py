@@ -93,7 +93,7 @@ def listar(
     servicio: str | None = None,
     limit: int = 50,
     offset: int = 0,
-    alcance: str = "mis",
+    alcance: str = "todas",
     fecha_desde: str | None = None,
     fecha_hasta: str | None = None,
     db: Session = Depends(
@@ -109,9 +109,9 @@ def listar(
         )
     )
 ):
-    alcance_normalizado = (alcance or "mis").strip().lower()
+    alcance_normalizado = (alcance or "todas").strip().lower()
     if alcance_normalizado not in ("mis", "todas"):
-        alcance_normalizado = "mis"
+        alcance_normalizado = "todas"
     puede_ver_todas = (
         operador.rol != "cliente"
     )

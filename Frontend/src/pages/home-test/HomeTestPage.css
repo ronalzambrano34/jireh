@@ -817,6 +817,27 @@
   cursor: pointer;
 }
 
+.ht-tracker form > button:not(:disabled),
+.ht-tracker-result > button:not(:disabled) {
+  opacity: 1;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--ht-accent) 28%, transparent);
+}
+
+.ht-tracker form > button:hover:not(:disabled),
+.ht-tracker-result > button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.ht-tracker form > button:disabled,
+.ht-tracker-result > button:disabled {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-muted);
+  color: var(--ui-text-muted);
+  box-shadow: none;
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .ht-tracker-result {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) auto;

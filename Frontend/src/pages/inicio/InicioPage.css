@@ -2275,7 +2275,23 @@
 
 .track-order-form .primary-button {
   min-height: 42px;
+  border-color: var(--ui-primary-strong);
+  background: var(--ui-primary-strong);
+  color: var(--ui-text-on-color);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--ui-primary-strong) 28%, transparent);
   white-space: nowrap;
+}
+
+.track-order-form .primary-button:not(:disabled):hover {
+  border-color: var(--ui-primary-hover);
+  background: var(--ui-primary-hover);
+}
+
+.track-order-form .primary-button:disabled {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-muted);
+  color: var(--ui-text-muted);
+  box-shadow: none;
 }
 
 

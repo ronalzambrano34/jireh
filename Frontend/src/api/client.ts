@@ -325,7 +325,7 @@ export function listarPedidos(params: {
   const query = new URLSearchParams();
   if (params.estado) query.set('estado', params.estado);
   if (params.servicio) query.set('servicio', params.servicio);
-  if (params.alcance) query.set('alcance', params.alcance);
+  query.set('alcance', params.alcance ?? 'todas');
   if (params.fecha_desde) query.set('fecha_desde', params.fecha_desde);
   if (params.fecha_hasta) query.set('fecha_hasta', params.fecha_hasta);
   query.set('limit', String(params.limit ?? 200));
