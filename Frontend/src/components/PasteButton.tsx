@@ -42,6 +42,7 @@ function readClipboardFromHiddenPaste() {
 
 export function PasteButton({ onPaste, title = 'Pegar' }: PasteButtonProps) {
   const [state, setState] = useState<'idle' | 'success' | 'error'>('idle');
+  const [pasting, setPasting] = useState(false);
   const resetTimer = useRef<number | null>(null);
 
   function mark(nextState: 'success' | 'error') {
@@ -53,26 +54,32 @@ export function PasteButton({ onPaste, title = 'Pegar' }: PasteButtonProps) {
   async function handlePaste(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    let value = '';
-
+    if (pasting) return;
+    setPasting(true);
     try {
-      if (!window.isSecureContext || !navigator.clipboard?.readText) {
-        throw new Error('Clipboard API no disponible');
+      let value = '';
+
+      try {
+        if (!window.isSecureContext || !navigator.clipboard?.readText) {
+          throw new Error('Clipboard API no disponible');
+        }
+        value = await navigator.clipboard.readText();
+      } catch {
+        value = window.prompt('El navegador bloqueo el portapapeles automatico. Pega el dato aqui:') ?? '';
       }
-      value = await navigator.clipboard.readText();
-    } catch {
-      value = window.prompt('El navegador bloqueo el portapapeles automatico. Pega el dato aqui:') ?? '';
-    }
 
-    const cleanValue = value.trim();
-    if (!cleanValue) {
-      mark('error');
-      return;
-    }
+      const cleanValue = value.trim();
+      if (!cleanValue) {
+        mark('error');
+        return;
+      }
 
-    onPaste(cleanValue);
-    navigator.vibrate?.(12);
-    mark('success');
+      onPaste(cleanValue);
+      navigator.vibrate?.(12);
+      mark('success');
+    } finally {
+      setPasting(false);
+    }
   }
 
   const isSuccess = state === 'success';
@@ -80,7 +87,7 @@ export function PasteButton({ onPaste, title = 'Pegar' }: PasteButtonProps) {
   const buttonClassName = ['icon-button field-action-button paste-button', isSuccess ? 'paste-button-done' : '', isError ? 'paste-button-error' : ''].filter(Boolean).join(' ');
 
   return (
-    <button type="button" className={buttonClassName} onClick={handlePaste} title={isSuccess ? 'Pegado' : title} aria-label={isSuccess ? 'Pegado' : title}>
+    <button type="button" className={buttonClassName} onClick={handlePaste} disabled={pasting} title={isSuccess ? 'Pegado' : title} aria-label={isSuccess ? 'Pegado' : title}>
       {isSuccess ? <Check size={18} /> : <ClipboardPaste size={18} />}
     </button>
   );

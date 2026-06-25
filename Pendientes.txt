@@ -8,8 +8,6 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 //todo 
 
 //todo REVISION GENERAL - CONECTIVIDAD, PETICIONES Y ESTABILIDAD:
-- Bloquear botones de accion mientras una peticion esta en proceso y evitar doble click/tap.
-- Agregar idempotencia en operaciones criticas para que reenviar la misma accion no duplique pedidos, archivos, historial ni notificaciones.
 - Revisar todos los useEffect que llaman APIs para evitar dobles cargas por cambios de estado, StrictMode o dependencias inestables.
 - Centralizar cancelacion de peticiones con AbortController cuando se cambia de vista o se desmonta un componente.
 - Implementar reintentos controlados solo en peticiones seguras de lectura, no en acciones que modifican datos.
@@ -40,7 +38,7 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 - Probar flujo completo contra API real: transferencia, efectivo, saldo, divisa y otros.
 - Validar que la vista Pedidos cargue todos los pedidos por defecto para operadores y solo mis pedidos para clientes.
 - Revisar idempotencia en crear pedido, confirmar pago, tomar, liberar, transferir, cancelar y finalizar.
-- Bloquear doble click/tap en botones criticos mientras la peticion este en proceso.
+- Revisado: bloquear doble click/tap en botones criticos mientras la peticion este en proceso.
 - Confirmar que no se duplique historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
 - Probar baja conectividad: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
 - Definir comportamiento offline de la PWA: que abre sin internet, que queda bloqueado y que conserva datos.
@@ -65,7 +63,6 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 - Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
 //todo 
-
 
 
 

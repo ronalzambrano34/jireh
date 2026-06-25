@@ -15,6 +15,7 @@ function isStandalone() {
 
 export function PwaInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<InstallPromptEvent | null>(null);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     if (isStandalone() || sessionStorage.getItem(DISMISSED_KEY)) return undefined;
@@ -32,10 +33,15 @@ export function PwaInstallPrompt() {
 
   async function install() {
     const event = promptEvent;
-    if (!event) return;
-    await event.prompt();
-    const choice = await event.userChoice;
-    if (choice.outcome === 'accepted') setPromptEvent(null);
+    if (!event || installing) return;
+    setInstalling(true);
+    try {
+      await event.prompt();
+      const choice = await event.userChoice;
+      if (choice.outcome === 'accepted') setPromptEvent(null);
+    } finally {
+      setInstalling(false);
+    }
   }
 
   function dismiss() {
@@ -49,8 +55,8 @@ export function PwaInstallPrompt() {
         <strong>Instalar Jireh</strong>
         <span>Abre mas rapido y conserva la interfaz sin conexion.</span>
       </div>
-      <button className="primary-button" type="button" onClick={() => void install()}>
-        <Download size={17} /> Instalar
+      <button className="primary-button" type="button" onClick={() => void install()} disabled={installing}>
+        <Download size={17} /> {installing ? 'Abriendo...' : 'Instalar'}
       </button>
       <button className="icon-button" type="button" onClick={dismiss} aria-label="Cerrar">
         <X size={17} />

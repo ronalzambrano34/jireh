@@ -105,6 +105,7 @@ export function SetupInicialPage({
   const pagoEnEfectivo = esMetodoEfectivo(metodoSeleccionado?.nombre ?? pago.nombre_metodo);
 
   async function guardarCobro() {
+    if (saving) return;
     if (!pagoEnEfectivo && (!pago.cuenta.trim() || !pago.titular.trim())) {
       setError('Completa la cuenta y el titular');
       return;
@@ -140,6 +141,7 @@ export function SetupInicialPage({
   }
 
   async function guardarTasas() {
+    if (saving) return;
     const transferencia = Number(tasas.transferencia);
     const efectivo = Number(tasas.efectivo);
     if (!(transferencia > 0) && !(efectivo > 0)) {
@@ -165,6 +167,7 @@ export function SetupInicialPage({
   }
 
   async function guardarPunto() {
+    if (saving) return;
     if (!punto.nombre.trim() || !punto.direccion.trim()) {
       setError('Completa nombre y direccion del punto');
       return;
@@ -189,6 +192,7 @@ export function SetupInicialPage({
   }
 
   async function guardarSaldo() {
+    if (saving) return;
     if (!saldo.nombre.trim() || !(Number(saldo.monto_pago) > 0) || !(Number(saldo.saldo_cup) > 0)) {
       setError('Completa el nombre y los montos del paquete');
       return;
@@ -212,6 +216,7 @@ export function SetupInicialPage({
   }
 
   async function finalizar() {
+    if (saving) return;
     if (!estado?.cuentas) {
       setPaso(0);
       setError('Configura al menos una cuenta de cobro antes de finalizar');

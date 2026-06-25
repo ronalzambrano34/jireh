@@ -1213,6 +1213,7 @@ export function App() {
 
 
   async function subirFotoPerfil(file: File) {
+    if (profilePhotoSaving) return;
     setProfilePhotoSaving(true);
     setProfileError(null);
     setProfileMessage(null);
@@ -1229,6 +1230,7 @@ export function App() {
 
   async function guardarPerfil(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (profileSaving) return;
     const nombre = profileNombre.trim();
     if (!nombre) {
       setProfileError('El nombre no puede estar vacio');
@@ -1251,6 +1253,7 @@ export function App() {
 
   async function guardarPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (profileSaving) return;
     if (profilePassword.nueva !== profilePassword.confirmar) {
       setProfileError('La confirmacion no coincide con la nueva contraseña');
       return;

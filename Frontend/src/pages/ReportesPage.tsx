@@ -66,6 +66,7 @@ export function ReportesPage() {
   const [extracciones, setExtracciones] = useState<ExtraccionCuenta[]>([]);
   const [extraccion, setExtraccion] = useState({ cuenta_pago_id: '', monto: '', motivo: '' });
   const [guardandoExtraccion, setGuardandoExtraccion] = useState(false);
+  const [exportando, setExportando] = useState<'csv' | 'excel' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,6 +140,7 @@ export function ReportesPage() {
   }
 
   async function registrarExtraccion() {
+    if (guardandoExtraccion) return;
     if (!extraccion.cuenta_pago_id || Number(extraccion.monto) <= 0 || !extraccion.motivo.trim()) {
       setError('Selecciona una cuenta, escribe un monto valido y el motivo');
       return;
@@ -175,6 +177,8 @@ export function ReportesPage() {
   }
 
   async function exportarExcel() {
+    if (exportando) return;
+    setExportando('excel');
     setError(null);
     try {
       const blob = await descargarOperacionesExcel(filters);
@@ -186,10 +190,14 @@ export function ReportesPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar el Excel');
+    } finally {
+      setExportando(null);
     }
   }
 
   async function exportarCsv() {
+    if (exportando) return;
+    setExportando('csv');
     setError(null);
     try {
       const blob = await descargarReporteCsv(filters);
@@ -201,6 +209,8 @@ export function ReportesPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar el CSV');
+    } finally {
+      setExportando(null);
     }
   }
 
@@ -213,7 +223,7 @@ export function ReportesPage() {
         operadoresLoading={operadoresLoading}
         metodosPago={metodosPago}
         cuentasPago={cuentasPago}
-        loading={loading}
+        loading={loading || exportando !== null}
         onPeriodoChange={updatePeriodo}
         onChange={update}
         onExportCsv={() => void exportarCsv()}

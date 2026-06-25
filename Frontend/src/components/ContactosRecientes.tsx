@@ -13,6 +13,7 @@ type ContactosRecientesProps = {
 export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRecientesProps) {
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
     if (!clienteId) {
@@ -39,13 +40,21 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
   }, [clienteId, onError]);
 
   async function borrarContacto(contacto: Contacto) {
+    if (deletingIds.has(contacto.id)) return;
     onError?.(null);
+    setDeletingIds((current) => new Set(current).add(contacto.id));
     setContactos((current) => current.filter((item) => item.id !== contacto.id));
     try {
       await eliminarContacto(contacto.id);
     } catch (err) {
       setContactos((current) => [contacto, ...current]);
       onError?.(err instanceof Error ? err.message : 'No se pudo eliminar el contacto');
+    } finally {
+      setDeletingIds((current) => {
+        const next = new Set(current);
+        next.delete(contacto.id);
+        return next;
+      });
     }
   }
 
@@ -73,6 +82,7 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
               className="recent-contact-delete"
               type="button"
               onClick={() => void borrarContacto(contacto)}
+              disabled={deletingIds.has(contacto.id)}
               title="Eliminar contacto frecuente"
               aria-label={`Eliminar ${contacto.nombre} de contactos frecuentes`}
             >
