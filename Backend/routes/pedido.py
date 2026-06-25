@@ -113,10 +113,7 @@ def listar(
     if alcance_normalizado not in ("mis", "todas"):
         alcance_normalizado = "mis"
     puede_ver_todas = (
-        operador.rol == "admin"
-        or "pedidos:ver" in operador.permisos
-        or "pedidos:gestionar" in operador.permisos
-        or "empresa:control_total" in operador.permisos
+        operador.rol != "cliente"
     )
     if alcance_normalizado == "todas" and not puede_ver_todas:
         raise HTTPException(

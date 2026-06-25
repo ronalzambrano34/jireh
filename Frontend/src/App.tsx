@@ -220,7 +220,7 @@ export function App() {
   );
 
   const puedeVerTodasLasOrdenes = useMemo(
-    () => operador?.rol === 'admin' || operador?.permisos.includes('pedidos:ver') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    () => Boolean(operador && operador.rol !== 'cliente'),
     [operador],
   );
 
