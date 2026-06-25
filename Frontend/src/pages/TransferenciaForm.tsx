@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { calcularOperacion, crearTransferencia, listarMetodosPago, subirArchivo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { CardNumberInput } from '../components/CardNumberInput';
@@ -50,6 +50,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
   const [calculando, setCalculando] = useState(false);
   const [calculoError, setCalculoError] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<File | null>(null);
+  const submittingRef = useRef(false);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
@@ -163,6 +164,8 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
       setError('Escribe un monto de pago mayor que cero');
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -198,6 +201,7 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

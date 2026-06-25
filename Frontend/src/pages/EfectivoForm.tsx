@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ImagePlus, MapPin, MessageCircle } from 'lucide-react';
 import { CalculoPreview } from '../components/CalculoPreview';
 import { ClienteLookup } from '../components/ClienteLookup';
@@ -63,6 +63,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<File | null>(null);
+  const submittingRef = useRef(false);
 
   const metodosFiltrados = useMemo<MetodoPago[]>(
     () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
@@ -198,6 +199,8 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
       return;
     }
 
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -248,6 +251,7 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ImagePlus, MapPin } from 'lucide-react';
 import { crearOtros, listarMetodosPago, listarPuntosRecogida, subirArchivo } from '../api/client';
 import { CardNumberInput } from '../components/CardNumberInput';
@@ -47,6 +47,7 @@ export function OtrosForm({ operadorId, onCreated, initialData }: { operadorId: 
   const [documentoFile, setDocumentoFile] = useState<File | null>(null);
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<File | null>(null);
+  const submittingRef = useRef(false);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
@@ -167,6 +168,8 @@ export function OtrosForm({ operadorId, onCreated, initialData }: { operadorId: 
       return;
     }
 
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -224,6 +227,7 @@ export function OtrosForm({ operadorId, onCreated, initialData }: { operadorId: 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

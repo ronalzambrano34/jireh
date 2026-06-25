@@ -1082,8 +1082,20 @@ def redirigir_pedido_operador(
 ):
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion
+        codigo_operacion,
+        for_update=True
     )
+    mensaje_limpio = (mensaje or "").strip() or None
+
+    if (
+        pedido.redirigido_a_operador_id == operador_destino_id
+        and pedido.redireccion_mensaje == mensaje_limpio
+    ):
+        return pedido_dict(
+            db,
+            pedido,
+            incluir_detalle=True
+        )
 
     if operador_destino_id is None:
         pedido.redirigido_a_operador_id = None
@@ -1108,7 +1120,7 @@ def redirigir_pedido_operador(
         pedido.redirigido_a_operador_id = destino.id
         pedido.redirigido_por_operador_id = operador.id
         pedido.redirigido_en = _utcnow()
-        pedido.redireccion_mensaje = (mensaje or "").strip() or None
+        pedido.redireccion_mensaje = mensaje_limpio
         _liberar_bloqueo(
             pedido
         )
@@ -1181,17 +1193,21 @@ def obtener_pedido_por_codigo(
 
 def _obtener_modelo_pedido_por_codigo(
     db: Session,
-    codigo_operacion: str
+    codigo_operacion: str,
+    for_update: bool = False
 ):
-    pedido = (
+    query = (
         db.query(
             Pedido
         )
         .filter(
             Pedido.codigo_operacion == codigo_operacion
         )
-        .first()
     )
+    if for_update:
+        query = query.with_for_update()
+
+    pedido = query.first()
 
     if not pedido:
         raise Exception(
@@ -1208,7 +1224,8 @@ def tomar_operacion_pedido(
 ):
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion
+        codigo_operacion,
+        for_update=True
     )
 
     _validar_pedido_operable(
@@ -1243,7 +1260,8 @@ def renovar_bloqueo_pedido(
 ):
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion
+        codigo_operacion,
+        for_update=True
     )
 
     _validar_pedido_operable(
@@ -1278,7 +1296,8 @@ def liberar_bloqueo_pedido(
 ):
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion
+        codigo_operacion,
+        for_update=True
     )
 
     if (
@@ -1357,7 +1376,8 @@ def actualizar_estado_pedido(
 
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion
+        codigo_operacion,
+        for_update=True
     )
 
     validar_bloqueo_pedido(
@@ -1366,22 +1386,74 @@ def actualizar_estado_pedido(
         operador
     )
 
+    estado_anterior = (
+        pedido.estado
+    )
+    observaciones_limpias = (
+        observaciones
+        if observaciones is None
+        else str(observaciones).strip()
+    )
+
+    if (
+        estado_anterior == estado_normalizado
+        and (
+            comprobante_pago is None
+            or comprobante_pago == pedido.comprobante_pago
+        )
+        and (
+            observaciones is None
+            or observaciones_limpias == (pedido.observaciones or "")
+        )
+        and not finalizar_sin_comprobante
+        and not motivo_sin_comprobante
+    ):
+        db.commit()
+        db.refresh(
+            pedido
+        )
+        return pedido_dict(
+            db,
+            pedido,
+            incluir_detalle=True
+        )
+
+    motivo_finalizacion_idempotente = (
+        motivo_sin_comprobante
+        or ""
+    ).strip()
+    nota_finalizacion_idempotente = (
+        "Operacion finalizada sin comprobante: "
+        + motivo_finalizacion_idempotente
+    )
+    if (
+        estado_anterior == estado_normalizado == PedidoEstado.COMPLETADO
+        and finalizar_sin_comprobante
+        and len(motivo_finalizacion_idempotente) >= 10
+        and nota_finalizacion_idempotente in (pedido.observaciones or "")
+    ):
+        db.commit()
+        db.refresh(
+            pedido
+        )
+        return pedido_dict(
+            db,
+            pedido,
+            incluir_detalle=True
+        )
+
     if operador:
         _asignar_bloqueo(
             pedido,
             operador
         )
 
-    estado_anterior = (
-        pedido.estado
-    )
-
     if (
         observaciones
         is not None
     ):
         pedido.observaciones = (
-            observaciones
+            observaciones_limpias
         )
 
     comentario_historial = comentario

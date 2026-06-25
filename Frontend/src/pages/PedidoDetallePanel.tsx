@@ -394,6 +394,7 @@ export function PedidoDetallePanel({
   const errorTimeoutRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const lastHorizontalNavigationRef = useRef(0);
+  const mutationInFlightRef = useRef(false);
 
   const bloqueoPropio = Boolean(pedido?.lock_activo && pedido.operador_asignado_id === operadorId);
   const bloqueadoPorOtro = Boolean(pedido?.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operadorId);
@@ -666,6 +667,16 @@ export function PedidoDetallePanel({
     onClose();
   }
 
+  function iniciarMutacionPedido() {
+    if (mutationInFlightRef.current) return false;
+    mutationInFlightRef.current = true;
+    return true;
+  }
+
+  function finalizarMutacionPedido() {
+    mutationInFlightRef.current = false;
+  }
+
   function abrirReenvioGrupoWhatsApp() {
     if (!pedido) return;
     const reenvio = reenvioWhatsAppGrupoPedido(pedido);
@@ -728,6 +739,7 @@ export function PedidoDetallePanel({
       setFinalizacionAbierta(true);
       return;
     }
+    if (!iniciarMutacionPedido()) return;
     setSaving(true);
     setError(null);
     try {
@@ -743,6 +755,7 @@ export function PedidoDetallePanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado');
     } finally {
+      finalizarMutacionPedido();
       setSaving(false);
     }
   }
@@ -817,6 +830,7 @@ export function PedidoDetallePanel({
 
   async function liberarPedidoActual() {
     if (!canManage || !pedido || !bloqueoPropio || saving) return;
+    if (!iniciarMutacionPedido()) return;
     setSaving(true);
     setError(null);
     try {
@@ -827,12 +841,14 @@ export function PedidoDetallePanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo liberar el pedido');
     } finally {
+      finalizarMutacionPedido();
       setSaving(false);
     }
   }
 
   async function guardarRedireccion() {
-    if (!canManage || !pedido) return;
+    if (!canManage || !pedido || redirigiendo) return;
+    if (!iniciarMutacionPedido()) return;
     setRedirigiendo(true);
     setError(null);
     try {
@@ -847,12 +863,14 @@ export function PedidoDetallePanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo redirigir el pedido');
     } finally {
+      finalizarMutacionPedido();
       setRedirigiendo(false);
     }
   }
 
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage || !pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
+    if (!iniciarMutacionPedido()) return;
     setUploading(true);
     setError(null);
     const form = new FormData();
@@ -866,12 +884,14 @@ export function PedidoDetallePanel({
       setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante');
     } finally {
       event.target.value = '';
+      finalizarMutacionPedido();
       setUploading(false);
     }
   }
 
   async function handleComprobantePagoConfirmado(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage || !pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
+    if (!iniciarMutacionPedido()) return;
     setUploading(true);
     setSaving(true);
     setError(null);
@@ -891,12 +911,14 @@ export function PedidoDetallePanel({
     } finally {
       event.target.value = '';
       setUploading(false);
+      finalizarMutacionPedido();
       setSaving(false);
     }
   }
 
   async function handleComprobanteFinal(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage || !pedido || bloqueadoPorOtro || !event.target.files?.[0]) return;
+    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
+    if (!iniciarMutacionPedido()) return;
     setUploading(true);
     setSaving(true);
     setError(null);
@@ -920,6 +942,7 @@ export function PedidoDetallePanel({
     } finally {
       event.target.value = '';
       setUploading(false);
+      finalizarMutacionPedido();
       setSaving(false);
     }
   }
@@ -932,6 +955,7 @@ export function PedidoDetallePanel({
       return;
     }
 
+    if (!iniciarMutacionPedido()) return;
     setSaving(true);
     setError(null);
     try {
@@ -952,6 +976,7 @@ export function PedidoDetallePanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo finalizar la operacion');
     } finally {
+      finalizarMutacionPedido();
       setSaving(false);
     }
   }

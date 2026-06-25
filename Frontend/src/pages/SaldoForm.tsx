@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Smartphone } from 'lucide-react';
 import { crearSaldo, listarMetodosPago, listarPaquetesSaldo, subirArchivo } from '../api/client';
 import { CalculoPreview } from '../components/CalculoPreview';
@@ -48,6 +48,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
   const [loading, setLoading] = useState(false);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
   const [comprobante, setComprobante] = useState<File | null>(null);
+  const submittingRef = useRef(false);
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
@@ -177,6 +178,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
       return;
     }
 
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -211,6 +214,7 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
