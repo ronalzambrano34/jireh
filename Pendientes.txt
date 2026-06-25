@@ -37,8 +37,35 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo
 
-//todo 
+//todo FASE 1 - PENDIENTE PARA CIERRE:
+- Probar flujo completo contra API real: transferencia, efectivo, saldo, divisa y otros.
+- Validar que la vista Pedidos cargue todos los pedidos por defecto para operadores y solo mis pedidos para clientes.
+- Revisar idempotencia en crear pedido, confirmar pago, tomar, liberar, transferir, cancelar y finalizar.
+- Bloquear doble click/tap en botones criticos mientras la peticion este en proceso.
+- Confirmar que no se duplique historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
+- Probar baja conectividad: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
+- Definir comportamiento offline de la PWA: que abre sin internet, que queda bloqueado y que conserva datos.
+- Guardar borradores locales de nuevo pedido para no perder datos si se cae internet.
+- Validar uploads con progreso, error claro y reintento manual.
+- Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
+- Re-subir/verificar fotos existentes que se hayan perdido por storage local anterior.
+- Configurar y probar backups de base de datos y storage.
+- Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
+- Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
+- Probar notificaciones: nuevo pedido, pedido transferido, pedido atrasado, marcar leido, eliminar y silenciar tipo.
+- Validar que una notificacion no abra un pedido tomado por otro operador.
+- Validar que atraso de mas de 10 minutos se muestre rojo en Pedidos y Notificaciones.
+- Revisar que al cerrar, liberar, cancelar, transferir o finalizar pedido se limpien filtros activos que puedan confundir al operador.
+- Probar WhatsApp manual: instrucciones al cliente, grupo operativo, grupo finalizado y reenvio desde detalle.
+- Validar templates: operador, metodo/cuenta de pago, punto de recogida, observaciones y variables vacias sin imprimir llaves.
+- Revisar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
+- Ejecutar smoke tests backend y build frontend antes de marcar cierre.
+- Revisar UI movil final: footer, botones flotantes, modales, toasts, filtros y detalle pedido sin tapar contenido.
+- Agregar auditoria minima por usuario en acciones sensibles o dejar definida como bloqueo antes de produccion completa.
+- Documentar procedimiento operativo diario: abrir sistema, sincronizar ofertas, crear pedido, confirmar pago, finalizar, reportar y resolver fallos.
+- Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
+//todo 
 
 
 

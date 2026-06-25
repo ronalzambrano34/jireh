@@ -1,6 +1,6 @@
 
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-06-02
+Actualizado: 2026-06-25
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -32,6 +32,28 @@ Flujo operativo actual:
 11. La operacion finalizada se archiva o se reporta para control de ventas, ganancias y trazabilidad.
 
 El sistema actual que se esta construyendo busca reemplazar progresivamente la parte manual de creacion, control y seguimiento de operaciones.
+
+2.1 ACTUALIZACION OPERATIVA DE FASE 1 - 2026-06-25
+
+El sistema ya funciona como una PWA interna orientada a operadores, con frontend movil primero, administracion, pedidos, reportes, perfil, notificaciones y flujo operativo de creacion/seguimiento de pedidos.
+
+Reglas actuales importantes:
+
+- Los operadores entran con usuario interno y permisos por rol.
+- Existen roles configurables desde administracion. Los roles base son Consultor, Operador y Admin.
+- Consultor queda orientado a solo lectura.
+- Operador queda orientado a pedidos y clientes.
+- Admin conserva permisos generales.
+- El permiso Reportes forma parte de la matriz de permisos.
+- La vista Pedidos debe cargar todos los pedidos por defecto para operadores con permiso. La regla de "solo mis pedidos" aplica para clientes o usuarios sin alcance general.
+- Los filtros de Pedidos viven en un modal y deben incluir periodo Hoy, Ayer, 7 dias, Mes y Todos.
+- Las notificaciones internas tienen campana en header, contador de no leidas, tipos de notificacion, sonido configurable por tipo, marcado como leido y eliminacion individual.
+- Un pedido atrasado despues de 10 minutos debe mostrarse en rojo, decir atrasado y aparecer en notificaciones.
+- Si una notificacion apunta a un pedido tomado por otro operador, no debe abrir el detalle operativo; debe redirigir a Pedidos.
+- El detalle de pedido permite tomar, liberar, transferir, cambiar estado, ver historial, manejar evidencias, reenviar mensaje operativo y copiar datos clave.
+- Los mensajes de error y exito deben mostrarse como toast flotante debajo del header, con duracion suficiente para lectura.
+- El almacenamiento de imagenes y archivos debe pasar por el servicio comun de storage del backend para evitar perder fotos o comprobantes en despliegues sin disco persistente.
+- El sistema debe estar preparado para redes lentas, inestables o sin conexion, evitando peticiones dobles y acciones duplicadas.
 
 3. SERVICIOS OFRECIDOS
 
@@ -315,10 +337,16 @@ Campos actuales:
 - moneda
 - activo
 
+Reglas actuales:
+
+- Un metodo de pago puede tener cuentas de pago asociadas.
+- Las instrucciones al cliente deben incluir la cuenta predeterminada si existe.
+- La moneda del metodo debe coincidir con la moneda del pedido.
+- Solo deben mostrarse monedas y metodos realmente activos para la operacion.
+
 Estado actual:
 Implementado.
 
-Regla actual:
 El pedido valida que el metodo de pago exista, este activo y coincida con la moneda del pedido.
 
 5.7 PuntoRecogida
@@ -360,12 +388,23 @@ Campos actuales:
 - password_hash
 - rol
 - activo
+- foto_url
 
 Estado actual:
 Implementado.
 
 Uso actual:
-El codigo del operador forma parte del codigo_operacion. El rol define permisos basicos para endpoints protegidos.
+El codigo del operador forma parte del codigo_operacion. El rol define permisos y accesos. El operador puede actualizar datos de perfil, cambiar contraseña y subir foto.
+
+5.8.1 Roles y permisos
+
+Los roles son configurables desde Administracion. La fase 1 trabaja con tres roles base:
+
+- Consultor: lectura y consulta operativa.
+- Operador: pedidos y clientes.
+- Admin: permisos generales de administracion.
+
+Los permisos deben cubrir como minimo pedidos, clientes, administracion, reportes, configuracion, operadores, metodos de pago, puntos de recogida, ofertas, templates, sync y evidencias.
 
 5.9 Configuracion y templates
 
@@ -559,13 +598,15 @@ Estado actual del sistema:
 - Al cambiar estado, se genera mensaje WhatsApp al cliente segun template_cliente_estado_{estado}.
 - Al finalizar un pedido, se genera mensaje para el cliente y tambien para el grupo de operaciones finalizadas, con datos utiles para historico/Excel y calculo de ganancias.
 - Los templates de estado y grupo finalizado se gestionan desde Administracion > Templates.
+- El detalle de pedido permite reenviar el mensaje operativo desde una accion dedicada.
+- La vista de operacion completada incluye accion temporal para enviar mensaje directo al cliente cuando el flujo de grupo no abre el chat privado.
 - Tiene endpoint /test para webhook basico.
 
 Pendiente:
 
 - Integracion real con WhatsApp API para enviar sin depender de ventanas/enlaces manuales.
 - Recepcion y procesamiento de mensajes entrantes.
-- Adjuntar automaticamente archivos binarios de comprobante al envio final de WhatsApp; por ahora se envia referencia/link si existe en comprobante_pago.
+- Adjuntar automaticamente archivos binarios de comprobante al envio final de WhatsApp cuando el canal lo permita; por ahora WhatsApp web/link puede abrir texto y referencia, pero el archivo binario requiere accion manual o integracion API.
 
 9. CONTABILIDAD Y GANANCIA
 
@@ -604,7 +645,7 @@ Pendiente recomendado:
 - Guardar moneda destino.
 - Guardar monto destino con nombre mas general.
 - Calcular ganancia real por moneda.
-- Exportacion Excel nativa si el negocio la necesita; CSV ya implementado.
+- Revisar conciliacion contable por metodo/cuenta de pago.
 
 10. SEGURIDAD Y CONTROL
 
@@ -616,25 +657,24 @@ Estado actual:
 - Login minimo de operadores implementado con password_hash PBKDF2 y token Bearer firmado.
 - Existe /auth/bootstrap para crear el primer admin solo si no hay admin con contraseña.
 - Existe /auth/login y /auth/me.
+- Existe actualizacion de perfil, cambio de contraseña y foto de operador.
 - CRUD de operadores requiere token y permisos basicos.
 - El operador configurado por OPERADOR_ADMIN_TELEFONO se muestra como admin, pero queda protegido contra desactivacion, degradacion de rol, cambio de telefono y cambio de contraseña por otro operador.
 - Endpoints administrativos de clientes, contactos, configuracion, templates, metodos de pago, puntos de recogida, sync, archivos de pedido, ofertas, paquetes de saldo y reportes requieren token y permiso por rol.
 - Endpoints de pedidos y calculadora requieren token y permisos de pedidos.
-- Upload binario local de archivos implementado bajo storage/pedidos/{codigo_operacion}.
+- Upload binario centralizado mediante servicio comun de storage. En produccion debe usar Supabase Storage o almacenamiento persistente equivalente. En desarrollo puede usar storage local.
 
 Pendiente critico:
 
 - Auditoria completa por usuario, especialmente intentos de modificar el admin protegido.
 - Politicas de expiracion/rotacion de tokens para produccion.
-- Migrar storage local de uploads a almacenamiento productivo con politicas de acceso y antivirus si aplica. El upload local ya valida tamano maximo y MIME permitidos mediante UPLOAD_MAX_BYTES y UPLOAD_ALLOWED_MIME_TYPES.
+- Confirmar variables y politicas de storage productivo, backups y antivirus si aplica. El upload ya debe validar tamano maximo y MIME permitidos mediante UPLOAD_MAX_BYTES y UPLOAD_ALLOWED_MIME_TYPES.
 
-Roles recomendados para etapa 2:
+Roles recomendados para crecimiento posterior:
 
-- ADMIN
-- OPERADOR
-- CAJERO
-- SUPERVISOR
-- ATENCION_CLIENTE
+- Cajero.
+- Supervisor.
+- Atencion cliente.
 
 11. CONTROL DE COMPROBANTES Y EVIDENCIAS
 
@@ -667,9 +707,11 @@ Tipos permitidos:
 Reglas actuales:
 
 - Los archivos se registran como metadatos vinculados a un pedido por codigo_operacion.
-- ruta_archivo puede ser una URL, ruta interna o referencia temporal al archivo.
+- ruta_archivo puede ser una URL publica de storage, data URI temporal controlado o ruta interna de desarrollo.
 - Si el tipo es comprobante_cliente, tambien se actualiza pedido.comprobante_pago para compatibilidad con el flujo anterior.
 - La consulta por codigo de pedido incluye la lista de archivos registrados.
+- Si el operador finaliza sin comprobante, no debe adjuntarse una evidencia anterior como comprobante final.
+- Las fotos de perfil, imagenes de metodos de pago, promociones y archivos de pedido deben usar el mismo servicio comun de storage.
 
 Endpoints actuales:
 
@@ -678,7 +720,7 @@ POST /pedido/{codigo_operacion}/archivos
 POST /pedido/{codigo_operacion}/upload
 
 Estado actual:
-Implementado para registro de metadatos, upload binario local y control de permisos por token. El upload binario local valida tamano maximo y tipos MIME permitidos configurables por .env. En produccion se debe migrar o montar storage persistente y definir antivirus/politicas de acceso.
+Implementado para registro de metadatos, upload binario por servicio comun de storage y control de permisos por token. El upload valida tamano maximo y tipos MIME permitidos configurables por .env. En produccion se debe confirmar storage persistente, backups y politicas de acceso.
 
 12. VISTA DETALLE DE PEDIDO
 
@@ -688,25 +730,24 @@ Estado actual:
 - Al abrir, el sistema intenta tomar/fijar la operacion para el operador actual.
 - Un operador puede tener varios pedidos fijados al mismo tiempo.
 - El pedido fijado queda asignado hasta que el operador lo libere explicitamente o cambie su estado.
-- Mis Ordenes es el alcance por defecto de la bandeja: muestra pedidos creados por el operador, fijados por el operador o redirigidos al operador.
-- Los operadores con permisos de gestion pueden alternar entre Mis Ordenes y Todas.
-- Al crear un pedido, queda en pendiente_pago y la interfaz vuelve a Mis Ordenes sin abrir el detalle automaticamente, para que el operador pueda seguir creando o atendiendo.
+- La bandeja Pedidos carga Todas por defecto para operadores con permiso general. Mis pedidos es un filtro disponible, no el filtro inicial para operadores.
+- Los clientes o usuarios sin alcance general solo deben ver sus pedidos.
+- Al crear un pedido, queda en pendiente_pago y la interfaz vuelve a Pedidos sin abrir el detalle automaticamente, para que el operador pueda seguir creando o atendiendo.
 - Si otro operador tiene la asignacion activa, el panel permite revisar pero bloquea edicion de estado y subida de comprobantes.
 - Al cerrar el detalle no se libera la asignacion.
 - Muestra codigo, servicio, moneda, estado, enviado, tasa y recibe.
 - Muestra datos especificos de operacion segun tipo de pedido.
 - Permite cambiar estado del pedido.
 - Muestra mensaje_operacion y boton para copiarlo.
+- Muestra accion de mensaje operativo para reenviar o revisar el texto en modal.
 - Si existe whatsapp_url, muestra acceso directo a WhatsApp.
 - Permite subir comprobante_cliente y lista archivos asociados.
+- El historial debe incluir como primer registro la creacion del pedido.
+- En movil, las acciones de control deben respetar el espacio del footer y no tapar contenido operativo.
 
 Pendiente recomendado para la proxima fase visual, tecnica y operacional:
 
-- Reorganizar la vista detalle para lectura rapida en movil y escritorio.
-- Separar claramente datos del cliente, datos del beneficiario, datos de pago, ejecucion y evidencias.
 - Convertir el cambio de estado a control modal o flujo guiado con confirmacion cuando sea necesario.
-- Mostrar historial de estados y operador responsable.
-- Mejorar etiquetas, formato de moneda y copiado rapido de campos criticos.
 - Preparar el detalle para antifraude: comprobantes, hash, revision y alertas.
 
 13. ANTIFRAUDE Y REVISION
@@ -759,7 +800,7 @@ Objetivo:
 Crear y consultar pedidos, calcular montos, generar mensajes y ordenar la operacion.
 
 Estado actual:
-Backend operativo avanzado para uso interno y listo para conectar frontend interno inicial, sujeto a checklist pre-produccion.
+Sistema interno operativo con backend, frontend PWA, administracion, pedidos, reportes, perfil, roles, notificaciones y flujo movil. Queda sujeto a checklist de cierre de fase 1 antes de operacion estable en produccion.
 
 Ya existe:
 
@@ -781,7 +822,11 @@ Ya existe:
 - Endpoints de pedidos y calculadora protegidos con permisos por rol.
 - CRUD administrativo de ofertas y paquetes de saldo protegido.
 - Reportes basicos protegidos con filtros operativos.
-- Registro de evidencias/comprobantes por pedido como metadatos y upload binario local.
+- Registro de evidencias/comprobantes por pedido como metadatos y upload binario por servicio comun de storage.
+- PWA instalable con iconos redondeados y tema visual propio.
+- Notificaciones internas con contador, tipos, sonido configurable, silenciado por tipo, marcar como leido y eliminacion.
+- CRUD de roles y configuracion de permisos.
+- Perfil de operador con foto, datos, contraseña, permisos y preferencias.
 - Smoke test local de pedidos con SQLite temporal: Backend/scripts/smoke_pedidos.py.
 - Smoke test administrativo con SQLite temporal: Backend/scripts/smoke_admin.py.
 - Smoke tests cubren creacion de pedidos, consulta de detalles, CRUD de ofertas/paquetes, reportes y evidencias.
@@ -789,12 +834,19 @@ Ya existe:
 
 Pendiente de etapa 1:
 
-- Validar frontend web operativo en navegador contra API real: pedidos, administracion y reportes.
-- Hardening de storage de comprobantes para produccion.
-- UI Admin inicial disponible para metodos de pago, puntos de recogida, ofertas, paquetes de saldo, clientes, contactos, configuracion y templates.
-- Vista interna de pedidos disponible en modo lista y cuadricula, con filtros de Servicio y Estado mediante hojas inferiores tipo modal. El filtro Servicio usa los mismos iconos visuales de las ofertas: tarjeta, billete, movil y tarjeta de divisa.
-- Vista de reportes disponible con filtros modales por periodo, estado, servicio, moneda y operador, y exportacion CSV.
-- Vista detalle de pedido disponible con toma/liberacion de operacion, renovacion de bloqueo, cambio de estado, datos operativos copiables, mensaje para WhatsApp, subida/listado de comprobantes e historial de estados.
+- Cerrar pruebas reales de frontend contra API real en los cuatro servicios.
+- Validar storage persistente en produccion para fotos, comprobantes, documentos, promociones y metodos de pago.
+- Garantizar que crear, confirmar, tomar, liberar, transferir, cancelar y finalizar pedido no dupliquen peticiones, historial, archivos ni notificaciones.
+- Probar baja conectividad, conexion intermitente, modo avion, recarga de pagina y reconexion durante operaciones criticas.
+- Ajustar service worker/cache para que la PWA abra con mala conexion y muestre estado claro cuando una accion requiere internet.
+- Confirmar roles y permisos por perfil real: Consultor, Operador y Admin.
+- Validar notificaciones en creacion, transferencia y atraso de pedidos.
+- Validar que pedidos tomados por otro operador no permitan ejecutar acciones desde notificaciones.
+- Validar reportes y exportaciones con datos reales.
+- Validar WhatsApp manual/semiautomatico con cliente, grupo operativo y grupo finalizado.
+- Revisar auditoria minima por usuario en acciones sensibles.
+- Revisar backups de base de datos y storage.
+- Documentar procedimiento diario de operacion, soporte y recuperacion ante fallos.
 - Integracion WhatsApp real o semiautomatica.
 - Auditoria por usuario en acciones sensibles.
 
@@ -805,13 +857,11 @@ Que el equipo trabaje dentro del sistema y no dependa de grupos de WhatsApp para
 
 Pendiente:
 
-- Usuarios internos.
-- Roles.
-- Asignacion de pedidos.
-- Panel por estado.
-- Bloqueo de pedido mientras un operador lo ejecuta.
 - Permisos finos de evidencias por tipo de archivo.
 - Auditoria por usuario.
+- Antifraude operativo.
+- Conciliacion de pagos.
+- Automatizacion real de WhatsApp.
 
 Etapa 3: Portal de clientes
 
@@ -855,6 +905,9 @@ Auth:
 POST /auth/bootstrap
 POST /auth/login
 GET /auth/me
+PUT /auth/me
+PUT /auth/me/password
+POST /auth/me/foto
 
 Pedidos:
 
@@ -877,6 +930,14 @@ GET /operador/{operador_id}
 POST /operador/
 PUT /operador/{operador_id}
 DELETE /operador/{operador_id}
+
+Roles de operador:
+
+GET /operador-roles/
+GET /operador-roles/{rol_id}
+POST /operador-roles/
+PUT /operador-roles/{rol_id}
+DELETE /operador-roles/{rol_id}
 
 Metodos de pago:
 
@@ -939,10 +1000,15 @@ Reportes:
 
 GET /reportes/resumen
 GET /reportes/resumen.csv
+GET /reportes/operaciones.xlsx
 
 Sync:
 
 POST /sync/ofertas
+
+Tasas operativas:
+
+GET /tasas-operativas/
 
 17. PRIORIDADES TECNICAS RECOMENDADAS
 
@@ -985,7 +1051,7 @@ Pendiente recomendado:
 
 Prioridad 4: Evidencias
 
-ArchivoPedido esta implementado para registrar metadatos, listar archivos, actualizar comprobante_pago cuando corresponde y recibir upload binario local. El upload valida tamano y MIME permitidos. Pendiente storage productivo y validacion antivirus si aplica.
+ArchivoPedido esta implementado para registrar metadatos, listar archivos, actualizar comprobante_pago cuando corresponde y recibir upload binario por servicio comun de storage. El upload valida tamano y MIME permitidos. Pendiente confirmar storage productivo, backups y validacion antivirus si aplica.
 
 Prioridad 5: Frontend operativo
 
@@ -999,7 +1065,7 @@ Estado actual:
 - El frontend ya incluye creacion inicial de divisa con metodo de pago, tarjeta, monto divisa y telefono destinatario opcional.
 - La bandeja permite filtrar por estado y servicio; muestra secciones por estado apiladas verticalmente a todo ancho; dentro de cada estado los pedidos se muestran como tarjetas responsive: 4 columnas en pantalla grande, 2 en mediana y 1 en celular. La informacion principal de cada tarjeta y de la seccion Datos de operacion en el modal de detalle sigue el orden operativo de los templates: transferencia prioriza tarjeta/telefono/monto CUP, efectivo telefono/documento/monto CUP, saldo telefono/saldo y divisa tipo/tarjeta/telefono/monto divisa. El detalle se abre como modal/drawer responsive y muestra campos especificos, copia de mensaje, enlace WhatsApp y evidencias.
 - Los formularios de pedido permiten buscar cliente existente por telefono y reutilizar su cliente_id. En la vista de operarios los datos del cliente se muestran agrupados y plegables porque son opcionales; en el futuro portal de clientes no se deben mostrar en la creacion del pedido, ya que vendran del perfil autenticado.
-- Node.js/npm ya se ejecuta desde la terminal normal del host; pendiente validar build y navegador contra API real.
+- Node.js/npm ya se ejecuta desde la terminal normal del host; pendiente validar navegador contra API real en escenario completo de campo.
 - Pantalla de reportes implementada en frontend con filtros por fecha tipo date, estado, servicio, moneda y operador; muestra resumen, agrupaciones por dia/estado/servicio/moneda/metodo/operador y exportacion CSV.
 
 Pendiente:
@@ -1007,7 +1073,7 @@ Pendiente:
 - Validar en navegador los cuatro formularios contra API real y pulir ergonomia.
 - Mejorar selector de metodos de pago con saldos/cuentas visibles si el negocio lo requiere.
 - Pulir ergonomia de Admin: edicion completa, busquedas, paginacion y confirmaciones. Los catalogos principales, clientes, contactos, configuracion y templates ya tienen Admin inicial.
-- Exportacion Excel desde reportes si se necesita archivo nativo; CSV ya implementado.
+- Exportacion Excel detallada implementada; pendiente validar formato final con operacion real.
 - Envio real o semiautomatico de mensajes WhatsApp.
 
 Prioridad 6: Reportes
@@ -1021,7 +1087,7 @@ Estado actual:
 
 Pendiente recomendado:
 
-- Exportacion Excel si se requiere formato nativo; CSV ya implementado.
+- Validar formato Excel/CSV con el archivo que necesita el negocio para cierre diario y mensual.
 
 17. GLOSARIO
 
@@ -1102,7 +1168,7 @@ Autenticacion y permisos:
 - Crear el primer admin con /auth/bootstrap solo si se decide no usar la semilla de operador admin.
 - Confirmar que /auth/bootstrap no permita crear otro admin si ya existe uno con contraseña.
 - Proteger todos los endpoints administrativos con token y permisos por rol.
-- Confirmar que los roles admin, supervisor y operador tengan permisos adecuados.
+- Confirmar que los roles Consultor, Operador y Admin tengan permisos adecuados.
 - Probar /auth/login y /auth/me en el entorno de produccion.
 - Definir politica para cambio y recuperacion de contraseña.
 
@@ -1126,13 +1192,13 @@ Datos y operacion:
 - Ejecutar smoke test administrativo: Backend/venv/bin/python Backend/scripts/smoke_admin.py.
 - Probar contra API real los cuatro servicios: transferencia, efectivo, saldo y divisa.
 - Probar registro de evidencias/comprobantes por pedido.
-- Probar upload binario local o storage productivo, incluyendo limite UPLOAD_MAX_BYTES y MIME permitidos.
+- Probar upload binario en storage productivo, incluyendo limite UPLOAD_MAX_BYTES y MIME permitidos.
 - Probar endpoints protegidos sin token y con token: pedidos, calculadora, ofertas, paquetes, reportes y archivos.
 
 Pendiente antes de operacion completa:
 
 - Implementar auditoria por usuario para acciones sensibles.
-- Migrar upload local a storage productivo o montar volumen persistente con backups.
+- Confirmar storage productivo o volumen persistente con backups.
 - Configurar FRONTEND_ORIGINS/CORS para el dominio real del frontend.
 - Mantener actualizado el formato esperado del Google Sheet cada vez que cambien columnas, nombres de seccion o regla de vigencia.
 
@@ -1235,7 +1301,7 @@ Durante la creacion del pedido si el cliente aun no se ha creado una cuenta, el 
 Nota implementada:
 Las observaciones operativas del pedido se reciben, guardan y devuelven en los flujos externos de creacion y actualizacion de pedidos.
 
-Sistema de roles para operarios implementado: los operarios tienen rol admin, supervisor u operador. El panel administrativo puede crear, listar, modificar y desactivar operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.
+Sistema de roles para operarios implementado: los roles base son Consultor, Operador y Admin. El panel administrativo permite crear, listar, modificar y desactivar roles y operarios; cada rol expone permisos para controlar funciones de empresa y reducir errores humanos en usuarios nuevos.
 
 Implementado en frontend interno:
 - Perfil reorganizado con cabecera tipo app movil, datos del operador y opciones funcionales de cuenta, seguridad, soporte y salida.
