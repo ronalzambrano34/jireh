@@ -160,10 +160,25 @@
     grid-column: 1;
     grid-row: auto;
     width: 100%;
-    display: block;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    justify-content: stretch;
+    gap: 8px;
+  }
+
+  .desktop-message-action {
+    display: none;
+  }
+
+  .mobile-message-action {
+    grid-column: 2;
+    display: grid;
+    justify-self: end;
   }
 
   .release-order-button {
+    grid-column: 1 / -1;
     width: 100%;
     min-height: 42px;
   }
@@ -406,10 +421,6 @@
   box-shadow: 0 6px 18px var(--ui-shadow-low);
 }
 
-.order-control-head:has(.order-message-icon-action) {
-  padding-right: 54px;
-}
-
 .order-control-meta,
 .order-control-badges {
   min-width: 0;
@@ -454,9 +465,6 @@
 }
 
 .order-message-icon-action {
-  position: absolute;
-  top: 10px;
-  right: 12px;
   width: 34px;
   min-width: 34px;
   height: 34px;
@@ -474,6 +482,14 @@
   border-color: var(--ui-border-strong);
   background: var(--ui-surface-hover);
   outline: 0;
+}
+
+.desktop-message-action {
+  margin-left: auto;
+}
+
+.mobile-message-action {
+  display: none;
 }
 
 .liquidation-card {

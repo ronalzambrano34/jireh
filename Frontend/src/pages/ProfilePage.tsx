@@ -67,12 +67,10 @@ export function ProfilePage(props: {
             <div className="profile-hero-meta">
               <button className="profile-copy-chip" type="button" onClick={props.onCopyPhone} title="Copiar telefono" aria-label="Copiar telefono">
                 <span><small>Telefono</small><strong>{props.operador.telefono}</strong></span>
-                <Copy size={16} />
               </button>
               <span><small>Rol</small><strong>{props.operador.rol}</strong></span>
               <button className="profile-copy-chip profile-code-chip" type="button" onClick={props.onCopyCode} title="Copiar codigo" aria-label="Copiar codigo">
                 <span><small>Codigo</small><strong>{props.operador.codigo_operador}</strong></span>
-                <Copy size={16} />
               </button>
               <button className="profile-referral-copy-button" type="button" onClick={props.onCopyReferralCode} title="Copiar codigo de referido" aria-label="Copiar codigo de referido">
                 <Copy size={17} />

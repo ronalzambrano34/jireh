@@ -8,10 +8,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
-from Backend.config import UPLOAD_MAX_BYTES
-from Backend.config import STORAGE_DIR
 from Backend.models.configuracion import Configuracion
 from Backend.models.promocion import Promocion
+from Backend.services.storage_service import guardar_upload_persistente
 
 TIPOS_PROMOCION = {"promocion", "precios", "marca"}
 
@@ -221,29 +220,12 @@ def guardar_imagen_promocion(db: Session, promocion_id: int, archivo: UploadFile
     extension = Path(archivo.filename).suffix.lower() or ".img"
     nombre_seguro = str(uuid4()) + extension
     ruta_relativa = Path("promociones") / nombre_seguro
-    carpeta = STORAGE_DIR / "promociones"
-    carpeta.mkdir(parents=True, exist_ok=True)
-    destino = STORAGE_DIR / ruta_relativa
 
-    total_bytes = 0
-    try:
-        with destino.open("wb") as fh:
-            while True:
-                chunk = archivo.file.read(1024 * 1024)
-                if not chunk:
-                    break
-
-                total_bytes += len(chunk)
-                if total_bytes > UPLOAD_MAX_BYTES:
-                    raise Exception("Archivo excede el tamano maximo permitido")
-
-                fh.write(chunk)
-    except Exception:
-        if destino.exists():
-            destino.unlink()
-        raise
-
-    promocion.imagen_url = "/" + str(Path("storage") / ruta_relativa).replace("\\", "/")
+    promocion.imagen_url = guardar_upload_persistente(
+        archivo,
+        ruta_relativa,
+        content_type
+    )
     promocion.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(promocion)

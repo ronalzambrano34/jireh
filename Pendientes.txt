@@ -7,10 +7,37 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo 
 
+//todo REVISION GENERAL - CONECTIVIDAD, PETICIONES Y ESTABILIDAD:
+- Revisar que no existan peticiones dobles al crear pedido, confirmar pago, cancelar, liberar, tomar, transferir o finalizar una operacion.
+- Bloquear botones de accion mientras una peticion esta en proceso y evitar doble click/tap.
+- Agregar idempotencia en operaciones criticas para que reenviar la misma accion no duplique pedidos, archivos, historial ni notificaciones.
+- Revisar todos los useEffect que llaman APIs para evitar dobles cargas por cambios de estado, StrictMode o dependencias inestables.
+- Centralizar cancelacion de peticiones con AbortController cuando se cambia de vista o se desmonta un componente.
+- Implementar reintentos controlados solo en peticiones seguras de lectura, no en acciones que modifican datos.
+- Mostrar estados claros de conexion lenta, sin conexion y reconectando.
+- Mantener cola local para acciones criticas cuando no haya conexion, o bloquearlas claramente si no se pueden garantizar.
+- Guardar borradores de nuevo pedido localmente para no perder datos si se cae internet.
+- Revisar que los uploads de imagenes/documentos indiquen progreso, error y reintento manual.
+- Evitar subir dos veces el mismo archivo si el operador toca varias veces el selector o el boton.
+- Revisar cache y service worker para que la PWA abra aunque no haya internet.
+- Definir que vistas pueden funcionar offline y cuales necesitan conexion obligatoria.
+- Evitar refrescos automaticos agresivos en redes lentas; usar intervalos adaptados y pausar si no hay conexion.
+- No borrar datos visibles de pantalla si una recarga falla; conservar el ultimo estado cargado.
+- Persistir preferencias importantes del operador en localStorage: filtros, tema, notificaciones, moneda seleccionada.
+- Revisar notificaciones para que no se dupliquen al reconectar o al volver a cargar pedidos.
+- Validar que tomar/liberar/transferir pedido sea resistente a latencia alta y conflictos entre operadores.
+- Mostrar mensajes de error concretos: sin internet, servidor apagado, timeout, token vencido, archivo muy grande.
+- Probar el sistema con conexion lenta, modo avion, cortes intermitentes y recarga de pagina durante una operacion.
+- Revisar que el backend no dependa de storage local para imagenes o archivos importantes en produccion.
+- Auditar que cada operacion critica tenga historial consistente aun si falla una parte del flujo.
+- Agregar logs o trazas simples para diagnosticar fallos de red y acciones repetidas.
+- Revisar que el frontend no haga polling innecesario cuando la app esta en segundo plano.
+- Validar que los toasts no tapen acciones importantes en pantallas pequenas.
+- Crear una prueba manual de campo para baja conectividad: crear pedido, subir comprobante, confirmar pago, finalizar y reabrir app.
+
 //todo
 
 //todo 
-
 
 
 

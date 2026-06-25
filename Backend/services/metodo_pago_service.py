@@ -2,9 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import UploadFile
-from Backend.config import STORAGE_DIR
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
-from Backend.config import UPLOAD_MAX_BYTES
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -14,6 +12,7 @@ from Backend.models.metodo_pago import (
 from Backend.models.metodo_pago_cuenta import (
     MetodoPagoCuenta
 )
+from Backend.services.storage_service import guardar_upload_persistente
 
 
 def _normalizar_moneda(
@@ -282,44 +281,11 @@ def guardar_imagen_metodo_pago(
         + extension
     )
     ruta_relativa = Path("metodos-pago") / nombre_seguro
-    carpeta = STORAGE_DIR / "metodos-pago"
-    carpeta.mkdir(
-        parents=True,
-        exist_ok=True
+    metodo.imagen_url = guardar_upload_persistente(
+        archivo,
+        ruta_relativa,
+        content_type
     )
-    destino = STORAGE_DIR / ruta_relativa
-
-    total_bytes = 0
-    try:
-        with destino.open(
-            "wb"
-        ) as fh:
-            while True:
-                chunk = archivo.file.read(
-                    1024 * 1024
-                )
-                if not chunk:
-                    break
-
-                total_bytes += len(
-                    chunk
-                )
-                if total_bytes > UPLOAD_MAX_BYTES:
-                    raise Exception(
-                        "Archivo excede el tamano maximo permitido"
-                    )
-
-                fh.write(
-                    chunk
-                )
-    except Exception:
-        if destino.exists():
-            destino.unlink()
-        raise
-
-    metodo.imagen_url = "/" + str(
-        Path("storage") / ruta_relativa
-    ).replace("\\", "/")
     db.commit()
     db.refresh(
         metodo

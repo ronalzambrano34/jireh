@@ -10,9 +10,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from Backend.database import get_db
-from Backend.config import STORAGE_DIR
 from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
-from Backend.config import UPLOAD_MAX_BYTES
 
 from Backend.schemas.auth import (
     AuthOperadorResponse,
@@ -29,6 +27,7 @@ from Backend.services.auth_service import (
     login_operador,
     verificar_password
 )
+from Backend.services.storage_service import guardar_upload_persistente
 
 router = APIRouter(
     prefix="/auth",
@@ -160,43 +159,18 @@ def subir_foto_me_route(
         archivo.filename
     ).suffix.lower() or ".img"
     ruta_relativa = Path("operadores") / f"{operador.id}-{uuid4()}{extension}"
-    carpeta = STORAGE_DIR / "operadores"
-    carpeta.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-    destino = STORAGE_DIR / ruta_relativa
-
-    total_bytes = 0
     try:
-        with destino.open(
-            "wb"
-        ) as fh:
-            while True:
-                chunk = archivo.file.read(
-                    1024 * 1024
-                )
-                if not chunk:
-                    break
-                total_bytes += len(
-                    chunk
-                )
-                if total_bytes > UPLOAD_MAX_BYTES:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Archivo excede el tamano maximo permitido"
-                    )
-                fh.write(
-                    chunk
-                )
-    except Exception:
-        if destino.exists():
-            destino.unlink()
-        raise
+        operador.foto_url = guardar_upload_persistente(
+            archivo,
+            ruta_relativa,
+            content_type
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
 
-    operador.foto_url = "/" + str(
-        Path("storage") / ruta_relativa
-    ).replace("\\", "/")
     db.commit()
     db.refresh(
         operador
