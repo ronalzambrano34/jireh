@@ -13,6 +13,7 @@ import { calcularOperacionDedup, listarMetodosPagoDedup, listarPuntosRecogidaDed
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
@@ -30,8 +31,6 @@ function telefonoCubaPayload(value: string) {
 }
 
 
-type EfectivoInitialData = { monto_pago?: string; moneda_pago?: string };
-
 function whatsappHref(phone: string) {
   const digits = phone.replace(/\D/g, '');
   if (!digits) return '';
@@ -39,20 +38,30 @@ function whatsappHref(phone: string) {
   return `https://wa.me/${normalized}`;
 }
 
-export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: EfectivoInitialData }) {
+export function EfectivoForm({
+  operadorId,
+  onCreated,
+  initialData,
+  onDraftSavedChange,
+}: {
+  operadorId: number;
+  onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void;
+  initialData?: NuevoPedidoDraft;
+  onDraftSavedChange?: (saved: boolean) => void;
+}) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
-    tipo_pago_id: '',
-    cuenta_pago_id: '',
-    punto_recogida_id: '',
-    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
-    documento_identidad_url: '',
-    cliente_id: '',
-    nombre_cliente: '',
-    numero_telefono_cliente: '',
-    observaciones: '',
-    bonificacion_manual: '',
+    tipo_pago_id: initialData?.tipo_pago_id ?? '',
+    cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
+    punto_recogida_id: initialData?.punto_recogida_id ?? '',
+    telefono_destinatario: initialData?.telefono_destinatario ?? TELEFONO_CUBA_DEFAULT,
+    documento_identidad_url: initialData?.documento_identidad_url ?? '',
+    cliente_id: initialData?.cliente_id ?? '',
+    nombre_cliente: initialData?.nombre_cliente ?? '',
+    numero_telefono_cliente: initialData?.numero_telefono_cliente ?? '',
+    observaciones: initialData?.observaciones ?? '',
+    bonificacion_manual: initialData?.bonificacion_manual ?? '',
   });
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [puntos, setPuntos] = useState<PuntoRecogida[]>([]);
@@ -84,15 +93,17 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
           const actual = normalizarMoneda(current.moneda_pago);
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
           const metodosMoneda = metodos.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
-          const metodo = moneda === 'BRL'
+          const metodoActual = metodosMoneda.find((item) => String(item.id) === current.tipo_pago_id);
+          const metodo = metodoActual ?? (moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
-            : metodosMoneda[0];
+            : metodosMoneda[0]);
+          const puntoActual = puntosData.find((item) => String(item.id) === current.punto_recogida_id);
           guardarMonedaPedidoPreferida(moneda);
           return {
             ...current,
             moneda_pago: moneda,
             tipo_pago_id: metodo ? String(metodo.id) : '',
-            punto_recogida_id: puntosData[0] ? String(puntosData[0].id) : '',
+            punto_recogida_id: puntoActual ? current.punto_recogida_id : (puntosData[0] ? String(puntosData[0].id) : ''),
             numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
           };
         });
@@ -104,6 +115,8 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
         if (!signal.aborted) setCargandoCatalogos(false);
       });
   }, []);
+
+  useAutosaveBorradorNuevoPedido(operadorId, 'efectivo', form, onDraftSavedChange);
 
   useAbortableEffect((signal) => {
     const monto = Number(form.monto_pago);
@@ -254,6 +267,8 @@ export function EfectivoForm({ operadorId, onCreated, initialData }: { operadorI
       const advertencia = adjuntosFallidos.length
         ? `El pedido ${response.codigo_operacion} fue creado, pero no se adjunto: ${adjuntosFallidos.join(', ')}`
         : undefined;
+      borrarBorradorNuevoPedido(operadorId, 'efectivo');
+      onDraftSavedChange?.(false);
       onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');

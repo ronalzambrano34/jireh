@@ -240,6 +240,31 @@
   box-shadow: 0 4px 12px color-mix(in srgb, var(--ui-primary-strong) 12%, transparent);
 }
 
+.create-draft-notice {
+  width: 100%;
+  max-width: 940px;
+  justify-content: space-between;
+}
+
+.create-draft-notice button {
+  min-height: 28px;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 6px;
+  padding: 4px 9px;
+  background: rgba(255, 255, 255, 0.55);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.create-draft-notice button:hover,
+.create-draft-notice button:focus-visible {
+  background: rgba(255, 255, 255, 0.88);
+  outline: 2px solid rgba(19, 34, 53, 0.14);
+  outline-offset: 2px;
+}
+
 @media (max-width: 720px) {
 
   .service-tabs {

@@ -14,6 +14,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
@@ -29,22 +30,30 @@ function telefonoCubaPayload(value: string) {
 }
 
 
-type DivisaInitialData = { monto_pago?: string; moneda_pago?: string; tipo_tarjeta?: string };
-
-export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: DivisaInitialData }) {
+export function DivisaForm({
+  operadorId,
+  onCreated,
+  initialData,
+  onDraftSavedChange,
+}: {
+  operadorId: number;
+  onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void;
+  initialData?: NuevoPedidoDraft;
+  onDraftSavedChange?: (saved: boolean) => void;
+}) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
-    tipo_pago_id: '',
-    cuenta_pago_id: '',
+    tipo_pago_id: initialData?.tipo_pago_id ?? '',
+    cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     tipo_tarjeta: initialData?.tipo_tarjeta ?? 'MLC',
-    numero_tarjeta: '',
-    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
-    cliente_id: '',
-    nombre_cliente: '',
-    numero_telefono_cliente: '',
-    observaciones: '',
-    bonificacion_manual: '',
+    numero_tarjeta: initialData?.numero_tarjeta ?? '',
+    telefono_destinatario: initialData?.telefono_destinatario ?? TELEFONO_CUBA_DEFAULT,
+    cliente_id: initialData?.cliente_id ?? '',
+    nombre_cliente: initialData?.nombre_cliente ?? '',
+    numero_telefono_cliente: initialData?.numero_telefono_cliente ?? '',
+    observaciones: initialData?.observaciones ?? '',
+    bonificacion_manual: initialData?.bonificacion_manual ?? '',
   });
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +78,9 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         setForm((current) => {
           const actual = normalizarMoneda(current.moneda_pago);
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
-          const primero = data.find((metodo) => normalizarMoneda(metodo.moneda) === moneda);
+          const metodosMoneda = data.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
+          const metodoActual = metodosMoneda.find((metodo) => String(metodo.id) === current.tipo_pago_id);
+          const primero = metodoActual ?? metodosMoneda[0];
           guardarMonedaPedidoPreferida(moneda);
           return {
             ...current,
@@ -86,6 +97,8 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
         if (!signal.aborted) setCargandoMetodos(false);
       });
   }, []);
+
+  useAutosaveBorradorNuevoPedido(operadorId, 'divisa', form, onDraftSavedChange);
 
   useEffect(() => {
     if (!metodosFiltrados.length) {
@@ -191,6 +204,8 @@ export function DivisaForm({ operadorId, onCreated, initialData }: { operadorId:
           advertencia = `El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`;
         }
       }
+      borrarBorradorNuevoPedido(operadorId, 'divisa');
+      onDraftSavedChange?.(false);
       onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');

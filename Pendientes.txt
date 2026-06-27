@@ -9,7 +9,16 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo REVISION GENERAL - CONECTIVIDAD, PETICIONES Y ESTABILIDAD:
 
-- Guardar borradores de nuevo pedido localmente para no perder datos si se cae internet.
++ Guardar borradores de nuevo pedido localmente para no perder datos si se cae internet.
+Los reportes tiene que tener el mismo filtro de búsqueda que el de la web o que aparezca un modal en el que marqués que fecha quieres descargar
+En la vista detalle de pedido, al presionar mensaje operativo, aparecen 2 formularios modals de envío de mensajes a WhatsApp
+La conexión lenta es para conexiones 3G hacia abajo, tengo 5G y me pusiste que tenía red lenta
+Los pedidos solo se atrasan si no han sido tomados por un operador, si ya están tomados por un operador, no necesita notificar pedido atrasado
+En los templates, el botón servicio, no escribe información (lo probé con el servicio "Otros".
+En los formularios de operaciones, el campo Cuenta de pago, que esté vacío, y sea obligatorio llenarlo
+
+
+
 - Revisar que los uploads de imagenes/documentos indiquen progreso, error y reintento manual.
 - Evitar subir dos veces el mismo archivo si el operador toca varias veces el selector o el boton.
 - Revisar cache y service worker para que la PWA abra aunque no haya internet.

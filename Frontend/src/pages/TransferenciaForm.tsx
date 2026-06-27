@@ -12,6 +12,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle } from '../types/api';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
@@ -27,22 +28,29 @@ function telefonoCubaPayload(value: string) {
 }
 
 
-type TransferenciaInitialData = { monto_pago?: string; moneda_pago?: string };
-
-
-export function TransferenciaForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: TransferenciaInitialData }) {
+export function TransferenciaForm({
+  operadorId,
+  onCreated,
+  initialData,
+  onDraftSavedChange,
+}: {
+  operadorId: number;
+  onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void;
+  initialData?: NuevoPedidoDraft;
+  onDraftSavedChange?: (saved: boolean) => void;
+}) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
-    numero_tarjeta: '',
-    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
-    tipo_pago_id: '1',
-    cuenta_pago_id: '',
-    cliente_id: '',
-    nombre_cliente: '',
-    numero_telefono_cliente: '',
-    bonificacion_manual: '',
-    observaciones: '',
+    numero_tarjeta: initialData?.numero_tarjeta ?? '',
+    telefono_destinatario: initialData?.telefono_destinatario ?? TELEFONO_CUBA_DEFAULT,
+    tipo_pago_id: initialData?.tipo_pago_id ?? '1',
+    cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
+    cliente_id: initialData?.cliente_id ?? '',
+    nombre_cliente: initialData?.nombre_cliente ?? '',
+    numero_telefono_cliente: initialData?.numero_telefono_cliente ?? '',
+    bonificacion_manual: initialData?.bonificacion_manual ?? '',
+    observaciones: initialData?.observaciones ?? '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,9 +78,10 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           const actual = normalizarMoneda(current.moneda_pago);
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
           const metodosMoneda = data.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
-          const metodo = moneda === 'BRL'
+          const metodoActual = metodosMoneda.find((item) => String(item.id) === current.tipo_pago_id);
+          const metodo = metodoActual ?? (moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
-            : metodosMoneda[0];
+            : metodosMoneda[0]);
           guardarMonedaPedidoPreferida(moneda);
           return {
             ...current,
@@ -89,6 +98,8 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
         if (!signal.aborted) setCargandoMetodos(false);
       });
   }, []);
+
+  useAutosaveBorradorNuevoPedido(operadorId, 'transferencia', form, onDraftSavedChange);
 
   useAbortableEffect((signal) => {
     const monto = Number(form.monto_pago);
@@ -204,6 +215,8 @@ export function TransferenciaForm({ operadorId, onCreated, initialData }: { oper
           advertencia = `El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`;
         }
       }
+      borrarBorradorNuevoPedido(operadorId, 'transferencia');
+      onDraftSavedChange?.(false);
       onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');

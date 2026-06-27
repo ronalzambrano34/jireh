@@ -13,6 +13,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
+import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 
@@ -29,20 +30,28 @@ function telefonoCubaPayload(value: string) {
 }
 
 
-type SaldoInitialData = { moneda_pago?: string; paquete_saldo_id?: string };
-
-export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: number; onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void; initialData?: SaldoInitialData }) {
+export function SaldoForm({
+  operadorId,
+  onCreated,
+  initialData,
+  onDraftSavedChange,
+}: {
+  operadorId: number;
+  onCreated: (pedido: PedidoDetalle, pagoConfirmado: boolean, advertencia?: string) => void;
+  initialData?: NuevoPedidoDraft;
+  onDraftSavedChange?: (saved: boolean) => void;
+}) {
   const [form, setForm] = useState({
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
-    tipo_pago_id: '',
-    cuenta_pago_id: '',
+    tipo_pago_id: initialData?.tipo_pago_id ?? '',
+    cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
-    telefono_destinatario: TELEFONO_CUBA_DEFAULT,
-    cliente_id: '',
-    nombre_cliente: '',
-    numero_telefono_cliente: '',
-    observaciones: '',
-    bonificacion_manual: '',
+    telefono_destinatario: initialData?.telefono_destinatario ?? TELEFONO_CUBA_DEFAULT,
+    cliente_id: initialData?.cliente_id ?? '',
+    nombre_cliente: initialData?.nombre_cliente ?? '',
+    numero_telefono_cliente: initialData?.numero_telefono_cliente ?? '',
+    observaciones: initialData?.observaciones ?? '',
+    bonificacion_manual: initialData?.bonificacion_manual ?? '',
   });
   const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [paquetes, setPaquetes] = useState<PaqueteSaldo[]>([]);
@@ -80,9 +89,10 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           const actual = normalizarMoneda(current.moneda_pago);
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
           const metodosMoneda = metodos.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
-          const metodo = moneda === 'BRL'
+          const metodoActual = metodosMoneda.find((item) => String(item.id) === current.tipo_pago_id);
+          const metodo = metodoActual ?? (moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
-            : metodosMoneda[0];
+            : metodosMoneda[0]);
           const paqueteActual = paquetesData.find((item) => String(item.id) === current.paquete_saldo_id && normalizarMoneda(item.moneda_pago) === moneda);
           const paquete = paqueteActual ?? paquetesData.find((item) => normalizarMoneda(item.moneda_pago) === moneda);
           guardarMonedaPedidoPreferida(moneda);
@@ -102,6 +112,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
         if (!signal.aborted) setCargandoCatalogos(false);
       });
   }, []);
+
+  useAutosaveBorradorNuevoPedido(operadorId, 'saldo', form, onDraftSavedChange);
 
   useEffect(() => {
     if (metodosFiltrados.length) {
@@ -216,6 +228,8 @@ export function SaldoForm({ operadorId, onCreated, initialData }: { operadorId: 
           advertencia = `El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`;
         }
       }
+      borrarBorradorNuevoPedido(operadorId, 'saldo');
+      onDraftSavedChange?.(false);
       onCreated(response, comprobanteCargado, advertencia);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
