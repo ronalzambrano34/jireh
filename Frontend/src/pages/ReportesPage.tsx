@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Landmark, MinusCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarRange, Download, Landmark, MinusCircle } from 'lucide-react';
 import { crearExtraccionCuenta, descargarOperacionesExcel, descargarReporteCsv, listarExtraccionesCuenta, listarSaldosCuenta, obtenerReporte } from '../api/client';
 import {
   listarCuentasMetodoPagoDedup,
@@ -12,10 +12,11 @@ import {
 import type { ExtraccionCuenta, MetodoPago, MetodoPagoCuenta, Operador, ReporteGeneral, SaldoCuenta } from '../types/api';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingToast } from '../components/FloatingToast';
+import { Modal } from '../components/Modal';
 import { PageLoader } from '../components/PageLoader';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
-import { ReportFilters, type ReportFilterState, type ReportPeriod } from './reportes/ReportFilters';
+import { ReportFilters, reportPeriods, type ReportFilterState, type ReportPeriod } from './reportes/ReportFilters';
 import { ReportBarChart, ReportSummary, ReportTable, reportMoney } from './reportes/ReportViews';
 import './reportes/ReportesPage.css';
 
@@ -76,6 +77,9 @@ export function ReportesPage() {
   const [extraccion, setExtraccion] = useState({ cuenta_pago_id: '', monto: '', motivo: '' });
   const [guardandoExtraccion, setGuardandoExtraccion] = useState(false);
   const [exportando, setExportando] = useState<'csv' | 'excel' | null>(null);
+  const [exportModal, setExportModal] = useState<'csv' | 'excel' | null>(null);
+  const [exportPeriodo, setExportPeriodo] = useState<ReportPeriod>('mes');
+  const [exportFilters, setExportFilters] = useState<ReportFilterState>(() => filters);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +88,7 @@ export function ReportesPage() {
     try {
       setOperadores(await listarOperadoresDedup(true, { signal }));
     } catch (err) {
-      if (!isAbortError(err)) setOperadores([]);
+      if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los operadores');
     } finally {
       if (!signal?.aborted) setOperadoresLoading(false);
     }
@@ -102,8 +106,7 @@ export function ReportesPage() {
       })
       .catch((err) => {
         if (isAbortError(err)) return;
-        setMetodosPago([]);
-        setCuentasPago([]);
+        setError(err instanceof Error ? err.message : 'No se pudieron cargar los metodos de pago');
       });
   }, []);
 
@@ -186,18 +189,61 @@ export function ReportesPage() {
     }
   }
 
-  async function exportarExcel() {
+  function abrirModalExportacion(tipo: 'csv' | 'excel') {
+    setExportModal(tipo);
+    setExportPeriodo(periodo);
+    setExportFilters(filters);
+  }
+
+  function cerrarModalExportacion() {
     if (exportando) return;
+    setExportModal(null);
+  }
+
+  function updateExportPeriodo(value: ReportPeriod) {
+    setExportPeriodo(value);
+    if (value !== 'personalizado') {
+      setExportFilters((current) => ({
+        ...current,
+        ...rangoPeriodo(value),
+      }));
+    }
+  }
+
+  function updateExportFilter(field: keyof ReportFilterState, value: string) {
+    setExportFilters((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function validarRangoExportacion(filtrosExportacion: ReportFilterState) {
+    if (
+      filtrosExportacion.fecha_desde
+      && filtrosExportacion.fecha_hasta
+      && filtrosExportacion.fecha_desde > filtrosExportacion.fecha_hasta
+    ) {
+      setError('La fecha inicial no puede ser mayor que la fecha final');
+      return false;
+    }
+
+    return true;
+  }
+
+  async function exportarExcel(filtrosExportacion = exportFilters) {
+    if (exportando) return;
+    if (!validarRangoExportacion(filtrosExportacion)) return;
     setExportando('excel');
     setError(null);
     try {
-      const blob = await descargarOperacionesExcel(filters);
+      const blob = await descargarOperacionesExcel(filtrosExportacion);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `operaciones_${filters.fecha_desde || 'inicio'}_${filters.fecha_hasta || 'hoy'}.xlsx`;
+      link.download = `operaciones_${filtrosExportacion.fecha_desde || 'inicio'}_${filtrosExportacion.fecha_hasta || 'hoy'}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
+      setExportModal(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar el Excel');
     } finally {
@@ -205,18 +251,20 @@ export function ReportesPage() {
     }
   }
 
-  async function exportarCsv() {
+  async function exportarCsv(filtrosExportacion = exportFilters) {
     if (exportando) return;
+    if (!validarRangoExportacion(filtrosExportacion)) return;
     setExportando('csv');
     setError(null);
     try {
-      const blob = await descargarReporteCsv(filters);
+      const blob = await descargarReporteCsv(filtrosExportacion);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `reporte_resumen_${filters.fecha_desde || 'inicio'}_${filters.fecha_hasta || 'hoy'}.csv`;
+      link.download = `reporte_resumen_${filtrosExportacion.fecha_desde || 'inicio'}_${filtrosExportacion.fecha_hasta || 'hoy'}.csv`;
       link.click();
       URL.revokeObjectURL(url);
+      setExportModal(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar el CSV');
     } finally {
@@ -236,11 +284,70 @@ export function ReportesPage() {
         loading={loading || exportando !== null}
         onPeriodoChange={updatePeriodo}
         onChange={update}
-        onExportCsv={() => void exportarCsv()}
-        onExportExcel={() => void exportarExcel()}
+        onExportCsv={() => abrirModalExportacion('csv')}
+        onExportExcel={() => abrirModalExportacion('excel')}
       />
 
       {error && <FloatingToast onDismiss={() => setError(null)}>{error}</FloatingToast>}
+      {exportModal && (
+        <Modal
+          title={exportModal === 'csv' ? 'Descargar CSV' : 'Descargar Excel'}
+          subtitle="Selecciona el periodo de descarga"
+          onClose={cerrarModalExportacion}
+          className="report-download-modal"
+        >
+          <div className="report-download-form">
+            <div className="report-download-period">
+              <FloatingSelect
+                value={exportPeriodo}
+                onChange={(value) => updateExportPeriodo(value as ReportPeriod)}
+                options={reportPeriods.map((item) => ({
+                  value: item.value,
+                  label: item.value === 'todo' ? 'Todos los periodos' : item.label,
+                  icon: <CalendarRange size={17} />,
+                }))}
+                ariaLabel="Periodo de descarga"
+                align="left"
+                buttonClassName="filter-modal-button"
+              />
+            </div>
+            <div className="report-download-dates">
+              <label>
+                Desde
+                <input
+                  type="date"
+                  value={exportFilters.fecha_desde}
+                  onChange={(event) => updateExportFilter('fecha_desde', event.target.value)}
+                  disabled={exportPeriodo !== 'personalizado'}
+                />
+              </label>
+              <label>
+                Hasta
+                <input
+                  type="date"
+                  value={exportFilters.fecha_hasta}
+                  onChange={(event) => updateExportFilter('fecha_hasta', event.target.value)}
+                  disabled={exportPeriodo !== 'personalizado'}
+                />
+              </label>
+            </div>
+            <div className="report-download-actions">
+              <button className="ghost-button" type="button" onClick={cerrarModalExportacion} disabled={exportando !== null}>
+                Cancelar
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => exportModal === 'csv' ? void exportarCsv() : void exportarExcel(exportFilters)}
+                disabled={exportando !== null}
+              >
+                <Download size={17} />
+                {exportando ? 'Descargando...' : 'Descargar'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {loading && !reporte && <PageLoader label="Buscando datos del reporte" inline />}
       {loading && reporte && <PageLoader label="Actualizando reporte" inline />}
       {!loading && !error && !reporte && (

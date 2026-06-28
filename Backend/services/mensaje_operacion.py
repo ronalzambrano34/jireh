@@ -92,7 +92,7 @@ DEFAULT_TEMPLATES = {
         "*Pago:* {{monto_pago}} {{moneda_pago}}\n"
         "*Metodo de pago:* {{metodo_pago}}\n"
         "*Cuenta de pago:* {{cuenta_pago}}\n"
-        "*Observaciones:* {{observaciones}}"
+        "*Observaciones:* {{informacion_operacion}}"
     )
 }
 
@@ -445,6 +445,9 @@ def generar_mensaje_operacion(
             descripcion,
 
             "descripcion":
+            descripcion,
+
+            "informacion_operacion":
             descripcion,
 
             "numero_tarjeta":

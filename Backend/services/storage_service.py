@@ -1,11 +1,11 @@
-import base64
 from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import UploadFile
 import requests
 
-from Backend.config import IS_VERCEL
+from Backend.config import LOCAL_STORAGE_ENABLED
+from Backend.config import REQUIRE_EXTERNAL_STORAGE
 from Backend.config import STORAGE_DIR
 from Backend.config import SUPABASE_SERVICE_ROLE_KEY
 from Backend.config import SUPABASE_STORAGE_BUCKET
@@ -63,6 +63,16 @@ def validar_configuracion_supabase():
             "SUPABASE_SERVICE_ROLE_KEY tiene un formato desconocido. "
             "Configura la clave secreta sb_secret_... o la service_role JWT legacy"
         )
+
+
+def validar_storage_produccion():
+    if not REQUIRE_EXTERNAL_STORAGE or USE_SUPABASE_STORAGE:
+        return
+
+    validar_configuracion_supabase()
+    raise Exception(
+        "Storage externo obligatorio en produccion. Activa USE_SUPABASE_STORAGE=true."
+    )
 
 
 def headers_supabase(content_type: str):
@@ -207,10 +217,11 @@ def guardar_upload_persistente(
             contenido
         )
 
-    if IS_VERCEL:
-        return (
-            f"data:{content_type};base64,"
-            + base64.b64encode(contenido).decode("ascii")
+    validar_storage_produccion()
+
+    if not LOCAL_STORAGE_ENABLED:
+        raise Exception(
+            "Storage local deshabilitado. Configura Supabase Storage para guardar archivos."
         )
 
     destino = STORAGE_DIR / ruta_relativa

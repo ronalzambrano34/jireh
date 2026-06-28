@@ -22,7 +22,7 @@ export type NuevoPedidoDraft = {
   observaciones?: string;
 };
 
-type BorradorNuevoPedidoGuardado = {
+export type BorradorNuevoPedidoGuardado = {
   version: 1;
   operadorId: number;
   servicio: NuevoPedidoServicio;
@@ -88,6 +88,10 @@ export function borradorNuevoPedidoTieneContenido(draft?: NuevoPedidoDraft | nul
 }
 
 export function leerBorradorNuevoPedido(operadorId: number, servicio: NuevoPedidoServicio): NuevoPedidoDraft | null {
+  return leerBorradorNuevoPedidoGuardado(operadorId, servicio)?.data ?? null;
+}
+
+export function leerBorradorNuevoPedidoGuardado(operadorId: number, servicio: NuevoPedidoServicio): BorradorNuevoPedidoGuardado | null {
   if (!storageDisponible()) return null;
 
   try {
@@ -95,7 +99,15 @@ export function leerBorradorNuevoPedido(operadorId: number, servicio: NuevoPedid
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<BorradorNuevoPedidoGuardado>;
     if (parsed.version !== 1 || parsed.operadorId !== operadorId || parsed.servicio !== servicio) return null;
-    return normalizarBorradorNuevoPedido(parsed.data);
+    const data = normalizarBorradorNuevoPedido(parsed.data);
+    if (!borradorNuevoPedidoTieneContenido(data)) return null;
+    return {
+      version: 1,
+      operadorId,
+      servicio,
+      updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : new Date().toISOString(),
+      data,
+    };
   } catch {
     return null;
   }

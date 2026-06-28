@@ -33,12 +33,16 @@ export function MetodoPagoSelect({
   disabled,
   emptyLabel,
 }: MetodoPagoSelectProps) {
-  const [cuentas, setCuentas] = useState<MetodoPagoCuenta[]>([]);
+  const [cuentasState, setCuentasState] = useState<{ metodoId: string; items: MetodoPagoCuenta[] }>({
+    metodoId: '',
+    items: [],
+  });
+  const cuentas = cuentasState.metodoId === value ? cuentasState.items : [];
 
   useAbortableEffect((signal) => {
     let active = true;
     if (!value || !onCuentaChange) {
-      setCuentas([]);
+      setCuentasState({ metodoId: '', items: [] });
       onCuentaChange?.('');
       return () => { active = false; };
     }
@@ -47,19 +51,10 @@ export function MetodoPagoSelect({
     listarCuentasMetodoPagoDedup(Number(value), false, { signal })
       .then((data) => {
         if (!active) return;
-        setCuentas(data);
-        const actualExiste = data.some((cuenta) => String(cuenta.id) === cuentaValue);
-        if (!actualExiste) {
-          const predeterminada = data.find((cuenta) => cuenta.predeterminada) ?? data[0];
-          onCuentaChange(predeterminada ? String(predeterminada.id) : '');
-        }
+        setCuentasState({ metodoId: value, items: data });
       })
       .catch((err) => {
         if (isAbortError(err)) return;
-        if (active) {
-          setCuentas([]);
-          onCuentaChange('');
-        }
       });
 
     return () => { active = false; };
@@ -81,8 +76,8 @@ export function MetodoPagoSelect({
           value={cuentaValue}
           onChange={onCuentaChange}
           disabled={disabled}
-          placeholder="Cuenta de cobro"
-          ariaLabel="Cuenta de cobro"
+          placeholder="Cuenta de pago"
+          ariaLabel="Cuenta de pago"
           options={cuentas.map((cuenta) => ({
             value: String(cuenta.id),
             label: cuenta.alias,

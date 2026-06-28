@@ -60,7 +60,7 @@ export function ContactosRecientes({ clienteId, onSelect, onError }: ContactosRe
     }
   }
 
-  if (!clienteId || loading || contactos.length === 0) return null;
+  if (!clienteId || contactos.length === 0) return null;
 
   return (
     <section className="recent-contacts-block" aria-label="Destinatarios frecuentes">

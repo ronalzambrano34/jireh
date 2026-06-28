@@ -1,14 +1,23 @@
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
+import logging
+import time
+from uuid import uuid4
 
 from Backend.routes.webhook import router as webhook_router
 
 from Backend.config import FRONTEND_ORIGINS
 from Backend.config import IS_VERCEL
+from Backend.config import LOCAL_STORAGE_ENABLED
+from Backend.config import LOG_LEVEL
+from Backend.config import REQUIRE_EXTERNAL_STORAGE
+from Backend.config import REQUEST_SLOW_MS
 from Backend.config import RUN_DB_BOOTSTRAP
 from Backend.config import RUN_DB_MAINTENANCE
+from Backend.config import STORAGE_BACKEND
 from Backend.config import STORAGE_DIR
 
 from Backend.database import Base
@@ -69,14 +78,22 @@ from Backend.services.seed_metodos_pago import (seed_metodos_pago)
 from Backend.services.operador_rol_service import asegurar_roles_default
 from Backend.services.promocion_service import asegurar_slides_carrusel_default
 from Backend.services.provincia_servicio_service import seed_provincias_servicio
+from Backend.services.storage_service import validar_storage_produccion
 from Backend.services.oferta_sync_control import detener_scheduler_sync_ofertas
 from Backend.services.oferta_sync_control import iniciar_scheduler_sync_ofertas
 from Backend.routes.template import (router as template_router)
 
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
+logger = logging.getLogger("jireh.api")
+
 app = FastAPI()
 
-STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/storage", StaticFiles(directory=STORAGE_DIR), name="storage")
+if LOCAL_STORAGE_ENABLED:
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    app.mount("/storage", StaticFiles(directory=STORAGE_DIR), name="storage")
 
 app.add_middleware(GZipMiddleware, minimum_size=500, compresslevel=6)
 app.add_middleware(
@@ -85,7 +102,79 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+
+
+@app.middleware("http")
+async def request_trace_middleware(request: Request, call_next):
+    request_id = (
+        request.headers.get("x-request-id")
+        or str(uuid4())
+    )
+    request.state.request_id = request_id
+    started = time.perf_counter()
+    method = request.method.upper()
+    path = request.url.path
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round(
+            (time.perf_counter() - started) * 1000
+        )
+        logger.exception(
+            "request.error request_id=%s method=%s path=%s duration_ms=%s",
+            request_id,
+            method,
+            path,
+            duration_ms
+        )
+        raise
+
+    duration_ms = round(
+        (time.perf_counter() - started) * 1000
+    )
+    response.headers["X-Request-ID"] = request_id
+
+    if response.status_code >= 500:
+        logger.error(
+            "request.failed request_id=%s method=%s path=%s status=%s duration_ms=%s",
+            request_id,
+            method,
+            path,
+            response.status_code,
+            duration_ms
+        )
+    elif response.status_code >= 400:
+        logger.warning(
+            "request.rejected request_id=%s method=%s path=%s status=%s duration_ms=%s",
+            request_id,
+            method,
+            path,
+            response.status_code,
+            duration_ms
+        )
+    elif duration_ms >= REQUEST_SLOW_MS:
+        logger.warning(
+            "request.slow request_id=%s method=%s path=%s status=%s duration_ms=%s",
+            request_id,
+            method,
+            path,
+            response.status_code,
+            duration_ms
+        )
+    elif method in {"POST", "PUT", "PATCH", "DELETE"}:
+        logger.info(
+            "request.action request_id=%s method=%s path=%s status=%s duration_ms=%s",
+            request_id,
+            method,
+            path,
+            response.status_code,
+            duration_ms
+        )
+
+    return response
 
 
 if RUN_DB_BOOTSTRAP:
@@ -152,6 +241,11 @@ app.include_router(sync_router)
 app.include_router(tasa_operativa_router)
 
 @app.on_event("startup")
+def startup_storage():
+    validar_storage_produccion()
+
+
+@app.on_event("startup")
 def startup_ofertas_sync():
     if IS_VERCEL:
         return
@@ -179,5 +273,9 @@ def home():
 @app.get("/health")
 def health():
     return {
-        "status": "ok"
+        "status": "ok",
+        "storage": {
+            "backend": STORAGE_BACKEND,
+            "external_required": REQUIRE_EXTERNAL_STORAGE
+        }
     }

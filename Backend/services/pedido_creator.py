@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from sqlalchemy.orm import Session
+import logging
 
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_historial import PedidoHistorial
@@ -62,6 +63,8 @@ from Backend.services.whatsapp_service import (
 from Backend.services.template_service import (
     formatear_valor_template
 )
+
+logger = logging.getLogger("jireh.pedidos")
 
 
 def normalizar_telefono_destinatario(
@@ -1108,6 +1111,14 @@ def crear_pedido(
 
     db.refresh(
         pedido
+    )
+    logger.info(
+        "pedido.crear.ok codigo=%s servicio=%s estado=%s operador_id=%s cliente_id=%s",
+        pedido.codigo_operacion,
+        pedido.servicio,
+        pedido.estado,
+        pedido.operador_id,
+        pedido.cliente_id
     )
 
     mensaje_data = (

@@ -24,6 +24,8 @@ from Backend.services.pedido_service import (
     listar_pedidos_activos_por_cliente,
     listar_pedidos,
     obtener_pedido_por_codigo,
+    PedidoConflictError,
+    PedidoNotFoundError,
     redirigir_pedido_operador,
     renovar_bloqueo_pedido,
     tomar_operacion_pedido
@@ -49,6 +51,22 @@ def _fecha_utc_sin_zona(value: str | None):
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
     return parsed
+
+
+def _raise_pedido_http_error(exc: Exception, default_status: int = 400):
+    if isinstance(exc, PedidoNotFoundError):
+        status_code = 404
+    elif isinstance(exc, PermissionError):
+        status_code = 403
+    elif isinstance(exc, PedidoConflictError):
+        status_code = 409
+    else:
+        status_code = default_status
+
+    raise HTTPException(
+        status_code=status_code,
+        detail=str(exc)
+    ) from exc
 
 
 @router.post(
@@ -261,10 +279,7 @@ def redirigir_operacion(
             operador
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc)
-        ) from exc
+        _raise_pedido_http_error(exc)
 
 
 @router.post(
@@ -290,10 +305,7 @@ def tomar_operacion(
             operador
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc)
-        ) from exc
+        _raise_pedido_http_error(exc, default_status=409)
 
 
 @router.post(
@@ -319,10 +331,7 @@ def renovar_operacion(
             operador
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc)
-        ) from exc
+        _raise_pedido_http_error(exc, default_status=409)
 
 
 @router.post(
@@ -348,10 +357,7 @@ def liberar_operacion(
             operador
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc)
-        ) from exc
+        _raise_pedido_http_error(exc, default_status=409)
 
 
 @router.post("/")

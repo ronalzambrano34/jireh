@@ -51,7 +51,7 @@ export function EfectivoForm({
 }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
     tipo_pago_id: initialData?.tipo_pago_id ?? '',
     cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     punto_recogida_id: initialData?.punto_recogida_id ?? '',
@@ -98,7 +98,7 @@ export function EfectivoForm({
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
             : metodosMoneda[0]);
           const puntoActual = puntosData.find((item) => String(item.id) === current.punto_recogida_id);
-          guardarMonedaPedidoPreferida(moneda);
+          guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
@@ -139,7 +139,6 @@ export function EfectivoForm({
       .catch((err) => {
         if (isAbortError(err)) return;
         if (activo) {
-          setCalculo(null);
           setCalculoError(err instanceof Error ? err.message : 'No se pudo calcular');
         }
       })
@@ -176,7 +175,7 @@ export function EfectivoForm({
   }, [documentoFile]);
 
   function update(field: keyof typeof form, value: string) {
-    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value, operadorId);
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -208,6 +207,10 @@ export function EfectivoForm({
     }
     if (!form.tipo_pago_id) {
       setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!form.cuenta_pago_id) {
+      setError('Selecciona la cuenta de pago');
       return;
     }
     if (!(Number(form.monto_pago) > 0)) {

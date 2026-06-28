@@ -40,7 +40,6 @@ export function TrackOrderPanel({ onTrackPedido }: { onTrackPedido: (codigo: str
     if (!terminoLimpio) return;
     setLoading(true);
     setError(null);
-    setPedidos([]);
     try {
       const encontrados = esNumeroCliente
         ? await rastrearPedidosPorCliente(Number(terminoLimpio))

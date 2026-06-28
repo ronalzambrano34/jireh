@@ -37,7 +37,7 @@ export function OtrosForm({
 }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
     tipo_pago_id: initialData?.tipo_pago_id ?? '1',
     cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     cliente_id: initialData?.cliente_id ?? '',
@@ -82,7 +82,7 @@ export function OtrosForm({
           const metodo = metodoActual ?? (moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.trim().toLowerCase() === 'pix') ?? metodosMoneda[0]
             : metodosMoneda[0]);
-          guardarMonedaPedidoPreferida(moneda);
+          guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
@@ -144,7 +144,7 @@ export function OtrosForm({
   }, [documentoFile]);
 
   function update(field: keyof typeof form, value: string) {
-    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value, operadorId);
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -179,6 +179,10 @@ export function OtrosForm({
     }
     if (!form.tipo_pago_id) {
       setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!form.cuenta_pago_id) {
+      setError('Selecciona la cuenta de pago');
       return;
     }
     if (!(Number(form.monto_pago) > 0)) {

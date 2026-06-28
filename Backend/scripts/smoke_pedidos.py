@@ -483,6 +483,10 @@ def run():
             == datos["punto"].id,
             "otros: no guardo punto_recogida_id"
         )
+        _assert(
+            "Entrega de USD en efectivo" in (otros.get("mensaje_operacion") or ""),
+            "otros: observaciones no aparece en el mensaje operativo"
+        )
 
         otros_minimo = crear_pedido(
             db,

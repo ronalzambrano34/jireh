@@ -19,6 +19,7 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
+import { useDocumentVisible } from '../hooks/useDocumentVisible';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoResumen, TasaOperativaResponse } from '../types/api';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 import { guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida } from '../utils/preferenciasPedido';
@@ -28,6 +29,7 @@ import logoJireh from '../assets/brand/logo-jireh.jpeg';
 import tasasBanner from '../assets/brand/banner-jireh.jpeg';
 
 type HomeTestPageProps = {
+  operadorId?: number;
   canSyncTasas?: boolean;
   onCreate: (servicio: InicioServicio, draft?: InicioCreateDraft) => void;
   onTrackPedido: (codigo: string) => void;
@@ -168,6 +170,7 @@ function HomeTestCarousel({
   }];
   const [active, setActive] = useState(0);
   const [touching, setTouching] = useState(false);
+  const appVisible = useDocumentVisible();
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipedRef = useRef(false);
 
@@ -209,10 +212,10 @@ function HomeTestCarousel({
   }
 
   useEffect(() => {
-    if (touching || slides.length < 2) return undefined;
+    if (!appVisible || touching || slides.length < 2) return undefined;
     const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 9000);
     return () => window.clearInterval(timer);
-  }, [slides.length, touching]);
+  }, [appVisible, slides.length, touching]);
 
   useEffect(() => {
     if (active >= slides.length) setActive(0);
@@ -385,9 +388,9 @@ function HomeTestTracker({ onTrackPedido }: { onTrackPedido: (code: string) => v
   );
 }
 
-export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: HomeTestPageProps) {
+export function HomeTestPage({ operadorId, canSyncTasas = false, onCreate, onTrackPedido }: HomeTestPageProps) {
   const [data, setData] = useState<TasaOperativaResponse | null>(() => readCache());
-  const [currency, setCurrency] = useState(() => leerMonedaPedidoPreferida());
+  const [currency, setCurrency] = useState(() => leerMonedaPedidoPreferida('BRL', operadorId));
   const [loading, setLoading] = useState(!data);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -421,6 +424,10 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
     void load(Boolean(data), true, signal);
   }, []);
 
+  useEffect(() => {
+    setCurrency(leerMonedaPedidoPreferida('BRL', operadorId));
+  }, [operadorId]);
+
   const groups = useMemo(() => {
     const map = new Map<string, CurrencyGroup>();
     const get = (value?: string | null) => {
@@ -437,13 +444,13 @@ export function HomeTestPage({ canSyncTasas = false, onCreate, onTrackPedido }: 
   useEffect(() => {
     if (groups.length && !groups.some((group) => group.moneda === currency)) {
       setCurrency(groups[0].moneda);
-      guardarMonedaPedidoPreferida(groups[0].moneda);
+      guardarMonedaPedidoPreferida(groups[0].moneda, operadorId);
     }
-  }, [currency, groups]);
+  }, [currency, groups, operadorId]);
 
   function changeCurrency(value: string) {
     setCurrency(value);
-    guardarMonedaPedidoPreferida(value);
+    guardarMonedaPedidoPreferida(value, operadorId);
   }
 
   const activeGroup = groups.find((group) => group.moneda === currency) ?? groups[0];

@@ -1,5 +1,6 @@
 import type { ChangeEvent, ReactNode } from 'react';
 import { ChevronDown, Copy, ExternalLink, FileText, History, Lock, MessageCircle, ShieldAlert, Unlock, Upload, X } from 'lucide-react';
+import { UploadStatus } from '../../components/UploadStatus';
 import type { ArchivoPedido, PedidoDetalle } from '../../types/api';
 
 export function PedidoDetailHeader({ codigo, servicio, moneda, onClose }: { codigo: string; servicio?: string; moneda?: string; onClose: () => void }) {
@@ -137,9 +138,12 @@ type EvidenceProps = {
   open: boolean;
   archivos: ArchivoPedido[];
   uploading: boolean;
+  uploadProgress?: number | null;
+  uploadError?: string | null;
   disabled: boolean;
   onToggle: () => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRetryUpload?: () => void;
   archivoUrl: (archivo: ArchivoPedido) => string;
   archivoEsImagen: (archivo: ArchivoPedido) => boolean;
   archivoTipoLabel: (tipo: string) => string;
@@ -154,6 +158,12 @@ export function OrderEvidenceSection(props: EvidenceProps) {
           <Upload size={16} /> {props.uploading ? 'Subiendo...' : 'Subir comprobante'}
           <input type="file" accept="image/*,application/pdf,.pdf,.doc,.docx" onChange={props.onUpload} disabled={props.disabled || props.uploading} />
         </label>
+        <UploadStatus
+          active={props.uploading && props.uploadProgress !== null}
+          error={props.uploadError}
+          progress={props.uploadProgress}
+          onRetry={props.onRetryUpload}
+        />
         <div className="archivo-list order-file-list">
           {props.archivos.length === 0 && <div className="order-empty-line">Sin evidencias todavia</div>}
           {props.archivos.map((archivo) => (

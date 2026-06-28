@@ -3,6 +3,10 @@ import { separarTelefono } from './telefonos';
 
 const MONEDA_PEDIDO_KEY = 'jireh.moneda-pedido';
 
+function monedaPedidoOperadorKey(operadorId?: number | null) {
+  return operadorId ? `${MONEDA_PEDIDO_KEY}.${operadorId}` : MONEDA_PEDIDO_KEY;
+}
+
 export function codigoPaisPorMoneda(moneda?: string | null) {
   const normalizada = normalizarMoneda(moneda);
   if (normalizada === 'UYU') return '+598';
@@ -11,22 +15,24 @@ export function codigoPaisPorMoneda(moneda?: string | null) {
   return '+55';
 }
 
-export function leerMonedaPedidoPreferida(fallback = 'BRL') {
+export function leerMonedaPedidoPreferida(fallback = 'BRL', operadorId?: number | null) {
   if (typeof window === 'undefined') return normalizarMoneda(fallback) || 'BRL';
 
   try {
-    return normalizarMoneda(window.localStorage.getItem(MONEDA_PEDIDO_KEY)) || normalizarMoneda(fallback) || 'BRL';
+    const monedaOperador = operadorId ? window.localStorage.getItem(monedaPedidoOperadorKey(operadorId)) : null;
+    return normalizarMoneda(monedaOperador ?? window.localStorage.getItem(MONEDA_PEDIDO_KEY)) || normalizarMoneda(fallback) || 'BRL';
   } catch {
     return normalizarMoneda(fallback) || 'BRL';
   }
 }
 
-export function guardarMonedaPedidoPreferida(moneda?: string | null) {
+export function guardarMonedaPedidoPreferida(moneda?: string | null, operadorId?: number | null) {
   const normalizada = normalizarMoneda(moneda);
   if (!normalizada || typeof window === 'undefined') return;
 
   try {
     window.localStorage.setItem(MONEDA_PEDIDO_KEY, normalizada);
+    if (operadorId) window.localStorage.setItem(monedaPedidoOperadorKey(operadorId), normalizada);
   } catch {
     return;
   }

@@ -206,6 +206,58 @@
   gap: 8px;
 }
 
+.report-download-modal {
+  width: min(560px, 100%);
+}
+
+.report-download-form {
+  display: grid;
+  gap: 12px;
+}
+
+.report-download-period .floating-select,
+.report-download-period .filter-modal-button {
+  width: 100%;
+}
+
+.report-download-period .filter-modal-button {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+}
+
+.report-download-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.report-download-dates label {
+  display: grid;
+  gap: 6px;
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.report-download-dates input {
+  width: 100%;
+  min-height: 42px;
+}
+
+.report-download-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.report-download-actions button {
+  min-width: 0;
+}
+
 .report-filter-field-wide {
   grid-column: 1 / -1;
 }
@@ -243,6 +295,11 @@
 @media (max-width: 360px) {
   .report-filters,
 .report-filter-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .report-download-dates,
+  .report-download-actions {
     grid-template-columns: 1fr;
   }
 }

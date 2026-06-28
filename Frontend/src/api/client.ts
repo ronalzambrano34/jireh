@@ -46,12 +46,76 @@ export type ApiRequestOptions = {
   signal?: AbortSignal;
 };
 
+export type UploadProgress = {
+  loaded: number;
+  total: number;
+  percent: number;
+};
+
+export type UploadOptions = {
+  onProgress?: (progress: UploadProgress) => void;
+  dedupeKey?: string;
+};
+
 type ApiRequestInit = RequestInit & {
   offlinePolicy?: 'auto' | 'allow';
   retryReads?: boolean;
 };
 
 const SAFE_READ_RETRY_DELAYS_MS = [700, 1600];
+const RECENT_UPLOAD_DEDUPE_MS = 15000;
+const RECENT_MUTATION_DEDUPE_MS = 15000;
+const RECENT_ORDER_CREATE_DEDUPE_MS = 120000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 45000;
+const DEFAULT_UPLOAD_TIMEOUT_MS = 90000;
+const MAX_UPLOAD_BYTES = Number(import.meta.env.VITE_UPLOAD_MAX_BYTES || 5 * 1024 * 1024);
+const CLIENT_SLOW_REQUEST_MS = Number(import.meta.env.VITE_CLIENT_SLOW_REQUEST_MS || 8000);
+const CLIENT_TRACE_ENABLED = import.meta.env.DEV || import.meta.env.VITE_CLIENT_TRACES === 'true';
+const ORDER_CREATE_DEDUPE_STORAGE_KEY = 'jireh.order-create-dedupe.v1';
+const uploadInFlight = new Map<string, Promise<unknown>>();
+const recentUploadSuccess = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+const mutationInFlight = new Map<string, Promise<unknown>>();
+const recentMutationSuccess = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
+
+type ClientTraceLevel = 'info' | 'warn' | 'error';
+
+function nowMs() {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function createClientRequestId() {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  return `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function traceDuration(startedAt: number) {
+  return Math.round(nowMs() - startedAt);
+}
+
+function traceClient(level: ClientTraceLevel, event: string, details: Record<string, unknown>) {
+  if (!CLIENT_TRACE_ENABLED && level === 'info') return;
+  const payload = {
+    ...details,
+    online: typeof navigator === 'undefined' ? true : navigator.onLine,
+  };
+  if (level === 'error') {
+    console.error(`[jireh] ${event}`, payload);
+  } else if (level === 'warn') {
+    console.warn(`[jireh] ${event}`, payload);
+  } else {
+    console.info(`[jireh] ${event}`, payload);
+  }
+}
+
+function addTraceHeaders(headers: Headers, requestId: string) {
+  headers.set('X-Request-ID', requestId);
+}
+
+function traceKey(value: string) {
+  return value.length > 96 ? `${value.slice(0, 96)}...` : value;
+}
 
 export function isAbortError(err: unknown) {
   return err instanceof DOMException && err.name === 'AbortError';
@@ -59,6 +123,93 @@ export function isAbortError(err: unknown) {
 
 function isOffline() {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${bytes} bytes`;
+}
+
+function offlineMessage() {
+  return 'Sin internet. Revisa la conexion y vuelve a intentarlo.';
+}
+
+function serverUnavailableMessage() {
+  return `Servidor apagado o inaccesible (${API_URL}). Verifica que el backend este encendido.`;
+}
+
+function timeoutMessage() {
+  return 'Tiempo de espera agotado. La conexion esta muy lenta o el servidor no respondio.';
+}
+
+function tokenExpiredMessage() {
+  return 'Sesion vencida. Vuelve a iniciar sesion.';
+}
+
+function fileTooLargeMessage() {
+  return `Archivo muy grande. Maximo permitido: ${formatBytes(MAX_UPLOAD_BYTES)}.`;
+}
+
+function normalizeApiMessage(status: number, detail?: unknown, path = '') {
+  const raw = typeof detail === 'string'
+    ? detail
+    : Array.isArray(detail)
+      ? detail.map((item) => item?.msg ?? item).join(', ')
+      : detail && typeof detail === 'object' && 'message' in detail
+        ? String((detail as { message?: unknown }).message)
+        : '';
+  const text = raw.trim();
+  const lower = text.toLowerCase();
+
+  if (status === 401) {
+    if (path.includes('/auth/login')) return 'Telefono o contrasena incorrectos.';
+    clearToken();
+    return tokenExpiredMessage();
+  }
+  if (status === 403) return text || 'No tienes permiso para realizar esta accion.';
+  if (status === 404) return text || 'No se encontro el recurso solicitado.';
+  if (status === 408 || status === 504) return timeoutMessage();
+  if (status === 413 || lower.includes('excede') || lower.includes('too large') || lower.includes('tamano maximo')) {
+    return fileTooLargeMessage();
+  }
+  if (status === 0) return isOffline() ? offlineMessage() : serverUnavailableMessage();
+  if (status >= 500) return 'El servidor tuvo un error interno. Intenta nuevamente en unos segundos.';
+
+  return text || `Error ${status}`;
+}
+
+function networkErrorMessage(err?: unknown) {
+  if (isOffline()) return offlineMessage();
+  if (isAbortError(err)) return timeoutMessage();
+  return serverUnavailableMessage();
+}
+
+function createTimeoutSignal(source?: AbortSignal, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  function abortFromSource() {
+    controller.abort();
+  }
+
+  if (source) {
+    if (source.aborted) controller.abort();
+    else source.addEventListener('abort', abortFromSource, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    timedOut: () => timedOut,
+    cleanup: () => {
+      window.clearTimeout(timeoutId);
+      source?.removeEventListener('abort', abortFromSource);
+    },
+  };
 }
 
 function isUnsafeRequest(method?: string) {
@@ -114,12 +265,119 @@ async function fetchWithReadRetries(url: string, options: ApiRequestInit = {}) {
   throw new Error(networkErrorMessage());
 }
 
-function networkErrorMessage() {
-  return `No se pudo conectar con el servidor (${API_URL}). Revisa que el backend este encendido y que VITE_API_URL apunte a la API correcta.`;
+function uploadEntrySignature(value: FormDataEntryValue | File | null | undefined) {
+  if (value instanceof File) {
+    return [
+      value.name,
+      value.size,
+      value.lastModified,
+      value.type,
+    ].join(':');
+  }
+  if (typeof value === 'string') return value;
+  return 'sin-archivo';
+}
+
+function uploadDedupeKey(path: string, file: File, scope = 'archivo') {
+  return `${path}|${scope}|${uploadEntrySignature(file)}`;
+}
+
+function uploadFormDedupeKey(path: string, formData: FormData) {
+  return [
+    path,
+    uploadEntrySignature(formData.get('tipo')),
+    uploadEntrySignature(formData.get('archivo')),
+  ].join('|');
+}
+
+function stablePayloadSignature(value: unknown): string {
+  if (typeof value === 'undefined') return 'undefined';
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? String(value);
+  if (Array.isArray(value)) return `[${value.map(stablePayloadSignature).join(',')}]`;
+
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stablePayloadSignature(record[key])}`)
+    .join(',')}}`;
+}
+
+function hashSignature(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function mutationDedupeKey(path: string, payload: unknown) {
+  return `${path}|${hashSignature(stablePayloadSignature(payload))}`;
+}
+
+function readOrderCreateDedupeCache() {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const saved = localStorage.getItem(ORDER_CREATE_DEDUPE_STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, { expiresAt: number; data: unknown }>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeOrderCreateDedupeCache(cache: Record<string, { expiresAt: number; data: unknown }>) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(ORDER_CREATE_DEDUPE_STORAGE_KEY, JSON.stringify(cache));
+  } catch {
+    return;
+  }
+}
+
+function readRecentOrderCreate<T>(dedupeKey: string) {
+  const cache = readOrderCreateDedupeCache();
+  const entry = cache[dedupeKey];
+  const now = Date.now();
+
+  if (!entry) return null;
+  if (entry.expiresAt <= now) {
+    delete cache[dedupeKey];
+    writeOrderCreateDedupeCache(cache);
+    return null;
+  }
+
+  return entry.data as T;
+}
+
+function writeRecentOrderCreate(dedupeKey: string, data: unknown) {
+  const cache = readOrderCreateDedupeCache();
+  const now = Date.now();
+  const next = Object.fromEntries(
+    Object.entries(cache).filter(([, entry]) => entry.expiresAt > now),
+  ) as Record<string, { expiresAt: number; data: unknown }>;
+
+  next[dedupeKey] = {
+    expiresAt: now + RECENT_ORDER_CREATE_DEDUPE_MS,
+    data,
+  };
+  writeOrderCreateDedupeCache(next);
+}
+
+function validateUploadBodySize(body: XMLHttpRequestBodyInit) {
+  if (!(body instanceof FormData)) return;
+
+  for (const value of body.values()) {
+    if (value instanceof File && value.size > MAX_UPLOAD_BYTES) {
+      throw new Error(fileTooLargeMessage());
+    }
+  }
 }
 
 export function offlineCriticalActionMessage() {
-  return 'No hay conexion. Esta accion modifica datos y queda bloqueada para evitar duplicados o estados inconsistentes. Vuelve a intentarlo cuando la senal regrese.';
+  return 'Sin internet. Esta accion modifica datos y queda bloqueada para evitar duplicados o estados inconsistentes. Vuelve a intentarlo cuando vuelva la conexion.';
 }
 
 function addTunnelHeaders(headers: Headers) {
@@ -149,33 +407,79 @@ export function clearToken() {
 async function requestBlob(path: string, options: ApiRequestInit = {}): Promise<Blob> {
   const headers = new Headers(options.headers);
   const token = getToken();
+  const requestId = createClientRequestId();
+  const startedAt = nowMs();
+  const method = (options.method ?? 'GET').toUpperCase();
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  addTraceHeaders(headers, requestId);
   addTunnelHeaders(headers);
 
+  const timeout = createTimeoutSignal(options.signal ?? undefined, DEFAULT_REQUEST_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetchWithReadRetries(`${API_URL}${path}`, {
       ...options,
       headers,
+      signal: timeout.signal,
     });
   } catch (err) {
-    if (isAbortError(err)) throw err;
-    throw new Error(networkErrorMessage());
+    if (isAbortError(err) && !timeout.timedOut()) throw err;
+    const message = networkErrorMessage(err);
+    traceClient(timeout.timedOut() ? 'warn' : 'error', 'api.network_error', {
+      requestId,
+      method,
+      path,
+      durationMs: traceDuration(startedAt),
+      message,
+    });
+    throw new Error(message);
+  } finally {
+    timeout.cleanup();
   }
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status}`);
+    const message = normalizeApiMessage(response.status, undefined, path);
+    traceClient(response.status >= 500 ? 'error' : 'warn', 'api.http_error', {
+      requestId,
+      method,
+      path,
+      status: response.status,
+      durationMs: traceDuration(startedAt),
+      serverRequestId: response.headers.get('X-Request-ID'),
+      message,
+    });
+    throw new Error(message);
   }
 
+  const durationMs = traceDuration(startedAt);
+  if (durationMs >= CLIENT_SLOW_REQUEST_MS) {
+    traceClient('warn', 'api.slow', {
+      requestId,
+      method,
+      path,
+      status: response.status,
+      durationMs,
+      serverRequestId: response.headers.get('X-Request-ID'),
+    });
+  }
   return response.blob();
 }
 
 export async function obtenerAssetBlob(path: string, options: ApiRequestOptions = {}): Promise<Blob> {
   if (/^(data:|blob:)/i.test(path)) {
-    const response = await fetchWithReadRetries(path, { signal: options.signal });
+    const timeout = createTimeoutSignal(options.signal, DEFAULT_REQUEST_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetchWithReadRetries(path, { signal: timeout.signal });
+    } catch (err) {
+      if (isAbortError(err) && !timeout.timedOut()) throw err;
+      throw new Error(networkErrorMessage(err));
+    } finally {
+      timeout.cleanup();
+    }
     return response.blob();
   }
 
@@ -184,18 +488,52 @@ export async function obtenerAssetBlob(path: string, options: ApiRequestOptions 
     : `${API_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const headers = new Headers();
   const token = getToken();
+  const requestId = createClientRequestId();
+  const startedAt = nowMs();
 
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  addTraceHeaders(headers, requestId);
   addTunnelHeaders(headers);
 
+  const timeout = createTimeoutSignal(options.signal, DEFAULT_REQUEST_TIMEOUT_MS);
   let response: Response;
   try {
-    response = await fetchWithReadRetries(url, { headers, signal: options.signal });
+    response = await fetchWithReadRetries(url, { headers, signal: timeout.signal });
   } catch (err) {
-    if (isAbortError(err)) throw err;
-    throw new Error(networkErrorMessage());
+    if (isAbortError(err) && !timeout.timedOut()) throw err;
+    const message = networkErrorMessage(err);
+    traceClient(timeout.timedOut() ? 'warn' : 'error', 'api.asset_network_error', {
+      requestId,
+      path,
+      durationMs: traceDuration(startedAt),
+      message,
+    });
+    throw new Error(message);
+  } finally {
+    timeout.cleanup();
   }
-  if (!response.ok) throw new Error(`Error ${response.status}`);
+  if (!response.ok) {
+    const message = normalizeApiMessage(response.status, undefined, path);
+    traceClient(response.status >= 500 ? 'error' : 'warn', 'api.asset_http_error', {
+      requestId,
+      path,
+      status: response.status,
+      durationMs: traceDuration(startedAt),
+      serverRequestId: response.headers.get('X-Request-ID'),
+      message,
+    });
+    throw new Error(message);
+  }
+  const durationMs = traceDuration(startedAt);
+  if (durationMs >= CLIENT_SLOW_REQUEST_MS) {
+    traceClient('warn', 'api.asset_slow', {
+      requestId,
+      path,
+      status: response.status,
+      durationMs,
+      serverRequestId: response.headers.get('X-Request-ID'),
+    });
+  }
   return response.blob();
 }
 
@@ -203,8 +541,16 @@ async function request<T>(path: string, options: ApiRequestInit = {}): Promise<T
   const { offlinePolicy = 'auto', ...requestOptions } = options;
   const headers = new Headers(options.headers);
   const token = getToken();
+  const requestId = createClientRequestId();
+  const startedAt = nowMs();
+  const method = (options.method ?? 'GET').toUpperCase();
 
   if (offlinePolicy !== 'allow' && isUnsafeRequest(options.method) && isOffline()) {
+    traceClient('warn', 'api.offline_action_blocked', {
+      requestId,
+      method,
+      path,
+    });
     throw new Error(offlineCriticalActionMessage());
   }
 
@@ -215,31 +561,274 @@ async function request<T>(path: string, options: ApiRequestInit = {}): Promise<T
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  addTraceHeaders(headers, requestId);
   addTunnelHeaders(headers);
 
+  const timeout = createTimeoutSignal(requestOptions.signal ?? undefined, DEFAULT_REQUEST_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetchWithReadRetries(`${API_URL}${path}`, {
       ...requestOptions,
       headers,
+      signal: timeout.signal,
     });
   } catch (err) {
-    if (isAbortError(err)) throw err;
-    throw new Error(networkErrorMessage());
+    if (isAbortError(err) && !timeout.timedOut()) throw err;
+    const message = networkErrorMessage(err);
+    traceClient(timeout.timedOut() ? 'warn' : 'error', 'api.network_error', {
+      requestId,
+      method,
+      path,
+      durationMs: traceDuration(startedAt),
+      message,
+    });
+    throw new Error(message);
+  } finally {
+    timeout.cleanup();
   }
 
   if (!response.ok) {
-    let message = `Error ${response.status}`;
+    let detail: unknown;
     try {
       const data = await response.json();
-      message = data.detail ?? message;
+      detail = data.detail ?? data;
     } catch {
       // Preserve HTTP fallback message.
     }
+    const message = normalizeApiMessage(response.status, detail, path);
+    traceClient(response.status >= 500 ? 'error' : 'warn', 'api.http_error', {
+      requestId,
+      method,
+      path,
+      status: response.status,
+      durationMs: traceDuration(startedAt),
+      serverRequestId: response.headers.get('X-Request-ID'),
+      message,
+    });
     throw new Error(message);
   }
 
+  const durationMs = traceDuration(startedAt);
+  if (durationMs >= CLIENT_SLOW_REQUEST_MS) {
+    traceClient('warn', 'api.slow', {
+      requestId,
+      method,
+      path,
+      status: response.status,
+      durationMs,
+      serverRequestId: response.headers.get('X-Request-ID'),
+    });
+  }
   return response.json() as Promise<T>;
+}
+
+function requestMutation<T>(path: string, payload: unknown, options: ApiRequestInit): Promise<T> {
+  const dedupeKey = mutationDedupeKey(path, payload);
+  const recent = recentMutationSuccess.get(dedupeKey);
+
+  if (recent && recent.expiresAt > Date.now()) {
+    traceClient('warn', 'api.mutation_recent_reused', {
+      path,
+      dedupeKey: traceKey(dedupeKey),
+    });
+    return recent.promise as Promise<T>;
+  }
+  if (recent) recentMutationSuccess.delete(dedupeKey);
+
+  const current = mutationInFlight.get(dedupeKey);
+  if (current) {
+    traceClient('warn', 'api.mutation_in_flight_reused', {
+      path,
+      dedupeKey: traceKey(dedupeKey),
+    });
+    return current as Promise<T>;
+  }
+
+  const promise = request<T>(path, options);
+  mutationInFlight.set(dedupeKey, promise);
+  promise.then(
+    (data) => {
+      if (mutationInFlight.get(dedupeKey) === promise) mutationInFlight.delete(dedupeKey);
+      recentMutationSuccess.set(dedupeKey, {
+        expiresAt: Date.now() + RECENT_MUTATION_DEDUPE_MS,
+        promise: Promise.resolve(data),
+      });
+    },
+    () => {
+      if (mutationInFlight.get(dedupeKey) === promise) mutationInFlight.delete(dedupeKey);
+    },
+  );
+
+  return promise;
+}
+
+function requestCreateOrder<T>(path: string, payload: unknown, options: ApiRequestInit): Promise<T> {
+  const dedupeKey = mutationDedupeKey(path, payload);
+  const recent = readRecentOrderCreate<T>(dedupeKey);
+
+  if (recent) {
+    traceClient('warn', 'api.order_create_recent_reused', {
+      path,
+      dedupeKey: traceKey(dedupeKey),
+    });
+    return Promise.resolve(recent);
+  }
+
+  return requestMutation<T>(path, payload, options).then((data) => {
+    writeRecentOrderCreate(dedupeKey, data);
+    return data;
+  });
+}
+
+function requestUpload<T>(path: string, body: XMLHttpRequestBodyInit, options: UploadOptions = {}): Promise<T> {
+  if (isOffline()) {
+    traceClient('warn', 'api.upload_offline_blocked', {
+      path,
+    });
+    return Promise.reject(new Error(offlineCriticalActionMessage()));
+  }
+
+  try {
+    validateUploadBodySize(body);
+  } catch (err) {
+    return Promise.reject(err);
+  }
+
+  if (options.dedupeKey) {
+    const recent = recentUploadSuccess.get(options.dedupeKey);
+    if (recent && recent.expiresAt > Date.now()) {
+      traceClient('warn', 'api.upload_recent_reused', {
+        path,
+        dedupeKey: traceKey(options.dedupeKey),
+      });
+      options.onProgress?.({ loaded: 1, total: 1, percent: 100 });
+      return recent.promise as Promise<T>;
+    }
+    if (recent) recentUploadSuccess.delete(options.dedupeKey);
+
+    const current = uploadInFlight.get(options.dedupeKey);
+    if (current) {
+      traceClient('warn', 'api.upload_in_flight_reused', {
+        path,
+        dedupeKey: traceKey(options.dedupeKey),
+      });
+      return current as Promise<T>;
+    }
+  }
+
+  const promise = new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const requestId = createClientRequestId();
+    const startedAt = nowMs();
+    xhr.open('POST', `${API_URL}${path}`);
+    xhr.timeout = DEFAULT_UPLOAD_TIMEOUT_MS;
+
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('X-Request-ID', requestId);
+    if (/^https:\/\/[^/]+\.loca\.lt$/i.test(API_URL)) {
+      xhr.setRequestHeader('bypass-tunnel-reminder', 'true');
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const total = event.total || 0;
+      const loaded = event.loaded || 0;
+      options.onProgress?.({
+        loaded,
+        total,
+        percent: total ? Math.min(100, Math.round((loaded / total) * 100)) : 0,
+      });
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const durationMs = traceDuration(startedAt);
+        if (durationMs >= CLIENT_SLOW_REQUEST_MS) {
+          traceClient('warn', 'api.upload_slow', {
+            requestId,
+            path,
+            status: xhr.status,
+            durationMs,
+            serverRequestId: xhr.getResponseHeader('X-Request-ID'),
+          });
+        }
+        options.onProgress?.({ loaded: 1, total: 1, percent: 100 });
+        try {
+          resolve(JSON.parse(xhr.responseText || 'null') as T);
+        } catch {
+          resolve(null as T);
+        }
+        return;
+      }
+
+      let message = `Error ${xhr.status}`;
+      try {
+        const data = JSON.parse(xhr.responseText);
+        message = normalizeApiMessage(xhr.status, data.detail ?? data, path);
+      } catch {
+        message = normalizeApiMessage(xhr.status, undefined, path);
+      }
+      traceClient(xhr.status >= 500 ? 'error' : 'warn', 'api.upload_http_error', {
+        requestId,
+        path,
+        status: xhr.status,
+        durationMs: traceDuration(startedAt),
+        serverRequestId: xhr.getResponseHeader('X-Request-ID'),
+        message,
+      });
+      reject(new Error(message));
+    };
+
+    xhr.onerror = () => {
+      const message = networkErrorMessage();
+      traceClient('error', 'api.upload_network_error', {
+        requestId,
+        path,
+        durationMs: traceDuration(startedAt),
+        message,
+      });
+      reject(new Error(message));
+    };
+    xhr.ontimeout = () => {
+      const message = timeoutMessage();
+      traceClient('warn', 'api.upload_timeout', {
+        requestId,
+        path,
+        durationMs: traceDuration(startedAt),
+        message,
+      });
+      reject(new Error(message));
+    };
+    xhr.onabort = () => {
+      traceClient('info', 'api.upload_aborted', {
+        requestId,
+        path,
+        durationMs: traceDuration(startedAt),
+      });
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    xhr.send(body);
+  });
+
+  if (options.dedupeKey) {
+    const dedupeKey = options.dedupeKey;
+    uploadInFlight.set(dedupeKey, promise);
+    promise.then(
+      (data) => {
+        if (uploadInFlight.get(dedupeKey) === promise) uploadInFlight.delete(dedupeKey);
+        recentUploadSuccess.set(dedupeKey, {
+          expiresAt: Date.now() + RECENT_UPLOAD_DEDUPE_MS,
+          promise: Promise.resolve(data),
+        });
+      },
+      () => {
+        if (uploadInFlight.get(dedupeKey) === promise) uploadInFlight.delete(dedupeKey);
+      },
+    );
+  }
+
+  return promise;
 }
 
 export async function login(telefono: string, password: string) {
@@ -277,15 +866,16 @@ export function actualizarMiPerfil(payload: PerfilUpdatePayload) {
   }).then((data) => data.operador);
 }
 
-export async function subirMiFotoPerfil(file: File) {
+export async function subirMiFotoPerfil(file: File, options: UploadOptions = {}) {
   if (isOffline()) throw new Error(offlineCriticalActionMessage());
 
+  const path = '/auth/me/foto';
   const formData = new FormData();
   formData.append('archivo', await compressImage(file));
 
-  return request<AuthMeResponse>('/auth/me/foto', {
-    method: 'POST',
-    body: formData,
+  return requestUpload<AuthMeResponse>(path, formData, {
+    ...options,
+    dedupeKey: options.dedupeKey ?? uploadDedupeKey(path, file, 'foto-perfil'),
   }).then((data) => data.operador);
 }
 
@@ -428,7 +1018,8 @@ export function rastrearPedidosPorCliente(clienteId: number) {
 }
 
 export function tomarOperacion(codigo: string) {
-  return request<PedidoDetalle>(`/pedido/${codigo}/tomar`, {
+  const path = `/pedido/${codigo}/tomar`;
+  return requestMutation<PedidoDetalle>(path, null, {
     method: 'POST',
   });
 }
@@ -440,48 +1031,55 @@ export function renovarOperacion(codigo: string) {
 }
 
 export function liberarOperacion(codigo: string) {
-  return request<PedidoDetalle>(`/pedido/${codigo}/liberar`, {
+  const path = `/pedido/${codigo}/liberar`;
+  return requestMutation<PedidoDetalle>(path, null, {
     method: 'POST',
   });
 }
 
 export function redirigirOperacion(codigo: string, payload: { operador_destino_id: number | null; mensaje?: string }) {
-  return request<PedidoDetalle>(`/pedido/${codigo}/redirigir`, {
+  const path = `/pedido/${codigo}/redirigir`;
+  return requestMutation<PedidoDetalle>(path, payload, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
 }
 
 export function crearTransferencia(payload: CrearTransferenciaPayload) {
-  return request<PedidoDetalle>('/pedido/transferencia', {
+  const path = '/pedido/transferencia';
+  return requestCreateOrder<PedidoDetalle>(path, payload, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function crearEfectivo(payload: CrearEfectivoPayload) {
-  return request<PedidoDetalle>('/pedido/efectivo', {
+  const path = '/pedido/efectivo';
+  return requestCreateOrder<PedidoDetalle>(path, payload, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function crearSaldo(payload: CrearSaldoPayload) {
-  return request<PedidoDetalle>('/pedido/saldo', {
+  const path = '/pedido/saldo';
+  return requestCreateOrder<PedidoDetalle>(path, payload, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function crearDivisa(payload: CrearDivisaPayload) {
-  return request<PedidoDetalle>('/pedido/divisa', {
+  const path = '/pedido/divisa';
+  return requestCreateOrder<PedidoDetalle>(path, payload, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
 export function crearOtros(payload: CrearOtrosPayload) {
-  return request<PedidoDetalle>('/pedido/', {
+  const path = '/pedido/';
+  return requestCreateOrder<PedidoDetalle>(path, payload, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -493,18 +1091,21 @@ export function actualizarEstado(
   observaciones?: string,
   options: { finalizar_sin_comprobante?: boolean; motivo_sin_comprobante?: string } = {},
 ) {
-  return request<PedidoDetalle>(`/pedido/${codigo}/estado`, {
+  const path = `/pedido/${codigo}/estado`;
+  const payload = { estado, observaciones, ...options };
+  return requestMutation<PedidoDetalle>(path, payload, {
     method: 'PATCH',
-    body: JSON.stringify({ estado, observaciones, ...options }),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function subirArchivo(codigo: string, formData: FormData) {
+export async function subirArchivo(codigo: string, formData: FormData, options: UploadOptions = {}) {
   if (isOffline()) throw new Error(offlineCriticalActionMessage());
 
-  return request(`/pedido/${codigo}/upload`, {
-    method: 'POST',
-    body: await compressImagesInFormData(formData),
+  const path = `/pedido/${codigo}/upload`;
+  return requestUpload(path, await compressImagesInFormData(formData), {
+    ...options,
+    dedupeKey: options.dedupeKey ?? uploadFormDedupeKey(path, formData),
   });
 }
 
@@ -602,15 +1203,16 @@ export function eliminarMetodoPago(id: number) {
   });
 }
 
-export async function subirImagenMetodoPago(id: number, file: File) {
+export async function subirImagenMetodoPago(id: number, file: File, options: UploadOptions = {}) {
   if (isOffline()) throw new Error(offlineCriticalActionMessage());
 
+  const path = `/metodos-pago/${id}/imagen`;
   const formData = new FormData();
   formData.append('archivo', await compressImage(file));
 
-  return request<MetodoPago>(`/metodos-pago/${id}/imagen`, {
-    method: 'POST',
-    body: formData,
+  return requestUpload<MetodoPago>(path, formData, {
+    ...options,
+    dedupeKey: options.dedupeKey ?? uploadDedupeKey(path, file, 'metodo-pago'),
   });
 }
 
@@ -729,15 +1331,16 @@ export function eliminarPromocion(id: number) {
   });
 }
 
-export async function subirImagenPromocion(id: number, file: File) {
+export async function subirImagenPromocion(id: number, file: File, options: UploadOptions = {}) {
   if (isOffline()) throw new Error(offlineCriticalActionMessage());
 
+  const path = `/promociones/${id}/imagen`;
   const formData = new FormData();
   formData.append('archivo', await compressImage(file));
 
-  return request<Promocion>(`/promociones/${id}/imagen`, {
-    method: 'POST',
-    body: formData,
+  return requestUpload<Promocion>(path, formData, {
+    ...options,
+    dedupeKey: options.dedupeKey ?? uploadDedupeKey(path, file, 'promocion'),
   });
 }
 

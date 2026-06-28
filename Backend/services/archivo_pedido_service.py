@@ -1,5 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
+from datetime import datetime, timedelta
+import logging
 
 from fastapi import UploadFile
 
@@ -7,6 +9,7 @@ from Backend.config import UPLOAD_ALLOWED_MIME_TYPES
 from sqlalchemy.orm import Session
 
 from Backend.models.archivo_pedido import ArchivoPedido
+from Backend.models.pedido_historial import PedidoHistorial
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_efectivo import PedidoEfectivo
 from Backend.models.pedido_otros import PedidoOtros
@@ -18,6 +21,9 @@ from Backend.schemas.archivo_pedido import (
 )
 from Backend.services.pedido_service import validar_bloqueo_pedido
 from Backend.services.storage_service import guardar_upload_persistente
+
+logger = logging.getLogger("jireh.archivos")
+ARCHIVO_DEDUPE_SECONDS = 300
 
 
 def _obtener_pedido_por_codigo(
@@ -58,6 +64,47 @@ def archivo_pedido_dict(
         "usuario": archivo.usuario,
         "created_at": archivo.created_at,
     }
+
+
+def _descripcion_archivo(
+    tipo: str
+):
+    labels = {
+        "comprobante_cliente": "Comprobante de cliente adjuntado",
+        "documento_identidad": "Documento de identidad adjuntado",
+        "comprobante_final": "Comprobante final adjuntado",
+    }
+    return labels.get(
+        tipo,
+        "Archivo adjuntado"
+    )
+
+
+def _aplicar_referencia_archivo(
+    db: Session,
+    pedido: Pedido,
+    tipo: str,
+    ruta_archivo: str
+):
+    if tipo == "comprobante_cliente":
+        pedido.comprobante_pago = ruta_archivo
+
+    if tipo == "documento_identidad":
+        detalle_efectivo = (
+            db.query(PedidoEfectivo)
+            .filter(PedidoEfectivo.pedido_id == pedido.id)
+            .first()
+        )
+        if detalle_efectivo:
+            detalle_efectivo.documento_identidad_url = ruta_archivo
+
+        detalle_otros = (
+            db.query(PedidoOtros)
+            .filter(PedidoOtros.pedido_id == pedido.id)
+            .first()
+        )
+        if detalle_otros:
+            detalle_otros.documento_identidad_url = ruta_archivo
 
 
 def listar_archivos_pedido(
@@ -135,6 +182,86 @@ def registrar_archivo_pedido(
         operador
     )
 
+    archivo_existente = (
+        db.query(
+            ArchivoPedido
+        )
+        .filter(
+            ArchivoPedido.pedido_id == pedido.id,
+            ArchivoPedido.tipo == tipo,
+            ArchivoPedido.ruta_archivo == ruta_archivo
+        )
+        .order_by(
+            ArchivoPedido.id.desc()
+        )
+        .first()
+    )
+
+    if archivo_existente:
+        _aplicar_referencia_archivo(
+            db,
+            pedido,
+            tipo,
+            ruta_archivo
+        )
+        db.commit()
+        db.refresh(
+            archivo_existente
+        )
+        logger.info(
+            "archivo_pedido.registrar.repetido codigo=%s pedido_id=%s tipo=%s archivo_id=%s usuario=%s",
+            codigo_operacion,
+            pedido.id,
+            tipo,
+            archivo_existente.id,
+            operador.nombre if operador else data.usuario
+        )
+        return archivo_pedido_dict(
+            archivo_existente
+        )
+
+    if data.nombre_archivo:
+        limite = datetime.utcnow() - timedelta(seconds=ARCHIVO_DEDUPE_SECONDS)
+        archivo_reciente = (
+            db.query(
+                ArchivoPedido
+            )
+            .filter(
+                ArchivoPedido.pedido_id == pedido.id,
+                ArchivoPedido.tipo == tipo,
+                ArchivoPedido.nombre_archivo == data.nombre_archivo,
+                ArchivoPedido.mime_type == data.mime_type,
+                ArchivoPedido.created_at >= limite
+            )
+            .order_by(
+                ArchivoPedido.id.desc()
+            )
+            .first()
+        )
+
+        if archivo_reciente:
+            _aplicar_referencia_archivo(
+                db,
+                pedido,
+                tipo,
+                archivo_reciente.ruta_archivo
+            )
+            db.commit()
+            db.refresh(
+                archivo_reciente
+            )
+            logger.info(
+                "archivo_pedido.registrar.repetido_reciente codigo=%s pedido_id=%s tipo=%s archivo_id=%s usuario=%s",
+                codigo_operacion,
+                pedido.id,
+                tipo,
+                archivo_reciente.id,
+                operador.nombre if operador else data.usuario
+            )
+            return archivo_pedido_dict(
+                archivo_reciente
+            )
+
     archivo = ArchivoPedido(
         pedido_id=pedido.id,
         tipo=tipo,
@@ -148,33 +275,37 @@ def registrar_archivo_pedido(
     db.add(
         archivo
     )
+    db.flush()
+
+    _aplicar_referencia_archivo(
+        db,
+        pedido,
+        tipo,
+        ruta_archivo
+    )
+
+    db.add(
+        PedidoHistorial(
+            pedido_id=pedido.id,
+            estado_anterior=pedido.estado,
+            estado_nuevo=pedido.estado,
+            usuario=(operador.nombre if operador else data.usuario),
+            comentario=_descripcion_archivo(tipo)
+        )
+    )
+
     db.commit()
     db.refresh(
         archivo
     )
-
-    if tipo == "comprobante_cliente":
-        pedido.comprobante_pago = ruta_archivo
-        db.commit()
-
-    if tipo == "documento_identidad":
-        detalle_efectivo = (
-            db.query(PedidoEfectivo)
-            .filter(PedidoEfectivo.pedido_id == pedido.id)
-            .first()
-        )
-        if detalle_efectivo:
-            detalle_efectivo.documento_identidad_url = ruta_archivo
-            db.commit()
-
-        detalle_otros = (
-            db.query(PedidoOtros)
-            .filter(PedidoOtros.pedido_id == pedido.id)
-            .first()
-        )
-        if detalle_otros:
-            detalle_otros.documento_identidad_url = ruta_archivo
-            db.commit()
+    logger.info(
+        "archivo_pedido.registrar.ok codigo=%s pedido_id=%s tipo=%s archivo_id=%s usuario=%s",
+        codigo_operacion,
+        pedido.id,
+        tipo,
+        archivo.id,
+        operador.nombre if operador else data.usuario
+    )
 
     return archivo_pedido_dict(
         archivo

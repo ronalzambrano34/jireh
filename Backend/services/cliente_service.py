@@ -150,7 +150,7 @@ def obtener_o_crear_cliente_por_telefono(
     db.add(
         nuevo_cliente
     )
-    db.commit()
+    db.flush()
     db.refresh(
         nuevo_cliente
     )

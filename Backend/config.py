@@ -9,6 +9,41 @@ load_dotenv(BASE_DIR / ".env")
 
 IS_VERCEL = bool(os.getenv("VERCEL"))
 
+
+def _env_bool(
+    name: str,
+    default: bool = False
+):
+    return os.getenv(
+        name,
+        "true" if default else "false"
+    ).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "si"
+    }
+
+
+APP_ENV = (
+    os.getenv("APP_ENV")
+    or os.getenv("ENVIRONMENT")
+    or os.getenv("ENV")
+    or ("production" if IS_VERCEL else "development")
+).strip().lower()
+
+IS_PRODUCTION = (
+    IS_VERCEL
+    or APP_ENV in {"prod", "production"}
+    or bool(
+        os.getenv("RENDER")
+        or os.getenv("RAILWAY_ENVIRONMENT")
+        or os.getenv("FLY_APP_NAME")
+        or os.getenv("K_SERVICE")
+        or os.getenv("HEROKU_APP_NAME")
+    )
+)
+
 STORAGE_DIR = Path(
     os.getenv(
         "STORAGE_DIR",
@@ -40,14 +75,39 @@ SUPABASE_STORAGE_BUCKET = os.getenv(
     "SUPABASE_STORAGE_BUCKET",
     "comprobantes"
 )
+REQUIRE_EXTERNAL_STORAGE = _env_bool(
+    "REQUIRE_EXTERNAL_STORAGE",
+    IS_PRODUCTION
+)
+SUPABASE_STORAGE_REQUESTED = _env_bool(
+    "USE_SUPABASE_STORAGE",
+    REQUIRE_EXTERNAL_STORAGE
+)
 USE_SUPABASE_STORAGE = (
-    os.getenv(
-        "USE_SUPABASE_STORAGE",
-        "true" if IS_VERCEL else "false"
-    ).strip().lower()
-    in {"1", "true", "yes", "si"}
+    SUPABASE_STORAGE_REQUESTED
     and bool(SUPABASE_URL)
     and bool(SUPABASE_SERVICE_ROLE_KEY)
+)
+LOCAL_STORAGE_ENABLED = (
+    not REQUIRE_EXTERNAL_STORAGE
+    and not USE_SUPABASE_STORAGE
+)
+STORAGE_BACKEND = (
+    "supabase"
+    if USE_SUPABASE_STORAGE
+    else "local"
+    if LOCAL_STORAGE_ENABLED
+    else "missing"
+)
+LOG_LEVEL = os.getenv(
+    "LOG_LEVEL",
+    "INFO"
+).strip().upper()
+REQUEST_SLOW_MS = int(
+    os.getenv(
+        "REQUEST_SLOW_MS",
+        "8000"
+    )
 )
 
 DATABASE_URL = os.getenv(

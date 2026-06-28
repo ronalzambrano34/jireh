@@ -10,6 +10,7 @@ import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
+import { useDocumentVisible } from '../hooks/useDocumentVisible';
 import { TrackOrderPanel } from './inicio/TrackOrderPanel';
 import { ServicesRatesGrid, type InicioCreateDraft, type InicioServiceCard, type InicioServicio } from './inicio/ServicesRatesGrid';
 import { guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida } from '../utils/preferenciasPedido';
@@ -31,6 +32,7 @@ type GrupoMoneda = {
 type OfertaCreateDraft = InicioCreateDraft;
 
 type InicioPageProps = {
+  operadorId?: number;
   canSyncTasas?: boolean;
   canLoadTasas?: boolean;
   onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void;
@@ -337,6 +339,7 @@ function tasaDestacada(grupo: GrupoMoneda | undefined, servicio: ServicioCrear) 
 function HeroCarousel({ grupo, generatedAt, loading, syncing, canSyncTasas, onRefresh, onCreate, promos = PROMO_BANNERS }: { grupo?: GrupoMoneda; generatedAt?: string; loading: boolean; syncing: boolean; canSyncTasas: boolean; onRefresh: () => void; onCreate: (servicio: ServicioCrear, draft?: OfertaCreateDraft) => void; promos?: PromoBanner[] }) {
   const [slideActivo, setSlideActivo] = useState(0);
   const [tocandoHero, setTocandoHero] = useState(false);
+  const appVisible = useDocumentVisible();
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const tocandoHeroRef = useRef(false);
   const swipeActivoRef = useRef(false);
@@ -451,12 +454,12 @@ function HeroCarousel({ grupo, generatedAt, loading, syncing, canSyncTasas, onRe
   }
 
   useEffect(() => {
-    if (tocandoHero || slides.length <= 1) return undefined;
+    if (!appVisible || tocandoHero || slides.length <= 1) return undefined;
     const id = window.setInterval(() => {
       if (!tocandoHeroRef.current) moverSlide(1);
     }, 6200);
     return () => window.clearInterval(id);
-  }, [tocandoHero, slides.length]);
+  }, [appVisible, tocandoHero, slides.length]);
 
   useEffect(() => {
     if (slideActivo >= slides.length) setSlideActivo(0);
@@ -548,12 +551,12 @@ function RateTierRows({ ofertas, moneda, servicio, onCreate }: { ofertas: Oferta
   );
 }
 
-export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate, onTrackPedido }: InicioPageProps) {
+export function InicioPage({ operadorId, canSyncTasas = false, canLoadTasas = true, onCreate, onTrackPedido }: InicioPageProps) {
   const [data, setData] = useState<TasaOperativaResponse | null>(() => leerTasasCache());
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [monedaSeleccionada, setMonedaSeleccionada] = useState(() => leerMonedaPedidoPreferida());
+  const [monedaSeleccionada, setMonedaSeleccionada] = useState(() => leerMonedaPedidoPreferida('BRL', operadorId));
 
   async function cargarTasas(options: { silent?: boolean; deduped?: boolean; signal?: AbortSignal } = {}) {
     const silent = Boolean(options.silent);
@@ -597,6 +600,10 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
     if (!canLoadTasas) return;
     void cargarTasas({ silent: Boolean(data), signal });
   }, [canLoadTasas]);
+
+  useEffect(() => {
+    setMonedaSeleccionada(leerMonedaPedidoPreferida('BRL', operadorId));
+  }, [operadorId]);
 
   const gruposMoneda = useMemo(() => {
     const grupos = new Map<string, GrupoMoneda>();
@@ -645,13 +652,13 @@ export function InicioPage({ canSyncTasas = false, canLoadTasas = true, onCreate
     if (gruposMoneda.length === 0) return;
     if (!gruposMoneda.some((grupo) => grupo.moneda === monedaSeleccionada)) {
       setMonedaSeleccionada(gruposMoneda[0].moneda);
-      guardarMonedaPedidoPreferida(gruposMoneda[0].moneda);
+      guardarMonedaPedidoPreferida(gruposMoneda[0].moneda, operadorId);
     }
-  }, [gruposMoneda, monedaSeleccionada]);
+  }, [gruposMoneda, monedaSeleccionada, operadorId]);
 
   function cambiarMonedaSeleccionada(moneda: string) {
     setMonedaSeleccionada(moneda);
-    guardarMonedaPedidoPreferida(moneda);
+    guardarMonedaPedidoPreferida(moneda, operadorId);
   }
 
   const grupoActivo = gruposMoneda.find((grupo) => grupo.moneda === monedaSeleccionada) ?? gruposMoneda[0];

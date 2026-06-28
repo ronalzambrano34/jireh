@@ -8,6 +8,7 @@ import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
 import { UiSwitch } from '../components/UiSwitch';
+import { UploadStatus } from '../components/UploadStatus';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import {
   apiAssetUrl,
@@ -297,6 +298,8 @@ const templateVariablesPorClave: Record<string, string[]> = {
     'telefono_destinatario',
     'documento_identidad_url',
     'punto_recogida',
+    'informacion_operacion',
+    'descripcion',
   ],
 };
 
@@ -364,6 +367,10 @@ export function AdminCatalogosPage() {
   const [metodoEditSaving, setMetodoEditSaving] = useState(false);
   const [cuentaMetodoSaving, setCuentaMetodoSaving] = useState(false);
   const [promoUploading, setPromoUploading] = useState(false);
+  const [metodoUploadProgress, setMetodoUploadProgress] = useState<number | null>(null);
+  const [metodoUploadError, setMetodoUploadError] = useState<string | null>(null);
+  const [promoUploadProgress, setPromoUploadProgress] = useState<number | null>(null);
+  const [promoUploadError, setPromoUploadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [estadoVista, setEstadoVista] = useState<AdminEstadoVista>('activos');
@@ -378,6 +385,11 @@ export function AdminCatalogosPage() {
   const templateModalOpenRef = useRef(false);
   const configTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const templateTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const retryMetodoUploadRef = useRef<(() => void) | null>(null);
+  const retryPromoUploadRef = useRef<(() => void) | null>(null);
+  const metodoUploadingRef = useRef(false);
+  const promoUploadingRef = useRef(false);
+  const promoSavingRef = useRef(false);
   const loading = temaActivo ? temasCargando.has(temaActivo) : false;
 
   const mostrarActivos = estadoVista === 'activos';
@@ -730,12 +742,14 @@ export function AdminCatalogosPage() {
 
   async function guardarPromocion(event: FormEvent) {
     event.preventDefault();
+    if (promoSavingRef.current) return;
     setError(null);
     setNotice(null);
     if (promoForm.tipo === 'promocion' && !promoFile && !promoForm.imagen_url) {
       setError('La imagen es obligatoria para una promocion');
       return;
     }
+    promoSavingRef.current = true;
     try {
       const creada = await crearPromocion({
         tipo: promoForm.tipo,
@@ -748,16 +762,48 @@ export function AdminCatalogosPage() {
         fecha_hasta: promoForm.fecha_hasta,
         activa: promoForm.activa,
       });
-      if (promoFile) await subirImagenPromocion(creada.id, promoFile);
+      if (promoFile) {
+        const file = promoFile;
+        const completarSubida = async () => {
+          setError(null);
+          setPromoUploadProgress(0);
+          setPromoUploadError(null);
+          try {
+            await subirImagenPromocion(creada.id, file, {
+              onProgress: (progress) => setPromoUploadProgress(progress.percent),
+            });
+            retryPromoUploadRef.current = null;
+            setPromoForm(nuevoSlideForm());
+            setPromoFile(null);
+            setPromoFilePreview('');
+            setPromoUploadProgress(null);
+            setNotice('Promocion creada');
+            setCrearModalTema(null);
+            setEstadoVista('activos');
+            await cargar();
+          } catch (err) {
+            const detalle = err instanceof Error ? err.message : 'No se pudo subir la imagen';
+            retryPromoUploadRef.current = () => void completarSubida();
+            setPromoUploadError(detalle);
+            setError(`El slide fue creado, pero la imagen no se subio: ${detalle}`);
+          }
+        };
+        retryPromoUploadRef.current = () => void completarSubida();
+        await completarSubida();
+        return;
+      }
       setPromoForm(nuevoSlideForm());
       setPromoFile(null);
       setPromoFilePreview('');
+      setPromoUploadProgress(null);
       setNotice('Promocion creada');
       setCrearModalTema(null);
       setEstadoVista('activos');
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear la promocion');
+    } finally {
+      promoSavingRef.current = false;
     }
   }
 
@@ -776,13 +822,17 @@ export function AdminCatalogosPage() {
     });
     setPromoFile(null);
     setPromoFilePreview('');
+    setPromoUploadProgress(null);
+    setPromoUploadError(null);
+    retryPromoUploadRef.current = null;
     setError(null);
     setNotice(null);
   }
 
   async function guardarPromocionEditada(event: FormEvent) {
     event.preventDefault();
-    if (!promoEditando) return;
+    if (!promoEditando || promoSavingRef.current) return;
+    promoSavingRef.current = true;
     setError(null);
     setNotice(null);
     try {
@@ -798,7 +848,21 @@ export function AdminCatalogosPage() {
         activa: promoForm.activa,
       });
       let final = actualizada;
-      if (promoFile) final = await subirImagenPromocion(promoEditando.id, promoFile);
+      if (promoFile) {
+        const file = promoFile;
+        retryPromoUploadRef.current = () => void subirImagenPromo(file);
+        setPromoUploadProgress(0);
+        setPromoUploadError(null);
+        try {
+          final = await subirImagenPromocion(promoEditando.id, file, {
+            onProgress: (progress) => setPromoUploadProgress(progress.percent),
+          });
+          retryPromoUploadRef.current = null;
+        } catch (err) {
+          setPromoUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+          throw err;
+        }
+      }
       setPromoEditando(final);
       setPromoForm({
         tipo: final.tipo,
@@ -813,10 +877,13 @@ export function AdminCatalogosPage() {
       });
       setPromoFile(null);
       setPromoFilePreview('');
+      setPromoUploadProgress(null);
       setNotice('Promocion actualizada');
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar la promocion');
+    } finally {
+      promoSavingRef.current = false;
     }
   }
 
@@ -826,19 +893,30 @@ export function AdminCatalogosPage() {
       setPromoFilePreview(URL.createObjectURL(file));
       return;
     }
+    if (promoUploadingRef.current) return;
+    retryPromoUploadRef.current = () => void subirImagenPromo(file);
+    promoUploadingRef.current = true;
     setError(null);
     setNotice(null);
+    setPromoUploadProgress(0);
+    setPromoUploadError(null);
     setPromoUploading(true);
     try {
       setPromoFilePreview(URL.createObjectURL(file));
-      const actualizada = await subirImagenPromocion(promoEditando.id, file);
+      const actualizada = await subirImagenPromocion(promoEditando.id, file, {
+        onProgress: (progress) => setPromoUploadProgress(progress.percent),
+      });
+      retryPromoUploadRef.current = null;
+      setPromoUploadProgress(100);
       setPromoEditando(actualizada);
       setPromoForm((current) => ({ ...current, imagen_url: actualizada.imagen_url }));
+      setPromoUploadError(null);
       setNotice('Imagen del slide actualizada');
       await cargar();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+      setPromoUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
     } finally {
+      promoUploadingRef.current = false;
       setPromoUploading(false);
     }
   }
@@ -1247,19 +1325,29 @@ export function AdminCatalogosPage() {
   }
 
   async function subirImagenMetodo(file: File) {
-    if (!metodoEditando) return;
+    if (!metodoEditando || metodoUploadingRef.current) return;
+    retryMetodoUploadRef.current = () => void subirImagenMetodo(file);
+    metodoUploadingRef.current = true;
     setError(null);
     setNotice(null);
+    setMetodoUploadProgress(0);
+    setMetodoUploadError(null);
     setMetodoUploading(true);
     try {
-      const actualizado = await subirImagenMetodoPago(metodoEditando.id, file);
+      const actualizado = await subirImagenMetodoPago(metodoEditando.id, file, {
+        onProgress: (progress) => setMetodoUploadProgress(progress.percent),
+      });
+      retryMetodoUploadRef.current = null;
+      setMetodoUploadProgress(100);
       setMetodoEditando(actualizado);
       setMetodoForm((current) => ({ ...current, imagen_url: actualizado.imagen_url ?? '' }));
+      setMetodoUploadError(null);
       setNotice('Imagen del metodo actualizada');
       await cargar();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+      setMetodoUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
     } finally {
+      metodoUploadingRef.current = false;
       setMetodoUploading(false);
     }
   }
@@ -1657,12 +1745,19 @@ export function AdminCatalogosPage() {
             <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda" align="left" />
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />
             <div className="method-image-note"><ImagePlus size={16} /> Si lo dejas vacio, usa el logo automatico desde assets.</div>
+            <UploadStatus
+              active={metodoUploading}
+              error={metodoUploadError}
+              progress={metodoUploadProgress}
+              label="Subiendo imagen"
+              onRetry={retryMetodoUploadRef.current ?? undefined}
+            />
             <button className="primary-button" disabled={metodoSaving}><SavingLabel saving={metodoSaving} idle="Crear" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
       {metodoEditando && (
-        <Modal title="Editar metodo de pago" subtitle={`${metodoEditando.nombre} · ${metodoEditando.moneda}`} onClose={() => { setMetodoEditando(null); setCuentasMetodo([]); }} wide>
+        <Modal title="Editar metodo de pago" subtitle={`${metodoEditando.nombre} · ${metodoEditando.moneda}`} onClose={() => { setMetodoEditando(null); setCuentasMetodo([]); setMetodoUploadProgress(null); setMetodoUploadError(null); retryMetodoUploadRef.current = null; }} wide>
           <form className="stack-form modal-form" onSubmit={guardarMetodoEditado}>
             <div
               className="method-image-dropzone"
@@ -1687,6 +1782,13 @@ export function AdminCatalogosPage() {
                 <input type="file" accept="image/*" disabled={metodoUploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void subirImagenMetodo(file); event.currentTarget.value = ''; }} />
               </label>
             </div>
+            <UploadStatus
+              active={metodoUploading}
+              error={metodoUploadError}
+              progress={metodoUploadProgress}
+              label="Subiendo imagen"
+              onRetry={retryMetodoUploadRef.current ?? undefined}
+            />
             <input value={metodoForm.nombre} onChange={(event) => setMetodoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <div className="inline-form three">
               <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda" align="left" />
@@ -1794,7 +1896,7 @@ export function AdminCatalogosPage() {
         </Modal>
       )}
       {crearModalTema === 'promociones' && (
-        <Modal title="Crear slide" subtitle="Administracion / Carrusel" onClose={() => setCrearModalTema(null)} wide>
+        <Modal title="Crear slide" subtitle="Administracion / Carrusel" onClose={() => { setCrearModalTema(null); setPromoUploadProgress(null); setPromoUploadError(null); retryPromoUploadRef.current = null; }} wide>
           <form className="stack-form modal-form" onSubmit={guardarPromocion}>
             <div className="inline-form three">
               <FloatingSelect value={promoForm.tipo} onChange={(value) => setPromoForm((current) => ({ ...current, tipo: value as Promocion['tipo'] }))} options={[...tiposSlide]} ariaLabel="Tipo de slide" align="left" />
@@ -1816,6 +1918,13 @@ export function AdminCatalogosPage() {
                 </label>
               </div>
             )}
+            <UploadStatus
+              active={promoUploadProgress !== null && !promoUploadError}
+              error={promoUploadError}
+              progress={promoUploadProgress}
+              label="Subiendo imagen"
+              onRetry={retryPromoUploadRef.current ?? undefined}
+            />
             <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion de la promocion" rows={3} required />
             {promoForm.tipo !== 'precios' && <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />}
             <div className="inline-form three">
@@ -1830,7 +1939,7 @@ export function AdminCatalogosPage() {
       )}
 
       {promoEditando && (
-        <Modal title="Editar slide" subtitle={`#${promoEditando.id} · ${estadoPromocion(promoEditando)}`} onClose={() => setPromoEditando(null)} wide>
+        <Modal title="Editar slide" subtitle={`#${promoEditando.id} · ${estadoPromocion(promoEditando)}`} onClose={() => { setPromoEditando(null); setPromoUploadProgress(null); setPromoUploadError(null); retryPromoUploadRef.current = null; }} wide>
           <form className="stack-form modal-form" onSubmit={guardarPromocionEditada}>
             <div className="inline-form three">
               <FloatingSelect value={promoForm.tipo} onChange={(value) => setPromoForm((current) => ({ ...current, tipo: value as Promocion['tipo'] }))} options={[...tiposSlide]} ariaLabel="Tipo de slide" align="left" />
@@ -1849,6 +1958,13 @@ export function AdminCatalogosPage() {
                 </label>
               </div>
             )}
+            <UploadStatus
+              active={promoUploading}
+              error={promoUploadError}
+              progress={promoUploadProgress}
+              label="Subiendo imagen"
+              onRetry={retryPromoUploadRef.current ?? undefined}
+            />
             <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion de la promocion" rows={3} required />
             {promoForm.tipo !== 'precios' && <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL" />}
             <div className="inline-form three">

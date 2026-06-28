@@ -8,8 +8,10 @@ import { Modal } from './components/Modal';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { UserHeaderMenu } from './components/UserHeaderMenu';
 import { ERROR_TOAST_DURATION_MS, INFO_TOAST_DURATION_MS, PROFILE_TOAST_DURATION_MS, ToastMessage } from './components/FloatingToast';
+import { UploadStatus } from './components/UploadStatus';
 import { NotificationBell, defaultNotificationSoundPreferences, notificationKindLabels, type AppNotification, type AppNotificationKind, type NotificationSoundPreferences } from './components/NotificationBell';
 import { isAbortError, useAbortableEffect } from './hooks/useAbortableEffect';
+import { useDocumentVisible } from './hooks/useDocumentVisible';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
@@ -53,6 +55,12 @@ type NetworkStatus = {
   label: string;
   detail: string;
 };
+type ViewConnectivityMode = 'offline' | 'draft' | 'online-required';
+type ViewConnectivityPolicy = {
+  mode: ViewConnectivityMode;
+  label: string;
+  detail: string;
+};
 type NavigatorWithConnection = Navigator & {
   connection?: NetworkInformationLike;
 };
@@ -73,6 +81,52 @@ const PULL_REFRESH_THRESHOLD = 64;
 const EXIT_BACK_WINDOW_MS = 2000;
 const NOTIFICATION_LIMIT = 50;
 const ORDER_DELAY_MINUTES = 10;
+const PEDIDOS_REFRESH_FAST_MS = 30000;
+const PEDIDOS_REFRESH_3G_MS = 120000;
+const PEDIDOS_REFRESH_2G_MS = 240000;
+const PEDIDOS_REFRESH_SAVE_DATA_MS = 300000;
+const VIEW_CONNECTIVITY: Record<AppView, ViewConnectivityPolicy> = {
+  inicio: {
+    mode: 'offline',
+    label: 'Disponible sin conexion',
+    detail: 'Puedes ver el inicio con datos guardados. Sin internet no se sincronizan tasas ni rastreos.',
+  },
+  'home-test': {
+    mode: 'offline',
+    label: 'Disponible sin conexion',
+    detail: 'Puedes consultar la vista con datos locales. Sin internet no se sincronizan tasas ni rastreos.',
+  },
+  crear: {
+    mode: 'draft',
+    label: 'Modo borrador sin conexion',
+    detail: 'Puedes llenar datos y conservar el borrador local. Crear el pedido, subir archivos y confirmar pagos requiere internet.',
+  },
+  perfil: {
+    mode: 'offline',
+    label: 'Disponible sin conexion',
+    detail: 'Puedes ver datos y preferencias guardadas. Guardar cambios, foto o contrasena requiere internet.',
+  },
+  bandeja: {
+    mode: 'online-required',
+    label: 'Pedidos requiere conexion',
+    detail: 'Pedidos, detalle, tomar, liberar, transferir y cambiar estados necesitan datos vivos del servidor.',
+  },
+  reportes: {
+    mode: 'online-required',
+    label: 'Reportes requiere conexion',
+    detail: 'Los reportes se calculan con datos actuales y no se descargan sin internet.',
+  },
+  admin: {
+    mode: 'online-required',
+    label: 'Admin requiere conexion',
+    detail: 'Los catalogos, roles, permisos y configuraciones deben leerse y guardarse en el servidor.',
+  },
+  setup: {
+    mode: 'online-required',
+    label: 'Configuracion inicial requiere conexion',
+    detail: 'La configuracion inicial crea y valida catalogos del servidor.',
+  },
+};
 
 type WebAudioWindow = Window & typeof globalThis & {
   webkitAudioContext?: typeof AudioContext;
@@ -92,19 +146,17 @@ function vistaGuardada(): AppView {
 function intervaloRefrescoPedidos() {
   const connection = getConnectionInfo();
 
-  if (connection?.saveData || connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g') {
-    return 60000;
-  }
-  return 30000;
+  if (connection?.saveData) return PEDIDOS_REFRESH_SAVE_DATA_MS;
+  if (connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return PEDIDOS_REFRESH_2G_MS;
+  if (connection?.effectiveType === '3g') return PEDIDOS_REFRESH_3G_MS;
+  return PEDIDOS_REFRESH_FAST_MS;
 }
 
 function connectionIsSlow(connection?: NetworkInformationLike) {
   return Boolean(
-    connection?.saveData
-    || connection?.effectiveType === 'slow-2g'
+    connection?.effectiveType === 'slow-2g'
     || connection?.effectiveType === '2g'
-    || (typeof connection?.downlink === 'number' && connection.downlink > 0 && connection.downlink <= 0.8)
-    || (typeof connection?.rtt === 'number' && connection.rtt >= 1500)
+    || connection?.effectiveType === '3g'
   );
 }
 
@@ -161,6 +213,34 @@ function NetworkStatusBanner({ status }: { status: NetworkStatus }) {
   );
 }
 
+function ViewConnectivityNotice({ policy }: { policy: ViewConnectivityPolicy }) {
+  if (policy.mode === 'online-required') return null;
+  return (
+    <div className={`view-connectivity-notice ${policy.mode}`} role="status" aria-live="polite">
+      <WifiOff size={17} />
+      <span>
+        <strong>{policy.label}</strong>
+        <small>{policy.detail}</small>
+      </span>
+    </div>
+  );
+}
+
+function OfflineRequiredView({ policy, onGoHome }: { policy: ViewConnectivityPolicy; onGoHome: () => void }) {
+  return (
+    <section className="offline-required-view app-page-width" role="status">
+      <span className="offline-required-icon" aria-hidden="true"><WifiOff size={28} /></span>
+      <div>
+        <h2>{policy.label}</h2>
+        <p>{policy.detail}</p>
+      </div>
+      <button className="primary-button" type="button" onClick={onGoHome}>
+        <Home size={17} /> Ir al inicio
+      </button>
+    </section>
+  );
+}
+
 function estadoFaseUno(value: string) {
   return value === 'en_operacion' ? 'pago_confirmado' : value;
 }
@@ -187,6 +267,10 @@ function pedidoTomadoPorOtroOperador(pedido: PedidoResumen | undefined, operador
   );
 }
 
+function pedidoTomadoPorOperador(pedido: PedidoResumen | undefined) {
+  return Boolean(pedido?.lock_activo && pedido.operador_asignado_id);
+}
+
 function notificationStorageKey(operadorId: number) {
   return `jireh.notifications.${operadorId}`;
 }
@@ -195,11 +279,140 @@ function notificationPreferencesStorageKey(operadorId: number) {
   return `jireh.notificationPreferences.${operadorId}`;
 }
 
+function notificationSeenStorageKey(operadorId: number) {
+  return `jireh.notificationSeen.${operadorId}`;
+}
+
+function themeStorageKey(operadorId: number) {
+  return `${THEME_KEY}.${operadorId}`;
+}
+
+function orderPreferencesStorageKey(operadorId: number) {
+  return `jireh.orderPreferences.${operadorId}`;
+}
+
+function normalizeTheme(value?: string | null): AppTheme | null {
+  if (value === 'light') return 'light';
+  if (value === 'dark-deep' || value === 'dark-sidebar') return 'dark-sidebar';
+  if (value === 'dark' || value === 'dark-vscode' || value === 'dark-pro') return 'dark-sidebar';
+  return null;
+}
+
+function readStoredTheme(operadorId?: number | null) {
+  if (typeof localStorage === 'undefined') return null;
+  const operadorTheme = operadorId ? normalizeTheme(localStorage.getItem(themeStorageKey(operadorId))) : null;
+  return operadorTheme ?? normalizeTheme(localStorage.getItem(THEME_KEY));
+}
+
 function normalizeNotificationPreferences(value: unknown): NotificationSoundPreferences {
   return {
     ...defaultNotificationSoundPreferences,
     ...(value && typeof value === 'object' ? value as Partial<NotificationSoundPreferences> : {}),
   };
+}
+
+function normalizeNotifications(value: unknown): AppNotification[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const result: AppNotification[] = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const candidate = item as Partial<AppNotification>;
+    if (
+      !candidate.id
+      || typeof candidate.id !== 'string'
+      || seen.has(candidate.id)
+      || !candidate.kind
+      || !(candidate.kind in defaultNotificationSoundPreferences)
+      || !candidate.codigo
+      || typeof candidate.codigo !== 'string'
+    ) continue;
+
+    seen.add(candidate.id);
+    result.push({
+      id: candidate.id,
+      kind: candidate.kind,
+      codigo: candidate.codigo,
+      title: typeof candidate.title === 'string' ? candidate.title : notificationKindLabels[candidate.kind],
+      body: typeof candidate.body === 'string' ? candidate.body : candidate.codigo,
+      createdAt: typeof candidate.createdAt === 'number' && Number.isFinite(candidate.createdAt) ? candidate.createdAt : Date.now(),
+      read: Boolean(candidate.read),
+    });
+  }
+
+  return result.slice(0, NOTIFICATION_LIMIT);
+}
+
+function readNotificationSeenIds(operadorId: number) {
+  if (typeof localStorage === 'undefined') return new Set<string>();
+  try {
+    const saved = localStorage.getItem(notificationSeenStorageKey(operadorId));
+    const parsed = saved ? JSON.parse(saved) : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeNotificationSeenIds(operadorId: number, ids: Set<string>) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(notificationSeenStorageKey(operadorId), JSON.stringify(Array.from(ids).slice(-500)));
+  } catch {
+    return;
+  }
+}
+
+type OrderPreferences = {
+  busqueda: string;
+  estado: string;
+  servicio: string;
+  alcance: AlcancePedidos;
+  periodo: PeriodoPedidos;
+  vista: 'lista' | 'kanban';
+  colapsados: string[];
+};
+
+const orderEstadoValues = new Set(['', 'pendiente_pago', 'pago_confirmado', 'en_proceso', 'completado', 'cancelado']);
+const orderServicioValues = new Set(['', 'transferencia', 'efectivo', 'saldo', 'divisa', 'otros']);
+const orderPeriodoValues = new Set<PeriodoPedidos>(['hoy', 'ayer', '7_dias', 'mes', 'todos']);
+
+function normalizeOrderPreferences(value: unknown, canViewAll: boolean): OrderPreferences | null {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Partial<OrderPreferences>;
+  const alcance = raw.alcance === 'mis' || raw.alcance === 'todas' ? raw.alcance : (canViewAll ? 'todas' : 'mis');
+  const periodo = raw.periodo && orderPeriodoValues.has(raw.periodo) ? raw.periodo : 'hoy';
+  return {
+    busqueda: typeof raw.busqueda === 'string' ? raw.busqueda.slice(0, 120) : '',
+    estado: typeof raw.estado === 'string' && orderEstadoValues.has(raw.estado) ? raw.estado : '',
+    servicio: typeof raw.servicio === 'string' && orderServicioValues.has(raw.servicio) ? raw.servicio : '',
+    alcance: canViewAll ? alcance : 'mis',
+    periodo,
+    vista: raw.vista === 'lista' ? 'lista' : 'kanban',
+    colapsados: Array.isArray(raw.colapsados)
+      ? raw.colapsados.filter((item): item is string => typeof item === 'string' && orderEstadoValues.has(item))
+      : ['completado', 'cancelado'],
+  };
+}
+
+function readOrderPreferences(operadorId: number, canViewAll: boolean) {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(orderPreferencesStorageKey(operadorId));
+    return normalizeOrderPreferences(saved ? JSON.parse(saved) : null, canViewAll);
+  } catch {
+    return null;
+  }
+}
+
+function writeOrderPreferences(operadorId: number, preferences: OrderPreferences) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(orderPreferencesStorageKey(operadorId), JSON.stringify(preferences));
+  } catch {
+    return;
+  }
 }
 
 function servicioNotificacionLabel(value: string) {
@@ -245,12 +458,7 @@ function parseBackendTime(value?: string | null) {
 
 export function App() {
   const [theme, setTheme] = useState<AppTheme>(() => {
-    if (typeof localStorage === 'undefined') return 'dark-sidebar';
-    const saved = localStorage.getItem(THEME_KEY);
-    if (saved === 'light') return 'light';
-    if (saved === 'dark-deep' || saved === 'dark-sidebar') return 'dark-sidebar';
-    if (saved === 'dark' || saved === 'dark-vscode' || saved === 'dark-pro') return 'dark-sidebar';
-    return 'dark-sidebar';
+    return readStoredTheme() ?? 'dark-sidebar';
   });
   const [operador, setOperador] = useState<Operador | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -271,11 +479,13 @@ export function App() {
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [vista, setVista] = useState<AppView>(vistaGuardada);
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
+  const [operatorPreferencesReadyFor, setOperatorPreferencesReadyFor] = useState<number | null>(null);
   const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>(() => readNetworkStatus());
+  const appVisible = useDocumentVisible();
   const online = networkStatus.online;
   const [pedidosClock, setPedidosClock] = useState(() => Date.now());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -297,8 +507,16 @@ export function App() {
   const [setupRevisado, setSetupRevisado] = useState(false);
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const [confirmandoPagoCreado, setConfirmandoPagoCreado] = useState(false);
+  const [pedidoCreadoUploadProgress, setPedidoCreadoUploadProgress] = useState<number | null>(null);
+  const [pedidoCreadoUploadError, setPedidoCreadoUploadError] = useState<string | null>(null);
+  const [profilePhotoProgress, setProfilePhotoProgress] = useState<number | null>(null);
+  const [profilePhotoUploadError, setProfilePhotoUploadError] = useState<string | null>(null);
   const copyToastTimeoutRef = useRef<number | null>(null);
   const comprobantePedidoCreadoInputRef = useRef<HTMLInputElement | null>(null);
+  const retryPedidoCreadoUploadRef = useRef<(() => void) | null>(null);
+  const retryProfilePhotoUploadRef = useRef<(() => void) | null>(null);
+  const confirmandoPagoCreadoRef = useRef(false);
+  const profilePhotoSavingRef = useRef(false);
   const profileMessageTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
   const profileErrorTimeoutRef = useRef<number | null>(null);
@@ -314,10 +532,14 @@ export function App() {
   const notificationAudioContextRef = useRef<AudioContext | null>(null);
   const notificacionesRef = useRef<AppNotification[]>([]);
   const notificationSnapshotReadyRef = useRef(false);
+  const notificationKnownIdsRef = useRef<Set<string>>(new Set());
   const knownPedidoCodesRef = useRef<Set<string>>(new Set());
   const knownTransferKeysRef = useRef<Map<string, string>>(new Map());
   const delayedNotificationCodesRef = useRef<Set<string>>(new Set());
   const pedidosRequestKeysRef = useRef<Set<string>>(new Set());
+  const lastPedidosRefreshAtRef = useRef(0);
+  const themePreferenceHydratingRef = useRef<number | null>(null);
+  const orderPreferencesHydratingRef = useRef<number | null>(null);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -430,43 +652,59 @@ export function App() {
   const agregarNotificaciones = useCallback((items: AppNotification[]) => {
     if (!items.length) return;
 
-    const currentIds = new Set(notificacionesRef.current.map((item) => item.id));
-    const incoming = items.filter((item) => !currentIds.has(item.id));
-    const shouldPlaySound = incoming.some((item) => notificationSoundPreferences[item.kind] !== false);
+    const nuevas: AppNotification[] = [];
+    for (const item of items) {
+      if (notificationKnownIdsRef.current.has(item.id)) continue;
+      notificationKnownIdsRef.current.add(item.id);
+      nuevas.push(item);
+    }
+    if (!nuevas.length) return;
+    if (operador) writeNotificationSeenIds(operador.id, notificationKnownIdsRef.current);
+
+    const shouldPlaySound = nuevas.some((item) => notificationSoundPreferences[item.kind] !== false);
     setNotificaciones((current) => {
       const ids = new Set(current.map((item) => item.id));
-      const nuevas = items.filter((item) => !ids.has(item.id));
-      if (!nuevas.length) return current;
-      return [...nuevas, ...current].slice(0, NOTIFICATION_LIMIT);
+      const next = normalizeNotifications([...nuevas.filter((item) => !ids.has(item.id)), ...current]);
+      notificacionesRef.current = next;
+      return next;
     });
     if (shouldPlaySound) reproducirSonidoNotificacion();
-  }, [notificationSoundPreferences, reproducirSonidoNotificacion]);
+  }, [notificationSoundPreferences, operador, reproducirSonidoNotificacion]);
 
   const revisarNotificacionesPedidos = useCallback((data: PedidoResumen[]) => {
     if (!operador) return;
 
     const nextCodes = new Set<string>();
     const nextTransferKeys = new Map<string, string>();
+    const delayedCodesToRemove = new Set<string>();
     const nuevas: AppNotification[] = [];
     const now = Date.now();
 
     for (const pedido of data) {
       const codigo = pedido.codigo_operacion;
       const disponibleParaNotificar = pedidoDisponibleParaNotificacion(pedido);
+      const tomadoPorOperador = pedidoTomadoPorOperador(pedido);
       if (disponibleParaNotificar) nextCodes.add(codigo);
-
-      const transferKey = pedido.redirigido_a_operador_id
-        ? `${pedido.redirigido_a_operador_id}:${pedido.redirigido_por_operador_id ?? ''}:${pedido.redirigido_en ?? ''}`
-        : '';
-      if (transferKey) nextTransferKeys.set(codigo, transferKey);
+      if (tomadoPorOperador) {
+        delayedCodesToRemove.add(codigo);
+        delayedNotificationCodesRef.current.delete(codigo);
+      }
 
       const createdAt = parseBackendTime(pedido.created_at);
       const confirmedAt = Number.isNaN(parseBackendTime(pedido.fecha_pago_confirmado)) ? createdAt : parseBackendTime(pedido.fecha_pago_confirmado);
-      const transferAt = Number.isNaN(parseBackendTime(pedido.redirigido_en)) ? now : parseBackendTime(pedido.redirigido_en);
+      const parsedTransferAt = parseBackendTime(pedido.redirigido_en);
+      const transferAt = Number.isNaN(parsedTransferAt) ? now : parsedTransferAt;
+      const transferStamp = Number.isNaN(parsedTransferAt) ? 'sin-fecha' : String(parsedTransferAt);
+      const transferKey = pedido.redirigido_a_operador_id
+        ? `${pedido.redirigido_a_operador_id}:${pedido.redirigido_por_operador_id ?? ''}:${transferStamp}`
+        : '';
+      if (transferKey) nextTransferKeys.set(codigo, transferKey);
+
       const confirmadoReciente = Number.isNaN(confirmedAt) || now - confirmedAt <= 30 * 60 * 1000;
       const transferidoReciente = Number.isNaN(transferAt) || now - transferAt <= 30 * 60 * 1000;
       const transferidoAMi = pedido.redirigido_a_operador_id === operador.id;
       const estaAtrasado = disponibleParaNotificar
+        && !tomadoPorOperador
         && !Number.isNaN(createdAt)
         && now - createdAt >= ORDER_DELAY_MINUTES * 60 * 1000
         && pedido.estado !== 'completado'
@@ -515,6 +753,13 @@ export function App() {
     knownTransferKeysRef.current = nextTransferKeys;
     if (!notificationSnapshotReadyRef.current) {
       notificationSnapshotReadyRef.current = true;
+    }
+    if (delayedCodesToRemove.size) {
+      setNotificaciones((current) => current.filter((item) => (
+        item.kind !== 'pedido_atrasado'
+        || !item.codigo
+        || !delayedCodesToRemove.has(item.codigo)
+      )));
     }
     agregarNotificaciones(nuevas);
   }, [agregarNotificaciones, operador]);
@@ -631,9 +876,6 @@ export function App() {
 
   function navegar(nextVista: typeof vista) {
     if (nextVista !== 'crear') setCrearDraft({});
-    if (nextVista === 'bandeja') {
-      setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
-    }
     setVista(nextVista);
     setMobileMenuOpen(false);
     setQuickCreateOpen(false);
@@ -659,7 +901,7 @@ export function App() {
   }
 
   function abrirCrear(servicio: ServicioCrear, draft: CrearPedidoDraft = {}) {
-    guardarMonedaPedidoPreferida(draft.moneda_pago);
+    guardarMonedaPedidoPreferida(draft.moneda_pago, operador?.id);
     setServicioCrear(servicio);
     setCrearDraft(draft);
     setVista('crear');
@@ -823,10 +1065,18 @@ export function App() {
   }
 
   function eliminarNotificacion(id: string) {
+    if (operador) {
+      notificationKnownIdsRef.current.add(id);
+      writeNotificationSeenIds(operador.id, notificationKnownIdsRef.current);
+    }
     setNotificaciones((current) => current.filter((item) => item.id !== id));
   }
 
   function limpiarNotificaciones() {
+    if (operador) {
+      notificacionesRef.current.forEach((item) => notificationKnownIdsRef.current.add(item.id));
+      writeNotificationSeenIds(operador.id, notificationKnownIdsRef.current);
+    }
     setNotificaciones([]);
   }
 
@@ -901,6 +1151,9 @@ export function App() {
     if (!pedidoPagoModal) return;
     setSeleccionado(pedidoPagoModal.codigo_operacion);
     setPedidoPagoModal(null);
+    setPedidoCreadoUploadError(null);
+    setPedidoCreadoUploadProgress(null);
+    retryPedidoCreadoUploadRef.current = null;
     setVista('bandeja');
     void cargarPedidos();
   }
@@ -914,16 +1167,30 @@ export function App() {
   }
 
   async function confirmarPagoPedidoCreado(file: File) {
-    if (!pedidoPagoModal || confirmandoPagoCreado) return;
+    if (!pedidoPagoModal || confirmandoPagoCreadoRef.current) return;
+    const codigoOperacion = pedidoPagoModal.codigo_operacion;
+    retryPedidoCreadoUploadRef.current = () => void confirmarPagoPedidoCreado(file);
+    confirmandoPagoCreadoRef.current = true;
     setConfirmandoPagoCreado(true);
+    setPedidoCreadoUploadProgress(0);
+    setPedidoCreadoUploadError(null);
     setError(null);
     try {
       const form = new FormData();
       form.set('tipo', 'comprobante_cliente');
       form.set('archivo', file);
-      await subirArchivo(pedidoPagoModal.codigo_operacion, form);
+      try {
+        await subirArchivo(codigoOperacion, form, {
+          onProgress: (progress) => setPedidoCreadoUploadProgress(progress.percent),
+        });
+      } catch (err) {
+        setPedidoCreadoUploadError(err instanceof Error ? err.message : 'No se pudo subir el comprobante');
+        return;
+      }
+      retryPedidoCreadoUploadRef.current = null;
+      setPedidoCreadoUploadProgress(100);
       const actualizado = await actualizarEstado(
-        pedidoPagoModal.codigo_operacion,
+        codigoOperacion,
         'pago_confirmado',
         'Pago confirmado al crear el pedido con comprobante cargado.',
       );
@@ -935,6 +1202,8 @@ export function App() {
         });
       }
       setPedidoPagoModal(null);
+      setPedidoCreadoUploadError(null);
+      setPedidoCreadoUploadProgress(null);
       await cargarPedidos();
       setCopyToast('Pago confirmado');
       if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
@@ -942,12 +1211,13 @@ export function App() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo confirmar el pago');
     } finally {
+      confirmandoPagoCreadoRef.current = false;
       setConfirmandoPagoCreado(false);
     }
   }
 
   function seleccionarComprobantePedidoCreado() {
-    if (confirmandoPagoCreado) return;
+    if (confirmandoPagoCreadoRef.current) return;
     comprobantePedidoCreadoInputRef.current?.click();
   }
 
@@ -967,10 +1237,9 @@ export function App() {
   const cargarPedidos = useCallback(async (signal?: AbortSignal) => {
     const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
     const cargaKey = `pedidos:${operador?.id ?? 'anon'}:${alcanceCarga}:${alcancePedidos}:${periodoPedidos}`;
-    const usarGuarda = !signal;
-    if (usarGuarda && pedidosRequestKeysRef.current.has(cargaKey)) return;
+    if (pedidosRequestKeysRef.current.has(cargaKey)) return;
 
-    if (usarGuarda) pedidosRequestKeysRef.current.add(cargaKey);
+    pedidosRequestKeysRef.current.add(cargaKey);
     setLoading(true);
     setError(null);
     try {
@@ -986,21 +1255,22 @@ export function App() {
         setAlcanceConteos({ mis: data.length, todas: data.length });
         setPedidos(data);
       }
+      lastPedidosRefreshAtRef.current = Date.now();
     } catch (err) {
       if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los pedidos');
     } finally {
-      if (usarGuarda) pedidosRequestKeysRef.current.delete(cargaKey);
+      pedidosRequestKeysRef.current.delete(cargaKey);
       if (!signal?.aborted) setLoading(false);
     }
   }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
   const refrescarPedidosSilencioso = useCallback(async (signal?: AbortSignal) => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
     const cargaKey = `pedidos:${operador?.id ?? 'anon'}:${alcanceCarga}:${alcancePedidos}:${periodoPedidos}`;
-    const usarGuarda = !signal;
-    if (usarGuarda && pedidosRequestKeysRef.current.has(cargaKey)) return;
+    if (pedidosRequestKeysRef.current.has(cargaKey)) return;
 
-    if (usarGuarda) pedidosRequestKeysRef.current.add(cargaKey);
+    pedidosRequestKeysRef.current.add(cargaKey);
     try {
       const data = await listarPedidos({
         limit: 200,
@@ -1014,10 +1284,11 @@ export function App() {
         setAlcanceConteos({ mis: data.length, todas: data.length });
         setPedidos(data);
       }
+      lastPedidosRefreshAtRef.current = Date.now();
     } catch {
       // El refresco silencioso no debe interrumpir al operador si falla una vuelta.
     } finally {
-      if (usarGuarda) pedidosRequestKeysRef.current.delete(cargaKey);
+      pedidosRequestKeysRef.current.delete(cargaKey);
     }
   }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
@@ -1027,11 +1298,64 @@ export function App() {
     }
   }, [alcancePedidos, puedeVerTodasLasOrdenes]);
 
+  useEffect(() => {
+    if (!operador) {
+      setOperatorPreferencesReadyFor(null);
+      return;
+    }
+
+    orderPreferencesHydratingRef.current = operador.id;
+    const preferences = readOrderPreferences(operador.id, puedeVerTodasLasOrdenes);
+    if (preferences) {
+      setBusqueda(preferences.busqueda);
+      setEstado(preferences.estado);
+      setServicio(preferences.servicio);
+      setAlcancePedidos(preferences.alcance);
+      setPeriodoPedidos(preferences.periodo);
+      setVistaPedidos(preferences.vista);
+      setPedidosEstadosColapsados(new Set(preferences.colapsados));
+    } else {
+      setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
+    }
+    setOperatorPreferencesReadyFor(operador.id);
+  }, [operador?.id, puedeVerTodasLasOrdenes]);
+
+  useEffect(() => {
+    if (!operador || operatorPreferencesReadyFor !== operador.id) return;
+    if (orderPreferencesHydratingRef.current === operador.id) {
+      orderPreferencesHydratingRef.current = null;
+      return;
+    }
+    writeOrderPreferences(operador.id, {
+      busqueda,
+      estado,
+      servicio,
+      alcance: alcancePedidos,
+      periodo: periodoPedidos,
+      vista: vistaPedidos,
+      colapsados: Array.from(pedidosEstadosColapsados),
+    });
+  }, [alcancePedidos, busqueda, estado, operador, operatorPreferencesReadyFor, pedidosEstadosColapsados, periodoPedidos, servicio, vistaPedidos]);
+
+  useEffect(() => {
+    if (!operador) return;
+    const savedTheme = readStoredTheme(operador.id);
+    if (savedTheme && savedTheme !== theme) {
+      themePreferenceHydratingRef.current = operador.id;
+      setTheme(savedTheme);
+    }
+  }, [operador?.id]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
+    if (!operador) return;
+    if (themePreferenceHydratingRef.current === operador.id) {
+      themePreferenceHydratingRef.current = null;
+      return;
+    }
+    localStorage.setItem(themeStorageKey(operador.id), theme);
+  }, [operador, theme]);
 
   useEffect(() => {
     sessionStorage.setItem(VIEW_KEY, vista);
@@ -1125,6 +1449,7 @@ export function App() {
       setNotificaciones([]);
       setNotificationSoundPreferences(defaultNotificationSoundPreferences);
       notificacionesRef.current = [];
+      notificationKnownIdsRef.current = new Set();
       notificationSnapshotReadyRef.current = false;
       knownPedidoCodesRef.current = new Set();
       knownTransferKeysRef.current = new Map();
@@ -1136,13 +1461,25 @@ export function App() {
     knownPedidoCodesRef.current = new Set();
     knownTransferKeysRef.current = new Map();
     delayedNotificationCodesRef.current = new Set();
+    const knownNotificationIds = readNotificationSeenIds(operador.id);
 
     try {
       const saved = localStorage.getItem(notificationStorageKey(operador.id));
       const parsed = saved ? JSON.parse(saved) : [];
-      setNotificaciones(Array.isArray(parsed) ? parsed.slice(0, NOTIFICATION_LIMIT) : []);
+      const savedNotifications = normalizeNotifications(parsed);
+      savedNotifications.forEach((item) => {
+        knownNotificationIds.add(item.id);
+        if (item.kind === 'pedido_atrasado') delayedNotificationCodesRef.current.add(item.codigo);
+      });
+      notificationKnownIdsRef.current = knownNotificationIds;
+      notificacionesRef.current = savedNotifications;
+      setNotificaciones(savedNotifications);
+      writeNotificationSeenIds(operador.id, knownNotificationIds);
     } catch {
+      notificationKnownIdsRef.current = knownNotificationIds;
+      notificacionesRef.current = [];
       setNotificaciones([]);
+      writeNotificationSeenIds(operador.id, knownNotificationIds);
     }
 
     try {
@@ -1154,9 +1491,12 @@ export function App() {
   }, [operador]);
 
   useEffect(() => {
-    notificacionesRef.current = notificaciones;
+    const normalized = normalizeNotifications(notificaciones);
+    notificacionesRef.current = normalized;
     if (!operador) return;
-    localStorage.setItem(notificationStorageKey(operador.id), JSON.stringify(notificaciones.slice(0, NOTIFICATION_LIMIT)));
+    normalized.forEach((item) => notificationKnownIdsRef.current.add(item.id));
+    writeNotificationSeenIds(operador.id, notificationKnownIdsRef.current);
+    localStorage.setItem(notificationStorageKey(operador.id), JSON.stringify(normalized));
   }, [notificaciones, operador]);
 
   useEffect(() => {
@@ -1187,8 +1527,8 @@ export function App() {
   }, [operador]);
 
   useAbortableEffect((signal) => {
-    if (operador) void cargarPedidos(signal);
-  }, [cargarPedidos, operador]);
+    if (operador && operatorPreferencesReadyFor === operador.id) void cargarPedidos(signal);
+  }, [cargarPedidos, operador, operatorPreferencesReadyFor]);
 
   useAbortableEffect((signal) => {
     if (!operador || !puedeAdmin || setupRevisado) return;
@@ -1203,17 +1543,28 @@ export function App() {
   }, [operador, puedeAdmin, setupRevisado]);
 
   useAbortableEffect((signal) => {
-    if (!operador || !online) return undefined;
+    if (!operador || !online || !appVisible) return undefined;
+    const intervalMs = intervaloRefrescoPedidos();
     const interval = window.setInterval(() => {
       void refrescarPedidosSilencioso(signal);
-    }, intervaloRefrescoPedidos());
+    }, intervalMs);
     return () => window.clearInterval(interval);
-  }, [online, operador, refrescarPedidosSilencioso]);
+  }, [appVisible, networkStatus.kind, online, operador, refrescarPedidosSilencioso]);
 
   useEffect(() => {
+    if (!operador || !online || !appVisible) return;
+    const intervalMs = intervaloRefrescoPedidos();
+    if (Date.now() - lastPedidosRefreshAtRef.current >= intervalMs) {
+      void refrescarPedidosSilencioso();
+    }
+  }, [appVisible, networkStatus.kind, online, operador, refrescarPedidosSilencioso]);
+
+  useEffect(() => {
+    if (!appVisible) return undefined;
+    setPedidosClock(Date.now());
     const interval = window.setInterval(() => setPedidosClock(Date.now()), 60000);
     return () => window.clearInterval(interval);
-  }, []);
+  }, [appVisible]);
 
   useEffect(() => {
     if (vista !== 'inicio' && vista !== 'bandeja') {
@@ -1347,17 +1698,26 @@ export function App() {
 
 
   async function subirFotoPerfil(file: File) {
-    if (profilePhotoSaving) return;
+    if (profilePhotoSavingRef.current) return;
+    retryProfilePhotoUploadRef.current = () => void subirFotoPerfil(file);
+    profilePhotoSavingRef.current = true;
     setProfilePhotoSaving(true);
+    setProfilePhotoProgress(0);
+    setProfilePhotoUploadError(null);
     setProfileError(null);
     setProfileMessage(null);
     try {
-      const actualizado = await subirMiFotoPerfil(file);
+      const actualizado = await subirMiFotoPerfil(file, {
+        onProgress: (progress) => setProfilePhotoProgress(progress.percent),
+      });
+      retryProfilePhotoUploadRef.current = null;
+      setProfilePhotoProgress(100);
       setOperador(actualizado);
       setProfileMessage('Foto de perfil actualizada');
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : 'No se pudo subir la foto');
+      setProfilePhotoUploadError(err instanceof Error ? err.message : 'No se pudo subir la foto');
     } finally {
+      profilePhotoSavingRef.current = false;
       setProfilePhotoSaving(false);
     }
   }
@@ -1458,6 +1818,8 @@ export function App() {
     vista === 'bandeja' ? 'orders-view-shell' : '',
     vista === 'bandeja' && seleccionado ? 'order-detail-view-shell' : '',
   ].filter(Boolean).join(' ');
+  const viewConnectivity = VIEW_CONNECTIVITY[vista];
+  const viewBlockedOffline = !online && viewConnectivity.mode === 'online-required';
 
   return (
     <div className={appShellClassName}>
@@ -1515,6 +1877,7 @@ export function App() {
           <span>{pullRefreshing ? 'Actualizando...' : pullDistance >= PULL_REFRESH_THRESHOLD ? 'Suelta para actualizar' : 'Desliza para actualizar'}</span>
         </div>
         <NetworkStatusBanner status={networkStatus} />
+        {!online && !viewBlockedOffline && <ViewConnectivityNotice policy={viewConnectivity} />}
         <header className="toolbar">
           <button className="icon-button mobile-header-menu" onClick={() => setMobileMenuOpen(true)} title="Abrir menu" aria-label="Abrir menu">
             <Menu size={20} />
@@ -1556,10 +1919,12 @@ export function App() {
           </div>
         </header>
 
-        {vista === 'inicio' ? (
-          <InicioPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+        {viewBlockedOffline ? (
+          <OfflineRequiredView policy={viewConnectivity} onGoHome={() => navegar('inicio')} />
+        ) : vista === 'inicio' ? (
+          <InicioPage operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'home-test' ? (
-          <HomeTestPage canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+          <HomeTestPage operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'setup' ? (
           <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
         ) : vista === 'admin' ? (
@@ -1576,12 +1941,15 @@ export function App() {
             notificationSoundPreferences={notificationSoundPreferences}
             saving={profileSaving}
             photoSaving={profilePhotoSaving}
+            photoProgress={profilePhotoProgress}
+            photoError={profilePhotoUploadError}
             onSectionChange={abrirPerfilSeccion}
             onNombreChange={setProfileNombre}
             onPasswordChange={setProfilePassword}
             onThemeChange={setTheme}
             onNotificationSoundChange={cambiarSonidoNotificacion}
             onPhoto={(file) => void subirFotoPerfil(file)}
+            onRetryPhoto={retryProfilePhotoUploadRef.current ?? undefined}
             onSaveProfile={guardarPerfil}
             onSavePassword={guardarPassword}
             onCopyCode={() => void copiarPago(operador.codigo_operador)}
@@ -1666,7 +2034,12 @@ export function App() {
         <Modal
           title="Pedido creado"
           subtitle="La operacion fue registrada correctamente"
-          onClose={() => setPedidoPagoModal(null)}
+          onClose={() => {
+            setPedidoPagoModal(null);
+            setPedidoCreadoUploadError(null);
+            setPedidoCreadoUploadProgress(null);
+            retryPedidoCreadoUploadRef.current = null;
+          }}
           className="order-created-modal"
         >
           <div className="payment-instructions-modal order-created-view">
@@ -1724,6 +2097,13 @@ export function App() {
                 {confirmandoPagoCreado ? <RefreshCw className="button-spinner" size={16} /> : <Upload size={16} />}
                 {confirmandoPagoCreado ? 'Subiendo...' : 'Subir comprobante'}
               </button>
+              <UploadStatus
+                active={confirmandoPagoCreado}
+                error={pedidoCreadoUploadError}
+                progress={pedidoCreadoUploadProgress}
+                label="Subiendo comprobante"
+                onRetry={retryPedidoCreadoUploadRef.current ?? undefined}
+              />
               <input
                 ref={comprobantePedidoCreadoInputRef}
                 type="file"

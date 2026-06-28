@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy import true
+import logging
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
 from Backend.models.pedido_efectivo import PedidoEfectivo
@@ -28,6 +30,9 @@ from Backend.services.template_service import (
     render_template,
     render_text_template
 )
+
+logger = logging.getLogger("jireh.pedidos")
+HISTORIAL_DEDUPE_SECONDS = 30
 
 ESTADOS_ALIASES = {
     "pendiente": PedidoEstado.PENDIENTE_PAGO,
@@ -68,15 +73,46 @@ ESTADOS_TERMINALES = {
 }
 
 
+class PedidoNotFoundError(Exception):
+    pass
+
+
+class PedidoConflictError(Exception):
+    pass
+
+
 def _validar_pedido_operable(pedido: Pedido):
     if pedido.estado in ESTADOS_TERMINALES:
-        raise Exception(
+        raise PedidoConflictError(
             "Las ordenes completadas o canceladas son solo de consulta"
         )
 
 
 def _utcnow():
     return datetime.utcnow()
+
+
+def _log_pedido_evento(
+    evento: str,
+    pedido: Pedido,
+    operador: Operador | None = None,
+    **datos
+):
+    datos_texto = " ".join(
+        f"{clave}={valor}"
+        for clave, valor in datos.items()
+        if valor is not None
+    )
+    logger.info(
+        "pedido.%s codigo=%s estado=%s operador_id=%s operador=%s asignado_id=%s %s",
+        evento,
+        pedido.codigo_operacion,
+        pedido.estado,
+        operador.id if operador else None,
+        operador.nombre if operador else None,
+        pedido.operador_asignado_id,
+        datos_texto
+    )
 
 
 def _lock_activo(
@@ -289,7 +325,7 @@ def validar_bloqueo_pedido(
         db,
         pedido.operador_asignado_id
     ) or "otro operador"
-    raise Exception(
+    raise PedidoConflictError(
         f"Esta operacion esta siendo trabajada por {nombre}."
     )
 
@@ -312,6 +348,87 @@ def _liberar_bloqueo(
     pedido.operador_asignado_id = None
     pedido.asignado_en = None
     pedido.lock_expires_at = None
+
+
+def _registrar_historial_pedido(
+    db: Session,
+    pedido_id: int,
+    estado_anterior: str | None,
+    estado_nuevo: str,
+    usuario: str | None,
+    comentario: str | None
+):
+    limite = _utcnow() - timedelta(seconds=HISTORIAL_DEDUPE_SECONDS)
+    duplicado = (
+        db.query(
+            PedidoHistorial.id
+        )
+        .filter(
+            PedidoHistorial.pedido_id == pedido_id,
+            PedidoHistorial.estado_anterior == estado_anterior,
+            PedidoHistorial.estado_nuevo == estado_nuevo,
+            PedidoHistorial.usuario == usuario,
+            PedidoHistorial.comentario == comentario,
+            PedidoHistorial.created_at >= limite
+        )
+        .first()
+    )
+    if duplicado:
+        logger.info(
+            "pedido.historial.repetido pedido_id=%s estado_anterior=%s estado_nuevo=%s usuario=%s",
+            pedido_id,
+            estado_anterior,
+            estado_nuevo,
+            usuario
+        )
+        return
+
+    db.add(
+        PedidoHistorial(
+            pedido_id=pedido_id,
+            estado_anterior=estado_anterior,
+            estado_nuevo=estado_nuevo,
+            usuario=usuario,
+            comentario=comentario
+        )
+    )
+
+
+def _condicion_bloqueo_mutable_por_operador(
+    operador: Operador
+):
+    if _operador_puede_tomar_bloqueo(
+        operador
+    ):
+        return true()
+
+    return Pedido.operador_asignado_id == operador.id
+
+
+def _raise_conflicto_bloqueo_actual(
+    db: Session,
+    pedido: Pedido,
+    operador: Operador,
+    accion: str
+):
+    _validar_pedido_operable(
+        pedido
+    )
+
+    if not pedido.operador_asignado_id:
+        raise PedidoConflictError(
+            f"Toma este pedido antes de {accion}."
+        )
+
+    validar_bloqueo_pedido(
+        db,
+        pedido,
+        operador
+    )
+
+    raise PedidoConflictError(
+        "El pedido cambio mientras se procesaba la accion. Actualiza e intenta de nuevo."
+    )
 
 
 def pedido_base_dict(
@@ -1080,28 +1197,52 @@ def redirigir_pedido_operador(
     mensaje: str | None,
     operador: Operador
 ):
-    pedido = _obtener_modelo_pedido_por_codigo(
-        db,
-        codigo_operacion,
-        for_update=True
-    )
     mensaje_limpio = (mensaje or "").strip() or None
 
+    pedido_actual = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+    _validar_pedido_operable(
+        pedido_actual
+    )
+
     if (
-        pedido.redirigido_a_operador_id == operador_destino_id
-        and pedido.redireccion_mensaje == mensaje_limpio
+        pedido_actual.redirigido_a_operador_id == operador_destino_id
+        and pedido_actual.redireccion_mensaje == mensaje_limpio
     ):
+        _log_pedido_evento(
+            "redirigir.repetido",
+            pedido_actual,
+            operador,
+            destino_id=operador_destino_id
+        )
         return pedido_dict(
             db,
-            pedido,
+            pedido_actual,
             incluir_detalle=True
         )
 
+    if (
+        not _operador_puede_tomar_bloqueo(
+            operador
+        )
+        and pedido_actual.operador_asignado_id != operador.id
+    ):
+        _raise_conflicto_bloqueo_actual(
+            db,
+            pedido_actual,
+            operador,
+            "transferirlo"
+        )
+
     if operador_destino_id is None:
-        pedido.redirigido_a_operador_id = None
-        pedido.redirigido_por_operador_id = None
-        pedido.redirigido_en = None
-        pedido.redireccion_mensaje = None
+        valores_redireccion = {
+            Pedido.redirigido_a_operador_id: None,
+            Pedido.redirigido_por_operador_id: None,
+            Pedido.redirigido_en: None,
+            Pedido.redireccion_mensaje: None,
+        }
     else:
         destino = (
             db.query(
@@ -1117,31 +1258,87 @@ def redirigir_pedido_operador(
                 "Operador destino no disponible."
             )
 
-        pedido.redirigido_a_operador_id = destino.id
-        pedido.redirigido_por_operador_id = operador.id
-        pedido.redirigido_en = _utcnow()
-        pedido.redireccion_mensaje = mensaje_limpio
-        _liberar_bloqueo(
-            pedido
+        if destino.id == operador.id:
+            raise PedidoConflictError(
+                "Selecciona otro operador para transferir el pedido."
+            )
+
+        valores_redireccion = {
+            Pedido.redirigido_a_operador_id: destino.id,
+            Pedido.redirigido_por_operador_id: operador.id,
+            Pedido.redirigido_en: _utcnow(),
+            Pedido.redireccion_mensaje: mensaje_limpio,
+            Pedido.operador_asignado_id: None,
+            Pedido.asignado_en: None,
+            Pedido.lock_expires_at: None,
+        }
+
+    filas_actualizadas = (
+        db.query(
+            Pedido
+        )
+        .filter(
+            Pedido.codigo_operacion == codigo_operacion,
+            Pedido.estado.notin_(ESTADOS_TERMINALES),
+            _condicion_bloqueo_mutable_por_operador(
+                operador
+            )
+        )
+        .update(
+            valores_redireccion,
+            synchronize_session=False
+        )
+    )
+
+    if not filas_actualizadas:
+        pedido_actual = _obtener_modelo_pedido_por_codigo(
+            db,
+            codigo_operacion
+        )
+        if (
+            pedido_actual.redirigido_a_operador_id == operador_destino_id
+            and pedido_actual.redireccion_mensaje == mensaje_limpio
+        ):
+            _log_pedido_evento(
+                "redirigir.repetido_conflicto",
+                pedido_actual,
+                operador,
+                destino_id=operador_destino_id
+            )
+            return pedido_dict(
+                db,
+                pedido_actual,
+                incluir_detalle=True
+            )
+        _raise_conflicto_bloqueo_actual(
+            db,
+            pedido_actual,
+            operador,
+            "transferirlo"
         )
 
-    historial = PedidoHistorial(
-        pedido_id=pedido.id,
-        estado_anterior=pedido.estado,
-        estado_nuevo=pedido.estado,
-        usuario=operador.nombre,
-        comentario=(
+    _registrar_historial_pedido(
+        db,
+        pedido_actual.id,
+        pedido_actual.estado,
+        pedido_actual.estado,
+        operador.nombre,
+        (
             f"Pedido redirigido a {_operador_asignado_nombre(db, operador_destino_id)}"
             if operador_destino_id else
             "Redireccion de operador eliminada"
         )
     )
-    db.add(
-        historial
-    )
     db.commit()
-    db.refresh(
-        pedido
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+    _log_pedido_evento(
+        "redirigir.ok",
+        pedido,
+        operador,
+        destino_id=operador_destino_id
     )
     return pedido_dict(
         db,
@@ -1166,7 +1363,7 @@ def obtener_pedido_por_codigo(
     )
 
     if not pedido:
-        raise Exception(
+        raise PedidoNotFoundError(
             "Pedido no encontrado"
         )
 
@@ -1210,7 +1407,7 @@ def _obtener_modelo_pedido_por_codigo(
     pedido = query.first()
 
     if not pedido:
-        raise Exception(
+        raise PedidoNotFoundError(
             "Pedido no encontrado"
         )
 
@@ -1222,28 +1419,95 @@ def tomar_operacion_pedido(
     codigo_operacion: str,
     operador: Operador
 ):
+    pedido_previo = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+    _validar_pedido_operable(
+        pedido_previo
+    )
+    if pedido_previo.operador_asignado_id == operador.id:
+        _log_pedido_evento(
+            "tomar.repetido",
+            pedido_previo,
+            operador
+        )
+        return pedido_dict(
+            db,
+            pedido_previo,
+            incluir_detalle=True
+        )
+
+    now = _utcnow()
+    condicion_bloqueo = (
+        true()
+        if _operador_puede_tomar_bloqueo(
+            operador
+        )
+        else or_(
+            Pedido.operador_asignado_id.is_(None),
+            Pedido.operador_asignado_id == operador.id
+        )
+    )
+
+    filas_actualizadas = (
+        db.query(
+            Pedido
+        )
+        .filter(
+            Pedido.codigo_operacion == codigo_operacion,
+            Pedido.estado.notin_(ESTADOS_TERMINALES),
+            condicion_bloqueo
+        )
+        .update(
+            {
+                Pedido.operador_asignado_id: operador.id,
+                Pedido.asignado_en: now,
+                Pedido.lock_expires_at: None,
+            },
+            synchronize_session=False
+        )
+    )
+
+    if not filas_actualizadas:
+        pedido_actual = _obtener_modelo_pedido_por_codigo(
+            db,
+            codigo_operacion
+        )
+        _validar_pedido_operable(
+            pedido_actual
+        )
+        validar_bloqueo_pedido(
+            db,
+            pedido_actual,
+            operador
+        )
+        _log_pedido_evento(
+            "tomar.conflicto",
+            pedido_actual,
+            operador
+        )
+        raise PedidoConflictError(
+            "No se pudo tomar el pedido porque cambio mientras se procesaba la accion."
+        )
+
+    _registrar_historial_pedido(
+        db,
+        pedido_previo.id,
+        pedido_previo.estado,
+        pedido_previo.estado,
+        operador.nombre,
+        "Pedido tomado"
+    )
+    db.commit()
     pedido = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion,
-        for_update=True
+        codigo_operacion
     )
-
-    _validar_pedido_operable(
-        pedido
-    )
-    validar_bloqueo_pedido(
-        db,
+    _log_pedido_evento(
+        "tomar.ok",
         pedido,
         operador
-    )
-    _asignar_bloqueo(
-        pedido,
-        operador
-    )
-
-    db.commit()
-    db.refresh(
-        pedido
     )
 
     return pedido_dict(
@@ -1281,6 +1545,11 @@ def renovar_bloqueo_pedido(
     db.refresh(
         pedido
     )
+    _log_pedido_evento(
+        "renovar.ok",
+        pedido,
+        operador
+    )
 
     return pedido_dict(
         db,
@@ -1294,32 +1563,97 @@ def liberar_bloqueo_pedido(
     codigo_operacion: str,
     operador: Operador
 ):
-    pedido = _obtener_modelo_pedido_por_codigo(
+    pedido_previo = _obtener_modelo_pedido_por_codigo(
         db,
-        codigo_operacion,
-        for_update=True
+        codigo_operacion
     )
-
-    if (
-        pedido.operador_asignado_id
-        and pedido.operador_asignado_id != operador.id
-        and not _operador_puede_tomar_bloqueo(
+    _validar_pedido_operable(
+        pedido_previo
+    )
+    if not pedido_previo.operador_asignado_id:
+        _log_pedido_evento(
+            "liberar.repetido",
+            pedido_previo,
             operador
         )
-    ):
+        return pedido_dict(
+            db,
+            pedido_previo,
+            incluir_detalle=True
+        )
+
+    filas_actualizadas = (
+        db.query(
+            Pedido
+        )
+        .filter(
+            Pedido.codigo_operacion == codigo_operacion,
+            Pedido.estado.notin_(ESTADOS_TERMINALES),
+            _condicion_bloqueo_mutable_por_operador(
+                operador
+            )
+        )
+        .update(
+            {
+                Pedido.operador_asignado_id: None,
+                Pedido.asignado_en: None,
+                Pedido.lock_expires_at: None,
+            },
+            synchronize_session=False
+        )
+    )
+
+    if not filas_actualizadas:
+        pedido_actual = _obtener_modelo_pedido_por_codigo(
+            db,
+            codigo_operacion
+        )
+        _validar_pedido_operable(
+            pedido_actual
+        )
+        if not pedido_actual.operador_asignado_id:
+            _log_pedido_evento(
+                "liberar.repetido_conflicto",
+                pedido_actual,
+                operador
+            )
+            return pedido_dict(
+                db,
+                pedido_actual,
+                incluir_detalle=True
+            )
+
         validar_bloqueo_pedido(
             db,
-            pedido,
+            pedido_actual,
             operador
         )
+        _log_pedido_evento(
+            "liberar.conflicto",
+            pedido_actual,
+            operador
+        )
+        raise PedidoConflictError(
+            "No se pudo liberar el pedido porque cambio mientras se procesaba la accion."
+        )
 
-    _liberar_bloqueo(
-        pedido
+    _registrar_historial_pedido(
+        db,
+        pedido_previo.id,
+        pedido_previo.estado,
+        pedido_previo.estado,
+        operador.nombre,
+        "Pedido liberado"
     )
-
     db.commit()
-    db.refresh(
-        pedido
+    pedido = _obtener_modelo_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+    _log_pedido_evento(
+        "liberar.ok",
+        pedido,
+        operador
     )
 
     return pedido_dict(
@@ -1408,6 +1742,12 @@ def actualizar_estado_pedido(
         and not finalizar_sin_comprobante
         and not motivo_sin_comprobante
     ):
+        _log_pedido_evento(
+            "estado.repetido",
+            pedido,
+            operador,
+            estado=estado_normalizado
+        )
         db.commit()
         db.refresh(
             pedido
@@ -1432,6 +1772,12 @@ def actualizar_estado_pedido(
         and len(motivo_finalizacion_idempotente) >= 10
         and nota_finalizacion_idempotente in (pedido.observaciones or "")
     ):
+        _log_pedido_evento(
+            "estado.finalizacion_repetida",
+            pedido,
+            operador,
+            estado=estado_normalizado
+        )
         db.commit()
         db.refresh(
             pedido
@@ -1557,27 +1903,13 @@ def actualizar_estado_pedido(
 
     # historial
 
-    historial = (
-        PedidoHistorial(
-            pedido_id=
-            pedido.id,
-
-            estado_anterior=
-            estado_anterior,
-
-            estado_nuevo=
-            estado_normalizado,
-
-            usuario=
-            usuario,
-
-            comentario=
-            comentario_historial
-        )
-    )
-
-    db.add(
-        historial
+    _registrar_historial_pedido(
+        db,
+        pedido.id,
+        estado_anterior,
+        estado_normalizado,
+        usuario,
+        comentario_historial
     )
 
     if estado_cambio:
@@ -1589,6 +1921,13 @@ def actualizar_estado_pedido(
 
     db.refresh(
         pedido
+    )
+    _log_pedido_evento(
+        "estado.ok",
+        pedido,
+        operador,
+        estado_anterior=estado_anterior,
+        estado_nuevo=estado_normalizado
     )
 
     data = pedido_dict(

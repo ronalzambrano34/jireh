@@ -7,6 +7,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import { PasswordField } from '../components/PasswordField';
 import { FloatingToast } from '../components/FloatingToast';
 import { PageLoader } from '../components/PageLoader';
+import { useDocumentVisible } from '../hooks/useDocumentVisible';
 import bannerJireh from '../assets/brand/banner-jireh.webp';
 import './login/LoginPage.css';
 
@@ -41,6 +42,7 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const appVisible = useDocumentVisible();
   const submittingRef = useRef(false);
   const progressLabel = useMemo(() => loginProgressLabel(elapsedSeconds), [elapsedSeconds]);
 
@@ -62,7 +64,7 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
   }, []);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading || !appVisible) {
       setElapsedSeconds(0);
       return undefined;
     }
@@ -73,7 +75,7 @@ export function LoginPage({ onLogin, embedded = false }: LoginPageProps) {
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [loading]);
+  }, [appVisible, loading]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

@@ -42,7 +42,7 @@ export function SaldoForm({
   onDraftSavedChange?: (saved: boolean) => void;
 }) {
   const [form, setForm] = useState({
-    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
     tipo_pago_id: initialData?.tipo_pago_id ?? '',
     cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     paquete_saldo_id: initialData?.paquete_saldo_id ?? '',
@@ -95,7 +95,7 @@ export function SaldoForm({
             : metodosMoneda[0]);
           const paqueteActual = paquetesData.find((item) => String(item.id) === current.paquete_saldo_id && normalizarMoneda(item.moneda_pago) === moneda);
           const paquete = paqueteActual ?? paquetesData.find((item) => normalizarMoneda(item.moneda_pago) === moneda);
-          guardarMonedaPedidoPreferida(moneda);
+          guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
@@ -162,7 +162,7 @@ export function SaldoForm({
   }, [form.bonificacion_manual, paqueteSeleccionado]);
 
   function update(field: keyof typeof form, value: string) {
-    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value, operadorId);
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -189,6 +189,10 @@ export function SaldoForm({
     }
     if (!form.tipo_pago_id) {
       setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!form.cuenta_pago_id) {
+      setError('Selecciona la cuenta de pago');
       return;
     }
     if (!form.paquete_saldo_id) {

@@ -112,7 +112,7 @@
 }
 
 :root[data-theme="dark-sidebar"] .app-toast-stack {
-  top: calc(92px + env(safe-area-inset-top));
+  top: calc(var(--app-toast-top, 92px) + env(safe-area-inset-top));
   gap: 8px;
 }
 
@@ -264,9 +264,14 @@
 @media (max-width: 560px) {
 
   :root[data-theme="dark-sidebar"] .app-toast-stack {
-    top: calc(78px + env(safe-area-inset-top));
+    top: calc(var(--app-toast-mobile-top, 74px) + env(safe-area-inset-top));
     right: 14px;
+    left: 14px;
     width: auto;
+  }
+
+  :root[data-theme="dark-sidebar"] .modal-open .app-toast-stack {
+    top: calc(12px + env(safe-area-inset-top));
   }
 
   :root[data-theme="dark-sidebar"] .pwa-install-prompt {

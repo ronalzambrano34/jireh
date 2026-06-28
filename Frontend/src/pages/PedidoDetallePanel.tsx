@@ -5,6 +5,7 @@ import { DismissibleNotice } from '../components/DismissibleNotice';
 import { Modal } from '../components/Modal';
 import { UiSwitch } from '../components/UiSwitch';
 import { ERROR_TOAST_DURATION_MS, FloatingToast } from '../components/FloatingToast';
+import { UploadStatus } from '../components/UploadStatus';
 import { actualizarEstado, apiAssetUrl, liberarOperacion, obtenerPedido, offlineCriticalActionMessage, redirigirOperacion, subirArchivo, tomarOperacion } from '../api/client';
 import { listarOperadoresActivosDedup, obtenerAssetBlobDedup, obtenerPedidoDedup } from '../api/dedupedReads';
 import type { ArchivoPedido, Operador, PedidoDetalle, PedidoResumen } from '../types/api';
@@ -204,6 +205,7 @@ const camposCopiables = new Set([
 ]);
 const COPY_FEEDBACK_DURATION_MS = 2600;
 const ESTADOS_TERMINALES = new Set(['completado', 'cancelado']);
+type UploadScope = 'evidence' | 'payment' | 'final';
 
 function estadoLabel(value: string) {
   if (value === 'en_operacion') return 'Pago confirmado';
@@ -367,10 +369,15 @@ export function PedidoDetallePanel({
     pedidoInicial as PedidoDetalle | null,
   );
   const [archivoBlobUrls, setArchivoBlobUrls] = useState<Record<number, string>>({});
+  const archivoBlobUrlsRef = useRef<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadScope, setUploadScope] = useState<UploadScope | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadLabel, setUploadLabel] = useState('Subiendo archivo');
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [redirigiendo, setRedirigiendo] = useState(false);
   const [operadorDestino, setOperadorDestino] = useState('');
@@ -393,6 +400,7 @@ export function PedidoDetallePanel({
   const [cancelCountdown, setCancelCountdown] = useState(0);
   const comprobantePagoInputRef = useRef<HTMLInputElement | null>(null);
   const comprobanteFinalInputRef = useRef<HTMLInputElement | null>(null);
+  const retryUploadRef = useRef<(() => void) | null>(null);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -415,6 +423,7 @@ export function PedidoDetallePanel({
     && !cancelacionAbierta
     && !redireccionAbierta
   );
+  const accionesRequierenBloqueo = Boolean(canManage && !bloqueoPropio && !ESTADOS_TERMINALES.has(pedido?.estado ?? ''));
   const detalle = useMemo(() => (pedido ? detalleEntries(pedido) : []), [pedido]);
   const evidenciaPrincipal = useMemo(() => {
     const archivos = pedido?.archivos ?? [];
@@ -427,12 +436,34 @@ export function PedidoDetallePanel({
     .map((archivo) => `${archivo.id}:${archivo.ruta_archivo}`)
     .join('|');
 
+  useEffect(() => {
+    archivoBlobUrlsRef.current = archivoBlobUrls;
+  }, [archivoBlobUrls]);
+
+  useEffect(() => () => {
+    Object.values(archivoBlobUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+    archivoBlobUrlsRef.current = {};
+  }, []);
+
   useAbortableEffect((signal) => {
     let activo = true;
+    let aplicado = false;
     const urlsCreadas: string[] = [];
     const archivos = pedido?.archivos ?? [];
+    const archivoIds = new Set(archivos.map((archivo) => archivo.id));
 
-    setArchivoBlobUrls({});
+    if (archivos.length === 0) {
+      const anteriores = archivoBlobUrlsRef.current;
+      if (Object.keys(anteriores).length > 0) {
+        archivoBlobUrlsRef.current = {};
+        setArchivoBlobUrls({});
+        Object.values(anteriores).forEach((url) => URL.revokeObjectURL(url));
+      }
+      return () => {
+        activo = false;
+      };
+    }
+
     void Promise.all(archivos.map(async (archivo) => {
       try {
         const blob = await obtenerAssetBlobDedup(archivo.ruta_archivo, { signal });
@@ -444,12 +475,27 @@ export function PedidoDetallePanel({
       }
     })).then((resultados) => {
       if (!activo) return;
-      setArchivoBlobUrls(Object.fromEntries(resultados.filter((item) => item !== null)));
+      const siguientes: Record<number, string> = {};
+      const anteriores = archivoBlobUrlsRef.current;
+      Object.entries(anteriores).forEach(([id, url]) => {
+        const idArchivo = Number(id);
+        if (archivoIds.has(idArchivo)) siguientes[idArchivo] = url;
+      });
+      resultados.forEach((item) => {
+        if (item) siguientes[item[0]] = item[1];
+      });
+      archivoBlobUrlsRef.current = siguientes;
+      setArchivoBlobUrls(siguientes);
+      aplicado = true;
+      Object.entries(anteriores).forEach(([id, url]) => {
+        const idArchivo = Number(id);
+        if (!archivoIds.has(idArchivo) || siguientes[idArchivo] !== url) URL.revokeObjectURL(url);
+      });
     });
 
     return () => {
       activo = false;
-      urlsCreadas.forEach((url) => URL.revokeObjectURL(url));
+      if (!aplicado) urlsCreadas.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [archivosFirma]);
 
@@ -491,12 +537,18 @@ export function PedidoDetallePanel({
     setLoading(!pedidoInicial || pedidoInicial.codigo_operacion !== codigo);
     setError(null);
     setMensajeAbierto(false);
+    setMensajeOperativoModalAbierto(false);
+    setWhatsappPendiente(null);
     setEvidenciasAbiertas(false);
     setHistorialAbierto(false);
     setConfirmarPagoAbierto(false);
     setFinalizacionAbierta(false);
     setFinalizarSinComprobante(false);
     setMotivoSinComprobante('');
+    setUploadScope(null);
+    setUploadProgress(null);
+    setUploadError(null);
+    retryUploadRef.current = null;
     setOwnLockNoticeHidden(false);
     obtenerPedidoDedup(codigo, { signal })
       .then(async (data) => {
@@ -507,11 +559,16 @@ export function PedidoDetallePanel({
           return;
         }
 
-        const tomado = await tomarOperacion(codigo);
-        if (!active) return;
-        setPedido(tomado);
-        if (!pedidoInicial?.lock_activo || pedidoInicial.operador_asignado_id !== operadorId) {
-          onChanged();
+        setSaving(true);
+        try {
+          const tomado = await tomarOperacion(codigo);
+          if (!active) return;
+          setPedido(tomado);
+          if (!pedidoInicial?.lock_activo || pedidoInicial.operador_asignado_id !== operadorId) {
+            onChanged();
+          }
+        } finally {
+          if (active) setSaving(false);
         }
       })
       .catch(async (err) => {
@@ -594,7 +651,7 @@ export function PedidoDetallePanel({
         if (active) setOperadores(items.filter((item) => item.id !== operadorId && item.activo));
       })
       .catch((err) => {
-        if (active && !isAbortError(err)) setOperadores([]);
+        if (active && !isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los operadores');
       });
 
     return () => {
@@ -689,6 +746,101 @@ export function PedidoDetallePanel({
     mutationInFlightRef.current = false;
   }
 
+  function limpiarEstadoUpload(scope?: UploadScope) {
+    if (scope && uploadScope !== scope) return;
+    setUploadScope(null);
+    setUploadProgress(null);
+    setUploadError(null);
+    retryUploadRef.current = null;
+  }
+
+  async function ejecutarSubidaPedido({
+    file,
+    tipo,
+    scope,
+    label,
+    uploadErrorMessage,
+    afterUpload,
+    afterUploadErrorMessage,
+    useSaving = false,
+  }: {
+    file: File;
+    tipo: string;
+    scope: UploadScope;
+    label: string;
+    uploadErrorMessage: string;
+    afterUpload?: (codigoOperacion: string) => Promise<void>;
+    afterUploadErrorMessage?: string;
+    useSaving?: boolean;
+  }) {
+    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving) return;
+    if (offlineActionsBlocked) {
+      bloquearAccionSinConexion();
+      return;
+    }
+
+    const codigoOperacion = pedido.codigo_operacion;
+    retryUploadRef.current = () => void ejecutarSubidaPedido({
+      file,
+      tipo,
+      scope,
+      label,
+      uploadErrorMessage,
+      afterUpload,
+      afterUploadErrorMessage,
+      useSaving,
+    });
+
+    if (!iniciarMutacionPedido()) return;
+    const form = new FormData();
+    form.set('tipo', tipo);
+    form.set('archivo', file);
+    setUploadScope(scope);
+    setUploadProgress(0);
+    setUploadError(null);
+    setUploadLabel(label);
+    setUploading(true);
+    if (useSaving) setSaving(true);
+    setError(null);
+
+    try {
+      try {
+        await subirArchivo(codigoOperacion, form, {
+          onProgress: (progress) => setUploadProgress(progress.percent),
+        });
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : uploadErrorMessage);
+        return;
+      }
+
+      retryUploadRef.current = null;
+      setUploadError(null);
+      setUploadProgress(100);
+
+      try {
+        if (afterUpload) {
+          await afterUpload(codigoOperacion);
+        } else {
+          setPedido(await obtenerPedido(codigoOperacion));
+          onChanged();
+        }
+        setUploadScope(null);
+      } catch (err) {
+        setUploadScope(null);
+        setError(err instanceof Error ? err.message : afterUploadErrorMessage ?? uploadErrorMessage);
+      }
+    } finally {
+      finalizarMutacionPedido();
+      setUploading(false);
+      if (useSaving) setSaving(false);
+    }
+  }
+
+  function abrirMensajeOperativoModal() {
+    setWhatsappPendiente(null);
+    setMensajeOperativoModalAbierto(true);
+  }
+
   function abrirReenvioGrupoWhatsApp() {
     if (!pedido) return;
     const reenvio = reenvioWhatsAppGrupoPedido(pedido);
@@ -696,6 +848,7 @@ export function PedidoDetallePanel({
       setError('No hay enlace de WhatsApp disponible para reenviar este mensaje');
       return;
     }
+    setMensajeOperativoModalAbierto(false);
     setWhatsappPendiente(reenvio);
   }
 
@@ -706,6 +859,7 @@ export function PedidoDetallePanel({
       setError('No hay WhatsApp de cliente disponible para este pedido');
       return;
     }
+    setMensajeOperativoModalAbierto(false);
     setWhatsappPendiente(reenvio);
   }
 
@@ -716,6 +870,7 @@ export function PedidoDetallePanel({
       setError('No hay mensaje de finalizacion disponible para reenviar');
       return;
     }
+    setMensajeOperativoModalAbierto(false);
     setWhatsappPendiente(reenvio);
   }
 
@@ -724,6 +879,7 @@ export function PedidoDetallePanel({
     setFinalizacionAbierta(false);
     setFinalizarSinComprobante(false);
     setMotivoSinComprobante('');
+    limpiarEstadoUpload('final');
   }
 
   function alternarFinalizacionSinComprobante(checked: boolean) {
@@ -867,6 +1023,11 @@ export function PedidoDetallePanel({
       onChanged();
       onClose();
     } catch (err) {
+      try {
+        setPedido(await obtenerPedido(pedido.codigo_operacion));
+        onChanged();
+      } catch {
+      }
       setError(err instanceof Error ? err.message : 'No se pudo liberar el pedido');
     } finally {
       finalizarMutacionPedido();
@@ -875,9 +1036,13 @@ export function PedidoDetallePanel({
   }
 
   async function guardarRedireccion() {
-    if (!canManage || !pedido || redirigiendo) return;
+    if (!canManage || !pedido || redirigiendo || saving) return;
     if (offlineActionsBlocked) {
       bloquearAccionSinConexion();
+      return;
+    }
+    if (!bloqueoPropio) {
+      setError(bloqueadoPorOtro ? 'Este pedido ya esta tomado por otro operador' : 'Espera a tomar este pedido antes de transferirlo');
       return;
     }
     if (!iniciarMutacionPedido()) return;
@@ -893,6 +1058,11 @@ export function PedidoDetallePanel({
       onChanged();
       if (operadorDestino && Number(operadorDestino) !== operadorId) onClose();
     } catch (err) {
+      try {
+        setPedido(await obtenerPedido(pedido.codigo_operacion));
+        onChanged();
+      } catch {
+      }
       setError(err instanceof Error ? err.message : 'No se pudo redirigir el pedido');
     } finally {
       finalizarMutacionPedido();
@@ -901,97 +1071,66 @@ export function PedidoDetallePanel({
   }
 
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
-    if (offlineActionsBlocked) {
-      event.target.value = '';
-      bloquearAccionSinConexion();
-      return;
-    }
-    if (!iniciarMutacionPedido()) return;
-    setUploading(true);
-    setError(null);
-    const form = new FormData();
-    form.set('tipo', 'comprobante_cliente');
-    form.set('archivo', event.target.files[0]);
-    try {
-      await subirArchivo(pedido.codigo_operacion, form);
-      setPedido(await obtenerPedido(pedido.codigo_operacion));
-      onChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante');
-    } finally {
-      event.target.value = '';
-      finalizarMutacionPedido();
-      setUploading(false);
-    }
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await ejecutarSubidaPedido({
+      file,
+      tipo: 'comprobante_cliente',
+      scope: 'evidence',
+      label: 'Subiendo comprobante',
+      uploadErrorMessage: 'No se pudo subir el comprobante',
+    });
   }
 
   async function handleComprobantePagoConfirmado(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
-    if (offlineActionsBlocked) {
-      event.target.value = '';
-      bloquearAccionSinConexion();
-      return;
-    }
-    if (!iniciarMutacionPedido()) return;
-    setUploading(true);
-    setSaving(true);
-    setError(null);
-    const form = new FormData();
-    form.set('tipo', 'comprobante_cliente');
-    form.set('archivo', event.target.files[0]);
-    try {
-      await subirArchivo(pedido.codigo_operacion, form);
-      const actualizado = await actualizarEstado(pedido.codigo_operacion, 'pago_confirmado');
-      setPedido(actualizado);
-      setConfirmarPagoAbierto(false);
-      vibrarFeedback(24);
-      onChanged();
-      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'pago_confirmado'));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante y confirmar el pago');
-    } finally {
-      event.target.value = '';
-      setUploading(false);
-      finalizarMutacionPedido();
-      setSaving(false);
-    }
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await ejecutarSubidaPedido({
+      file,
+      tipo: 'comprobante_cliente',
+      scope: 'payment',
+      label: 'Subiendo comprobante',
+      uploadErrorMessage: 'No se pudo subir el comprobante',
+      afterUploadErrorMessage: 'No se pudo confirmar el pago',
+      useSaving: true,
+      afterUpload: async (codigoOperacion) => {
+        const actualizado = await actualizarEstado(codigoOperacion, 'pago_confirmado');
+        setPedido(actualizado);
+        setConfirmarPagoAbierto(false);
+        vibrarFeedback(24);
+        onChanged();
+        setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'pago_confirmado'));
+      },
+    });
   }
 
   async function handleComprobanteFinal(event: ChangeEvent<HTMLInputElement>) {
-    if (!canManage || !pedido || bloqueadoPorOtro || uploading || saving || !event.target.files?.[0]) return;
-    if (offlineActionsBlocked) {
-      event.target.value = '';
-      bloquearAccionSinConexion();
-      return;
-    }
-    if (!iniciarMutacionPedido()) return;
-    setUploading(true);
-    setSaving(true);
-    setError(null);
-    const form = new FormData();
-    form.set('tipo', 'comprobante_final');
-    form.set('archivo', event.target.files[0]);
-    try {
-      await subirArchivo(pedido.codigo_operacion, form);
-      const actualizado = await actualizarEstado(
-        pedido.codigo_operacion,
-        'completado',
-        'Operacion finalizada con comprobante de exito.',
-      );
-      setPedido(actualizado);
-      setFinalizacionAbierta(false);
-      vibrarFeedback(24);
-      onChanged();
-      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'completado'));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo subir el comprobante final');
-    } finally {
-      event.target.value = '';
-      setUploading(false);
-      finalizarMutacionPedido();
-      setSaving(false);
-    }
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await ejecutarSubidaPedido({
+      file,
+      tipo: 'comprobante_final',
+      scope: 'final',
+      label: 'Subiendo comprobante final',
+      uploadErrorMessage: 'No se pudo subir el comprobante final',
+      afterUploadErrorMessage: 'No se pudo finalizar la operacion',
+      useSaving: true,
+      afterUpload: async (codigoOperacion) => {
+        const actualizado = await actualizarEstado(
+          codigoOperacion,
+          'completado',
+          'Operacion finalizada con comprobante de exito.',
+        );
+        setPedido(actualizado);
+        setFinalizacionAbierta(false);
+        vibrarFeedback(24);
+        onChanged();
+        setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'completado'));
+      },
+    });
   }
 
   async function confirmarFinalizacionSinComprobante() {
@@ -1071,7 +1210,7 @@ export function PedidoDetallePanel({
             saving={saving}
             offlineActionsBlocked={offlineActionsBlocked}
             hasMensajeOperativo={Boolean(pedido.mensaje_operacion)}
-            onOpenMensajeOperativo={() => setMensajeOperativoModalAbierto(true)}
+            onOpenMensajeOperativo={abrirMensajeOperativoModal}
             onRelease={canManage ? () => void liberarPedidoActual() : () => undefined}
           />
 
@@ -1194,15 +1333,15 @@ export function PedidoDetallePanel({
                   options={[{ value: '', label: 'Sin redireccion' }, ...operadores.map((item) => ({ value: String(item.id), label: item.nombre, description: item.rol }))]}
                   ariaLabel="Operador destino"
                   align="left"
-                  disabled={offlineActionsBlocked}
+                  disabled={redirigiendo || saving || offlineActionsBlocked || accionesRequierenBloqueo}
                 />
                 <input
                   value={mensajeRedireccion}
                   onChange={(event) => setMensajeRedireccion(event.target.value)}
                   placeholder="Nota breve"
-                  disabled={redirigiendo || offlineActionsBlocked}
+                  disabled={redirigiendo || saving || offlineActionsBlocked || accionesRequierenBloqueo}
                 />
-                <button className="ghost-button" type="button" onClick={guardarRedireccion} disabled={offlineActionsBlocked || redirigiendo || (!operadorDestino && !pedido.redirigido_a_operador_id)}>
+                <button className="ghost-button" type="button" onClick={guardarRedireccion} disabled={offlineActionsBlocked || redirigiendo || saving || accionesRequierenBloqueo || (!operadorDestino && !pedido.redirigido_a_operador_id)}>
                   {redirigiendo ? <RefreshCw size={16} /> : <Send size={16} />}
                   {operadorDestino ? 'Marcar' : 'Transferir'}
                 </button>
@@ -1256,7 +1395,14 @@ export function PedidoDetallePanel({
                   disabled={bloqueadoPorOtro || offlineActionsBlocked || uploading || saving}
                 />
               </label>
-              <button className="ghost-button" type="button" onClick={() => setConfirmarPagoAbierto(false)} disabled={uploading || saving}>
+              <UploadStatus
+                active={uploading && uploadScope === 'payment'}
+                error={uploadScope === 'payment' ? uploadError : null}
+                progress={uploadScope === 'payment' ? uploadProgress : null}
+                label={uploadLabel}
+                onRetry={retryUploadRef.current ?? undefined}
+              />
+              <button className="ghost-button" type="button" onClick={() => { setConfirmarPagoAbierto(false); limpiarEstadoUpload('payment'); }} disabled={uploading || saving}>
                 Cancelar
               </button>
             </section>
@@ -1287,6 +1433,13 @@ export function PedidoDetallePanel({
                   disabled={bloqueadoPorOtro || offlineActionsBlocked || uploading || saving}
                 />
               </label>
+              <UploadStatus
+                active={uploading && uploadScope === 'final'}
+                error={uploadScope === 'final' ? uploadError : null}
+                progress={uploadScope === 'final' ? uploadProgress : null}
+                label={uploadLabel}
+                onRetry={retryUploadRef.current ?? undefined}
+              />
 
               <div className="finalization-alternative"><span>o</span></div>
 
@@ -1380,7 +1533,7 @@ export function PedidoDetallePanel({
             </Modal>
           )}
 
-          {whatsappPendiente && (
+          {whatsappPendiente && !mensajeOperativoModalAbierto && (
             <Modal
               title={whatsappPendiente.titulo}
               subtitle={whatsappPendiente.detalle}
@@ -1481,17 +1634,17 @@ export function PedidoDetallePanel({
                   <Copy size={16} /> Copiar mensaje
                 </button>
                 {(pedido.whatsapp_grupo_pedidos_url || pedido.whatsapp_url) && (
-                  <button className="primary-button" type="button" onClick={() => { setMensajeOperativoModalAbierto(false); abrirReenvioGrupoWhatsApp(); }}>
+                  <button className="primary-button" type="button" onClick={abrirReenvioGrupoWhatsApp}>
                     <MessageCircle size={16} /> Reenviar WhatsApp
                   </button>
                 )}
                 {pedido.whatsapp_estado_url && pedido.mensaje_cliente_estado && (
-                  <button className="ghost-button" type="button" onClick={() => { setMensajeOperativoModalAbierto(false); abrirReenvioClienteWhatsApp(); }}>
+                  <button className="ghost-button" type="button" onClick={abrirReenvioClienteWhatsApp}>
                     <MessageCircle size={16} /> Reenviar al cliente
                   </button>
                 )}
                 {pedido.estado === 'completado' && pedido.whatsapp_grupo_finalizado_url && (
-                  <button className="ghost-button" type="button" onClick={() => { setMensajeOperativoModalAbierto(false); abrirReenvioFinalizadoWhatsApp(); }}>
+                  <button className="ghost-button" type="button" onClick={abrirReenvioFinalizadoWhatsApp}>
                     <MessageCircle size={16} /> Reenviar finalizado
                   </button>
                 )}
@@ -1503,9 +1656,12 @@ export function PedidoDetallePanel({
             open={evidenciasAbiertas}
             archivos={pedido.archivos ?? []}
             uploading={uploading}
+            uploadProgress={uploadScope === 'evidence' ? uploadProgress : null}
+            uploadError={uploadScope === 'evidence' ? uploadError : null}
             disabled={!canManage || bloqueadoPorOtro || offlineActionsBlocked}
             onToggle={() => setEvidenciasAbiertas((current) => !current)}
             onUpload={handleUpload}
+            onRetryUpload={retryUploadRef.current ?? undefined}
             archivoUrl={archivoUrl}
             archivoEsImagen={archivoEsImagen}
             archivoTipoLabel={archivoTipoLabel}

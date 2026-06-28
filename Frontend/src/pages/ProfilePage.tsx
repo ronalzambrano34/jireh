@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import { Bell, ChevronDown, Copy, Edit3, HelpCircle, KeyRound, LogOut, Moon, Palette, Percent, ShieldCheck, Sun, UserCircle, Volume2, VolumeX } from 'lucide-react';
 import { apiAssetUrl } from '../api/client';
 import { PasswordField } from '../components/PasswordField';
+import { UploadStatus } from '../components/UploadStatus';
 import { notificationKindLabels, type AppNotificationKind, type NotificationSoundPreferences } from '../components/NotificationBell';
 import type { Operador } from '../types/api';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
@@ -34,12 +35,15 @@ export function ProfilePage(props: {
   notificationSoundPreferences: NotificationSoundPreferences;
   saving: boolean;
   photoSaving: boolean;
+  photoProgress?: number | null;
+  photoError?: string | null;
   onSectionChange: (section: Exclude<ProfileSection, null>) => void;
   onNombreChange: (value: string) => void;
   onPasswordChange: (value: ProfilePassword) => void;
   onThemeChange: (theme: 'light' | 'dark-sidebar') => void;
   onNotificationSoundChange: (kind: AppNotificationKind, enabled: boolean) => void;
   onPhoto: (file: File) => void;
+  onRetryPhoto?: () => void;
   onSaveProfile: (event: FormEvent<HTMLFormElement>) => void;
   onSavePassword: (event: FormEvent<HTMLFormElement>) => void;
   onCopyCode: () => void;
@@ -59,6 +63,13 @@ export function ProfilePage(props: {
               {props.photoSaving ? 'Subiendo...' : 'Cambiar foto'}
               <input type="file" accept="image/*" disabled={props.photoSaving} onChange={(event) => { const file = event.target.files?.[0]; if (file) props.onPhoto(file); event.currentTarget.value = ''; }} />
             </label>
+            <UploadStatus
+              active={props.photoSaving}
+              error={props.photoError}
+              progress={props.photoProgress}
+              label="Subiendo foto"
+              onRetry={props.onRetryPhoto}
+            />
           </div>
           <div className="profile-hero-copy">
             <span className="profile-eyebrow">Perfil del operador</span>

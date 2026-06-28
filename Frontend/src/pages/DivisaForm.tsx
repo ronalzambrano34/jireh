@@ -43,7 +43,7 @@ export function DivisaForm({
 }) {
   const [form, setForm] = useState({
     monto_pago: initialData?.monto_pago ?? '',
-    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida(),
+    moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
     tipo_pago_id: initialData?.tipo_pago_id ?? '',
     cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     tipo_tarjeta: initialData?.tipo_tarjeta ?? 'MLC',
@@ -81,7 +81,7 @@ export function DivisaForm({
           const metodosMoneda = data.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
           const metodoActual = metodosMoneda.find((metodo) => String(metodo.id) === current.tipo_pago_id);
           const primero = metodoActual ?? metodosMoneda[0];
-          guardarMonedaPedidoPreferida(moneda);
+          guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
@@ -127,15 +127,13 @@ export function DivisaForm({
       bonificacion_manual: Number(form.bonificacion_manual) || 0,
     }, { signal })
       .then((data) => { if (activo) setCalculo(data); })
-      .catch((err) => {
-        if (!isAbortError(err) && activo) setCalculo(null);
-      });
+      .catch(() => undefined);
 
     return () => { activo = false; };
   }, [form.bonificacion_manual, form.monto_pago, form.moneda_pago, form.tipo_tarjeta]);
 
   function update(field: keyof typeof form, value: string) {
-    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value);
+    if (field === 'moneda_pago') guardarMonedaPedidoPreferida(value, operadorId);
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -164,6 +162,10 @@ export function DivisaForm({
     }
     if (!form.tipo_pago_id) {
       setError(`No hay un metodo de pago seleccionado para ${form.moneda_pago}`);
+      return;
+    }
+    if (!form.cuenta_pago_id) {
+      setError('Selecciona la cuenta de pago');
       return;
     }
     if (!(Number(form.monto_pago) > 0)) {

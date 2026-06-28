@@ -9,32 +9,6 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo REVISION GENERAL - CONECTIVIDAD, PETICIONES Y ESTABILIDAD:
 
-+ Guardar borradores de nuevo pedido localmente para no perder datos si se cae internet.
-Los reportes tiene que tener el mismo filtro de búsqueda que el de la web o que aparezca un modal en el que marqués que fecha quieres descargar
-En la vista detalle de pedido, al presionar mensaje operativo, aparecen 2 formularios modals de envío de mensajes a WhatsApp
-La conexión lenta es para conexiones 3G hacia abajo, tengo 5G y me pusiste que tenía red lenta
-Los pedidos solo se atrasan si no han sido tomados por un operador, si ya están tomados por un operador, no necesita notificar pedido atrasado
-En los templates, el botón servicio, no escribe información (lo probé con el servicio "Otros".
-En los formularios de operaciones, el campo Cuenta de pago, que esté vacío, y sea obligatorio llenarlo
-
-
-
-- Revisar que los uploads de imagenes/documentos indiquen progreso, error y reintento manual.
-- Evitar subir dos veces el mismo archivo si el operador toca varias veces el selector o el boton.
-- Revisar cache y service worker para que la PWA abra aunque no haya internet.
-- Definir que vistas pueden funcionar offline y cuales necesitan conexion obligatoria.
-- Evitar refrescos automaticos agresivos en redes lentas; usar intervalos adaptados y pausar si no hay conexion.
-- No borrar datos visibles de pantalla si una recarga falla; conservar el ultimo estado cargado.
-- Persistir preferencias importantes del operador en localStorage: filtros, tema, notificaciones, moneda seleccionada.
-- Revisar notificaciones para que no se dupliquen al reconectar o al volver a cargar pedidos.
-- Validar que tomar/liberar/transferir pedido sea resistente a latencia alta y conflictos entre operadores.
-- Mostrar mensajes de error concretos: sin internet, servidor apagado, timeout, token vencido, archivo muy grande.
-- Probar el sistema con conexion lenta, modo avion, cortes intermitentes y recarga de pagina durante una operacion.
-- Revisar que el backend no dependa de storage local para imagenes o archivos importantes en produccion.
-- Auditar que cada operacion critica tenga historial consistente aun si falla una parte del flujo.
-- Agregar logs o trazas simples para diagnosticar fallos de red y acciones repetidas.
-- Revisar que el frontend no haga polling innecesario cuando la app esta en segundo plano.
-- Validar que los toasts no tapen acciones importantes en pantallas pequenas.
 - Crear una prueba manual de campo para baja conectividad: crear pedido, subir comprobante, confirmar pago, finalizar y reabrir app.
 
 //todo
@@ -42,15 +16,8 @@ En los formularios de operaciones, el campo Cuenta de pago, que esté vacío, y 
 //todo FASE 1 - PENDIENTE PARA CIERRE:
 - Probar flujo completo contra API real: transferencia, efectivo, saldo, divisa y otros.
 - Validar que la vista Pedidos cargue todos los pedidos por defecto para operadores y solo mis pedidos para clientes.
-- Revisar idempotencia en crear pedido, confirmar pago, tomar, liberar, transferir, cancelar y finalizar.
-- Revisado: bloquear doble click/tap en botones criticos mientras la peticion este en proceso.
-- Revisado: useEffect con llamadas API para evitar dobles cargas por StrictMode o dependencias repetidas.
-- Revisado: cancelar peticiones de lectura con AbortController al desmontar o cambiar de vista.
-- Revisado: mostrar estados claros de conexion lenta, sin conexion y reconectando.
-- Revisado: bloquear claramente acciones criticas sin conexion para evitar duplicados o estados inconsistentes.
-- Revisado: reintentos controlados solo en peticiones seguras de lectura, no en acciones que modifican datos.
-- Confirmar que no se duplique historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
-- Probar baja conectividad: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
+- Revisado: no se duplica historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
+- Probar baja conectividad con el protocolo de `docs/pruebas-conectividad.md`: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
 - Definir comportamiento offline de la PWA: que abre sin internet, que queda bloqueado y que conserva datos.
 - Guardar borradores locales de nuevo pedido para no perder datos si se cae internet.
 - Validar uploads con progreso, error claro y reintento manual.
@@ -73,5 +40,3 @@ En los formularios de operaciones, el campo Cuenta de pago, que esté vacío, y 
 - Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
 //todo 
-
-

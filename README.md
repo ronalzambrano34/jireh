@@ -127,6 +127,7 @@ SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_STORAGE_BUCKET=comprobantes
 USE_SUPABASE_STORAGE=true
+REQUIRE_EXTERNAL_STORAGE=true
 RUN_DB_BOOTSTRAP=false
 RUN_DB_MAINTENANCE=false
 OFERTAS_AUTO_SYNC_ENABLED=false
@@ -176,3 +177,8 @@ Vercel no ofrece disco persistente para las funciones. Los endpoints que suben
 fotos, comprobantes o promociones a `storage/` requieren migrar esos archivos a
 Supabase Storage, Vercel Blob u otro almacenamiento externo antes de usarlos en
 produccion.
+
+En produccion el backend exige storage externo para fotos de perfil, metodos de
+pago, promociones, documentos y comprobantes. Si Supabase Storage no esta
+configurado, la subida falla con un error claro en vez de guardar archivos en
+disco local temporal.
