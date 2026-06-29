@@ -218,7 +218,7 @@ export function DivisaForm({
       monto_pago: Number(form.monto_pago),
       moneda_pago: form.moneda_pago,
       tipo_pago_id: Number(form.tipo_pago_id),
-      cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
+      cuenta_pago_id: Number(form.cuenta_pago_id),
       operador_id: operadorId,
       tipo_tarjeta: form.tipo_tarjeta || undefined,
       numero_tarjeta: form.numero_tarjeta || undefined,

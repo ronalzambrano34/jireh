@@ -1,15 +1,23 @@
+import json
+
 from sqlalchemy.orm import Session
 
 from Backend.models.configuracion import Configuracion
 
+PHONE_CODES_CONFIG_KEY = "codigos_pais_telefono_activos"
+DEFAULT_ACTIVE_PHONE_CODES = ["+53", "+55", "+598"]
+DEFAULT_ACTIVE_PHONE_CODES_VALUE = json.dumps(DEFAULT_ACTIVE_PHONE_CODES)
+
 CONFIGURACIONES_DEFAULT = {
     "whatsapp_grupo_pedidos_url": "",
     "whatsapp_grupo_finalizados_url": "",
+    PHONE_CODES_CONFIG_KEY: DEFAULT_ACTIVE_PHONE_CODES_VALUE,
 }
 
 CONFIGURACIONES_DESCRIPCION = {
     "whatsapp_grupo_pedidos_url": "Link de WhatsApp del grupo donde se trabajan los pedidos nuevos.",
     "whatsapp_grupo_finalizados_url": "Link de WhatsApp del grupo historico de operaciones finalizadas.",
+    PHONE_CODES_CONFIG_KEY: "Codigos de pais visibles en formularios de telefono.",
 }
 
 

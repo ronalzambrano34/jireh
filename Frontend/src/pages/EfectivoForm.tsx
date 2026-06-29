@@ -90,8 +90,9 @@ export function EfectivoForm({
     setCargandoCatalogos(true);
     Promise.all([listarMetodosPagoDedup(undefined, false, { signal }), listarPuntosRecogidaDedup(false, { signal })])
       .then(([metodos, puntosData]) => {
+        const puntosOperativos = puntosData.filter((punto) => punto.activo && punto.provincia_activa);
         setMetodosPago(metodos);
-        setPuntos(puntosData);
+        setPuntos(puntosOperativos);
         setForm((current) => {
           const disponibles = monedasDisponibles(metodos.map((metodo) => metodo.moneda));
           const actual = normalizarMoneda(current.moneda_pago);
@@ -101,13 +102,13 @@ export function EfectivoForm({
           const metodo = metodoActual ?? (moneda === 'BRL'
             ? metodosMoneda.find((item) => item.nombre.toLowerCase() === 'pix') ?? metodosMoneda[0]
             : metodosMoneda[0]);
-          const puntoActual = puntosData.find((item) => String(item.id) === current.punto_recogida_id);
+          const puntoActual = puntosOperativos.find((item) => String(item.id) === current.punto_recogida_id);
           guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
             tipo_pago_id: metodo ? String(metodo.id) : '',
-            punto_recogida_id: puntoActual ? current.punto_recogida_id : (puntosData[0] ? String(puntosData[0].id) : ''),
+            punto_recogida_id: puntoActual ? current.punto_recogida_id : (puntosOperativos[0] ? String(puntosOperativos[0].id) : ''),
             numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
           };
         });
@@ -288,7 +289,7 @@ export function EfectivoForm({
       monto_pago: Number(form.monto_pago),
       moneda_pago: form.moneda_pago,
       tipo_pago_id: Number(form.tipo_pago_id),
-      cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
+      cuenta_pago_id: Number(form.cuenta_pago_id),
       operador_id: operadorId,
       cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
       nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,

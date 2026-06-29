@@ -51,4 +51,6 @@ class PuntoRecogidaResponse(
 
     provincia_nombre: str | None = None
 
+    provincia_activa: bool = False
+
     activo: bool

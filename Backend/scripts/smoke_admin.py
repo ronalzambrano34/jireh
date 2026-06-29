@@ -35,6 +35,7 @@ from Backend.models.punto_recogida import PuntoRecogida
 
 from Backend.schemas.oferta import OfertaCreate, OfertaUpdate
 from Backend.schemas.paquete_saldo import PaqueteSaldoCreate, PaqueteSaldoUpdate
+from Backend.schemas.punto_recogida import PuntoRecogidaCreate
 from Backend.services.archivo_pedido_service import (
     guardar_upload_pedido,
     listar_archivos_pedido
@@ -50,6 +51,10 @@ from Backend.services.paquete_saldo_service import (
     crear_paquete_saldo,
     eliminar_paquete_saldo,
     listar_paquetes_saldo
+)
+from Backend.services.punto_recogida_service import (
+    crear_punto_recogida,
+    listar_puntos_recogida
 )
 from Backend.services.reporte_service import reporte_general
 
@@ -127,6 +132,61 @@ def run():
     try:
         operador, cliente, metodo = sembrar_base(
             db
+        )
+
+        provincia_activa = ProvinciaServicio(
+            nombre="Santiago Smoke",
+            activo=True
+        )
+        provincia_inactiva = ProvinciaServicio(
+            nombre="Habana Smoke",
+            activo=False
+        )
+        db.add_all([
+            provincia_activa,
+            provincia_inactiva
+        ])
+        db.commit()
+        punto_activo = crear_punto_recogida(
+            db,
+            PuntoRecogidaCreate(
+                nombre="Punto activo",
+                direccion="Direccion activa",
+                provincia_id=provincia_activa.id
+            )
+        )
+        punto_provincia_inactiva = PuntoRecogida(
+            nombre="Punto oculto",
+            direccion="Direccion oculta",
+            provincia_id=provincia_inactiva.id,
+            activo=True
+        )
+        db.add(
+            punto_provincia_inactiva
+        )
+        db.commit()
+        _assert_error(
+            lambda: crear_punto_recogida(
+                db,
+                PuntoRecogidaCreate(
+                    nombre="Punto invalido",
+                    direccion="Direccion invalida",
+                    provincia_id=provincia_inactiva.id
+                )
+            ),
+            "provincia seleccionada esta inactiva",
+            "puntos: permitio crear punto en provincia inactiva"
+        )
+        puntos_operativos = listar_puntos_recogida(
+            db
+        )
+        _assert(
+            punto_activo.id in [punto.id for punto in puntos_operativos],
+            "puntos: no muestra punto con provincia activa"
+        )
+        _assert(
+            punto_provincia_inactiva.id not in [punto.id for punto in puntos_operativos],
+            "puntos: muestra punto de provincia inactiva"
         )
 
         oferta = crear_oferta(

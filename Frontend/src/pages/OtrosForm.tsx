@@ -105,7 +105,7 @@ export function OtrosForm({
     setCargandoPuntos(true);
     listarPuntosRecogidaDedup(false, { signal })
       .then((data) => {
-        if (active) setPuntos(data);
+        if (active) setPuntos(data.filter((punto) => punto.activo && punto.provincia_activa));
       })
       .catch((err) => {
         if (!isAbortError(err)) setError(err instanceof Error ? err.message : 'No se pudieron cargar los puntos de recogida');
@@ -258,7 +258,7 @@ export function OtrosForm({
       monto_pago: Number(form.monto_pago),
       moneda_pago: form.moneda_pago,
       tipo_pago_id: Number(form.tipo_pago_id),
-      cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
+      cuenta_pago_id: Number(form.cuenta_pago_id),
       operador_id: operadorId,
       cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
       nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,

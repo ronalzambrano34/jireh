@@ -30,9 +30,6 @@ IDEA A FUTURO:
 - Probar endpoints protegidos sin token, con token vencido y con permisos insuficientes.
 
 //todo Catalogos y configuracion inicial
-- Validar Codigos de pais: Cuba, Brasil y Uruguay activos por defecto; codigos inactivos no aparecen en formularios nuevos.
-- Validar Metodos de pago y Cuentas de pago: cuenta obligatoria, cuenta correcta en instrucciones y templates.
-- Validar Provincias y Puntos de recogida: no mostrar puntos de provincias inactivas.
 
 //todo UI movil y PWA
 - Validar icono PWA instalado: redondeado, sin borde azul y con fondo acorde al logo.

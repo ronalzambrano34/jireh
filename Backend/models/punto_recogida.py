@@ -51,3 +51,7 @@ class PuntoRecogida(Base):
     @property
     def provincia_nombre(self):
         return self.provincia.nombre if self.provincia else None
+
+    @property
+    def provincia_activa(self):
+        return self.provincia.activo if self.provincia else False

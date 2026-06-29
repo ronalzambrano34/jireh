@@ -18,7 +18,7 @@ class PedidoSaldoCreate(
 
     tipo_pago_id: int
 
-    cuenta_pago_id: int | None = None
+    cuenta_pago_id: int
 
     operador_id: int
 

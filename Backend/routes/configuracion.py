@@ -9,9 +9,12 @@ from Backend.services.auth_service import (
     require_permission
 )
 from Backend.schemas.configuracion import ConfiguracionCreate
+from Backend.schemas.configuracion import ConfiguracionBase
 from Backend.schemas.configuracion import ConfiguracionResponse
 from Backend.schemas.configuracion import ConfiguracionUpdate
 from Backend.services.configuracion_service import (
+    DEFAULT_ACTIVE_PHONE_CODES_VALUE,
+    PHONE_CODES_CONFIG_KEY,
     crear_o_actualizar_configuracion
 )
 from Backend.services.configuracion_service import (
@@ -20,6 +23,33 @@ from Backend.services.configuracion_service import (
 from Backend.services.configuracion_service import (
     obtener_configuracion
 )
+from Backend.services.configuracion_service import (
+    obtener_valor_configuracion
+)
+
+public_router = APIRouter(
+    prefix="/configuracion-publica",
+    tags=["Configuracion"]
+)
+
+
+@public_router.get(
+    "/codigos-pais",
+    response_model=ConfiguracionBase
+)
+def obtener_codigos_pais_publicos(
+    db: Session = Depends(
+        get_db
+    )
+):
+    return {
+        "clave": PHONE_CODES_CONFIG_KEY,
+        "valor": obtener_valor_configuracion(
+            db,
+            PHONE_CODES_CONFIG_KEY,
+            DEFAULT_ACTIVE_PHONE_CODES_VALUE
+        )
+    }
 
 router = APIRouter(
     prefix="/configuracion",

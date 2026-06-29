@@ -379,10 +379,10 @@ Campos actuales:
 Reglas actuales:
 
 - Un metodo de pago puede tener cuentas de pago asociadas.
-- Las instrucciones al cliente deben incluir la cuenta predeterminada si existe.
+- Las instrucciones al cliente deben incluir la cuenta seleccionada del pedido.
 - La moneda del metodo debe coincidir con la moneda del pedido.
 - Solo deben mostrarse monedas y metodos realmente activos para la operacion.
-- En los formularios de operaciones, Cuenta de pago inicia vacia y es obligatoria. El operador debe seleccionar la cuenta real antes de crear el pedido.
+- En los formularios de operaciones, Cuenta de pago toma la cuenta predeterminada activa o la primera activa del metodo seleccionado y es obligatoria.
 
 Estado actual:
 Implementado.
@@ -711,8 +711,8 @@ Regla de cuentas de metodos de pago:
 - Cada cuenta tiene alias, cuenta/clave, titular, QR opcional, estado activo y marca predeterminada.
 - Para PIX, la cuenta/clave corresponde a la Llave Pix y el titular corresponde al nombre del titular.
 - Solo una cuenta activa por metodo debe marcarse como predeterminada para uso operativo normal.
-- Al crear un pedido, las instrucciones de pago al cliente usan la cuenta predeterminada del metodo seleccionado.
-- Si no existe cuenta predeterminada, el sistema puede caer temporalmente en configuracion heredada o mostrar Por confirmar, pero eso no es aceptable para operacion real.
+- Al crear un pedido, las instrucciones de pago al cliente usan la cuenta seleccionada del pedido.
+- Si el metodo seleccionado no tiene cuenta activa o no se envia cuenta_pago_id, el pedido debe ser rechazado.
 - Administracion > Metodos de pago permite configurar estas cuentas y elegir la predeterminada.
 
 8. MENSAJES Y WHATSAPP

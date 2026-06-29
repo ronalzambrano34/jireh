@@ -411,6 +411,7 @@ def run():
                 monto_pago=100,
                 moneda_pago="BRL",
                 tipo_pago_id=datos["metodo"].id,
+                cuenta_pago_id=datos["cuenta"].id,
                 operador_id=datos["operador"].id,
                 cliente_id=datos["cliente"].id,
                 contacto_id=datos["contacto"].id,
@@ -433,6 +434,7 @@ def run():
             PedidoSaldoCreate(
                 contacto_id=datos["contacto"].id,
                 tipo_pago_id=datos["metodo"].id,
+                cuenta_pago_id=datos["cuenta"].id,
                 operador_id=datos["operador"].id,
                 cliente_id=datos["cliente"].id,
                 paquete_saldo_id=datos["paquete"].id
@@ -522,6 +524,7 @@ def run():
                 contacto_id=datos["contacto"].id,
                 monto_divisa=45,
                 tipo_pago_id=datos["metodo"].id,
+                cuenta_pago_id=datos["cuenta"].id,
                 operador_id=datos["operador"].id,
                 cliente_id=datos["cliente"].id
             )
@@ -620,6 +623,7 @@ def run():
                 "monto_pago": 50,
                 "moneda_pago": "BRL",
                 "tipo_pago_id": datos["metodo"].id,
+                "cuenta_pago_id": datos["cuenta"].id,
                 "operador_id": datos["operador"].id,
                 "cliente_id": datos["cliente"].id,
                 "observaciones": "Operacion especial sin datos de destino",

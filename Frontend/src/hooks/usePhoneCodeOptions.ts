@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listarConfiguraciones } from '../api/client';
+import { obtenerCodigosPaisTelefono } from '../api/client';
 import {
   PHONE_CODES_CHANGED_EVENT,
-  PHONE_CODES_CONFIG_KEY,
   PHONE_CODES_STORAGE_KEY,
   codigosPaisActivosDesdeValor,
   codigosPaisDisponibles,
@@ -14,11 +13,9 @@ let phoneCodesConfigPromise: Promise<string[]> | null = null;
 
 async function cargarCodigosPaisActivos() {
   if (!phoneCodesConfigPromise) {
-    phoneCodesConfigPromise = listarConfiguraciones()
-      .then((configuraciones) => {
-        const activos = codigosPaisActivosDesdeValor(
-          configuraciones.find((item) => item.clave === PHONE_CODES_CONFIG_KEY)?.valor,
-        );
+    phoneCodesConfigPromise = obtenerCodigosPaisTelefono()
+      .then((configuracion) => {
+        const activos = codigosPaisActivosDesdeValor(configuracion.valor);
         guardarCodigosPaisActivosLocal(activos);
         return activos;
       })

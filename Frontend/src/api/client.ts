@@ -1349,6 +1349,10 @@ export function listarConfiguraciones(options: ApiRequestOptions = {}) {
   return request<Configuracion[]>('/configuracion/', { signal: options.signal });
 }
 
+export function obtenerCodigosPaisTelefono(options: ApiRequestOptions = {}) {
+  return request<{ clave: string; valor: string }>('/configuracion-publica/codigos-pais', { signal: options.signal });
+}
+
 export function guardarConfiguracion(payload: { clave: string; valor: string }) {
   return request<Configuracion>('/configuracion/', {
     method: 'POST',
@@ -1377,7 +1381,7 @@ export async function obtenerEstadoConfiguracionInicial(options: ApiRequestOptio
     (item) => item.clave === 'setup_inicial_completado' && item.valor === 'true',
   );
   const provinciasActivas = provincias.filter((item) => item.activo);
-  const puntosActivos = puntos.filter((item) => item.activo);
+  const puntosActivos = puntos.filter((item) => item.activo && item.provincia_activa);
   const operadoresActivos = operadores.filter((item) => item.activo);
   const ofertasActivas = ofertas.filter((item) => item.activa);
   const paquetesActivos = paquetes.filter((item) => item.activo);

@@ -5,6 +5,32 @@ from Backend.models.punto_recogida import PuntoRecogida
 from Backend.models.provincia_servicio import ProvinciaServicio
 
 
+def _validar_provincia_activa(
+    db: Session,
+    provincia_id: int | None
+):
+    if not provincia_id:
+        raise Exception(
+            "Selecciona una provincia activa para el punto"
+        )
+
+    provincia = (
+        db.query(
+            ProvinciaServicio
+        )
+        .filter(
+            ProvinciaServicio.id == provincia_id,
+            ProvinciaServicio.activo == True
+        )
+        .first()
+    )
+
+    if not provincia:
+        raise Exception(
+            "La provincia seleccionada esta inactiva o no existe"
+        )
+
+
 def listar_puntos_recogida(
     db: Session,
     busqueda: str | None = None,
@@ -109,6 +135,10 @@ def crear_punto_recogida(
     db: Session,
     data
 ):
+    _validar_provincia_activa(
+        db,
+        data.provincia_id
+    )
 
     existe = (
         db.query(
@@ -169,6 +199,20 @@ def actualizar_punto_recogida(
         "direccion",
         punto.direccion
     )
+    provincia_id = cambios.get(
+        "provincia_id",
+        punto.provincia_id
+    )
+    activo = cambios.get(
+        "activo",
+        punto.activo
+    )
+
+    if activo:
+        _validar_provincia_activa(
+            db,
+            provincia_id
+        )
 
     if "nombre" in cambios or "direccion" in cambios:
         existe = (

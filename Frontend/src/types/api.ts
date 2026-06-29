@@ -176,7 +176,7 @@ export type CrearTransferenciaPayload = {
   numero_tarjeta: string;
   telefono_destinatario?: string;
   tipo_pago_id: number;
-  cuenta_pago_id?: number | null;
+  cuenta_pago_id: number;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -220,6 +220,7 @@ export type PuntoRecogida = {
   telefono?: string | null;
   provincia_id?: number | null;
   provincia_nombre?: string | null;
+  provincia_activa: boolean;
   activo: boolean;
 };
 
@@ -228,7 +229,7 @@ export type CrearEfectivoPayload = {
   monto_pago: number;
   moneda_pago: string;
   tipo_pago_id: number;
-  cuenta_pago_id?: number | null;
+  cuenta_pago_id: number;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -257,7 +258,7 @@ export type CrearSaldoPayload = {
   telefono_destinatario?: string;
   contacto_id?: number | null;
   tipo_pago_id: number;
-  cuenta_pago_id?: number | null;
+  cuenta_pago_id: number;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -277,7 +278,7 @@ export type CrearOtrosPayload = {
   monto_pago: number;
   moneda_pago: string;
   tipo_pago_id: number;
-  cuenta_pago_id?: number | null;
+  cuenta_pago_id: number;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;
@@ -300,7 +301,7 @@ export type CrearDivisaPayload = {
   contacto_id?: number | null;
   monto_divisa?: number;
   tipo_pago_id: number;
-  cuenta_pago_id?: number | null;
+  cuenta_pago_id: number;
   operador_id: number;
   cliente_id?: number | null;
   nombre_cliente?: string;

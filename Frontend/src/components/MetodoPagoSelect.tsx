@@ -52,9 +52,12 @@ export function MetodoPagoSelect({
       .then((data) => {
         if (!active) return;
         setCuentasState({ metodoId: value, items: data });
+        const cuentaActual = data.find((cuenta) => String(cuenta.id) === cuentaValue);
+        onCuentaChange(String((cuentaActual ?? data[0])?.id ?? ''));
       })
       .catch((err) => {
         if (isAbortError(err)) return;
+        if (active) onCuentaChange('');
       });
 
     return () => { active = false; };
@@ -71,17 +74,18 @@ export function MetodoPagoSelect({
         options={metodos.length === 0 ? [{ value: '', label: emptyLabel, disabled: true }] : metodos.map((metodo) => ({ value: String(metodo.id), label: metodo.nombre, description: metodo.moneda, icon: metodoPagoIcon(metodo) }))}
         align="left"
       />
-      {cuentas.length > 0 && onCuentaChange && (
+      {value && onCuentaChange && (
         <FloatingSelect
           value={cuentaValue}
           onChange={onCuentaChange}
           disabled={disabled}
-          placeholder="Cuenta de pago"
+          placeholder={cuentas.length ? 'Cuenta de pago' : 'Sin cuentas activas'}
           ariaLabel="Cuenta de pago"
-          options={cuentas.map((cuenta) => ({
+          options={(cuentas.length ? cuentas : [{ id: 0, alias: 'Sin cuentas activas', titular: 'Configura una cuenta en Administracion' } as MetodoPagoCuenta]).map((cuenta) => ({
             value: String(cuenta.id),
             label: cuenta.alias,
             description: cuenta.titular,
+            disabled: cuenta.id === 0,
           }))}
           align="left"
         />

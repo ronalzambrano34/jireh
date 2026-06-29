@@ -244,7 +244,7 @@ export function SaldoForm({
       idempotency_key: form.idempotency_key,
       telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
       tipo_pago_id: Number(form.tipo_pago_id),
-      cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
+      cuenta_pago_id: Number(form.cuenta_pago_id),
       operador_id: operadorId,
       cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
       nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,

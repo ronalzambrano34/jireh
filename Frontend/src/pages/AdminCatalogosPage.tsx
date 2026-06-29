@@ -485,8 +485,19 @@ export function AdminCatalogosPage() {
 
   const mostrarActivos = estadoVista === 'activos';
   const metodosVisibles = useMemo(() => metodos.filter((metodo) => metodo.activo === mostrarActivos), [metodos, mostrarActivos]);
-  const puntosVisibles = useMemo(() => puntos.filter((punto) => punto.activo === mostrarActivos), [puntos, mostrarActivos]);
+  const puntosVisibles = useMemo(
+    () => puntos.filter((punto) => (
+      mostrarActivos
+        ? punto.activo && punto.provincia_activa
+        : !punto.activo || !punto.provincia_activa
+    )),
+    [puntos, mostrarActivos],
+  );
   const provinciasVisibles = useMemo(() => provincias.filter((provincia) => provincia.activo === mostrarActivos), [provincias, mostrarActivos]);
+  const provinciasPuntoSelect = useMemo(() => {
+    const actual = provincias.find((provincia) => String(provincia.id) === puntoForm.provincia_id);
+    return provincias.filter((provincia) => provincia.activo || provincia.id === actual?.id);
+  }, [provincias, puntoForm.provincia_id]);
   const ofertasVisibles = useMemo(() => ofertas.filter((oferta) => oferta.activa === mostrarActivos), [ofertas, mostrarActivos]);
   const ofertasPorServicio = useMemo(() => {
     const grupos = new Map<string, Oferta[]>();
@@ -2237,7 +2248,7 @@ export function AdminCatalogosPage() {
           <form className="stack-form modal-form" onSubmit={guardarPunto}>
             <input value={puntoForm.nombre} onChange={(event) => setPuntoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <input value={puntoForm.direccion} onChange={(event) => setPuntoForm((current) => ({ ...current, direccion: event.target.value }))} placeholder="Direccion" required />
-            <FloatingSelect value={puntoForm.provincia_id} onChange={(value) => setPuntoForm((current) => ({ ...current, provincia_id: value }))} options={provincias.map((provincia) => ({ value: String(provincia.id), label: provincia.nombre, description: provincia.activo ? 'Habilitada' : 'Deshabilitada' }))} ariaLabel="Provincia" align="left" />
+            <FloatingSelect value={puntoForm.provincia_id} onChange={(value) => setPuntoForm((current) => ({ ...current, provincia_id: value }))} options={provinciasPuntoSelect.map((provincia) => ({ value: String(provincia.id), label: provincia.nombre, description: provincia.activo ? 'Habilitada' : 'Deshabilitada', disabled: !provincia.activo }))} ariaLabel="Provincia" align="left" />
             <PhoneInput value={puntoForm.telefono} onChange={(value) => setPuntoForm((current) => ({ ...current, telefono: value }))} defaultCode="+53" pasteTitle="Pegar telefono" />
             {puntoEditando && (
               <label className="permission-switch-row">

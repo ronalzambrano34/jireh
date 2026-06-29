@@ -151,34 +151,36 @@ def _generar_mensaje_pago_cliente(
     cliente: Cliente,
     metodo_pago: MetodoPago
 ):
-    try:
-        datos_pago = obtener_datos_pago(
-            db,
-            pedido.moneda_pago,
-            _metodo_pago_key(metodo_pago.nombre),
-            metodo_pago=metodo_pago,
-            cuenta_pago=(
-                db.query(MetodoPagoCuenta)
-                .filter(MetodoPagoCuenta.id == pedido.cuenta_pago_id)
-                .first()
-                if pedido.cuenta_pago_id
-                else None
-            )
+    cuenta_pago = (
+        db.query(MetodoPagoCuenta)
+        .filter(
+            MetodoPagoCuenta.id == pedido.cuenta_pago_id,
+            MetodoPagoCuenta.metodo_pago_id == metodo_pago.id,
+            MetodoPagoCuenta.activa == True
         )
-    except Exception:
-        datos_pago = {
-            "metodo_pago": metodo_pago.nombre,
-            "cuenta_pago": "Por confirmar",
-            "titular_pago": "El Jireh"
-        }
+        .first()
+    )
+
+    if not cuenta_pago:
+        raise Exception(
+            "Cuenta de pago no encontrada para instrucciones"
+        )
+
+    datos_pago = obtener_datos_pago(
+        db,
+        pedido.moneda_pago,
+        _metodo_pago_key(metodo_pago.nombre),
+        metodo_pago=metodo_pago,
+        cuenta_pago=cuenta_pago
+    )
 
     mensaje = (
         "*El Jireh - Instrucciones de pago*\n"
         f"Hola {cliente.nombre}, tu pedido {pedido.codigo_operacion} fue recibido.\n"
         f"*Monto a pagar:* {formatear_valor_template(pedido.monto_pago)} {pedido.moneda_pago}\n"
         f"*Metodo:* {datos_pago.get('metodo_pago') or metodo_pago.nombre}\n"
-        f"*Cuenta:* {datos_pago.get('cuenta_pago') or 'Por confirmar'}\n"
-        f"*Titular:* {datos_pago.get('titular_pago') or 'El Jireh'}\n"
+        f"*Cuenta:* {datos_pago.get('cuenta_pago')}\n"
+        f"*Titular:* {datos_pago.get('titular_pago')}\n"
         "Cuando realices el pago, envia el comprobante por este chat para confirmar la orden."
     )
 
@@ -190,8 +192,8 @@ def _generar_mensaje_pago_cliente(
         ),
         "datos_pago": {
             "metodo_pago": datos_pago.get("metodo_pago") or metodo_pago.nombre,
-            "cuenta_pago": datos_pago.get("cuenta_pago") or "Por confirmar",
-            "titular_pago": datos_pago.get("titular_pago") or "El Jireh",
+            "cuenta_pago": datos_pago.get("cuenta_pago"),
+            "titular_pago": datos_pago.get("titular_pago"),
             "qr_pago_url": datos_pago.get("qr_pago_url")
         }
     }
@@ -924,32 +926,23 @@ def crear_pedido(
 
     cuenta_pago = None
     cuenta_pago_id = data.get("cuenta_pago_id")
-    if cuenta_pago_id is not None:
-        cuenta_pago = (
-            db.query(MetodoPagoCuenta)
-            .filter(
-                MetodoPagoCuenta.id == cuenta_pago_id,
-                MetodoPagoCuenta.metodo_pago_id == metodo_pago.id,
-                MetodoPagoCuenta.activa == True
-            )
-            .first()
+    if _valor_vacio(cuenta_pago_id):
+        raise Exception(
+            "La cuenta de pago es obligatoria"
         )
-        if not cuenta_pago:
-            raise Exception(
-                "La cuenta seleccionada no pertenece al metodo de pago o esta inactiva"
-            )
-    else:
-        cuenta_pago = (
-            db.query(MetodoPagoCuenta)
-            .filter(
-                MetodoPagoCuenta.metodo_pago_id == metodo_pago.id,
-                MetodoPagoCuenta.activa == True
-            )
-            .order_by(
-                MetodoPagoCuenta.predeterminada.desc(),
-                MetodoPagoCuenta.id.asc()
-            )
-            .first()
+
+    cuenta_pago = (
+        db.query(MetodoPagoCuenta)
+        .filter(
+            MetodoPagoCuenta.id == cuenta_pago_id,
+            MetodoPagoCuenta.metodo_pago_id == metodo_pago.id,
+            MetodoPagoCuenta.activa == True
+        )
+        .first()
+    )
+    if not cuenta_pago:
+        raise Exception(
+            "La cuenta seleccionada no pertenece al metodo de pago o esta inactiva"
         )
 
     _validar_datos_servicio(
@@ -1005,7 +998,7 @@ def crear_pedido(
         ],
 
         cuenta_pago_id=
-        cuenta_pago.id if cuenta_pago else None,
+        cuenta_pago.id,
 
         oferta_id=
         calculo.get(

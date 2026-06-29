@@ -24,7 +24,11 @@ function joinPhone(code: string, local: string) {
 
 export function PhoneInput({ value, inputId, onChange, defaultCode = '+53', required = false, pasteTitle = 'Pegar telefono', autoComplete = 'tel', actions, codeLocked = false, showPaste = true }: PhoneInputProps) {
   const { selected, local } = useMemo(() => separarTelefono(value, defaultCode, codeLocked), [codeLocked, defaultCode, value]);
-  const phoneCodeOptions = usePhoneCodeOptions([selected, defaultCode]);
+  const preserveSelected = codeLocked || local.replace(/\D/g, '').length > 0;
+  const phoneCodeOptions = usePhoneCodeOptions(preserveSelected ? [selected] : []);
+  const selectedCode = phoneCodeOptions.some((item) => item.code === selected)
+    ? selected
+    : phoneCodeOptions[0]?.code ?? selected;
   const updateLocal = (code: string, nextLocal: string) => {
     const joined = joinPhone(code, nextLocal);
     onChange(code === '+598' ? normalizarTelefono(joined, code, true) : joined);
@@ -39,15 +43,15 @@ export function PhoneInput({ value, inputId, onChange, defaultCode = '+53', requ
     <span className={className}>
       <FloatingSelect
         className="phone-code-select-floating"
-        value={selected}
+        value={selectedCode}
         onChange={(next) => updateLocal(next, local)}
         disabled={codeLocked}
         ariaLabel="Codigo de pais"
         options={phoneCodeOptions.map((item) => ({ value: item.code, label: item.code, description: item.label, icon: item.flag }))}
         align="left"
       />
-      <input id={inputId} value={local} onChange={(event) => updateLocal(selected, event.target.value)} required={required} inputMode="tel" autoComplete={autoComplete} />
-      {showPaste && <PasteButton onPaste={(pasted) => onChange(normalizarTelefono(pasted, selected, codeLocked))} title={pasteTitle} />}
+      <input id={inputId} value={local} onChange={(event) => updateLocal(selectedCode, event.target.value)} required={required} inputMode="tel" autoComplete={autoComplete} />
+      {showPaste && <PasteButton onPaste={(pasted) => onChange(normalizarTelefono(pasted, selectedCode, codeLocked))} title={pasteTitle} />}
       {actions}
     </span>
   );
