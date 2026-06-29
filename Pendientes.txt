@@ -1,42 +1,76 @@
 PENDIENTES:
 
-IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al referir o al registrarse en el sistema, va a ganar unos bonos de un solo uso que podran elegir si usar a la hora de realizar un pedido
-
-//todo
-- Revisado: Configuracion inicial incluye Provincias, Puntos de recogida, Operadores, Metodos de pago, Monedas de pago y Cuentas de pago.
-
-//todo 
-
-//todo REVISION GENERAL - CONECTIVIDAD, PETICIONES Y ESTABILIDAD:
-
-- Crear una prueba manual de campo para baja conectividad: crear pedido, subir comprobante, confirmar pago, finalizar y reabrir app.
-
-//todo
-
-Haz una actualizacin del "Manual de Negocio.txt" con todas las cosas nuevas y luego de actualizado, agrega en "Pendientes.txt" todo lo que quede pendiente para cierre de la fase 1
+IDEA A FUTURO:
+- El sistema tendra un generador de bonos. Los usuarios, al referir o registrarse, podran ganar bonos de un solo uso para aplicar en un pedido futuro.
 
 //todo FASE 1 - PENDIENTE PARA CIERRE:
+
+//todo Pruebas operativas reales
 - Probar flujo completo contra API real: transferencia, efectivo, saldo, divisa y otros.
-- Pendiente manual: ejecutar protocolo de `docs/pruebas-conectividad.md` en navegador/dispositivo real con red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
+- Probar creacion desde Inicio/Home Test usando oferta o paquete precargado.
+- Probar confirmacion de pago al crear pedido y desde detalle.
+- Probar finalizacion con comprobante y finalizacion sin comprobante.
 - Probar WhatsApp manual: instrucciones al cliente, grupo operativo, grupo finalizado y reenvio desde detalle.
+- Probar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
 
+//todo Conectividad, offline y duplicados
+- Ejecutar protocolo de `docs/pruebas-conectividad.md`: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
+- Validar que la PWA abra sin internet despues de una carga previa cacheada.
+- Validar cola offline: crear pedido, finalizar pedido, sincronizar al reconectar y refrescar pedidos al terminar.
+- Validar que las lecturas puedan reintentarse, pero las acciones que modifican datos no se repitan sin control.
+- Confirmar que una recarga fallida no borre los datos visibles de pantalla.
+- Confirmar que el polling no sea agresivo en red lenta ni cuando la app esta en segundo plano.
+- Revisado en codigo: botones de accion bloqueados mientras una peticion esta en proceso en Admin, Perfil, Reportes, Configuracion inicial, creacion y detalle de pedido.
+- Revisado en codigo y prueba focalizada: idempotencia de pedidos, historial y archivos; notificaciones deduplicadas por ID al reconectar/refrescar.
+
+//todo Uploads, storage y archivos
 - Validar uploads con progreso, error claro y reintento manual.
-- Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
-- Revisado: comportamiento offline PWA definido. Abre con cache tras una carga previa; crear pedidos sin archivos y finalizar sin comprobante quedan en cola local; uploads, confirmar pago con comprobante, tomar, liberar, transferir, cancelar, admin, reportes y configuracion inicial requieren conexion; se conservan borradores y datos visibles ya cargados.
+- Validar que no se suba dos veces el mismo archivo por doble tap o reintento accidental.
 - Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
-- Re-subir/verificar fotos existentes que se hayan perdido por storage local anterior.
+- Re-subir o verificar fotos/archivos existentes que se hayan perdido por storage local anterior.
+- Probar limite de archivo grande y tipos MIME permitidos.
 - Configurar y probar backups de base de datos y storage.
-- Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
-- Probar notificaciones: nuevo pedido, pedido transferido, pedido atrasado, marcar leido, eliminar y silenciar tipo.
-- Validar que una notificacion no abra un pedido tomado por otro operador.
-- Validar que atraso de mas de 10 minutos se muestre rojo en Pedidos y Notificaciones.
-- Revisar que al cerrar, liberar, cancelar, transferir o finalizar pedido se limpien filtros activos que puedan confundir al operador.
-- Validar templates: operador, metodo/cuenta de pago, punto de recogida, observaciones y variables vacias sin imprimir llaves.
-- Revisar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
-- Ejecutar smoke tests backend y build frontend antes de marcar cierre.
-- Revisar UI movil final: footer, botones flotantes, modales, toasts, filtros y detalle pedido sin tapar contenido.
-- Agregar auditoria minima por usuario en acciones sensibles o dejar definida como bloqueo antes de produccion completa.
-- Documentar procedimiento operativo diario: abrir sistema, sincronizar ofertas, crear pedido, confirmar pago, finalizar, reportar y resolver fallos.
-- Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
-//todo 
+//todo Roles, permisos y seguridad
+- Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
+- Confirmar que usuarios sin permisos no vean ni ejecuten Admin, Reportes ni acciones restringidas.
+- Validar que crear operador exija contrasena.
+- Definir si auditoria minima por usuario queda dentro de fase 1 o como bloqueo documentado para produccion completa.
+- Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
+- Probar endpoints protegidos sin token, con token vencido y con permisos insuficientes.
+
+//todo Catalogos y configuracion inicial
+- Validar Configuracion inicial con Provincias, Puntos de recogida, Operadores, Metodos de pago, Monedas de pago y Cuentas de pago.
+- Validar Monedas de pago: BRL y UYU activas por defecto; monedas inactivas no aparecen en Inicio, Nuevo pedido ni Reportes.
+- Validar Codigos de pais: Cuba, Brasil y Uruguay activos por defecto; codigos inactivos no aparecen en formularios nuevos.
+- Validar Metodos de pago y Cuentas de pago: cuenta obligatoria, cuenta correcta en instrucciones y templates.
+- Validar Provincias y Puntos de recogida: no mostrar puntos de provincias inactivas.
+
+//todo Pedidos, notificaciones y conflictos
+- Validar que Pedidos cargue Todos por defecto para operadores y Mis pedidos solo para clientes o usuarios sin alcance general.
+- Validar que tomar/liberar/transferir pedido resista latencia alta y conflictos entre operadores.
+- Validado en codigo: una notificacion consulta el pedido actualizado y no abre detalle si ya esta tomado por otro operador; se queda en Pedidos.
+- Validar notificaciones: nuevo pedido, pedido transferido, pedido atrasado, marcar leido, eliminar y silenciar tipo.
+- Validar que los pedidos atrasados solo se notifiquen si no han sido tomados por un operador.
+- Validar que al cerrar, liberar, cancelar, transferir o finalizar pedido se limpien filtros activos que puedan confundir al operador.
+- Validar que el historial incluya creacion del pedido como primer registro.
+
+//todo Templates y WhatsApp
+- Validar templates: {operador}, metodo/cuenta de pago, punto de recogida, observaciones y variables vacias sin imprimir llaves.
+- Validado en codigo y prueba focalizada: template de Otros imprime observaciones como descripcion del pedido y punto de recogida como nombre, no como id.
+- Validar que telefono_destinatario y telefono no generen ambiguedad en mensajes.
+- Validar que reenviar mensaje operativo desde detalle abra un solo modal/formulario de WhatsApp.
+- Validar que finalizar sin comprobante no adjunte evidencias anteriores como comprobante final.
+
+//todo UI movil y PWA
+- Revisado: UI movil final ajustada para footer, botones flotantes, modales, toasts, filtros, detalle pedido y formularios sin tapar contenido; pendiente validacion visual en dispositivo real.
+- Validar icono PWA instalado: redondeado, sin borde azul y con fondo acorde al logo.
+- Validar boton atras del telefono: atras de vista, cerrar vista y doble atras en Home para cerrar app.
+- Validar menu lateral al cambiar entre desktop y telefono.
+
+
+//todo FASE 2 / POSTERIOR
+- Integracion real con WhatsApp API.
+- Antifraude operativo: hash de comprobantes, comprobante duplicado, revision y bloqueo.
+- Conciliacion contable por metodo/cuenta de pago.
+- Portal de clientes, referidos, bonos y promociones.

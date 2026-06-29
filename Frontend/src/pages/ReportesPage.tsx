@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CalendarRange, Download, Landmark, MinusCircle } from 'lucide-react';
 import { crearExtraccionCuenta, descargarOperacionesExcel, descargarReporteCsv, listarExtraccionesCuenta, listarSaldosCuenta, obtenerReporte } from '../api/client';
 import {
@@ -82,6 +82,8 @@ export function ReportesPage() {
   const [exportFilters, setExportFilters] = useState<ReportFilterState>(() => filters);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const guardandoExtraccionRef = useRef(false);
+  const exportandoRef = useRef(false);
 
   async function cargarOperadores(signal?: AbortSignal) {
     setOperadoresLoading(true);
@@ -153,11 +155,12 @@ export function ReportesPage() {
   }
 
   async function registrarExtraccion() {
-    if (guardandoExtraccion) return;
+    if (guardandoExtraccionRef.current) return;
     if (!extraccion.cuenta_pago_id || Number(extraccion.monto) <= 0 || !extraccion.motivo.trim()) {
       setError('Selecciona una cuenta, escribe un monto valido y el motivo');
       return;
     }
+    guardandoExtraccionRef.current = true;
     setGuardandoExtraccion(true);
     setError(null);
     try {
@@ -175,6 +178,7 @@ export function ReportesPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo registrar la extraccion');
     } finally {
+      guardandoExtraccionRef.current = false;
       setGuardandoExtraccion(false);
     }
   }
@@ -231,8 +235,9 @@ export function ReportesPage() {
   }
 
   async function exportarExcel(filtrosExportacion = exportFilters) {
-    if (exportando) return;
+    if (exportandoRef.current) return;
     if (!validarRangoExportacion(filtrosExportacion)) return;
+    exportandoRef.current = true;
     setExportando('excel');
     setError(null);
     try {
@@ -247,13 +252,15 @@ export function ReportesPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar el Excel');
     } finally {
+      exportandoRef.current = false;
       setExportando(null);
     }
   }
 
   async function exportarCsv(filtrosExportacion = exportFilters) {
-    if (exportando) return;
+    if (exportandoRef.current) return;
     if (!validarRangoExportacion(filtrosExportacion)) return;
+    exportandoRef.current = true;
     setExportando('csv');
     setError(null);
     try {
@@ -268,6 +275,7 @@ export function ReportesPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar el CSV');
     } finally {
+      exportandoRef.current = false;
       setExportando(null);
     }
   }

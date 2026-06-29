@@ -444,8 +444,10 @@ export function AdminCatalogosPage() {
   const [metodoEditSaving, setMetodoEditSaving] = useState(false);
   const [cuentaMetodoSaving, setCuentaMetodoSaving] = useState(false);
   const [promoUploading, setPromoUploading] = useState(false);
+  const [promoSaving, setPromoSaving] = useState(false);
   const [monedasSaving, setMonedasSaving] = useState(false);
   const [codigosPaisSaving, setCodigosPaisSaving] = useState(false);
+  const [accionAdminEnProceso, setAccionAdminEnProceso] = useState(false);
   const [metodoUploadProgress, setMetodoUploadProgress] = useState<number | null>(null);
   const [metodoUploadError, setMetodoUploadError] = useState<string | null>(null);
   const [promoUploadProgress, setPromoUploadProgress] = useState<number | null>(null);
@@ -469,7 +471,17 @@ export function AdminCatalogosPage() {
   const metodoUploadingRef = useRef(false);
   const promoUploadingRef = useRef(false);
   const promoSavingRef = useRef(false);
+  const accionAdminEnProcesoRef = useRef(false);
   const loading = temaActivo ? temasCargando.has(temaActivo) : false;
+  const adminActionBusy = accionAdminEnProceso
+    || metodoSaving
+    || metodoEditSaving
+    || cuentaMetodoSaving
+    || promoSaving
+    || promoUploading
+    || metodoUploading
+    || monedasSaving
+    || codigosPaisSaving;
 
   const mostrarActivos = estadoVista === 'activos';
   const metodosVisibles = useMemo(() => metodos.filter((metodo) => metodo.activo === mostrarActivos), [metodos, mostrarActivos]);
@@ -631,6 +643,18 @@ export function AdminCatalogosPage() {
     if (temaActivo) await cargarTema(temaActivo, true);
   }
 
+  async function ejecutarAccionAdmin(action: () => Promise<void>) {
+    if (accionAdminEnProcesoRef.current) return;
+    accionAdminEnProcesoRef.current = true;
+    setAccionAdminEnProceso(true);
+    try {
+      await action();
+    } finally {
+      accionAdminEnProcesoRef.current = false;
+      setAccionAdminEnProceso(false);
+    }
+  }
+
   useAbortableEffect((signal) => {
     if (temaActivo) void cargarTema(temaActivo, false, signal);
   }, []);
@@ -725,189 +749,203 @@ export function AdminCatalogosPage() {
 
   async function guardarMetodo(event: FormEvent) {
     event.preventDefault();
-    if (metodoSaving) return;
-    setError(null);
-    setNotice(null);
-    setMetodoSaving(true);
-    try {
-      await crearMetodoPago({
-        nombre: metodoForm.nombre,
-        moneda: metodoForm.moneda,
-        imagen_url: metodoForm.imagen_url || undefined,
-      });
-      setMetodoForm({ nombre: '', moneda: metodoForm.moneda, imagen_url: '', activo: true });
-      setNotice('Metodo de pago creado');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el metodo');
-    } finally {
-      setMetodoSaving(false);
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (metodoSaving) return;
+      setError(null);
+      setNotice(null);
+      setMetodoSaving(true);
+      try {
+        await crearMetodoPago({
+          nombre: metodoForm.nombre,
+          moneda: metodoForm.moneda,
+          imagen_url: metodoForm.imagen_url || undefined,
+        });
+        setMetodoForm({ nombre: '', moneda: metodoForm.moneda, imagen_url: '', activo: true });
+        setNotice('Metodo de pago creado');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el metodo');
+      } finally {
+        setMetodoSaving(false);
+      }
+    });
   }
 
   async function guardarPunto(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      const payload = {
-        nombre: puntoForm.nombre,
-        direccion: puntoForm.direccion,
-        telefono: puntoForm.telefono || undefined,
-        provincia_id: puntoForm.provincia_id ? Number(puntoForm.provincia_id) : null,
-      };
-      if (puntoEditando) {
-        await actualizarPuntoRecogida(puntoEditando.id, { ...payload, activo: puntoForm.activo });
-      } else {
-        await crearPuntoRecogida(payload);
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        const payload = {
+          nombre: puntoForm.nombre,
+          direccion: puntoForm.direccion,
+          telefono: puntoForm.telefono || undefined,
+          provincia_id: puntoForm.provincia_id ? Number(puntoForm.provincia_id) : null,
+        };
+        if (puntoEditando) {
+          await actualizarPuntoRecogida(puntoEditando.id, { ...payload, activo: puntoForm.activo });
+        } else {
+          await crearPuntoRecogida(payload);
+        }
+        setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: '', activo: true });
+        setNotice(puntoEditando ? 'Punto de recogida actualizado' : 'Punto de recogida creado');
+        setPuntoEditando(null);
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el punto');
       }
-      setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: '', activo: true });
-      setNotice(puntoEditando ? 'Punto de recogida actualizado' : 'Punto de recogida creado');
-      setPuntoEditando(null);
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el punto');
-    }
+    });
   }
 
 
   async function guardarProvincia(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      if (provinciaEditando) {
-        await actualizarProvinciaServicio(provinciaEditando.id, provinciaForm);
-      } else {
-        await crearProvinciaServicio(provinciaForm);
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        if (provinciaEditando) {
+          await actualizarProvinciaServicio(provinciaEditando.id, provinciaForm);
+        } else {
+          await crearProvinciaServicio(provinciaForm);
+        }
+        setProvinciaForm({ nombre: '', activo: false });
+        setNotice(provinciaEditando ? 'Provincia de servicio actualizada' : 'Provincia de servicio creada');
+        setProvinciaEditando(null);
+        setCrearModalTema(null);
+        setEstadoVista(provinciaForm.activo ? 'activos' : 'inactivos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear la provincia');
       }
-      setProvinciaForm({ nombre: '', activo: false });
-      setNotice(provinciaEditando ? 'Provincia de servicio actualizada' : 'Provincia de servicio creada');
-      setProvinciaEditando(null);
-      setCrearModalTema(null);
-      setEstadoVista(provinciaForm.activo ? 'activos' : 'inactivos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la provincia');
-    }
+    });
   }
 
 
   async function guardarOferta(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await crearOferta({
-        servicio: ofertaForm.servicio,
-        nombre: ofertaForm.nombre || undefined,
-        tasa: Number(ofertaForm.tasa),
-        minimo_pago: Number(ofertaForm.minimo_pago),
-        moneda_pago: ofertaForm.moneda_pago,
-        origen: 'manual',
-      });
-      setOfertaForm((current) => ({ ...current, nombre: '' }));
-      setNotice('Oferta creada');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la oferta');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await crearOferta({
+          servicio: ofertaForm.servicio,
+          nombre: ofertaForm.nombre || undefined,
+          tasa: Number(ofertaForm.tasa),
+          minimo_pago: Number(ofertaForm.minimo_pago),
+          moneda_pago: ofertaForm.moneda_pago,
+          origen: 'manual',
+        });
+        setOfertaForm((current) => ({ ...current, nombre: '' }));
+        setNotice('Oferta creada');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear la oferta');
+      }
+    });
   }
 
   async function guardarPaquete(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await crearPaqueteSaldo({
-        nombre: paqueteForm.nombre,
-        monto_pago: Number(paqueteForm.monto_pago),
-        moneda_pago: paqueteForm.moneda_pago,
-        saldo_cup: Number(paqueteForm.saldo_cup),
-        origen: 'manual',
-      });
-      setPaqueteForm((current) => ({ ...current, nombre: '' }));
-      setNotice('Paquete creado');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el paquete');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await crearPaqueteSaldo({
+          nombre: paqueteForm.nombre,
+          monto_pago: Number(paqueteForm.monto_pago),
+          moneda_pago: paqueteForm.moneda_pago,
+          saldo_cup: Number(paqueteForm.saldo_cup),
+          origen: 'manual',
+        });
+        setPaqueteForm((current) => ({ ...current, nombre: '' }));
+        setNotice('Paquete creado');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el paquete');
+      }
+    });
   }
 
 
   async function guardarPromocion(event: FormEvent) {
     event.preventDefault();
-    if (promoSavingRef.current) return;
-    setError(null);
-    setNotice(null);
-    if (promoForm.tipo === 'promocion' && !promoFile && !promoForm.imagen_url) {
-      setError('La imagen es obligatoria para una promocion');
-      return;
-    }
-    promoSavingRef.current = true;
-    try {
-      const creada = await crearPromocion({
-        tipo: promoForm.tipo,
-        titulo: promoForm.titulo,
-        subtitulo: promoForm.subtitulo,
-        descripcion: promoForm.descripcion,
-        imagen_url: promoForm.imagen_url || undefined,
-        orden: Number(promoForm.orden) || 0,
-        fecha_desde: promoForm.fecha_desde,
-        fecha_hasta: promoForm.fecha_hasta,
-        activa: promoForm.activa,
-      });
-      if (promoFile) {
-        const file = promoFile;
-        const completarSubida = async () => {
-          setError(null);
-          setPromoUploadProgress(0);
-          setPromoUploadError(null);
-          try {
-            await subirImagenPromocion(creada.id, file, {
-              onProgress: (progress) => setPromoUploadProgress(progress.percent),
-            });
-            retryPromoUploadRef.current = null;
-            setPromoForm(nuevoSlideForm());
-            setPromoFile(null);
-            setPromoFilePreview('');
-            setPromoUploadProgress(null);
-            setNotice('Promocion creada');
-            setCrearModalTema(null);
-            setEstadoVista('activos');
-            await cargar();
-          } catch (err) {
-            const detalle = err instanceof Error ? err.message : 'No se pudo subir la imagen';
-            retryPromoUploadRef.current = () => void completarSubida();
-            setPromoUploadError(detalle);
-            setError(`El slide fue creado, pero la imagen no se subio: ${detalle}`);
-          }
-        };
-        retryPromoUploadRef.current = () => void completarSubida();
-        await completarSubida();
+    await ejecutarAccionAdmin(async () => {
+      if (promoSavingRef.current) return;
+      setError(null);
+      setNotice(null);
+      if (promoForm.tipo === 'promocion' && !promoFile && !promoForm.imagen_url) {
+        setError('La imagen es obligatoria para una promocion');
         return;
       }
-      setPromoForm(nuevoSlideForm());
-      setPromoFile(null);
-      setPromoFilePreview('');
-      setPromoUploadProgress(null);
-      setNotice('Promocion creada');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear la promocion');
-    } finally {
-      promoSavingRef.current = false;
-    }
+      promoSavingRef.current = true;
+      setPromoSaving(true);
+      try {
+        const creada = await crearPromocion({
+          tipo: promoForm.tipo,
+          titulo: promoForm.titulo,
+          subtitulo: promoForm.subtitulo,
+          descripcion: promoForm.descripcion,
+          imagen_url: promoForm.imagen_url || undefined,
+          orden: Number(promoForm.orden) || 0,
+          fecha_desde: promoForm.fecha_desde,
+          fecha_hasta: promoForm.fecha_hasta,
+          activa: promoForm.activa,
+        });
+        if (promoFile) {
+          const file = promoFile;
+          const completarSubida = async () => {
+            setError(null);
+            setPromoUploadProgress(0);
+            setPromoUploadError(null);
+            try {
+              await subirImagenPromocion(creada.id, file, {
+                onProgress: (progress) => setPromoUploadProgress(progress.percent),
+              });
+              retryPromoUploadRef.current = null;
+              setPromoForm(nuevoSlideForm());
+              setPromoFile(null);
+              setPromoFilePreview('');
+              setPromoUploadProgress(null);
+              setNotice('Promocion creada');
+              setCrearModalTema(null);
+              setEstadoVista('activos');
+              await cargar();
+            } catch (err) {
+              const detalle = err instanceof Error ? err.message : 'No se pudo subir la imagen';
+              retryPromoUploadRef.current = () => void completarSubida();
+              setPromoUploadError(detalle);
+              setError(`El slide fue creado, pero la imagen no se subio: ${detalle}`);
+            }
+          };
+          retryPromoUploadRef.current = () => void completarSubida();
+          await completarSubida();
+          return;
+        }
+        setPromoForm(nuevoSlideForm());
+        setPromoFile(null);
+        setPromoFilePreview('');
+        setPromoUploadProgress(null);
+        setNotice('Promocion creada');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear la promocion');
+      } finally {
+        promoSavingRef.current = false;
+        setPromoSaving(false);
+      }
+    });
   }
 
   function abrirEditarPromocion(promocion: Promocion) {
@@ -934,60 +972,64 @@ export function AdminCatalogosPage() {
 
   async function guardarPromocionEditada(event: FormEvent) {
     event.preventDefault();
-    if (!promoEditando || promoSavingRef.current) return;
-    promoSavingRef.current = true;
-    setError(null);
-    setNotice(null);
-    try {
-      const actualizada = await actualizarPromocion(promoEditando.id, {
-        tipo: promoForm.tipo,
-        titulo: promoForm.titulo,
-        subtitulo: promoForm.subtitulo,
-        descripcion: promoForm.descripcion,
-        imagen_url: promoForm.imagen_url || null,
-        orden: Number(promoForm.orden) || 0,
-        fecha_desde: promoForm.fecha_desde,
-        fecha_hasta: promoForm.fecha_hasta,
-        activa: promoForm.activa,
-      });
-      let final = actualizada;
-      if (promoFile) {
-        const file = promoFile;
-        retryPromoUploadRef.current = () => void subirImagenPromo(file);
-        setPromoUploadProgress(0);
-        setPromoUploadError(null);
-        try {
-          final = await subirImagenPromocion(promoEditando.id, file, {
-            onProgress: (progress) => setPromoUploadProgress(progress.percent),
-          });
-          retryPromoUploadRef.current = null;
-        } catch (err) {
-          setPromoUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
-          throw err;
+    await ejecutarAccionAdmin(async () => {
+      if (!promoEditando || promoSavingRef.current) return;
+      promoSavingRef.current = true;
+      setPromoSaving(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const actualizada = await actualizarPromocion(promoEditando.id, {
+          tipo: promoForm.tipo,
+          titulo: promoForm.titulo,
+          subtitulo: promoForm.subtitulo,
+          descripcion: promoForm.descripcion,
+          imagen_url: promoForm.imagen_url || null,
+          orden: Number(promoForm.orden) || 0,
+          fecha_desde: promoForm.fecha_desde,
+          fecha_hasta: promoForm.fecha_hasta,
+          activa: promoForm.activa,
+        });
+        let final = actualizada;
+        if (promoFile) {
+          const file = promoFile;
+          retryPromoUploadRef.current = () => void subirImagenPromo(file);
+          setPromoUploadProgress(0);
+          setPromoUploadError(null);
+          try {
+            final = await subirImagenPromocion(promoEditando.id, file, {
+              onProgress: (progress) => setPromoUploadProgress(progress.percent),
+            });
+            retryPromoUploadRef.current = null;
+          } catch (err) {
+            setPromoUploadError(err instanceof Error ? err.message : 'No se pudo subir la imagen');
+            throw err;
+          }
         }
+        setPromoEditando(final);
+        setPromoForm({
+          tipo: final.tipo,
+          titulo: final.titulo,
+          subtitulo: final.subtitulo,
+          descripcion: final.descripcion,
+          imagen_url: final.imagen_url,
+          orden: String(final.orden),
+          fecha_desde: fechaInputValue(final.fecha_desde),
+          fecha_hasta: fechaInputValue(final.fecha_hasta),
+          activa: final.activa,
+        });
+        setPromoFile(null);
+        setPromoFilePreview('');
+        setPromoUploadProgress(null);
+        setNotice('Promocion actualizada');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar la promocion');
+      } finally {
+        promoSavingRef.current = false;
+        setPromoSaving(false);
       }
-      setPromoEditando(final);
-      setPromoForm({
-        tipo: final.tipo,
-        titulo: final.titulo,
-        subtitulo: final.subtitulo,
-        descripcion: final.descripcion,
-        imagen_url: final.imagen_url,
-        orden: String(final.orden),
-        fecha_desde: fechaInputValue(final.fecha_desde),
-        fecha_hasta: fechaInputValue(final.fecha_hasta),
-        activa: final.activa,
-      });
-      setPromoFile(null);
-      setPromoFilePreview('');
-      setPromoUploadProgress(null);
-      setNotice('Promocion actualizada');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la promocion');
-    } finally {
-      promoSavingRef.current = false;
-    }
+    });
   }
 
   async function subirImagenPromo(file: File) {
@@ -1031,40 +1073,46 @@ export function AdminCatalogosPage() {
   }
 
   async function togglePromocion(promocion: Promocion) {
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarPromocion(promocion.id, { activa: !promocion.activa });
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el slide');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarPromocion(promocion.id, { activa: !promocion.activa });
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el slide');
+      }
+    });
   }
 
   async function desactivarPromocion(promocion: Promocion) {
-    setError(null);
-    setNotice(null);
-    try {
-      await eliminarPromocion(promocion.id);
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo eliminar el slide');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await eliminarPromocion(promocion.id);
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo eliminar el slide');
+      }
+    });
   }
 
 
   async function guardarConfig(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await guardarConfiguracion(configForm);
-      setNotice('Configuracion guardada');
-      cerrarModalAdmin('config');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar la configuracion');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await guardarConfiguracion(configForm);
+        setNotice('Configuracion guardada');
+        cerrarModalAdmin('config');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo guardar la configuracion');
+      }
+    });
   }
 
   async function persistirCatalogoMonedasPago(catalogo: MonedaPagoConfig[], mensaje: string) {
@@ -1104,51 +1152,57 @@ export function AdminCatalogosPage() {
 
   async function guardarMoneda(event: FormEvent) {
     event.preventDefault();
-    if (monedasSaving) return;
-    const moneda = formToMoneda(monedaForm);
-    if (!moneda.codigo) {
-      setError('El codigo de moneda es obligatorio');
-      return;
-    }
-    const codigoDuplicado = catalogoMonedasPago.some((item) => item.codigo === moneda.codigo && item.codigo !== monedaEditando?.codigo);
-    if (codigoDuplicado) {
-      setError('Ya existe una moneda con ese codigo');
-      return;
-    }
-    const nextCatalogo = monedaEditando
-      ? catalogoMonedasPago.map((item) => (item.codigo === monedaEditando.codigo ? moneda : item))
-      : [...catalogoMonedasPago, moneda];
-    const saved = await persistirCatalogoMonedasPago(nextCatalogo, monedaEditando ? 'Moneda actualizada' : 'Moneda creada');
-    if (saved) {
-      setMonedaEditando(null);
-      setMonedaForm(monedaFormVacia);
-      setCrearModalTema(null);
-      setEstadoVista(moneda.activa ? 'activos' : 'inactivos');
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (monedasSaving) return;
+      const moneda = formToMoneda(monedaForm);
+      if (!moneda.codigo) {
+        setError('El codigo de moneda es obligatorio');
+        return;
+      }
+      const codigoDuplicado = catalogoMonedasPago.some((item) => item.codigo === moneda.codigo && item.codigo !== monedaEditando?.codigo);
+      if (codigoDuplicado) {
+        setError('Ya existe una moneda con ese codigo');
+        return;
+      }
+      const nextCatalogo = monedaEditando
+        ? catalogoMonedasPago.map((item) => (item.codigo === monedaEditando.codigo ? moneda : item))
+        : [...catalogoMonedasPago, moneda];
+      const saved = await persistirCatalogoMonedasPago(nextCatalogo, monedaEditando ? 'Moneda actualizada' : 'Moneda creada');
+      if (saved) {
+        setMonedaEditando(null);
+        setMonedaForm(monedaFormVacia);
+        setCrearModalTema(null);
+        setEstadoVista(moneda.activa ? 'activos' : 'inactivos');
+      }
+    });
   }
 
   async function toggleMoneda(moneda: MonedaPagoConfig) {
-    if (monedasSaving) return;
-    if (moneda.activa && catalogoMonedasPago.filter((item) => item.activa).length === 1) {
-      setError('Debe quedar al menos una moneda activa');
-      return;
-    }
-    await persistirCatalogoMonedasPago(
-      catalogoMonedasPago.map((item) => (item.codigo === moneda.codigo ? { ...item, activa: !item.activa } : item)),
-      moneda.activa ? 'Moneda desactivada' : 'Moneda activada',
-    );
+    await ejecutarAccionAdmin(async () => {
+      if (monedasSaving) return;
+      if (moneda.activa && catalogoMonedasPago.filter((item) => item.activa).length === 1) {
+        setError('Debe quedar al menos una moneda activa');
+        return;
+      }
+      await persistirCatalogoMonedasPago(
+        catalogoMonedasPago.map((item) => (item.codigo === moneda.codigo ? { ...item, activa: !item.activa } : item)),
+        moneda.activa ? 'Moneda desactivada' : 'Moneda activada',
+      );
+    });
   }
 
   async function eliminarMoneda(moneda: MonedaPagoConfig) {
-    if (monedasSaving) return;
-    if (moneda.activa && catalogoMonedasPago.filter((item) => item.activa).length === 1) {
-      setError('Debe quedar al menos una moneda activa');
-      return;
-    }
-    await persistirCatalogoMonedasPago(
-      catalogoMonedasPago.filter((item) => item.codigo !== moneda.codigo),
-      'Moneda eliminada',
-    );
+    await ejecutarAccionAdmin(async () => {
+      if (monedasSaving) return;
+      if (moneda.activa && catalogoMonedasPago.filter((item) => item.activa).length === 1) {
+        setError('Debe quedar al menos una moneda activa');
+        return;
+      }
+      await persistirCatalogoMonedasPago(
+        catalogoMonedasPago.filter((item) => item.codigo !== moneda.codigo),
+        'Moneda eliminada',
+      );
+    });
   }
 
   function toggleCodigoPais(code: string) {
@@ -1179,104 +1233,112 @@ export function AdminCatalogosPage() {
   }
 
   async function guardarCodigosPais() {
-    if (codigosPaisSaving) return;
-    const codigos = normalizarCodigosPaisActivos(codigosPaisActivos);
-    setCodigosPaisSaving(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const guardada = await guardarConfiguracion({
-        clave: PHONE_CODES_CONFIG_KEY,
-        valor: JSON.stringify(codigos),
-      });
-      guardarCodigosPaisActivosLocal(codigos);
-      setCodigosPaisActivos(codigos);
-      setConfiguraciones((current) => {
-        const exists = current.some((item) => item.clave === PHONE_CODES_CONFIG_KEY);
-        if (exists) return current.map((item) => (item.clave === PHONE_CODES_CONFIG_KEY ? { ...item, valor: guardada.valor } : item));
-        return [...current, guardada];
-      });
-      setNotice('Codigos de pais actualizados');
-      marcarTemasCargados('configuracion');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron guardar los codigos de pais');
-    } finally {
-      setCodigosPaisSaving(false);
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (codigosPaisSaving) return;
+      const codigos = normalizarCodigosPaisActivos(codigosPaisActivos);
+      setCodigosPaisSaving(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const guardada = await guardarConfiguracion({
+          clave: PHONE_CODES_CONFIG_KEY,
+          valor: JSON.stringify(codigos),
+        });
+        guardarCodigosPaisActivosLocal(codigos);
+        setCodigosPaisActivos(codigos);
+        setConfiguraciones((current) => {
+          const exists = current.some((item) => item.clave === PHONE_CODES_CONFIG_KEY);
+          if (exists) return current.map((item) => (item.clave === PHONE_CODES_CONFIG_KEY ? { ...item, valor: guardada.valor } : item));
+          return [...current, guardada];
+        });
+        setNotice('Codigos de pais actualizados');
+        marcarTemasCargados('configuracion');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudieron guardar los codigos de pais');
+      } finally {
+        setCodigosPaisSaving(false);
+      }
+    });
   }
 
 
   async function guardarCliente(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await crearCliente({
-        nombre: clienteForm.nombre,
-        telefono: clienteForm.telefono || undefined,
-        email: clienteForm.email || undefined,
-        pais: clienteForm.pais || undefined,
-        moneda_preferida: clienteForm.moneda_preferida,
-      });
-      setClienteForm((current) => ({ ...current, nombre: '', telefono: '', email: '' }));
-      setNotice('Cliente creado');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el cliente');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await crearCliente({
+          nombre: clienteForm.nombre,
+          telefono: clienteForm.telefono || undefined,
+          email: clienteForm.email || undefined,
+          pais: clienteForm.pais || undefined,
+          moneda_preferida: clienteForm.moneda_preferida,
+        });
+        setClienteForm((current) => ({ ...current, nombre: '', telefono: '', email: '' }));
+        setNotice('Cliente creado');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el cliente');
+      }
+    });
   }
 
   async function guardarContacto(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await crearContacto({
-        cliente_id: contactoForm.cliente_id ? Number(contactoForm.cliente_id) : null,
-        nombre: contactoForm.nombre,
-        telefono: contactoForm.telefono || undefined,
-        numero_tarjeta: contactoForm.numero_tarjeta || undefined,
-        tipo_tarjeta: contactoForm.tipo_tarjeta || undefined,
-        documento_identidad_url: contactoForm.documento_identidad_url || undefined,
-        pais: contactoForm.pais || undefined,
-        notas: contactoForm.notas || undefined,
-      });
-      setContactoForm((current) => ({ ...current, nombre: '', telefono: '', numero_tarjeta: '', documento_identidad_url: '', notas: '' }));
-      setNotice('Contacto creado');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el contacto');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await crearContacto({
+          cliente_id: contactoForm.cliente_id ? Number(contactoForm.cliente_id) : null,
+          nombre: contactoForm.nombre,
+          telefono: contactoForm.telefono || undefined,
+          numero_tarjeta: contactoForm.numero_tarjeta || undefined,
+          tipo_tarjeta: contactoForm.tipo_tarjeta || undefined,
+          documento_identidad_url: contactoForm.documento_identidad_url || undefined,
+          pais: contactoForm.pais || undefined,
+          notas: contactoForm.notas || undefined,
+        });
+        setContactoForm((current) => ({ ...current, nombre: '', telefono: '', numero_tarjeta: '', documento_identidad_url: '', notas: '' }));
+        setNotice('Contacto creado');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el contacto');
+      }
+    });
   }
 
   async function guardarOperador(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    if (!operadorForm.password.trim()) {
-      setError('La contraseña inicial es obligatoria');
-      return;
-    }
-    try {
-      await crearOperador({
-        nombre: operadorForm.nombre,
-        telefono: operadorForm.telefono,
-        password: operadorForm.password,
-        rol: operadorForm.rol,
-        permisos: operadorForm.permisos,
-      });
-      setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRolActual('operador') });
-      setNotice('Operador creado');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el operador');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      if (!operadorForm.password.trim()) {
+        setError('La contraseña inicial es obligatoria');
+        return;
+      }
+      try {
+        await crearOperador({
+          nombre: operadorForm.nombre,
+          telefono: operadorForm.telefono,
+          password: operadorForm.password,
+          rol: operadorForm.rol,
+          permisos: operadorForm.permisos,
+        });
+        setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRolActual('operador') });
+        setNotice('Operador creado');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el operador');
+      }
+    });
   }
 
   function abrirEditarOperador(item: Operador) {
@@ -1295,39 +1357,43 @@ export function AdminCatalogosPage() {
 
   async function guardarOperadorEditado(event: FormEvent) {
     event.preventDefault();
-    if (!operadorEditando) return;
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarOperador(operadorEditando.id, {
-        nombre: operadorForm.nombre,
-        telefono: operadorForm.telefono,
-        password: operadorForm.password || undefined,
-        rol: operadorForm.rol,
-        activo: operadorForm.activo,
-        permisos: operadorForm.permisos,
-      });
-      setNotice('Operador actualizado');
-      setOperadorEditando(null);
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el operador');
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (!operadorEditando) return;
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarOperador(operadorEditando.id, {
+          nombre: operadorForm.nombre,
+          telefono: operadorForm.telefono,
+          password: operadorForm.password || undefined,
+          rol: operadorForm.rol,
+          activo: operadorForm.activo,
+          permisos: operadorForm.permisos,
+        });
+        setNotice('Operador actualizado');
+        setOperadorEditando(null);
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el operador');
+      }
+    });
   }
 
   async function toggleOperador(item: Operador) {
-    setError(null);
-    setNotice(null);
-    try {
-      if (item.activo) {
-        await eliminarOperador(item.id);
-      } else {
-        await actualizarOperador(item.id, { activo: true });
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        if (item.activo) {
+          await eliminarOperador(item.id);
+        } else {
+          await actualizarOperador(item.id, { activo: true });
+        }
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado del operador');
       }
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado del operador');
-    }
+    });
   }
 
   function abrirEditarRol(item: OperadorRol) {
@@ -1345,70 +1411,78 @@ export function AdminCatalogosPage() {
 
   async function guardarRol(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await crearRolOperador({
-        clave: rolForm.clave || undefined,
-        nombre: rolForm.nombre,
-        descripcion: rolForm.descripcion || null,
-        activo: rolForm.activo,
-        permisos: rolForm.permisos,
-      });
-      setRolForm({ clave: '', nombre: '', descripcion: '', activo: true, permisos: permisosBaseRol('operador') });
-      setNotice('Rol creado');
-      setCrearModalTema(null);
-      setEstadoVista('activos');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo crear el rol');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await crearRolOperador({
+          clave: rolForm.clave || undefined,
+          nombre: rolForm.nombre,
+          descripcion: rolForm.descripcion || null,
+          activo: rolForm.activo,
+          permisos: rolForm.permisos,
+        });
+        setRolForm({ clave: '', nombre: '', descripcion: '', activo: true, permisos: permisosBaseRol('operador') });
+        setNotice('Rol creado');
+        setCrearModalTema(null);
+        setEstadoVista('activos');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo crear el rol');
+      }
+    });
   }
 
   async function guardarRolEditado(event: FormEvent) {
     event.preventDefault();
-    if (!rolEditando) return;
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarRolOperador(rolEditando.id, {
-        nombre: rolForm.nombre,
-        descripcion: rolForm.descripcion || null,
-        activo: rolForm.activo,
-        permisos: rolForm.permisos,
-      });
-      setNotice('Rol actualizado');
-      setRolEditando(null);
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el rol');
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (!rolEditando) return;
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarRolOperador(rolEditando.id, {
+          nombre: rolForm.nombre,
+          descripcion: rolForm.descripcion || null,
+          activo: rolForm.activo,
+          permisos: rolForm.permisos,
+        });
+        setNotice('Rol actualizado');
+        setRolEditando(null);
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el rol');
+      }
+    });
   }
 
   async function eliminarRol(item: OperadorRol) {
-    setError(null);
-    setNotice(null);
-    try {
-      await eliminarRolOperador(item.id);
-      setNotice('Rol eliminado');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo eliminar el rol');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await eliminarRolOperador(item.id);
+        setNotice('Rol eliminado');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo eliminar el rol');
+      }
+    });
   }
 
   async function guardarTemplateActual(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setNotice(null);
-    try {
-      await guardarTemplate(templateForm.clave, templateForm.valor);
-      setNotice('Template guardado');
-      cerrarModalAdmin('template');
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar el template');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await guardarTemplate(templateForm.clave, templateForm.valor);
+        setNotice('Template guardado');
+        cerrarModalAdmin('template');
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo guardar el template');
+      }
+    });
   }
 
   function seleccionarTemplate(clave: string) {
@@ -1487,82 +1561,90 @@ export function AdminCatalogosPage() {
 
   async function guardarMetodoEditado(event: FormEvent) {
     event.preventDefault();
-    if (!metodoEditando || metodoEditSaving) return;
-    setError(null);
-    setNotice(null);
-    setMetodoEditSaving(true);
-    try {
-      await actualizarMetodoPago(metodoEditando.id, {
-        nombre: metodoForm.nombre,
-        moneda: metodoForm.moneda,
-        imagen_url: metodoForm.imagen_url || null,
-        activo: metodoForm.activo,
-      });
-      setNotice('Metodo de pago actualizado');
-      setMetodoEditando(null);
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
-    } finally {
-      setMetodoEditSaving(false);
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (!metodoEditando || metodoEditSaving) return;
+      setError(null);
+      setNotice(null);
+      setMetodoEditSaving(true);
+      try {
+        await actualizarMetodoPago(metodoEditando.id, {
+          nombre: metodoForm.nombre,
+          moneda: metodoForm.moneda,
+          imagen_url: metodoForm.imagen_url || null,
+          activo: metodoForm.activo,
+        });
+        setNotice('Metodo de pago actualizado');
+        setMetodoEditando(null);
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
+      } finally {
+        setMetodoEditSaving(false);
+      }
+    });
   }
 
   async function guardarCuentaMetodo(event: FormEvent) {
     event.preventDefault();
-    if (!metodoEditando || cuentaMetodoSaving) return;
-    setError(null);
-    setNotice(null);
-    setCuentaMetodoSaving(true);
-    try {
-      await crearCuentaMetodoPago(metodoEditando.id, {
-        alias: cuentaMetodoForm.alias,
-        cuenta: cuentaMetodoForm.cuenta,
-        titular: cuentaMetodoForm.titular,
-        qr_url: cuentaMetodoForm.qr_url || null,
-        predeterminada: cuentaMetodoForm.predeterminada,
-        activa: cuentaMetodoForm.activa,
-      });
-      const cuentasActualizadas = await listarCuentasMetodoPago(metodoEditando.id, true);
-      setCuentaMetodoForm({
-        alias: '',
-        cuenta: '',
-        titular: '',
-        qr_url: '',
-        predeterminada: cuentasActualizadas.length === 0,
-        activa: true,
-      });
-      setCuentasMetodo(cuentasActualizadas);
-      setNotice('Cuenta de pago guardada');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
-    } finally {
-      setCuentaMetodoSaving(false);
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (!metodoEditando || cuentaMetodoSaving) return;
+      setError(null);
+      setNotice(null);
+      setCuentaMetodoSaving(true);
+      try {
+        await crearCuentaMetodoPago(metodoEditando.id, {
+          alias: cuentaMetodoForm.alias,
+          cuenta: cuentaMetodoForm.cuenta,
+          titular: cuentaMetodoForm.titular,
+          qr_url: cuentaMetodoForm.qr_url || null,
+          predeterminada: cuentaMetodoForm.predeterminada,
+          activa: cuentaMetodoForm.activa,
+        });
+        const cuentasActualizadas = await listarCuentasMetodoPago(metodoEditando.id, true);
+        setCuentaMetodoForm({
+          alias: '',
+          cuenta: '',
+          titular: '',
+          qr_url: '',
+          predeterminada: cuentasActualizadas.length === 0,
+          activa: true,
+        });
+        setCuentasMetodo(cuentasActualizadas);
+        setNotice('Cuenta de pago guardada');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
+      } finally {
+        setCuentaMetodoSaving(false);
+      }
+    });
   }
 
   async function marcarCuentaPredeterminada(cuenta: MetodoPagoCuenta) {
-    if (!metodoEditando) return;
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarCuentaMetodoPago(metodoEditando.id, cuenta.id, { predeterminada: true, activa: true });
-      setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo marcar la cuenta predeterminada');
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (!metodoEditando) return;
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarCuentaMetodoPago(metodoEditando.id, cuenta.id, { predeterminada: true, activa: true });
+        setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo marcar la cuenta predeterminada');
+      }
+    });
   }
 
   async function toggleCuentaMetodo(cuenta: MetodoPagoCuenta) {
-    if (!metodoEditando) return;
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarCuentaMetodoPago(metodoEditando.id, cuenta.id, { activa: !cuenta.activa });
-      setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la cuenta');
-    }
+    await ejecutarAccionAdmin(async () => {
+      if (!metodoEditando) return;
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarCuentaMetodoPago(metodoEditando.id, cuenta.id, { activa: !cuenta.activa });
+        setCuentasMetodo(await listarCuentasMetodoPago(metodoEditando.id, true));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar la cuenta');
+      }
+    });
   }
 
   async function subirImagenMetodo(file: File) {
@@ -1600,36 +1682,42 @@ export function AdminCatalogosPage() {
   }
 
   async function toggleMetodo(metodo: MetodoPago) {
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarMetodoPago(metodo.id, { activo: !metodo.activo });
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarMetodoPago(metodo.id, { activo: !metodo.activo });
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el metodo');
+      }
+    });
   }
 
   async function togglePunto(punto: PuntoRecogida) {
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarPuntoRecogida(punto.id, { activo: !punto.activo });
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el punto');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarPuntoRecogida(punto.id, { activo: !punto.activo });
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el punto');
+      }
+    });
   }
 
   async function toggleProvincia(provincia: ProvinciaServicio) {
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarProvinciaServicio(provincia.id, { activo: !provincia.activo });
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la provincia');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarProvinciaServicio(provincia.id, { activo: !provincia.activo });
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar la provincia');
+      }
+    });
   }
 
   function abrirEditarProvincia(provincia: ProvinciaServicio) {
@@ -1666,25 +1754,29 @@ export function AdminCatalogosPage() {
 
 
   async function toggleOferta(oferta: Oferta) {
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarOferta(oferta.id, { activa: !oferta.activa });
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la oferta');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarOferta(oferta.id, { activa: !oferta.activa });
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar la oferta');
+      }
+    });
   }
 
   async function togglePaquete(paquete: PaqueteSaldo) {
-    setError(null);
-    setNotice(null);
-    try {
-      await actualizarPaqueteSaldo(paquete.id, { activo: !paquete.activo });
-      await cargar();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el paquete');
-    }
+    await ejecutarAccionAdmin(async () => {
+      setError(null);
+      setNotice(null);
+      try {
+        await actualizarPaqueteSaldo(paquete.id, { activo: !paquete.activo });
+        await cargar();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo actualizar el paquete');
+      }
+    });
   }
 
   const menuGroups: AdminMenuGroup<AdminTema>[] = [
@@ -1754,7 +1846,7 @@ export function AdminCatalogosPage() {
                   <span><strong>{metodo.nombre}</strong><small>{metodo.moneda}{metodo.imagen_url ? ' · imagen propia' : ' · logo automatico'}</small></span>
                 </button>
                 <span className={metodo.activo ? 'status completado' : 'status cancelado'}>{metodo.activo ? 'activo' : 'inactivo'}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => toggleMetodo(metodo)}><Power size={18} /> {metodo.activo ? 'Desactivar' : 'Activar'}</button>
+                <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleMetodo(metodo)} disabled={adminActionBusy}><Power size={18} /> {metodo.activo ? 'Desactivar' : 'Activar'}</button>
               </div>
               );
             })}
@@ -1774,7 +1866,7 @@ export function AdminCatalogosPage() {
                 </button>
                 <div className="catalog-offer-actions">
                   <span className={provincia.activo ? 'status completado' : 'status cancelado'}>{provincia.activo ? 'habilitada' : 'deshabilitada'}</span>
-                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleProvincia(provincia)}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleProvincia(provincia)} disabled={adminActionBusy}><Power size={18} /> {provincia.activo ? 'Deshabilitar' : 'Habilitar'}</button>
                 </div>
               </div>
             ))}
@@ -1794,7 +1886,7 @@ export function AdminCatalogosPage() {
                 </button>
                 <div className="catalog-offer-actions">
                   <span className={punto.activo ? 'status completado' : 'status cancelado'}>{punto.activo ? 'activo' : 'inactivo'}</span>
-                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => togglePunto(punto)}><Power size={18} /> {punto.activo ? 'Desactivar' : 'Activar'}</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => togglePunto(punto)} disabled={adminActionBusy}><Power size={18} /> {punto.activo ? 'Desactivar' : 'Activar'}</button>
                 </div>
               </div>
             ))}
@@ -1819,7 +1911,7 @@ export function AdminCatalogosPage() {
                       <span><strong>{oferta.nombre || `${servicioLabel(oferta.servicio)} · ${oferta.tasa}`}</strong><small>{oferta.moneda_pago} · minimo {oferta.minimo_pago ?? 0} · {oferta.origen}</small></span>
                       <div className="catalog-offer-actions">
                         <span className={oferta.activa ? 'status completado' : 'status cancelado'}>{oferta.activa ? 'activa' : 'inactiva'}</span>
-                        <button className="ghost-button catalog-toggle-action" onClick={() => toggleOferta(oferta)}><Power size={18} /> {oferta.activa ? 'Desactivar' : 'Activar'}</button>
+                        <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleOferta(oferta)} disabled={adminActionBusy}><Power size={18} /> {oferta.activa ? 'Desactivar' : 'Activar'}</button>
                       </div>
                     </div>
                   ))}
@@ -1839,7 +1931,7 @@ export function AdminCatalogosPage() {
               <div className="catalog-row" key={paquete.id}>
                 <span><strong>{paquete.nombre}</strong><small>{paquete.monto_pago} {paquete.moneda_pago} · {paquete.saldo_cup} CUP · {paquete.origen}</small></span>
                 <span className={paquete.activo ? 'status completado' : 'status cancelado'}>{paquete.activo ? 'activo' : 'inactivo'}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => togglePaquete(paquete)}><Power size={18} /> {paquete.activo ? 'Desactivar' : 'Activar'}</button>
+                <button className="ghost-button catalog-toggle-action" type="button" onClick={() => togglePaquete(paquete)} disabled={adminActionBusy}><Power size={18} /> {paquete.activo ? 'Desactivar' : 'Activar'}</button>
               </div>
             ))}
           </div>
@@ -1865,8 +1957,8 @@ export function AdminCatalogosPage() {
                   </span>
                 </button>
                 <span className={promocion.vigente ? 'status completado' : promocion.activa ? 'status en_operacion' : 'status cancelado'}>{estadoPromocion(promocion)}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => togglePromocion(promocion)}><Power size={18} /> {promocion.activa ? 'Desactivar' : 'Activar'}</button>
-                <button className="ghost-button catalog-toggle-action" onClick={() => desactivarPromocion(promocion)}>Eliminar</button>
+                <button className="ghost-button catalog-toggle-action" type="button" onClick={() => togglePromocion(promocion)} disabled={adminActionBusy}><Power size={18} /> {promocion.activa ? 'Desactivar' : 'Activar'}</button>
+                <button className="ghost-button catalog-toggle-action" type="button" onClick={() => desactivarPromocion(promocion)} disabled={adminActionBusy}>Eliminar</button>
               </div>
             ))}
           </div>
@@ -1885,8 +1977,8 @@ export function AdminCatalogosPage() {
                 </button>
                 <div className="catalog-offer-actions">
                   <span className={moneda.activa ? 'status completado' : 'status cancelado'}>{moneda.activa ? 'activa' : 'inactiva'}</span>
-                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleMoneda(moneda)} disabled={monedasSaving}><Power size={18} /> {moneda.activa ? 'Desactivar' : 'Activar'}</button>
-                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => eliminarMoneda(moneda)} disabled={monedasSaving}><Trash2 size={18} /> Eliminar</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleMoneda(moneda)} disabled={adminActionBusy}><Power size={18} /> {moneda.activa ? 'Desactivar' : 'Activar'}</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => eliminarMoneda(moneda)} disabled={adminActionBusy}><Trash2 size={18} /> Eliminar</button>
                 </div>
               </div>
             ))}
@@ -1939,7 +2031,7 @@ export function AdminCatalogosPage() {
                   <span className="operator-role-pill">{item.rol}</span>
                 </button>
                 <span className={item.activo ? 'status completado' : 'status cancelado'}>{item.activo ? 'activo' : 'inactivo'}</span>
-                <button className="ghost-button catalog-toggle-action" onClick={() => toggleOperador(item)}><Power size={18} /> {item.activo ? 'Desactivar' : 'Activar'}</button>
+                <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleOperador(item)} disabled={adminActionBusy}><Power size={18} /> {item.activo ? 'Desactivar' : 'Activar'}</button>
               </div>
             ))}
           </div>
@@ -1958,7 +2050,7 @@ export function AdminCatalogosPage() {
                   <span className="operator-role-pill">{rol.protegido ? 'base' : 'custom'}</span>
                 </button>
                 <span className={rol.activo ? 'status completado' : 'status cancelado'}>{rol.activo ? 'activo' : 'inactivo'}</span>
-                {!rol.protegido && <button className="ghost-button catalog-toggle-action" type="button" onClick={() => eliminarRol(rol)}><Trash2 size={18} /> Eliminar</button>}
+                {!rol.protegido && <button className="ghost-button catalog-toggle-action" type="button" onClick={() => eliminarRol(rol)} disabled={adminActionBusy}><Trash2 size={18} /> Eliminar</button>}
               </div>
             ))}
           </div>
@@ -1966,10 +2058,10 @@ export function AdminCatalogosPage() {
       )}
 
       {temaActivo === 'codigos' && temasCargados.has('codigos') && (
-        <AdminSection icono={Globe2} titulo="Codigos de pais" resumen={codigosPaisResumen} action={<button type="button" className="primary-button admin-create-button" onClick={() => void guardarCodigosPais()} disabled={codigosPaisSaving}><SavingLabel saving={codigosPaisSaving} idle="Guardar" busy="Guardando..." /></button>}>
+        <AdminSection icono={Globe2} titulo="Codigos de pais" resumen={codigosPaisResumen} action={<button type="button" className="primary-button admin-create-button" onClick={() => void guardarCodigosPais()} disabled={adminActionBusy}><SavingLabel saving={codigosPaisSaving || accionAdminEnProceso} idle="Guardar" busy="Guardando..." /></button>}>
           <div className="phone-code-admin-tools">
-            <button type="button" className="ghost-button" onClick={restaurarCodigosPaisDefault}>Predeterminados</button>
-            <button type="button" className="ghost-button" onClick={activarTodosLosCodigosPais}>Activar todos</button>
+            <button type="button" className="ghost-button" onClick={restaurarCodigosPaisDefault} disabled={adminActionBusy}>Predeterminados</button>
+            <button type="button" className="ghost-button" onClick={activarTodosLosCodigosPais} disabled={adminActionBusy}>Activar todos</button>
           </div>
           <div className="phone-code-admin-list">
             {COUNTRY_PHONE_CODES.map((codigo) => (
@@ -1980,6 +2072,7 @@ export function AdminCatalogosPage() {
                 </span>
                 <UiSwitch
                   checked={codigosPaisActivosSet.has(codigo.code)}
+                  disabled={adminActionBusy}
                   ariaLabel={`Activar codigo ${codigo.code}`}
                   onChange={() => toggleCodigoPais(codigo.code)}
                 />
@@ -2040,7 +2133,7 @@ export function AdminCatalogosPage() {
               label="Subiendo imagen"
               onRetry={retryMetodoUploadRef.current ?? undefined}
             />
-            <button className="primary-button" disabled={metodoSaving}><SavingLabel saving={metodoSaving} idle="Crear" busy="Creando..." /></button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={metodoSaving || accionAdminEnProceso} idle="Crear" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2081,7 +2174,7 @@ export function AdminCatalogosPage() {
             <div className="inline-form three">
               <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={opcionesMonedaSelect(metodoForm.moneda)} ariaLabel="Moneda" align="left" />
               <FloatingSelect value={metodoForm.activo ? 'activo' : 'inactivo'} onChange={(value) => setMetodoForm((current) => ({ ...current, activo: value === 'activo' }))} options={[{ value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} ariaLabel="Estado" align="left" />
-              <button className="primary-button" disabled={metodoEditSaving}><SavingLabel saving={metodoEditSaving} idle="Guardar" busy="Guardando..." /></button>
+              <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={metodoEditSaving || accionAdminEnProceso} idle="Guardar" busy="Guardando..." /></button>
             </div>
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL o /storage/metodos-pago/archivo.webp" />
           </form>
@@ -2103,8 +2196,8 @@ export function AdminCatalogosPage() {
                       <span className={cuenta.predeterminada ? 'status completado' : 'status neutral'}>{cuenta.predeterminada ? 'predeterminada' : 'secundaria'}</span>
                       <span className={cuenta.activa ? 'status completado' : 'status cancelado'}>{cuenta.activa ? 'activa' : 'inactiva'}</span>
                     </div>
-                    {!cuenta.predeterminada && <button type="button" className="ghost-button catalog-toggle-action" onClick={() => marcarCuentaPredeterminada(cuenta)}>Predeterminar</button>}
-                    <button type="button" className="ghost-button catalog-toggle-action" onClick={() => toggleCuentaMetodo(cuenta)}><Power size={18} /> {cuenta.activa ? 'Desactivar' : 'Activar'}</button>
+                    {!cuenta.predeterminada && <button type="button" className="ghost-button catalog-toggle-action" onClick={() => marcarCuentaPredeterminada(cuenta)} disabled={adminActionBusy}>Predeterminar</button>}
+                    <button type="button" className="ghost-button catalog-toggle-action" onClick={() => toggleCuentaMetodo(cuenta)} disabled={adminActionBusy}><Power size={18} /> {cuenta.activa ? 'Desactivar' : 'Activar'}</button>
                   </div>
                 </div>
               ))}
@@ -2120,7 +2213,7 @@ export function AdminCatalogosPage() {
                 <span>Predeterminada<small>Usar esta cuenta en pedidos nuevos con este metodo.</small></span>
                 <UiSwitch checked={cuentaMetodoForm.predeterminada} onChange={(checked) => setCuentaMetodoForm((current) => ({ ...current, predeterminada: checked }))} ariaLabel="Marcar cuenta como predeterminada" />
               </label>
-              <button className="primary-button" disabled={cuentaMetodoSaving}><SavingLabel saving={cuentaMetodoSaving} idle="Agregar cuenta" busy="Agregando..." /></button>
+              <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={cuentaMetodoSaving || accionAdminEnProceso} idle="Agregar cuenta" busy="Agregando..." /></button>
             </form>
           </section>}
         </Modal>
@@ -2134,7 +2227,7 @@ export function AdminCatalogosPage() {
               <span>Habilitada<small>Disponible para entrega de efectivo</small></span>
               <UiSwitch checked={provinciaForm.activo} onChange={(checked) => setProvinciaForm((current) => ({ ...current, activo: checked }))} ariaLabel="Habilitar provincia" />
             </label>
-            <button className="primary-button"><Save size={18} /> {provinciaEditando ? 'Guardar cambios' : 'Crear provincia'}</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle={provinciaEditando ? 'Guardar cambios' : 'Crear provincia'} busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2152,7 +2245,7 @@ export function AdminCatalogosPage() {
                 <UiSwitch checked={puntoForm.activo} onChange={(checked) => setPuntoForm((current) => ({ ...current, activo: checked }))} ariaLabel="Activar punto de recogida" />
               </label>
             )}
-            <button className="primary-button"><Save size={18} /> {puntoEditando ? 'Guardar cambios' : 'Crear punto'}</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle={puntoEditando ? 'Guardar cambios' : 'Crear punto'} busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2166,7 +2259,7 @@ export function AdminCatalogosPage() {
               <input value={ofertaForm.minimo_pago} onChange={(event) => setOfertaForm((current) => ({ ...current, minimo_pago: event.target.value }))} inputMode="decimal" placeholder="Minimo" required />
               <FloatingSelect value={ofertaForm.moneda_pago} onChange={(value) => setOfertaForm((current) => ({ ...current, moneda_pago: value }))} options={opcionesMonedaSelect(ofertaForm.moneda_pago)} ariaLabel="Moneda de pago" align="left" />
             </div>
-            <button className="primary-button"><Save size={18} /> Crear oferta</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Crear oferta" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2179,7 +2272,7 @@ export function AdminCatalogosPage() {
               <input value={paqueteForm.saldo_cup} onChange={(event) => setPaqueteForm((current) => ({ ...current, saldo_cup: event.target.value }))} inputMode="numeric" placeholder="Saldo CUP" required />
               <FloatingSelect value={paqueteForm.moneda_pago} onChange={(value) => setPaqueteForm((current) => ({ ...current, moneda_pago: value }))} options={opcionesMonedaSelect(paqueteForm.moneda_pago)} ariaLabel="Moneda de pago" align="left" />
             </div>
-            <button className="primary-button"><Save size={18} /> Crear paquete</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Crear paquete" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2221,7 +2314,7 @@ export function AdminCatalogosPage() {
               <label><span>Orden</span><input type="number" value={promoForm.orden} onChange={(event) => setPromoForm((current) => ({ ...current, orden: event.target.value }))} /></label>
             </div>
             <FloatingSelect value={promoForm.activa ? 'activa' : 'inactiva'} onChange={(value) => setPromoForm((current) => ({ ...current, activa: value === 'activa' }))} options={[{ value: 'activa', label: 'Activo' }, { value: 'inactiva', label: 'Inactivo' }]} ariaLabel="Estado del slide" align="left" />
-            <button className="primary-button"><Save size={18} /> Crear slide</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={promoSaving || accionAdminEnProceso} idle="Crear slide" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2261,7 +2354,7 @@ export function AdminCatalogosPage() {
               <label><span>Orden</span><input type="number" value={promoForm.orden} onChange={(event) => setPromoForm((current) => ({ ...current, orden: event.target.value }))} /></label>
             </div>
             <FloatingSelect value={promoForm.activa ? 'activa' : 'inactiva'} onChange={(value) => setPromoForm((current) => ({ ...current, activa: value === 'activa' }))} options={[{ value: 'activa', label: 'Activo' }, { value: 'inactiva', label: 'Inactivo' }]} ariaLabel="Estado del slide" align="left" />
-            <button className="primary-button"><Save size={18} /> Guardar slide</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={promoSaving || accionAdminEnProceso} idle="Guardar slide" busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2281,7 +2374,7 @@ export function AdminCatalogosPage() {
                 <UiSwitch checked={monedaForm.activa} onChange={(checked) => setMonedaForm((current) => ({ ...current, activa: checked }))} ariaLabel="Activar moneda" />
               </label>
             </div>
-            <button className="primary-button" disabled={monedasSaving}><SavingLabel saving={monedasSaving} idle={monedaEditando ? 'Guardar moneda' : 'Crear moneda'} busy="Guardando..." /></button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={monedasSaving || accionAdminEnProceso} idle={monedaEditando ? 'Guardar moneda' : 'Crear moneda'} busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2295,7 +2388,7 @@ export function AdminCatalogosPage() {
             <div className="inline-form three">
               <input value={clienteForm.pais} onChange={(event) => setClienteForm((current) => ({ ...current, pais: event.target.value }))} placeholder="pais" />
               <FloatingSelect value={clienteForm.moneda_preferida} onChange={(value) => setClienteForm((current) => ({ ...current, moneda_preferida: value }))} options={opcionesMonedaSelect(clienteForm.moneda_preferida)} ariaLabel="Moneda preferida" align="left" />
-              <button className="primary-button"><Save size={18} /> Crear cliente</button>
+              <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Crear cliente" busy="Creando..." /></button>
             </div>
           </form>
         </Modal>
@@ -2313,7 +2406,7 @@ export function AdminCatalogosPage() {
             </div>
             <input value={contactoForm.documento_identidad_url} onChange={(event) => setContactoForm((current) => ({ ...current, documento_identidad_url: event.target.value }))} placeholder="Foto documento / nota" />
             <input value={contactoForm.notas} onChange={(event) => setContactoForm((current) => ({ ...current, notas: event.target.value }))} placeholder="Notas" />
-            <button className="primary-button"><Save size={18} /> Crear contacto</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Crear contacto" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2326,7 +2419,7 @@ export function AdminCatalogosPage() {
             <PasswordField value={operadorForm.password} onChange={(event) => setOperadorForm((current) => ({ ...current, password: event.target.value }))} placeholder="Contraseña inicial" autoComplete="new-password" required />
             <FloatingSelect value={operadorForm.rol} onChange={(value) => setOperadorForm((current) => ({ ...current, rol: value, permisos: permisosBaseRolActual(value) }))} options={opcionesRolOperador} ariaLabel="Rol" align="left" />
             <PermissionSwitches permisos={operadorForm.permisos} onChange={(permisos) => setOperadorForm((current) => ({ ...current, permisos }))} />
-            <button className="primary-button"><Save size={18} /> Crear operador</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Crear operador" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2342,7 +2435,7 @@ export function AdminCatalogosPage() {
               <FloatingSelect value={operadorForm.activo ? 'activo' : 'inactivo'} onChange={(value) => setOperadorForm((current) => ({ ...current, activo: value === 'activo' }))} options={[{ value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} ariaLabel="Estado" align="left" />
             </div>
             <PermissionSwitches permisos={operadorForm.permisos} onChange={(permisos) => setOperadorForm((current) => ({ ...current, permisos }))} />
-            <button className="primary-button"><Save size={18} /> Guardar</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Guardar" busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2358,7 +2451,7 @@ export function AdminCatalogosPage() {
               <UiSwitch checked={rolForm.activo} onChange={(checked) => setRolForm((current) => ({ ...current, activo: checked }))} ariaLabel="Activar rol" />
             </label>
             <PermissionSwitches permisos={rolForm.permisos} onChange={(permisos) => setRolForm((current) => ({ ...current, permisos }))} />
-            <button className="primary-button"><Save size={18} /> Crear rol</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Crear rol" busy="Creando..." /></button>
           </form>
         </Modal>
       )}
@@ -2374,7 +2467,7 @@ export function AdminCatalogosPage() {
               <UiSwitch checked={rolForm.activo} disabled={rolEditando.protegido} onChange={(checked) => setRolForm((current) => ({ ...current, activo: checked }))} ariaLabel="Activar rol" />
             </label>
             <PermissionSwitches permisos={rolForm.permisos} onChange={(permisos) => setRolForm((current) => ({ ...current, permisos }))} />
-            <button className="primary-button"><Save size={18} /> Guardar rol</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Guardar rol" busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2391,7 +2484,7 @@ export function AdminCatalogosPage() {
                 </button>
               ))}
             </div>
-            <button className="primary-button"><Save size={18} /> Guardar configuracion</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Guardar configuracion" busy="Guardando..." /></button>
           </form>
         </Modal>
       )}
@@ -2407,7 +2500,7 @@ export function AdminCatalogosPage() {
                 </button>
               ))}
             </div>
-            <button className="primary-button"><Save size={18} /> Guardar template</button>
+            <button className="primary-button" disabled={adminActionBusy}><SavingLabel saving={accionAdminEnProceso} idle="Guardar template" busy="Guardando..." /></button>
           </form>
         </Modal>
       )}

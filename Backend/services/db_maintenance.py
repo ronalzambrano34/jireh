@@ -95,6 +95,54 @@ def _add_index_if_missing(
     db.commit()
 
 
+def _add_unique_index_if_missing(
+    db: Session,
+    table_name: str,
+    index_name: str,
+    columns: tuple[str, ...]
+):
+    inspector = inspect(
+        db.get_bind()
+    )
+
+    if not inspector.has_table(
+        table_name
+    ):
+        return
+
+    table_columns = _get_columns(
+        db,
+        table_name
+    )
+
+    if not set(columns).issubset(table_columns):
+        return
+
+    existing_indexes = {
+        index["name"]
+        for index in inspector.get_indexes(
+            table_name
+        )
+    }
+    existing_constraints = {
+        constraint["name"]
+        for constraint in inspector.get_unique_constraints(
+            table_name
+        )
+    }
+
+    if index_name in existing_indexes or index_name in existing_constraints:
+        return
+
+    db.execute(
+        text(
+            f"CREATE UNIQUE INDEX {index_name} "
+            f"ON {table_name} ({', '.join(columns)})"
+        )
+    )
+    db.commit()
+
+
 def _rename_column_if_needed(
     db: Session,
     table_name: str,
@@ -181,6 +229,12 @@ def ensure_runtime_columns(
         "pedidos",
         "moneda_pago",
         "moneda_pago VARCHAR DEFAULT 'BRL'"
+    )
+    _add_column_if_missing(
+        db,
+        "pedidos",
+        "idempotency_key",
+        "idempotency_key VARCHAR"
     )
 
     _add_column_if_missing(
@@ -421,3 +475,9 @@ def ensure_runtime_indexes(
             index_name,
             columns
         )
+    _add_unique_index_if_missing(
+        db,
+        "pedidos",
+        "ux_pedidos_idempotency_key",
+        ("idempotency_key",)
+    )

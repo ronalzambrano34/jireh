@@ -29,6 +29,13 @@ class Pedido(Base):
         nullable=True
     )
 
+    idempotency_key = Column(
+        String,
+        unique=True,
+        nullable=True,
+        index=True
+    )
+
     cliente_id = Column(
         Integer,
         ForeignKey("clientes.id"),

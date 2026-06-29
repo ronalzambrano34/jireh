@@ -13,7 +13,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PaqueteSaldo, PedidoDetalle } from '../types/api';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
-import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
+import { borrarBorradorNuevoPedido, crearIdempotencyKey, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { appEstaOffline, enqueueOfflineCreateOrder } from '../utils/offlineQueue';
@@ -43,6 +43,7 @@ export function SaldoForm({
   onDraftSavedChange?: (saved: boolean) => void;
 }) {
   const [form, setForm] = useState({
+    idempotency_key: initialData?.idempotency_key ?? crearIdempotencyKey('saldo', operadorId),
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
     tipo_pago_id: initialData?.tipo_pago_id ?? '',
     cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
@@ -201,6 +202,7 @@ export function SaldoForm({
       return;
     }
     const payload = {
+      idempotency_key: form.idempotency_key,
       telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
       tipo_pago_id: Number(form.tipo_pago_id),
       cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,

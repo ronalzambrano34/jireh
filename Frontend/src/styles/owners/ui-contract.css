@@ -36,6 +36,16 @@
   --ui-shadow-soft: rgba(1, 6, 15, 0.2);
   --ui-shadow-raised: rgba(1, 6, 15, 0.24);
   --ui-shadow-medium: rgba(1, 6, 15, 0.28);
+  --app-toast-layer: 10000;
+  --mobile-bottom-nav-height: calc(76px + env(safe-area-inset-bottom));
+  --mobile-content-bottom-space: calc(var(--mobile-bottom-nav-height) + 44px);
+  --mobile-floating-create-bottom: calc(var(--mobile-bottom-nav-height) + 16px);
+  --mobile-orders-status-height: 64px;
+  --mobile-orders-content-bottom-space: calc(
+    var(--mobile-bottom-nav-height) + var(--mobile-orders-status-height) + 42px
+  );
+  --mobile-detail-actions-bottom: calc(var(--mobile-bottom-nav-height) + 8px);
+  --mobile-detail-actions-space: calc(var(--mobile-bottom-nav-height) + 118px);
   --ui-radius-sm: 8px;
   --ui-radius-md: 14px;
   --ui-radius-lg: 18px;

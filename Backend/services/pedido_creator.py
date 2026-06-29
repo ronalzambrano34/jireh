@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 import logging
 
 from Backend.models.pedido import Pedido
@@ -65,6 +66,17 @@ from Backend.services.template_service import (
 )
 
 logger = logging.getLogger("jireh.pedidos")
+
+
+def _normalizar_idempotency_key(value: str | None):
+    if not value:
+        return None
+
+    key = str(value).strip()
+    if not key:
+        return None
+
+    return key[:160]
 
 
 def normalizar_telefono_destinatario(
@@ -182,6 +194,121 @@ def _generar_mensaje_pago_cliente(
             "titular_pago": datos_pago.get("titular_pago") or "El Jireh",
             "qr_pago_url": datos_pago.get("qr_pago_url")
         }
+    }
+
+
+def _pedido_creado_response(
+    db: Session,
+    pedido: Pedido
+):
+    cliente = (
+        db.query(Cliente)
+        .filter(Cliente.id == pedido.cliente_id)
+        .first()
+    )
+    metodo_pago = (
+        db.query(MetodoPago)
+        .filter(MetodoPago.id == pedido.tipo_pago_id)
+        .first()
+    )
+
+    if not cliente or not metodo_pago:
+        raise Exception(
+            "No se pudo reconstruir la respuesta del pedido"
+        )
+
+    mensaje_data = (
+        generar_mensaje_operacion(
+            db=db,
+            pedido=pedido
+        )
+    )
+
+    mensaje_pago_cliente = (
+        _generar_mensaje_pago_cliente(
+            db=db,
+            pedido=pedido,
+            cliente=cliente,
+            metodo_pago=metodo_pago
+        )
+    )
+
+    mensaje_grupo_pedido = (
+        generar_notificacion_grupo_pedido(
+            db=db,
+            mensaje_operacion=mensaje_data[
+                "mensaje"
+            ]
+        )
+    )
+
+    return {
+
+        "pedido_id":
+        pedido.id,
+
+        "codigo_operacion":
+        pedido.codigo_operacion,
+
+        "estado":
+        pedido.estado,
+
+        "servicio":
+        pedido.servicio,
+
+        "monto_pago":
+        pedido.monto_pago,
+
+        "moneda_pago":
+        pedido.moneda_pago,
+
+        "monto_resultado":
+        pedido.monto_resultado,
+
+        "tasa_final":
+        (
+            pedido.monto_pago
+            if pedido.servicio == "saldo"
+            else pedido.tasa_final
+        ),
+
+        "mensaje_operacion":
+        mensaje_data[
+            "mensaje"
+        ],
+
+        "observaciones":
+        pedido.observaciones,
+
+        "whatsapp_url":
+        mensaje_data[
+            "whatsapp_url"
+        ],
+
+        "mensaje_pago_cliente":
+        mensaje_pago_cliente[
+            "mensaje"
+        ],
+
+        "whatsapp_pago_url":
+        mensaje_pago_cliente[
+            "whatsapp_url"
+        ],
+
+        "datos_pago":
+        mensaje_pago_cliente[
+            "datos_pago"
+        ],
+
+        "mensaje_grupo_pedidos":
+        mensaje_grupo_pedido[
+            "mensaje"
+        ],
+
+        "whatsapp_grupo_pedidos_url":
+        mensaje_grupo_pedido[
+            "whatsapp_url"
+        ]
     }
 
 
@@ -445,6 +572,31 @@ def crear_pedido(
     db: Session,
     data: dict
 ):
+    idempotency_key = _normalizar_idempotency_key(
+        data.get(
+            "idempotency_key"
+        )
+    )
+    if idempotency_key:
+        pedido_existente = (
+            db.query(Pedido)
+            .filter(
+                Pedido.idempotency_key == idempotency_key,
+                Pedido.operador_id == data.get("operador_id")
+            )
+            .first()
+        )
+        if pedido_existente:
+            logger.info(
+                "pedido.crear.repetido idempotency_key=%s codigo=%s operador_id=%s",
+                idempotency_key,
+                pedido_existente.codigo_operacion,
+                pedido_existente.operador_id
+            )
+            return _pedido_creado_response(
+                db,
+                pedido_existente
+            )
 
     if "numero_tarjeta" in data:
         data["numero_tarjeta"] = normalizar_numero_tarjeta(
@@ -542,6 +694,19 @@ def crear_pedido(
         ==
         "divisa"
     ):
+        if _valor_vacio(data.get("tipo_tarjeta")) and data.get("contacto_id"):
+            contacto_divisa = (
+                db.query(Contacto)
+                .filter(
+                    Contacto.id == data.get("contacto_id"),
+                    Contacto.activo == True
+                )
+                .first()
+            )
+            _aplicar_contacto_a_pedido(
+                data,
+                contacto_divisa
+            )
 
         monto_pago = float(
             data["monto_pago"]
@@ -807,6 +972,9 @@ def crear_pedido(
 
         codigo_operacion=
         codigo,
+
+        idempotency_key=
+        idempotency_key,
 
         cliente_id=
         cliente.id,
@@ -1107,7 +1275,31 @@ def crear_pedido(
         )
     )
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if idempotency_key:
+            pedido_existente = (
+                db.query(Pedido)
+                .filter(
+                    Pedido.idempotency_key == idempotency_key,
+                    Pedido.operador_id == data.get("operador_id")
+                )
+                .first()
+            )
+            if pedido_existente:
+                logger.info(
+                    "pedido.crear.repetido_integrity idempotency_key=%s codigo=%s operador_id=%s",
+                    idempotency_key,
+                    pedido_existente.codigo_operacion,
+                    pedido_existente.operador_id
+                )
+                return _pedido_creado_response(
+                    db,
+                    pedido_existente
+                )
+        raise
 
     db.refresh(
         pedido
@@ -1121,96 +1313,7 @@ def crear_pedido(
         pedido.cliente_id
     )
 
-    mensaje_data = (
-        generar_mensaje_operacion(
-            db=db,
-            pedido=pedido
-        )
+    return _pedido_creado_response(
+        db,
+        pedido
     )
-
-    mensaje_pago_cliente = (
-        _generar_mensaje_pago_cliente(
-            db=db,
-            pedido=pedido,
-            cliente=cliente,
-            metodo_pago=metodo_pago
-        )
-    )
-
-    mensaje_grupo_pedido = (
-        generar_notificacion_grupo_pedido(
-            db=db,
-            mensaje_operacion=mensaje_data[
-                "mensaje"
-            ]
-        )
-    )
-
-    return {
-
-        "pedido_id":
-        pedido.id,
-
-        "codigo_operacion":
-        pedido.codigo_operacion,
-
-        "estado":
-        pedido.estado,
-
-        "servicio":
-        pedido.servicio,
-
-        "monto_pago":
-        pedido.monto_pago,
-
-        "moneda_pago":
-        pedido.moneda_pago,
-
-        "monto_resultado":
-        pedido.monto_resultado,
-
-        "tasa_final":
-        (
-            pedido.monto_pago
-            if pedido.servicio == "saldo"
-            else pedido.tasa_final
-        ),
-
-        "mensaje_operacion":
-        mensaje_data[
-            "mensaje"
-        ],
-
-        "observaciones":
-        pedido.observaciones,
-
-        "whatsapp_url":
-        mensaje_data[
-            "whatsapp_url"
-        ],
-
-        "mensaje_pago_cliente":
-        mensaje_pago_cliente[
-            "mensaje"
-        ],
-
-        "whatsapp_pago_url":
-        mensaje_pago_cliente[
-            "whatsapp_url"
-        ],
-
-        "datos_pago":
-        mensaje_pago_cliente[
-            "datos_pago"
-        ],
-
-        "mensaje_grupo_pedidos":
-        mensaje_grupo_pedido[
-            "mensaje"
-        ],
-
-        "whatsapp_grupo_pedidos_url":
-        mensaje_grupo_pedido[
-            "whatsapp_url"
-        ]
-    }

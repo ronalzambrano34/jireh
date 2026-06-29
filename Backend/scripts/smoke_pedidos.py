@@ -446,6 +446,18 @@ def run():
             "divisa: no copio numero_tarjeta desde contacto"
         )
 
+        db.add(
+            Configuracion(
+                clave="template_otros",
+                valor=(
+                    "*Otros*\n"
+                    "*Punto de recogida:* {punto_recogida_id}\n"
+                    "*Observaciones:* {observaciones}"
+                )
+            )
+        )
+        db.commit()
+
         otros = crear_pedido(
             db,
             {
@@ -486,6 +498,14 @@ def run():
         _assert(
             "Entrega de USD en efectivo" in (otros.get("mensaje_operacion") or ""),
             "otros: observaciones no aparece en el mensaje operativo"
+        )
+        _assert(
+            datos["punto"].nombre in (otros.get("mensaje_operacion") or ""),
+            "otros: punto_recogida_id no se imprime como nombre en el mensaje operativo"
+        )
+        _assert(
+            f"Punto de recogida:* {datos['punto'].id}" not in (otros.get("mensaje_operacion") or ""),
+            "otros: punto_recogida_id se imprimio como id"
         )
 
         otros_minimo = crear_pedido(

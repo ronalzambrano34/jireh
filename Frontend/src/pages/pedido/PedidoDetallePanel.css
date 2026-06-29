@@ -1082,7 +1082,7 @@
   position: fixed;
   top: calc(var(--app-toast-top, 92px) + env(safe-area-inset-top));
   right: 20px;
-  z-index: 1400;
+  z-index: var(--app-toast-layer, 10000);
   width: min(360px, calc(100vw - 28px));
   min-height: 46px;
   max-height: min(24vh, 160px);
@@ -1337,8 +1337,8 @@
 
 @media (max-width: 720px) {
   .order-detail-view-shell {
-    --order-detail-actions-bottom: calc(84px + env(safe-area-inset-bottom));
-    --order-detail-actions-space: calc(180px + env(safe-area-inset-bottom));
+    --order-detail-actions-bottom: var(--mobile-detail-actions-bottom);
+    --order-detail-actions-space: var(--mobile-detail-actions-space);
   }
 
   .order-detail-view-shell .workspace {
@@ -2074,7 +2074,8 @@
 
 @media (max-width: 920px) {
   .order-detail-view-shell {
-    --order-detail-actions-space: calc(180px + env(safe-area-inset-bottom));
+    --order-detail-actions-bottom: var(--mobile-detail-actions-bottom);
+    --order-detail-actions-space: var(--mobile-detail-actions-space);
   }
 
   .order-detail-view-shell .workspace {
@@ -2447,7 +2448,7 @@
 
   .order-detail-view-shell .order-detail-page .order-bottom-actions,
   :root[data-theme="dark-sidebar"] .order-detail-view-shell .order-detail-page .order-bottom-actions {
-    bottom: var(--order-detail-actions-bottom, calc(84px + env(safe-area-inset-bottom)));
+    bottom: var(--order-detail-actions-bottom, var(--mobile-detail-actions-bottom));
     z-index: 55;
     border-top-color: var(--ui-border);
     background: color-mix(in srgb, var(--ui-surface) 94%, transparent);

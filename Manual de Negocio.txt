@@ -1,6 +1,6 @@
 
 MANUAL DE NEGOCIO - EL JIREH BRASIL / URUGUAY
-Actualizado: 2026-06-25
+Actualizado: 2026-06-29
 
 1. PROPOSITO DEL NEGOCIO
 
@@ -33,7 +33,7 @@ Flujo operativo actual:
 
 El sistema actual que se esta construyendo busca reemplazar progresivamente la parte manual de creacion, control y seguimiento de operaciones.
 
-2.1 ACTUALIZACION OPERATIVA DE FASE 1 - 2026-06-25
+2.1 ACTUALIZACION OPERATIVA DE FASE 1 - 2026-06-29
 
 El sistema ya funciona como una PWA interna orientada a operadores, con frontend movil primero, administracion, pedidos, reportes, perfil, notificaciones y flujo operativo de creacion/seguimiento de pedidos.
 
@@ -54,6 +54,12 @@ Reglas actuales importantes:
 - Los mensajes de error y exito deben mostrarse como toast flotante debajo del header, con duracion suficiente para lectura.
 - El almacenamiento de imagenes y archivos debe pasar por el servicio comun de storage del backend para evitar perder fotos o comprobantes en despliegues sin disco persistente.
 - El sistema debe estar preparado para redes lentas, inestables o sin conexion, evitando peticiones dobles y acciones duplicadas.
+- La PWA debe abrir sin internet despues de una carga previa cacheada. En modo offline se permite crear pedidos sin archivos y finalizar pedidos sin comprobante mediante cola local; las acciones con archivos o conflictos entre operadores quedan bloqueadas hasta recuperar conexion.
+- Las acciones criticas usan bloqueo visual de botones, deduplicacion temporal e idempotencia de cliente para reducir doble click, doble tap, reconexion duplicada y reenvios accidentales.
+- La configuracion inicial ahora debe preparar Provincias, Puntos de recogida, Operadores, Metodos de pago, Monedas de pago y Cuentas de pago antes de considerar una instalacion lista.
+- Administracion incluye catalogos para roles/permisos, monedas de pago, codigos de pais activos, provincias, puntos de recogida, operadores, metodos de pago y cuentas de pago.
+- Las monedas de pago visibles se gobiernan desde Administracion > Monedas de pago. Por defecto operativas: BRL y UYU; otras monedas no deben aparecer si estan inactivas.
+- Los codigos de pais visibles se gobiernan desde Administracion. Por defecto deben estar activos Cuba +53, Brasil +55 y Uruguay +598.
 
 3. SERVICIOS OFRECIDOS
 
@@ -172,6 +178,38 @@ Implementado, unificado con el flujo central de pedidos y probado contra la API 
 
 Endpoint actual:
 POST /pedido/divisa
+
+3.5 Otros servicios
+
+Descripcion:
+Flujo flexible para operaciones que no encajan totalmente en transferencia, efectivo, saldo o divisa, pero que necesitan quedar registradas con cliente, pago, observaciones, mensaje operativo, evidencias e historial.
+
+Datos requeridos:
+
+- Monto pagado por el cliente.
+- Moneda de pago.
+- Metodo de pago.
+- Cuenta de pago.
+- Informacion de la operacion en observaciones.
+- Operador responsable.
+- Cliente asociado cuando exista.
+
+Datos opcionales segun el caso:
+
+- Numero de tarjeta.
+- telefono_destinatario.
+- documento_identidad_url.
+- punto_recogida_id.
+- comprobante_cliente.
+
+Regla actual:
+En el template de Otros, observaciones corresponde a la descripcion operativa escrita en Nuevo pedido. Punto de recogida debe imprimirse como nombre/direccion legible, no como id.
+
+Estado en el sistema:
+Implementado en el flujo central de pedidos.
+
+Endpoint actual:
+POST /pedido/
 
 4. CICLO DE VIDA DEL PEDIDO
 
@@ -335,6 +373,7 @@ Campos actuales:
 
 - nombre
 - moneda
+- imagen_url
 - activo
 
 Reglas actuales:
@@ -343,11 +382,34 @@ Reglas actuales:
 - Las instrucciones al cliente deben incluir la cuenta predeterminada si existe.
 - La moneda del metodo debe coincidir con la moneda del pedido.
 - Solo deben mostrarse monedas y metodos realmente activos para la operacion.
+- En los formularios de operaciones, Cuenta de pago inicia vacia y es obligatoria. El operador debe seleccionar la cuenta real antes de crear el pedido.
 
 Estado actual:
 Implementado.
 
 El pedido valida que el metodo de pago exista, este activo y coincida con la moneda del pedido.
+
+5.6.1 Cuenta de pago
+
+Representa el destino concreto donde el cliente debe pagar dentro de un metodo de pago.
+
+Campos actuales:
+
+- metodo_pago_id
+- alias
+- cuenta
+- titular
+- qr_url
+- predeterminada
+- activa
+
+Reglas actuales:
+
+- Cada metodo de pago puede tener una o varias cuentas.
+- Solo deben mostrarse cuentas activas del metodo seleccionado.
+- La cuenta seleccionada queda asociada al pedido para conservar el historico.
+- Las instrucciones al cliente y los templates deben incluir metodo de pago y cuenta de pago cuando exista.
+- Si la cuenta tiene QR o imagen, debe venir de storage persistente.
 
 5.7 PuntoRecogida
 
@@ -416,12 +478,62 @@ Templates actuales esperados:
 - template_efectivo
 - template_saldo
 - template_divisa
+- template_otros
+- template_cliente_estado_{estado}
+- template_grupo_finalizado
+- template_finalizacion_sin_comprobante
+
+Variables importantes:
+
+- {codigo_operacion}
+- {servicio}
+- {operador}
+- {nombre_cliente}
+- {telefono_cliente}
+- {telefono_destinatario}
+- {telefono}
+- {numero_tarjeta}
+- {metodo_pago}
+- {cuenta_pago}
+- {titular_pago}
+- {punto_recogida}
+- {observaciones}
+- {monto_pago}
+- {moneda_pago}
+- {monto_resultado}
+- {tasa_final}
+
+Reglas actuales de templates:
+
+- {operador} imprime el operador responsable del pedido.
+- {cuenta_pago} imprime la cuenta seleccionada o predeterminada cuando exista.
+- {telefono_destinatario} es la variable recomendada para el beneficiario o linea en Cuba.
+- {telefono} se mantiene solo por compatibilidad y no debe crear ambiguedad con telefono_cliente.
+- {observaciones} imprime la descripcion operativa del pedido; en Otros corresponde al campo de descripcion escrito en Nuevo pedido.
+- Si una variable entre llaves no tiene valor, no debe imprimirse la llave literal en el mensaje final.
+- Punto de recogida debe imprimirse con nombre/datos legibles, no como id.
 
 Estado actual:
 Implementado.
 
 Mejora ya aplicada:
 Si falta una plantilla, el sistema tiene mensajes por defecto para no romper la creacion del pedido.
+
+5.9.1 Configuracion inicial
+
+La configuracion inicial es el flujo para preparar una instalacion nueva antes de operar con clientes reales.
+
+Debe incluir y validar:
+
+- Provincias.
+- Puntos de recogida.
+- Operadores.
+- Metodos de pago.
+- Monedas de pago.
+- Cuentas de pago.
+
+Regla actual:
+La instalacion no se considera lista si faltan provincias activas, puntos activos, metodos activos, cuentas de pago u operadores. La marca setup_inicial_completado solo debe usarse cuando esos catalogos ya existen.
 
 5.10 Libreta de contactos
 
@@ -497,6 +609,30 @@ GET /clientes/{cliente_id}/pedidos
 POST /clientes/
 PUT /clientes/{cliente_id}
 DELETE /clientes/{cliente_id}
+
+5.12 Monedas de pago y codigos de pais
+
+Monedas de pago:
+Catalogo operativo que define que monedas puede usar el cliente para pagar. No es lo mismo que la moneda destino que recibe el beneficiario.
+
+Reglas actuales:
+
+- Administracion > Monedas de pago permite activar, editar, crear o desactivar monedas disponibles.
+- Inicio, Home Test, Nuevo pedido y Reportes deben usar el mismo catalogo de monedas activas.
+- Por defecto deben estar activas BRL y UYU.
+- USD, EUR u otras monedas pueden existir en el catalogo, pero no deben aparecer en la operacion si estan inactivas.
+- La moneda seleccionada por el operador se conserva como preferencia local y debe trasladarse al crear un nuevo pedido.
+- Al cambiar moneda de pago, el codigo de pais del telefono del cliente se ajusta automaticamente cuando aplique.
+
+Codigos de pais:
+Catalogo operativo para limitar los prefijos telefonicos que ve el operador.
+
+Reglas actuales:
+
+- Administracion permite activar o desactivar codigos de pais visibles.
+- Por defecto deben estar activos Cuba +53, Brasil +55 y Uruguay +598.
+- Los telefonos se guardan con prefijo internacional completo.
+- El selector de codigos no debe mostrar paises inactivos salvo que el numero actual ya los use y haga falta conservarlo para lectura.
 
 6. CODIGO DE OPERACION
 
@@ -712,6 +848,9 @@ Reglas actuales:
 - La consulta por codigo de pedido incluye la lista de archivos registrados.
 - Si el operador finaliza sin comprobante, no debe adjuntarse una evidencia anterior como comprobante final.
 - Las fotos de perfil, imagenes de metodos de pago, promociones y archivos de pedido deben usar el mismo servicio comun de storage.
+- Los uploads deben mostrar progreso, error concreto y opcion de reintento manual cuando falle la red o el storage.
+- El frontend debe evitar subir dos veces el mismo archivo si el operador toca varias veces el selector o el boton.
+- En modo offline no se suben archivos ni se prometen adjuntos; el operador debe esperar conexion o continuar solo con acciones que no dependan de archivos.
 
 Endpoints actuales:
 
@@ -720,7 +859,7 @@ POST /pedido/{codigo_operacion}/archivos
 POST /pedido/{codigo_operacion}/upload
 
 Estado actual:
-Implementado para registro de metadatos, upload binario por servicio comun de storage y control de permisos por token. El upload valida tamano maximo y tipos MIME permitidos configurables por .env. En produccion se debe confirmar storage persistente, backups y politicas de acceso.
+Implementado para registro de metadatos, upload binario por servicio comun de storage, progreso de carga, reintento manual y control de permisos por token. El upload valida tamano maximo y tipos MIME permitidos configurables por .env. En produccion se debe confirmar storage persistente, backups y politicas de acceso.
 
 12. VISTA DETALLE DE PEDIDO
 
@@ -740,15 +879,44 @@ Estado actual:
 - Permite cambiar estado del pedido.
 - Muestra mensaje_operacion y boton para copiarlo.
 - Muestra accion de mensaje operativo para reenviar o revisar el texto en modal.
+- La accion de mensaje operativo usa modal dedicado para evitar abrir dos formularios de WhatsApp al mismo tiempo.
 - Si existe whatsapp_url, muestra acceso directo a WhatsApp.
 - Permite subir comprobante_cliente y lista archivos asociados.
 - El historial debe incluir como primer registro la creacion del pedido.
 - En movil, las acciones de control deben respetar el espacio del footer y no tapar contenido operativo.
+- En movil, Liberar pedido debe aparecer debajo del componente Tomado por ti, sin chocar con el icono de mensaje operativo.
+- Si no hay conexion, el detalle conserva datos ya cargados. Se puede dejar en cola la finalizacion sin comprobante; tomar, liberar, transferir, cancelar, confirmar pago con comprobante y subir archivos requieren conexion.
 
 Pendiente recomendado para la proxima fase visual, tecnica y operacional:
 
 - Convertir el cambio de estado a control modal o flujo guiado con confirmacion cuando sea necesario.
 - Preparar el detalle para antifraude: comprobantes, hash, revision y alertas.
+
+12.1 CONECTIVIDAD, OFFLINE Y COLA LOCAL
+
+Regla general:
+El sistema debe coexistir con redes moviles inestables, baja velocidad, cortes intermitentes y momentos sin conexion. La prioridad es no duplicar pedidos, archivos, historial ni notificaciones.
+
+Comportamiento actual de la PWA:
+
+- Abre sin internet si el navegador ya tenia la app cacheada por el service worker.
+- Mantiene borradores locales de Nuevo pedido para no perder datos si el operador cierra, recarga o pierde conexion.
+- Permite crear pedidos offline solo cuando no hay archivos adjuntos pendientes. El pedido queda en cola local y se envia automaticamente al reconectar.
+- Permite finalizar un pedido offline sin comprobante, con explicacion obligatoria. La finalizacion queda en cola local y se envia automaticamente al reconectar.
+- Bloquea offline las acciones que pueden generar conflictos o requieren datos vivos: tomar, liberar, transferir, cancelar, confirmar pago con comprobante, subir archivos, admin, reportes y configuracion inicial.
+- Muestra banner de acciones pendientes mientras existan elementos en cola local.
+- Al reconectar, sincroniza la cola y refresca pedidos cuando las acciones pendientes se completan.
+
+Reglas de red:
+
+- Las lecturas seguras pueden tener reintentos controlados.
+- Las acciones que modifican datos no deben reintentarse agresivamente sin control de idempotencia.
+- Los botones de accion deben bloquearse mientras una peticion esta en proceso.
+- Las pantallas no deben borrar datos visibles si una recarga falla.
+- El polling debe pausarse o reducirse cuando la app esta en segundo plano o no hay conexion.
+
+Pendiente de validacion:
+Probar con red lenta real, modo avion, cortes intermitentes, recarga durante operacion, reconexion y doble tap en acciones criticas.
 
 13. ANTIFRAUDE Y REVISION
 
@@ -806,24 +974,32 @@ Ya existe:
 
 - API FastAPI.
 - Modelos principales.
-- Creacion de pedidos por servicio.
+- Creacion de pedidos por servicio: transferencia, efectivo, saldo, divisa y otros.
 - Listado y consulta por codigo.
 - Cambio de estados.
 - Historial de estados.
-- Metodos de pago: implementado.
+- Metodos de pago y cuentas de pago.
 - Ofertas y paquetes de saldo.
 - Puntos de recogida: implementado.
+- Provincias de servicio.
+- Monedas de pago activas configurables.
+- Codigos de pais visibles configurables.
 - Operadores.
 - Templates.
+- Configuracion inicial con provincias, puntos de recogida, operadores, metodos de pago, monedas de pago y cuentas de pago.
 - Sync de ofertas desde Google Sheets.
 - Libreta de contactos.
 - Login minimo de operadores/admin con token Bearer.
 - CRUD de operadores protegido con permisos basicos.
 - Endpoints de pedidos y calculadora protegidos con permisos por rol.
 - CRUD administrativo de ofertas y paquetes de saldo protegido.
+- CRUD administrativo de monedas de pago y codigos de pais mediante configuraciones.
 - Reportes basicos protegidos con filtros operativos.
-- Registro de evidencias/comprobantes por pedido como metadatos y upload binario por servicio comun de storage.
+- Registro de evidencias/comprobantes por pedido como metadatos y upload binario por servicio comun de storage, con progreso, error y reintento manual.
 - PWA instalable con iconos redondeados y tema visual propio.
+- PWA cacheada para abrir offline tras carga previa.
+- Borradores locales de nuevo pedido.
+- Cola local para crear pedidos sin archivos y finalizar sin comprobante cuando no hay conexion.
 - Notificaciones internas con contador, tipos, sonido configurable, silenciado por tipo, marcar como leido y eliminacion.
 - CRUD de roles y configuracion de permisos.
 - Perfil de operador con foto, datos, contraseña, permisos y preferencias.
@@ -834,21 +1010,26 @@ Ya existe:
 
 Pendiente de etapa 1:
 
-- Cerrar pruebas reales de frontend contra API real en los cuatro servicios.
-- Validar storage persistente en produccion para fotos, comprobantes, documentos, promociones y metodos de pago.
-- Garantizar que crear, confirmar, tomar, liberar, transferir, cancelar y finalizar pedido no dupliquen peticiones, historial, archivos ni notificaciones.
-- Probar baja conectividad, conexion intermitente, modo avion, recarga de pagina y reconexion durante operaciones criticas.
-- Ajustar service worker/cache para que la PWA abra con mala conexion y muestre estado claro cuando una accion requiere internet.
-- Confirmar roles y permisos por perfil real: Consultor, Operador y Admin.
-- Validar notificaciones en creacion, transferencia y atraso de pedidos.
+- Probar flujo completo de frontend contra API real en transferencia, efectivo, saldo, divisa y otros.
+- Ejecutar protocolo de baja conectividad: red lenta, modo avion, cortes intermitentes, recarga de pagina y reconexion.
+- Validar que no se dupliquen pedidos, historial, archivos ni notificaciones al hacer doble tap, reconectar o refrescar.
+- Validar cola offline: crear pedido sin archivos, finalizar sin comprobante, sincronizar al reconectar y conservar datos visibles si falla una recarga.
+- Validar uploads con progreso, error claro, reintento manual y bloqueo de doble upload.
+- Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
+- Configurar y probar backups de base de datos y storage.
+- Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
+- Confirmar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
+- Validar notificaciones de nuevo pedido, transferencia, atraso, marcado como leido, eliminacion y silenciado por tipo.
 - Validar que pedidos tomados por otro operador no permitan ejecutar acciones desde notificaciones.
-- Validar reportes y exportaciones con datos reales.
-- Validar WhatsApp manual/semiautomatico con cliente, grupo operativo y grupo finalizado.
-- Revisar auditoria minima por usuario en acciones sensibles.
-- Revisar backups de base de datos y storage.
+- Validar que los pedidos atrasados solo se notifiquen si no han sido tomados por un operador.
+- Validar templates con variables operador, metodo/cuenta de pago, punto de recogida, observaciones y variables vacias.
+- Validar WhatsApp manual/semiautomatico con cliente, grupo operativo, grupo finalizado y reenvios desde detalle.
+- Validar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
+- Revisar UI movil final: footer, botones flotantes, modales, toasts, filtros, detalle pedido y formularios sin tapar contenido.
+- Ejecutar smoke tests backend y build frontend antes de marcar cierre.
+- Definir si auditoria minima por usuario queda dentro de fase 1 o como bloqueo documentado para produccion completa.
 - Documentar procedimiento diario de operacion, soporte y recuperacion ante fallos.
-- Integracion WhatsApp real o semiautomatica.
-- Auditoria por usuario en acciones sensibles.
+- Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
 Etapa 2: Operacion interna completa
 
@@ -945,8 +1126,12 @@ GET /metodos-pago/
 GET /metodos-pago/{metodo_id}
 POST /metodos-pago/
 PUT /metodos-pago/{metodo_id}
-
+POST /metodos-pago/{metodo_id}/imagen
 DELETE /metodos-pago/{metodo_id}
+GET /metodos-pago/{metodo_id}/cuentas
+POST /metodos-pago/{metodo_id}/cuentas
+PUT /metodos-pago/{metodo_id}/cuentas/{cuenta_id}
+DELETE /metodos-pago/{metodo_id}/cuentas/{cuenta_id}
 
 Calculadora:
 
@@ -982,6 +1167,10 @@ DELETE /ofertas/{oferta_id}
 
 Puntos de recogida:
 
+GET /provincias-servicio/
+POST /provincias-servicio/
+PUT /provincias-servicio/{provincia_id}
+
 GET /puntos-recogida/
 GET /puntos-recogida/{punto_id}
 POST /puntos-recogida/
@@ -1001,6 +1190,9 @@ Reportes:
 GET /reportes/resumen
 GET /reportes/resumen.csv
 GET /reportes/operaciones.xlsx
+GET /reportes/cuentas/saldos
+GET /reportes/extracciones
+POST /reportes/extracciones
 
 Sync:
 
@@ -1041,13 +1233,18 @@ Estado actual:
 - Clientes: endpoints protegidos existentes.
 - Contactos: implementado.
 - Puntos de recogida: implementado.
+- Provincias de servicio: implementado.
 - Metodos de pago: implementado.
+- Cuentas de pago: implementado.
+- Monedas de pago: implementado mediante configuracion administrable.
+- Codigos de pais visibles: implementado mediante configuracion administrable.
 - Ofertas manuales: implementado.
 - Paquetes de saldo: implementado.
+- Roles y permisos: implementado.
 
 Pendiente recomendado:
 
-- Metodos de pago, puntos de recogida, ofertas, paquetes de saldo, clientes, contactos, configuracion y templates tienen administracion inicial desde el frontend. Los cambios densos de configuracion/templates se editan en modal responsive.
+- Validar en produccion que los catalogos de configuracion inicial queden completos antes de operar.
 
 Prioridad 4: Evidencias
 
@@ -1058,23 +1255,25 @@ Prioridad 5: Frontend operativo
 Estado actual:
 
 - Frontend/ creado con React, TypeScript y Vite.
-- Implementado scaffold inicial de login, bandeja de pedidos, filtro por estado, detalle, cambio de estado, upload de comprobante y creacion de transferencia.
-- El formulario de transferencia carga metodos de pago activos desde API y evita escribir tipo_pago_id manualmente.
-- El frontend ya incluye creacion inicial de efectivo con selector de metodo de pago y punto de recogida.
-- El frontend ya incluye creacion inicial de saldo movil con selector de metodo de pago y paquete.
-- El frontend ya incluye creacion inicial de divisa con metodo de pago, tarjeta, monto divisa y telefono destinatario opcional.
-- La bandeja permite filtrar por estado y servicio; muestra secciones por estado apiladas verticalmente a todo ancho; dentro de cada estado los pedidos se muestran como tarjetas responsive: 4 columnas en pantalla grande, 2 en mediana y 1 en celular. La informacion principal de cada tarjeta y de la seccion Datos de operacion en el modal de detalle sigue el orden operativo de los templates: transferencia prioriza tarjeta/telefono/monto CUP, efectivo telefono/documento/monto CUP, saldo telefono/saldo y divisa tipo/tarjeta/telefono/monto divisa. El detalle se abre como modal/drawer responsive y muestra campos especificos, copia de mensaje, enlace WhatsApp y evidencias.
-- Los formularios de pedido permiten buscar cliente existente por telefono y reutilizar su cliente_id. En la vista de operarios los datos del cliente se muestran agrupados y plegables porque son opcionales; en el futuro portal de clientes no se deben mostrar en la creacion del pedido, ya que vendran del perfil autenticado.
-- Node.js/npm ya se ejecuta desde la terminal normal del host; pendiente validar navegador contra API real en escenario completo de campo.
-- Pantalla de reportes implementada en frontend con filtros por fecha tipo date, estado, servicio, moneda y operador; muestra resumen, agrupaciones por dia/estado/servicio/moneda/metodo/operador y exportacion CSV.
+- Login, Inicio, Home Test, Pedidos, Nuevo pedido, Detalle, Reportes, Perfil, Admin y Configuracion inicial usan una anchura estandarizada.
+- Los formularios de transferencia, efectivo, saldo, divisa y otros usan metodos de pago, cuentas de pago obligatorias, monedas activas, cliente/telefono, datos de destino, observaciones y comprobante opcional.
+- Los formularios de pedido guardan borradores locales y pueden guardar en cola pedidos offline sin archivos.
+- El selector de moneda de pago se conserva entre Inicio/Home y Nuevo pedido.
+- La bandeja Pedidos carga Todas por defecto para operadores, usa Mis pedidos solo como filtro o para clientes, y permite filtros por modal con periodo Hoy, Ayer, 7 dias, Mes y Todos.
+- Los botones de filtro, busqueda, vista y actualizar mantienen una fila estable en movil.
+- Los contadores Mis pedidos, En proceso y Completados funcionan como botones de filtro.
+- El detalle permite tomar, liberar, transferir, cancelar, confirmar pago, finalizar, subir evidencias, ver historial, reenviar mensaje operativo y finalizar sin comprobante con explicacion.
+- Los uploads muestran progreso, error y reintento manual.
+- Los toast de error/exito son flotantes debajo del header.
+- El frontend muestra estado sin conexion, reconectando y conexion lenta solo para conexiones realmente lentas.
+- Pantalla de reportes implementada con filtros por periodo/fecha, estado, servicio, moneda y operador; muestra resumen, agrupaciones y exportacion CSV/Excel.
 
 Pendiente:
 
-- Validar en navegador los cuatro formularios contra API real y pulir ergonomia.
-- Mejorar selector de metodos de pago con saldos/cuentas visibles si el negocio lo requiere.
-- Pulir ergonomia de Admin: edicion completa, busquedas, paginacion y confirmaciones. Los catalogos principales, clientes, contactos, configuracion y templates ya tienen Admin inicial.
-- Exportacion Excel detallada implementada; pendiente validar formato final con operacion real.
-- Envio real o semiautomatico de mensajes WhatsApp.
+- Validar en navegador y dispositivo real los cinco formularios contra API real.
+- Validar operacion completa con baja conectividad y reconexion.
+- Validar formato final CSV/Excel con cierre diario real.
+- Envio real o semiautomatico de mensajes WhatsApp sigue pendiente para fase posterior si no se incluye en cierre.
 
 Prioridad 6: Reportes
 
@@ -1083,13 +1282,13 @@ Estado actual:
 - GET /reportes/resumen implementado con filtros por fecha, estado, servicio, moneda y operador.
 - Resume total de pedidos, monto pagado, monto resultado y ganancia.
 - Agrupa por dia, estado, servicio, moneda, metodo de pago y operador.
-- Frontend de reportes implementado con filtros, tablas de resumen operativo y exportacion CSV.
+- Frontend de reportes implementado con filtros, tablas de resumen operativo, exportacion CSV y Excel detallado.
 
 Pendiente recomendado:
 
 - Validar formato Excel/CSV con el archivo que necesita el negocio para cierre diario y mensual.
 
-17. GLOSARIO
+18. GLOSARIO
 
 monto_pago:
 Cantidad pagada por el cliente.
@@ -1124,7 +1323,7 @@ Regla de tasa por servicio, moneda y minimo de pago.
 paquete_saldo:
 Paquete fijo de recarga movil.
 
-18. REGLA GENERAL PARA FUTUROS CAMBIOS
+19. REGLA GENERAL PARA FUTUROS CAMBIOS
 
 Regla UX cliente en pedidos:
 En el panel de operarios, los campos numero_telefono_cliente, nombre_cliente y cliente_id son apoyo opcional para asociar o crear cliente durante atencion por WhatsApp. Deben estar agrupados y no competir visualmente con los datos operativos del pedido. En el futuro portal de clientes, esos campos se toman del perfil/login y no se muestran en el formulario de creacion.
@@ -1147,7 +1346,7 @@ Este documento debe actualizarse cada vez que cambie una regla importante del ne
 
 
 
-19. CHECKLIST PRE-PRODUCCION
+20. CHECKLIST PRE-PRODUCCION
 
 Antes de sacar el sistema a produccion, revisar y completar obligatoriamente:
 
@@ -1183,17 +1382,20 @@ Infraestructura y despliegue:
 
 Datos y operacion:
 
-- Verificar metodos de pago activos y monedas correctas.
+- Verificar configuracion inicial completa: provincias, puntos de recogida, operadores, metodos de pago, monedas de pago y cuentas de pago.
+- Verificar monedas de pago activas y codigos de pais visibles.
+- Verificar metodos de pago activos y cuentas correctas.
 - Verificar ofertas activas para transferencia y efectivo.
 - Verificar paquetes de saldo activos.
 - Verificar puntos de recogida activos.
 - Revisar templates guardados en DB y variables disponibles.
 - Ejecutar smoke test local de pedidos: Backend/venv/bin/python Backend/scripts/smoke_pedidos.py.
 - Ejecutar smoke test administrativo: Backend/venv/bin/python Backend/scripts/smoke_admin.py.
-- Probar contra API real los cuatro servicios: transferencia, efectivo, saldo y divisa.
+- Probar contra API real los cinco servicios: transferencia, efectivo, saldo, divisa y otros.
 - Probar registro de evidencias/comprobantes por pedido.
 - Probar upload binario en storage productivo, incluyendo limite UPLOAD_MAX_BYTES y MIME permitidos.
 - Probar endpoints protegidos sin token y con token: pedidos, calculadora, ofertas, paquetes, reportes y archivos.
+- Probar modo offline: abrir PWA cacheada, guardar pedido sin archivos en cola, finalizar sin comprobante en cola y sincronizar al reconectar.
 
 Pendiente antes de operacion completa:
 
@@ -1202,7 +1404,7 @@ Pendiente antes de operacion completa:
 - Configurar FRONTEND_ORIGINS/CORS para el dominio real del frontend.
 - Mantener actualizado el formato esperado del Google Sheet cada vez que cambien columnas, nombres de seccion o regla de vigencia.
 
-20. EXPERIENCIA OPERATIVA DEL FRONTEND
+21. EXPERIENCIA OPERATIVA DEL FRONTEND
 
 El sistema debe priorizar uso movil para operarios poco tecnicos. La navegacion principal queda organizada asi:
 
@@ -1211,11 +1413,14 @@ El sistema debe priorizar uso movil para operarios poco tecnicos. La navegacion 
 - Crear: formulario por servicio, tambien accesible desde el FAB flotante.
 - Reportes: resumen operativo y exportacion.
 - Perfil: datos del operador y salida de sesion.
+- Admin: catalogos, roles, permisos y configuracion; visible solo para usuarios con permisos.
 
 Reglas de navegacion y marca:
 
 - El logo del sistema y el texto de marca EL JIREH en el header deben redirigir siempre al dashboard Inicio.
 - El logo/texto del menu lateral movil tambien debe redirigir a Inicio y cerrar el menu.
+- El boton Admin puede estar en header/menu perfil/footer, pero siempre debe abrir la vista Admin raiz y no conservar subpantallas internas anteriores.
+- Admin debe ocultarse o deshabilitarse para operadores sin permisos.
 - En vista Pedidos no debe mostrarse un boton Crear pedido dentro de la barra superior de filtros, porque la accion principal ya existe como boton flotante.
 - La barra de pedidos usa busqueda a la derecha en desktop, filtros por servicio en chips visibles y filtros por estado en chips visibles.
 - La vista Pedidos carga un lote reciente de pedidos y aplica filtros de estado, servicio y busqueda en el frontend para que los chips respondan sin latencia; el boton de actualizar pedidos recarga el lote desde el backend.
@@ -1246,7 +1451,7 @@ Reglas visuales:
 - Cancelados debe aparecer al final del orden visual de estados.
 
 
-21. MANUAL OPERATIVO DE PRUEBA DE FLUJO
+22. MANUAL OPERATIVO DE PRUEBA DE FLUJO
 
 Esta seccion se usa como guia de prueba manual antes de operar con clientes reales. La prueba debe ejecutarse en modo desarrollo o entorno controlado, usando un pedido de prueba y datos no sensibles.
 
@@ -1281,6 +1486,9 @@ Prueba de flujo de negocio recomendada:
 10. Al completar, confirmar que se genere y abra solo el mensaje para el grupo historico/finalizados.
 11. Confirmar que el pedido finalizado mantiene tasa_final, monto_pago, monto_resultado, moneda y datos de destino congelados.
 12. Revisar Reportes para confirmar que la operacion aparece en el periodo actual.
+13. Repetir prueba resumida para efectivo, saldo, divisa y otros.
+14. Probar offline: crear un pedido sin archivos, volver a tener conexion y confirmar que se sincroniza una sola vez.
+15. Probar offline en detalle: finalizar sin comprobante, reconectar y confirmar que el estado queda completado una sola vez.
 
 Criterios de aceptacion de la prueba:
 
@@ -1291,6 +1499,7 @@ Criterios de aceptacion de la prueba:
 - El sistema no debe mostrar Sync en textos visibles de ofertas.
 - Los botones principales en movil deben quedar alineados y ser faciles de tocar.
 - Si ocurre error, debe quedar claro si es problema de login, CORS, API apagada, permisos o validacion del formulario.
+- En offline, debe quedar claro que archivos, confirmar pago con comprobante, tomar, liberar, transferir, cancelar, admin y reportes requieren conexion.
 
 
 ------------------Ideas del futuro------------------

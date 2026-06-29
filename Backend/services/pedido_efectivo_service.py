@@ -75,6 +75,13 @@ def crear_pedido_efectivo(
             or None
         ),
 
+        "idempotency_key":
+        getattr(
+            data,
+            "idempotency_key",
+            None
+        ),
+
         "nombre_cliente":
         getattr(
             data,

@@ -20,6 +20,7 @@ export type NuevoPedidoDraft = {
   numero_telefono_cliente?: string;
   bonificacion_manual?: string;
   observaciones?: string;
+  idempotency_key?: string;
 };
 
 export type BorradorNuevoPedidoGuardado = {
@@ -38,7 +39,15 @@ const CAMPOS_AUTOMATICOS = new Set([
   'cuenta_pago_id',
   'punto_recogida_id',
   'paquete_saldo_id',
+  'idempotency_key',
 ]);
+
+export function crearIdempotencyKey(servicio: NuevoPedidoServicio, operadorId: number) {
+  const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  return `pedido:${servicio}:${operadorId}:${random}`;
+}
 
 function storageDisponible() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';

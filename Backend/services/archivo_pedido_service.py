@@ -107,6 +107,35 @@ def _aplicar_referencia_archivo(
             detalle_otros.documento_identidad_url = ruta_archivo
 
 
+def _buscar_archivo_reciente(
+    db: Session,
+    pedido_id: int,
+    tipo: str,
+    nombre_archivo: str | None,
+    mime_type: str | None
+):
+    if not nombre_archivo:
+        return None
+
+    limite = datetime.utcnow() - timedelta(seconds=ARCHIVO_DEDUPE_SECONDS)
+    return (
+        db.query(
+            ArchivoPedido
+        )
+        .filter(
+            ArchivoPedido.pedido_id == pedido_id,
+            ArchivoPedido.tipo == tipo,
+            ArchivoPedido.nombre_archivo == nombre_archivo,
+            ArchivoPedido.mime_type == mime_type,
+            ArchivoPedido.created_at >= limite
+        )
+        .order_by(
+            ArchivoPedido.id.desc()
+        )
+        .first()
+    )
+
+
 def listar_archivos_pedido(
     db: Session,
     codigo_operacion: str
@@ -221,22 +250,14 @@ def registrar_archivo_pedido(
         )
 
     if data.nombre_archivo:
-        limite = datetime.utcnow() - timedelta(seconds=ARCHIVO_DEDUPE_SECONDS)
         archivo_reciente = (
-            db.query(
-                ArchivoPedido
+            _buscar_archivo_reciente(
+                db,
+                pedido.id,
+                tipo,
+                data.nombre_archivo,
+                data.mime_type
             )
-            .filter(
-                ArchivoPedido.pedido_id == pedido.id,
-                ArchivoPedido.tipo == tipo,
-                ArchivoPedido.nombre_archivo == data.nombre_archivo,
-                ArchivoPedido.mime_type == data.mime_type,
-                ArchivoPedido.created_at >= limite
-            )
-            .order_by(
-                ArchivoPedido.id.desc()
-            )
-            .first()
         )
 
         if archivo_reciente:
@@ -332,6 +353,56 @@ def guardar_upload_pedido(
             "Tipo de archivo no permitido"
         )
 
+    tipo_normalizado = tipo.strip().lower()
+    if tipo_normalizado not in TIPOS_ARCHIVO_PEDIDO:
+        raise Exception(
+            "Tipo de archivo no permitido. Use: "
+            + ", ".join(
+                sorted(
+                    TIPOS_ARCHIVO_PEDIDO
+                )
+            )
+        )
+
+    pedido = _obtener_pedido_por_codigo(
+        db,
+        codigo_operacion
+    )
+    validar_bloqueo_pedido(
+        db,
+        pedido,
+        operador
+    )
+    archivo_reciente = _buscar_archivo_reciente(
+        db,
+        pedido.id,
+        tipo_normalizado,
+        archivo.filename,
+        content_type
+    )
+    if archivo_reciente:
+        _aplicar_referencia_archivo(
+            db,
+            pedido,
+            tipo_normalizado,
+            archivo_reciente.ruta_archivo
+        )
+        db.commit()
+        db.refresh(
+            archivo_reciente
+        )
+        logger.info(
+            "archivo_pedido.upload.repetido_reciente codigo=%s pedido_id=%s tipo=%s archivo_id=%s usuario=%s",
+            codigo_operacion,
+            pedido.id,
+            tipo_normalizado,
+            archivo_reciente.id,
+            operador.nombre if operador else usuario
+        )
+        return archivo_pedido_dict(
+            archivo_reciente
+        )
+
     extension = Path(
         archivo.filename
     ).suffix.lower()
@@ -350,7 +421,7 @@ def guardar_upload_pedido(
     )
 
     data = ArchivoPedidoCreate(
-        tipo=tipo,
+        tipo=tipo_normalizado,
         ruta_archivo=ruta_archivo,
         nombre_archivo=archivo.filename,
         mime_type=content_type,

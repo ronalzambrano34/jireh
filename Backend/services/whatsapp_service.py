@@ -9,8 +9,10 @@ from Backend.models.operador import Operador
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
 from Backend.models.pedido_efectivo import PedidoEfectivo
+from Backend.models.pedido_otros import PedidoOtros
 from Backend.models.pedido_saldo import PedidoSaldo
 from Backend.models.pedido_transferencia import PedidoTransferencia
+from Backend.models.punto_recogida import PuntoRecogida
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.services.config_service import obtener_config
 from Backend.services.pedido_estado import PedidoEstado
@@ -124,6 +126,13 @@ def _operador(db: Session, pedido: Pedido):
     return db.query(Operador).filter(Operador.id == pedido.operador_id).first()
 
 
+def _punto_recogida_nombre(db: Session, punto_recogida_id: int | None):
+    if not punto_recogida_id:
+        return ""
+    punto = db.query(PuntoRecogida).filter(PuntoRecogida.id == punto_recogida_id).first()
+    return punto.nombre if punto else ""
+
+
 def _detalle(db: Session, pedido: Pedido):
     if pedido.servicio == "transferencia":
         item = db.query(PedidoTransferencia).filter(PedidoTransferencia.pedido_id == pedido.id).first()
@@ -135,11 +144,13 @@ def _detalle(db: Session, pedido: Pedido):
 
     if pedido.servicio == "efectivo":
         item = db.query(PedidoEfectivo).filter(PedidoEfectivo.pedido_id == pedido.id).first()
+        punto_recogida = _punto_recogida_nombre(db, item.punto_recogida_id if item else None)
         return {
             "telefono_destinatario": item.telefono_destinatario if item else "",
             "monto_cup": item.monto_cup if item else "",
             "documento_identidad_url": item.documento_identidad_url if item else "",
-            "punto_recogida_id": item.punto_recogida_id if item else "",
+            "punto_recogida_id": punto_recogida,
+            "punto_recogida": punto_recogida,
         }
 
     if pedido.servicio == "saldo":
@@ -156,6 +167,20 @@ def _detalle(db: Session, pedido: Pedido):
             "numero_tarjeta": item.numero_tarjeta if item else "",
             "telefono_destinatario": item.telefono_destinatario if item else "",
             "monto_divisa": item.monto_divisa if item else "",
+        }
+
+    if pedido.servicio == "otros":
+        item = db.query(PedidoOtros).filter(PedidoOtros.pedido_id == pedido.id).first()
+        punto_recogida = _punto_recogida_nombre(db, item.punto_recogida_id if item else None)
+        observaciones = pedido.observaciones or ""
+        return {
+            "numero_tarjeta": item.numero_tarjeta if item else "",
+            "telefono_destinatario": item.telefono_destinatario if item else "",
+            "documento_identidad_url": item.documento_identidad_url if item else "",
+            "punto_recogida_id": punto_recogida,
+            "punto_recogida": punto_recogida,
+            "descripcion": observaciones,
+            "informacion_operacion": observaciones,
         }
 
     return {}

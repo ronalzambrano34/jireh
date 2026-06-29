@@ -12,6 +12,8 @@ class PedidoEfectivoCreate(
 
     monto_pago: float
 
+    idempotency_key: str | None = None
+
     moneda_pago: str = "BRL"
 
     tipo_pago_id: int

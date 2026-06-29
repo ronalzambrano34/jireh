@@ -170,6 +170,7 @@ export type ArchivoPedido = {
 };
 
 export type CrearTransferenciaPayload = {
+  idempotency_key?: string;
   monto_pago: number;
   moneda_pago: string;
   numero_tarjeta: string;
@@ -223,6 +224,7 @@ export type PuntoRecogida = {
 };
 
 export type CrearEfectivoPayload = {
+  idempotency_key?: string;
   monto_pago: number;
   moneda_pago: string;
   tipo_pago_id: number;
@@ -251,6 +253,7 @@ export type PaqueteSaldo = {
 };
 
 export type CrearSaldoPayload = {
+  idempotency_key?: string;
   telefono_destinatario?: string;
   contacto_id?: number | null;
   tipo_pago_id: number;
@@ -269,6 +272,7 @@ export type CrearSaldoPayload = {
 
 
 export type CrearOtrosPayload = {
+  idempotency_key?: string;
   servicio: 'otros';
   monto_pago: number;
   moneda_pago: string;
@@ -287,6 +291,7 @@ export type CrearOtrosPayload = {
 
 
 export type CrearDivisaPayload = {
+  idempotency_key?: string;
   monto_pago: number;
   moneda_pago: string;
   tipo_tarjeta?: string;

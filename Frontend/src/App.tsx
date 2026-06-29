@@ -1,6 +1,6 @@
 import { lazy, type ChangeEvent, type FormEvent, type TouchEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, BarChart3, BriefcaseBusiness, CheckCircle2, ClipboardList, Copy, Home, LogOut, Menu, MessageCircle, Plus, RefreshCw, Settings, ShieldCheck, Smartphone, Sparkles, Upload, UserCircle, UsersRound, WalletCards, Wifi, WifiOff, X } from 'lucide-react';
-import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getToken, listarPedidos, subirArchivo, subirMiFotoPerfil } from './api/client';
+import { actualizarEstado, actualizarMiPerfil, cambiarMiPassword, clearToken, getToken, listarPedidos, obtenerPedido, subirArchivo, subirMiFotoPerfil } from './api/client';
 import { getMeDedup, obtenerEstadoConfiguracionInicialDedup } from './api/dedupedReads';
 import type { Operador, PedidoDetalle, PedidoResumen } from './types/api';
 import { LoginPage } from './pages/LoginPage';
@@ -562,6 +562,7 @@ export function App() {
   const retryPedidoCreadoUploadRef = useRef<(() => void) | null>(null);
   const retryProfilePhotoUploadRef = useRef<(() => void) | null>(null);
   const confirmandoPagoCreadoRef = useRef(false);
+  const profileSavingRef = useRef(false);
   const profilePhotoSavingRef = useRef(false);
   const profileMessageTimeoutRef = useRef<number | null>(null);
   const errorTimeoutRef = useRef<number | null>(null);
@@ -1258,8 +1259,16 @@ export function App() {
         setError('Este pedido ya esta tomado por otro operador');
         return;
       }
-      if (!pedidoActual || !pedidoDisponibleParaNotificacion(pedidoActual)) return;
-      setSeleccionado(notificacion.codigo);
+      const detalleActual = await obtenerPedido(notificacion.codigo);
+      if (pedidoTomadoPorOtroOperador(detalleActual, operador)) {
+        setPedidos((current) => current.map((pedido) => (
+          pedido.codigo_operacion === detalleActual.codigo_operacion ? { ...pedido, ...detalleActual } : pedido
+        )));
+        setError('Este pedido ya esta tomado por otro operador');
+        return;
+      }
+      if (!pedidoDisponibleParaNotificacion(detalleActual)) return;
+      setSeleccionado(detalleActual.codigo_operacion);
     } catch {
       void cargarPedidos();
     }
@@ -1862,13 +1871,14 @@ export function App() {
 
   async function guardarPerfil(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (profileSaving) return;
+    if (profileSavingRef.current) return;
     const nombre = profileNombre.trim();
     if (!nombre) {
       setProfileError('El nombre no puede estar vacio');
       return;
     }
 
+    profileSavingRef.current = true;
     setProfileSaving(true);
     setProfileError(null);
     setProfileMessage(null);
@@ -1879,18 +1889,20 @@ export function App() {
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : 'No se pudo actualizar el perfil');
     } finally {
+      profileSavingRef.current = false;
       setProfileSaving(false);
     }
   }
 
   async function guardarPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (profileSaving) return;
+    if (profileSavingRef.current) return;
     if (profilePassword.nueva !== profilePassword.confirmar) {
       setProfileError('La confirmacion no coincide con la nueva contraseña');
       return;
     }
 
+    profileSavingRef.current = true;
     setProfileSaving(true);
     setProfileError(null);
     setProfileMessage(null);
@@ -1904,6 +1916,7 @@ export function App() {
     } catch (err) {
       setProfileError(err instanceof Error ? err.message : 'No se pudo cambiar la contraseña');
     } finally {
+      profileSavingRef.current = false;
       setProfileSaving(false);
     }
   }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Banknote, CreditCard, MapPin, Package, Percent, UserPlus } from 'lucide-react';
 import {
   crearCuentaMetodoPago,
@@ -49,6 +49,7 @@ export function SetupInicialPage({
   const [provincias, setProvincias] = useState<ProvinciaServicio[]>([]);
   const [paso, setPaso] = useState(0);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [provincia, setProvincia] = useState({
@@ -146,11 +147,12 @@ export function SetupInicialPage({
   const setupRequeridoCompleto = Boolean(estado?.provincias && estado?.puntos && estado?.metodos && estado?.cuentas && estado?.operadores);
 
   async function guardarProvincia() {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!provincia.nombre.trim()) {
       setError('Escribe el nombre de la provincia');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -166,16 +168,18 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la provincia');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function guardarMetodoPago() {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!pago.nombre_metodo.trim()) {
       setError('Escribe el nombre del metodo de pago');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -195,12 +199,13 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el metodo');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function guardarCuentaPago() {
-    if (saving) return;
+    if (savingRef.current) return;
     const metodoId = Number(pago.metodo_id);
     if (!metodoId) {
       setError('Selecciona o crea un metodo de pago');
@@ -214,6 +219,7 @@ export function SetupInicialPage({
       setError('Completa la cuenta y el titular');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -231,18 +237,20 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function guardarTasas() {
-    if (saving) return;
+    if (savingRef.current) return;
     const transferencia = Number(tasas.transferencia);
     const efectivo = Number(tasas.efectivo);
     if (!(transferencia > 0) && !(efectivo > 0)) {
       setError('Escribe al menos una tasa para continuar');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -257,12 +265,13 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron guardar las tasas');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function guardarPunto() {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!punto.provincia_id) {
       setError('Selecciona una provincia para el punto');
       return;
@@ -271,6 +280,7 @@ export function SetupInicialPage({
       setError('Completa nombre y direccion del punto');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -286,16 +296,18 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el punto');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function guardarOperador() {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!operador.nombre.trim() || !operador.telefono.trim() || !operador.password.trim()) {
       setError('Completa nombre, telefono y contraseña del operador');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -313,16 +325,18 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el operador');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function guardarSaldo() {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!saldo.nombre.trim() || !(Number(saldo.monto_pago) > 0) || !(Number(saldo.saldo_cup) > 0)) {
       setError('Completa el nombre y los montos del paquete');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -337,12 +351,13 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el paquete');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function finalizar() {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!estado?.provincias) {
       setPaso(0);
       setError('Configura al menos una provincia antes de finalizar');
@@ -368,6 +383,7 @@ export function SetupInicialPage({
       setError('Configura al menos un operador antes de finalizar');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     try {
       await guardarConfiguracion({ clave: 'setup_inicial_completado', valor: 'true' });
@@ -375,6 +391,7 @@ export function SetupInicialPage({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo finalizar la configuracion');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }

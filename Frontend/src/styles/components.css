@@ -1944,7 +1944,7 @@
   position: fixed;
   right: 20px;
   top: calc(var(--app-toast-top, 92px) + env(safe-area-inset-top));
-  z-index: 1400;
+  z-index: var(--app-toast-layer, 10000);
   width: min(360px, calc(100vw - 28px));
   display: grid;
   gap: 10px;
@@ -2012,7 +2012,7 @@
   left: 50%;
   bottom: calc(24px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  z-index: 1400;
+  z-index: var(--app-toast-layer, 10000);
   width: max-content;
   max-width: calc(100vw - 28px);
 }
@@ -2306,8 +2306,8 @@ body {
 @media (max-width: 920px) {
   .workspace {
     min-height: 100dvh;
-    padding: 12px 12px calc(112px + env(safe-area-inset-bottom));
-    scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding: 12px 12px var(--mobile-content-bottom-space);
+    scroll-padding-bottom: var(--mobile-content-bottom-space);
   }
 
   .toolbar {
@@ -2332,7 +2332,7 @@ body {
 
   .floating-create {
     right: 16px;
-    bottom: calc(88px + env(safe-area-inset-bottom));
+    bottom: var(--mobile-floating-create-bottom);
   }
 }
 
@@ -3157,7 +3157,7 @@ body {
 
   .floating-create-wrap {
     right: 16px;
-    bottom: calc(88px + env(safe-area-inset-bottom));
+    bottom: var(--mobile-floating-create-bottom);
   }
 
   .floating-create-menu {

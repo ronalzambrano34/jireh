@@ -177,6 +177,13 @@
   gap: 14px;
 }
 
+@media (max-width: 920px) {
+  .create-stack {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: var(--mobile-content-bottom-space);
+  }
+}
+
 .service-tabs {
   display: inline-flex;
   gap: 6px;

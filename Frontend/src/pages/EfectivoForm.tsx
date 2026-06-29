@@ -13,7 +13,7 @@ import { calcularOperacionDedup, listarMetodosPagoDedup, listarPuntosRecogidaDed
 import type { CalculoOperacionResponse, Contacto, MetodoPago, PedidoDetalle, PuntoRecogida } from '../types/api';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
-import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
+import { borrarBorradorNuevoPedido, crearIdempotencyKey, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { abrirWhatsAppUrl } from '../utils/whatsapp';
@@ -51,6 +51,7 @@ export function EfectivoForm({
   onDraftSavedChange?: (saved: boolean) => void;
 }) {
   const [form, setForm] = useState({
+    idempotency_key: initialData?.idempotency_key ?? crearIdempotencyKey('efectivo', operadorId),
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
     tipo_pago_id: initialData?.tipo_pago_id ?? '',
@@ -223,6 +224,7 @@ export function EfectivoForm({
       return;
     }
     const payload = {
+      idempotency_key: form.idempotency_key,
       monto_pago: Number(form.monto_pago),
       moneda_pago: form.moneda_pago,
       tipo_pago_id: Number(form.tipo_pago_id),

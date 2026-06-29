@@ -12,6 +12,8 @@ class PedidoDivisaCreate(
 
     monto_pago: float
 
+    idempotency_key: str | None = None
+
     moneda_pago: str = "BRL"
 
     tipo_tarjeta: str | None = None
