@@ -10,6 +10,17 @@ Objetivo: validar que el sistema no duplique acciones, conserva datos visibles y
 - Una imagen pequena y una imagen grande para probar uploads.
 - Probar primero con internet normal para dejar instalada/cacheada la PWA.
 
+## Ejecucion manual
+
+1. Levantar backend y frontend.
+2. Abrir la app en Chrome/Edge desde un telefono o desde DevTools desktop.
+3. Iniciar sesion con un operador real.
+4. Abrir una vez Inicio, Nuevo pedido, Pedidos, Detalle pedido, Reportes y Perfil para dejar cache y estado local.
+5. En DevTools > Network seleccionar Slow 3G para la prueba de red lenta.
+6. Para modo avion, cortar internet desde el sistema operativo o el telefono, no solo bloquear una URL.
+7. En cada escenario revisar consola y red: no debe haber POST/PATCH duplicados para la misma accion.
+8. Al terminar, completar la tabla de Registro de resultado con dispositivo, red, resultado y pendientes.
+
 ## Matriz de pruebas
 
 | Escenario | Condicion | Flujo | Resultado esperado |
@@ -22,6 +33,64 @@ Objetivo: validar que el sistema no duplique acciones, conserva datos visibles y
 | Timeout | Red muy lenta o API demorando mas del limite | Login, listar pedidos, subir comprobante | Mensaje concreto de timeout y boton disponible para reintentar manualmente |
 | Token vencido | Token invalido o expirado | Recargar app y abrir vista protegida | Mensaje de sesion vencida y salida controlada |
 | Archivo grande | Subir archivo mayor al limite configurado | Foto perfil, comprobante, promociones/metodos de pago | Mensaje de archivo muy grande sin iniciar subida duplicada |
+
+## Verificacion por escenario
+
+### Conexion lenta
+
+- Activar Slow 3G.
+- Crear un pedido con comprobante.
+- Revisar que el boton quede bloqueado mientras carga.
+- Confirmar que solo exista un pedido creado.
+- Confirmar que el upload muestre progreso o estado de carga.
+
+### Modo avion
+
+- Cargar la PWA una vez con internet.
+- Activar modo avion.
+- Abrir Inicio y Nuevo pedido.
+- Confirmar que Nuevo pedido permite llenar datos y guardar borrador.
+- Confirmar que crear pedido, subir archivos y confirmar pagos queden bloqueados con mensaje de sin conexion.
+
+### Corte intermitente
+
+- Iniciar una accion critica.
+- Cortar y restaurar internet durante la accion.
+- Reintentar manualmente solo si la app lo permite.
+- Confirmar que no se dupliquen pedido, archivo, historial ni notificacion.
+
+### Recarga durante operacion
+
+- Llenar Nuevo pedido.
+- Recargar la pagina antes de crearlo.
+- Confirmar que aparece el modal de pedido incompleto.
+- Continuar y verificar que los datos se recuperan.
+
+### Backend apagado
+
+- Detener el backend y mantener internet activo.
+- Intentar login, abrir Pedidos y Reportes.
+- Confirmar mensaje de servidor apagado o inaccesible.
+- Confirmar que los datos visibles previos no desaparecen si una recarga falla.
+
+### Timeout
+
+- Simular respuesta lenta o usar red muy degradada.
+- Intentar login, listar pedidos y subir comprobante.
+- Confirmar mensaje de timeout.
+- Confirmar que el operador puede reintentar manualmente.
+
+### Token vencido
+
+- Invalidar token local o usar un token expirado.
+- Recargar vista protegida.
+- Confirmar salida controlada y mensaje de sesion vencida.
+
+### Archivo grande
+
+- Intentar subir un archivo mayor al limite configurado.
+- Confirmar mensaje de archivo muy grande.
+- Confirmar que no se crea registro duplicado de archivo.
 
 ## Flujos criticos
 
@@ -58,4 +127,4 @@ Objetivo: validar que el sistema no duplique acciones, conserva datos visibles y
 
 | Fecha | Version/commit | Dispositivo/red | Resultado | Pendiente |
 | --- | --- | --- | --- | --- |
-|  |  |  |  |  |
+| 2026-06-29 | 4b4799b + cambios locales | Revision automatizada local | Parcial: build PWA OK, pycompile backend OK, service worker con cache/offline shell, acciones criticas bloqueadas sin conexion, borradores locales, dedupe de mutaciones/uploads/notificaciones e intervalos adaptados por red presentes en codigo | Ejecutar prueba manual real en navegador/dispositivo: Slow 3G, cortes intermitentes, modo avion, recarga durante operacion, backend apagado, timeout, token vencido y archivo grande |

@@ -57,13 +57,13 @@ export function OrderControlHead({
           </button>
         )}
       </div>
+      {hasMensajeOperativo && (
+        <button className="order-message-icon-action mobile-message-action" type="button" onClick={onOpenMensajeOperativo} title="Mensaje operativo" aria-label="Mensaje operativo">
+          <MessageCircle size={16} />
+        </button>
+      )}
       {bloqueoPropio && (
         <div className="order-management-actions" aria-label="Acciones de gestion del pedido">
-          {hasMensajeOperativo && (
-            <button className="order-message-icon-action mobile-message-action" type="button" onClick={onOpenMensajeOperativo} title="Mensaje operativo" aria-label="Mensaje operativo">
-              <MessageCircle size={16} />
-            </button>
-          )}
           <button className="release-order-button" type="button" onClick={onRelease} disabled={saving || offlineActionsBlocked} title={offlineActionsBlocked ? 'Sin conexion' : 'Liberar pedido'}>
             <Unlock size={15} /> Liberar pedido
           </button>

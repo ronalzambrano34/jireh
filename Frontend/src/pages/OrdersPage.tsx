@@ -168,7 +168,7 @@ export function OrdersPage(props: {
           <div className="orders-page-metrics" aria-label="Resumen de pedidos">
             <button type="button" className={props.scope === 'mis' && !props.estado && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter('mis', '')}><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></button>
             <button type="button" className={props.estado === 'en_proceso' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'en_proceso')}><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></button>
-            <button type="button" className={props.estado === 'completado' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'completado')}><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></button>
+            {/* <button type="button" className={props.estado === 'completado' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'completado')}><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></button> */}
           </div>
         </header>
 

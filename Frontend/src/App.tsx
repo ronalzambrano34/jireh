@@ -48,6 +48,16 @@ type PendingAuthAction =
   | { type: 'crear'; servicio: ServicioCrear; draft: CrearPedidoDraft }
   | { type: 'rastrear'; codigo: string }
   | null;
+type AppBackState = {
+  vista: AppView;
+  seleccionado: string | null;
+  mobileMenuOpen: boolean;
+  quickCreateOpen: boolean;
+  loginOpen: boolean;
+  pedidoPagoModalOpen: boolean;
+  whatsappGrupoPendienteOpen: boolean;
+  profileSection: ProfileSection;
+};
 type NetworkStatusKind = 'online' | 'slow' | 'offline' | 'reconnecting';
 type NetworkStatus = {
   kind: NetworkStatusKind;
@@ -75,7 +85,10 @@ type NetworkInformationLike = EventTarget & {
 
 const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
+const CREATE_SERVICE_KEY = 'jireh.create.service';
+const ADMIN_THEME_KEY = 'jireh.adminTema';
 const APP_VIEWS = new Set<AppView>(['inicio', 'home-test', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'perfil']);
+const CREATE_SERVICES = new Set<ServicioCrear>(['transferencia', 'efectivo', 'saldo', 'divisa', 'otros']);
 const estadosBandeja = estados.filter((item) => item.value);
 const PULL_REFRESH_THRESHOLD = 64;
 const EXIT_BACK_WINDOW_MS = 2000;
@@ -141,6 +154,24 @@ function vistaGuardada(): AppView {
   if (typeof sessionStorage === 'undefined') return 'inicio';
   const saved = sessionStorage.getItem(VIEW_KEY) as AppView | null;
   return saved && APP_VIEWS.has(saved) ? saved : 'inicio';
+}
+
+function servicioCrearGuardado(): ServicioCrear {
+  const storages = [
+    typeof sessionStorage === 'undefined' ? null : sessionStorage,
+    typeof localStorage === 'undefined' ? null : localStorage,
+  ];
+
+  for (const storage of storages) {
+    try {
+      const saved = storage?.getItem(CREATE_SERVICE_KEY) as ServicioCrear | null;
+      if (saved && CREATE_SERVICES.has(saved)) return saved;
+    } catch {
+      continue;
+    }
+  }
+
+  return 'transferencia';
 }
 
 function intervaloRefrescoPedidos() {
@@ -478,9 +509,10 @@ export function App() {
   const [busqueda, setBusqueda] = useState('');
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [vista, setVista] = useState<AppView>(vistaGuardada);
+  const [viewResetToken, setViewResetToken] = useState(0);
   const [vistaPedidos, setVistaPedidos] = useState<'lista' | 'kanban'>('kanban');
   const [operatorPreferencesReadyFor, setOperatorPreferencesReadyFor] = useState<number | null>(null);
-  const [servicioCrear, setServicioCrear] = useState<ServicioCrear>('transferencia');
+  const [servicioCrear, setServicioCrear] = useState<ServicioCrear>(servicioCrearGuardado);
   const [crearDraft, setCrearDraft] = useState<CrearPedidoDraft>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -527,6 +559,17 @@ export function App() {
   const [notificaciones, setNotificaciones] = useState<AppNotification[]>([]);
   const [notificationSoundPreferences, setNotificationSoundPreferences] = useState<NotificationSoundPreferences>(defaultNotificationSoundPreferences);
   const historyViewRef = useRef<AppView>(vista);
+  const appBackHandlerRef = useRef<() => boolean>(() => false);
+  const appBackStateRef = useRef<AppBackState>({
+    vista,
+    seleccionado,
+    mobileMenuOpen,
+    quickCreateOpen,
+    loginOpen,
+    pedidoPagoModalOpen: Boolean(pedidoPagoModal),
+    whatsappGrupoPendienteOpen: Boolean(whatsappGrupoPendiente),
+    profileSection,
+  });
   const handlingPopStateRef = useRef(false);
   const lastExitBackRef = useRef(0);
   const notificationAudioContextRef = useRef<AudioContext | null>(null);
@@ -876,6 +919,16 @@ export function App() {
 
   function navegar(nextVista: typeof vista) {
     if (nextVista !== 'crear') setCrearDraft({});
+    if (nextVista === 'admin') sessionStorage.removeItem(ADMIN_THEME_KEY);
+    if (nextVista === 'bandeja') {
+      setSeleccionado(null);
+      limpiarFiltrosPedidos();
+    } else {
+      setSeleccionado(null);
+    }
+    setPedidoPagoModal(null);
+    setWhatsappGrupoPendiente(null);
+    setViewResetToken((token) => token + 1);
     setVista(nextVista);
     setMobileMenuOpen(false);
     setQuickCreateOpen(false);
@@ -965,7 +1018,7 @@ export function App() {
   function cerrarSesion() {
     clearToken();
     sessionStorage.removeItem(VIEW_KEY);
-    sessionStorage.removeItem('jireh.adminTema');
+    sessionStorage.removeItem(ADMIN_THEME_KEY);
     setOperador(null);
     setVista('inicio');
     setSetupRevisado(false);
@@ -1091,6 +1144,64 @@ export function App() {
   function cerrarDetallePedido() {
     setSeleccionado(null);
     limpiarFiltrosPedidos();
+  }
+
+  function ejecutarAtrasAplicacion() {
+    const current = appBackStateRef.current;
+
+    if (current.loginOpen) {
+      setLoginOpen(false);
+      setPendingAuthAction(null);
+      return true;
+    }
+
+    if (current.mobileMenuOpen) {
+      setMobileMenuOpen(false);
+      return true;
+    }
+
+    if (current.quickCreateOpen) {
+      setQuickCreateOpen(false);
+      return true;
+    }
+
+    if (current.pedidoPagoModalOpen) {
+      setPedidoPagoModal(null);
+      setPedidoCreadoUploadError(null);
+      setPedidoCreadoUploadProgress(null);
+      retryPedidoCreadoUploadRef.current = null;
+      return true;
+    }
+
+    if (current.whatsappGrupoPendienteOpen) {
+      setWhatsappGrupoPendiente(null);
+      return true;
+    }
+
+    if (current.seleccionado) {
+      cerrarDetallePedido();
+      return true;
+    }
+
+    if (current.vista === 'perfil' && current.profileSection) {
+      setProfileSection(null);
+      setProfileMessage(null);
+      setProfileError(null);
+      return true;
+    }
+
+    if (current.vista !== 'inicio') {
+      historyViewRef.current = 'inicio';
+      setVista('inicio');
+      setMobileMenuOpen(false);
+      setQuickCreateOpen(false);
+      setProfileSection(null);
+      setProfileMessage(null);
+      setProfileError(null);
+      return true;
+    }
+
+    return false;
   }
 
   function actualizarPedidosDesdeDetalle() {
@@ -1362,6 +1473,15 @@ export function App() {
   }, [vista]);
 
   useEffect(() => {
+    try {
+      sessionStorage.setItem(CREATE_SERVICE_KEY, servicioCrear);
+      localStorage.setItem(CREATE_SERVICE_KEY, servicioCrear);
+    } catch {
+      return;
+    }
+  }, [servicioCrear]);
+
+  useEffect(() => {
     const mobileBreakpoint = window.matchMedia('(max-width: 920px)');
     const closeMenuOnBreakpointChange = () => setMobileMenuOpen(false);
 
@@ -1370,33 +1490,28 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    appBackStateRef.current = {
+      vista,
+      seleccionado,
+      mobileMenuOpen,
+      quickCreateOpen,
+      loginOpen,
+      pedidoPagoModalOpen: Boolean(pedidoPagoModal),
+      whatsappGrupoPendienteOpen: Boolean(whatsappGrupoPendiente),
+      profileSection,
+    };
+    appBackHandlerRef.current = ejecutarAtrasAplicacion;
+  });
+
+  useEffect(() => {
     const initialView = historyViewRef.current;
     window.history.replaceState({ ...window.history.state, jirehExitGuard: true }, '');
     window.history.pushState({ jirehView: initialView }, '');
 
-    function handlePopState(event: PopStateEvent) {
-      const state = event.state as { jirehView?: AppView; jirehExitGuard?: boolean } | null;
-      const historyView = state?.jirehView;
-
-      if (historyView && APP_VIEWS.has(historyView)) {
-        handlingPopStateRef.current = true;
-        historyViewRef.current = historyView;
-        setVista(historyView);
-        setMobileMenuOpen(false);
-        setQuickCreateOpen(false);
-        return;
-      }
-
-      if (!state?.jirehExitGuard) return;
-
-      if (historyViewRef.current !== 'inicio') {
+    function handlePopState() {
+      if (appBackHandlerRef.current()) {
         lastExitBackRef.current = 0;
-        handlingPopStateRef.current = true;
-        historyViewRef.current = 'inicio';
-        window.history.pushState({ jirehView: 'inicio' }, '');
-        setVista('inicio');
-        setMobileMenuOpen(false);
-        setQuickCreateOpen(false);
+        window.history.pushState({ jirehView: historyViewRef.current }, '');
         return;
       }
 
@@ -1922,17 +2037,18 @@ export function App() {
         {viewBlockedOffline ? (
           <OfflineRequiredView policy={viewConnectivity} onGoHome={() => navegar('inicio')} />
         ) : vista === 'inicio' ? (
-          <InicioPage operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+          <InicioPage key={`inicio-${viewResetToken}`} operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'home-test' ? (
-          <HomeTestPage operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
+          <HomeTestPage key={`home-test-${viewResetToken}`} operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'setup' ? (
-          <SetupInicialPage onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
+          <SetupInicialPage key={`setup-${viewResetToken}`} onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
         ) : vista === 'admin' ? (
-          <AdminCatalogosPage />
+          <AdminCatalogosPage key={`admin-${viewResetToken}`} />
         ) : vista === 'reportes' ? (
-          <ReportesPage />
+          <ReportesPage key={`reportes-${viewResetToken}`} />
         ) : vista === 'perfil' ? (
           <ProfilePage
+            key={`perfil-${viewResetToken}`}
             operador={operador}
             section={profileSection}
             nombre={profileNombre}
@@ -1958,7 +2074,7 @@ export function App() {
             onLogout={cerrarSesion}
           />
         ) : vista === 'crear' ? (
-          <CreateOrderPage service={servicioCrear} draft={crearDraft} operadorId={operador.id} onServiceChange={(service) => { setServicioCrear(service); setCrearDraft({}); }} onCreated={finalizarCreacionPedido} />
+          <CreateOrderPage key={`crear-${viewResetToken}`} service={servicioCrear} draft={crearDraft} operadorId={operador.id} onServiceChange={(service) => { setServicioCrear(service); setCrearDraft({}); }} onCreated={finalizarCreacionPedido} />
         ) : seleccionado ? (
           <PedidoDetallePanel
             codigo={seleccionado}
@@ -1972,6 +2088,7 @@ export function App() {
           />
         ) : (
           <OrdersPage
+            key={`bandeja-${viewResetToken}`}
             operador={operador}
             pedidos={pedidosFiltrados}
             lista={pedidosListaOrdenada}

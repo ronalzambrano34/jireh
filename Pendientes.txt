@@ -17,9 +17,9 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 - Probar flujo completo contra API real: transferencia, efectivo, saldo, divisa y otros.
 - Validar que la vista Pedidos cargue todos los pedidos por defecto para operadores y solo mis pedidos para clientes.
 - Revisado: no se duplica historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
-- Probar baja conectividad con el protocolo de `docs/pruebas-conectividad.md`: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
+- Pendiente manual: ejecutar protocolo de `docs/pruebas-conectividad.md` en navegador/dispositivo real con red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
 - Definir comportamiento offline de la PWA: que abre sin internet, que queda bloqueado y que conserva datos.
-- Guardar borradores locales de nuevo pedido para no perder datos si se cae internet.
+- Revisado: guardar borradores locales de nuevo pedido para no perder datos si se cae internet.
 - Validar uploads con progreso, error claro y reintento manual.
 - Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
 - Re-subir/verificar fotos existentes que se hayan perdido por storage local anterior.

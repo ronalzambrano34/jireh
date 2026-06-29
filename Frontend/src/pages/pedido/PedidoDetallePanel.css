@@ -149,7 +149,7 @@
 
 @media (max-width: 720px) {
   .order-control-head {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .order-control-badges {
@@ -157,14 +157,12 @@
   }
 
   .order-management-actions {
-    grid-column: 1;
-    grid-row: auto;
+    grid-column: 1 / -1;
+    grid-row: 3;
     width: 100%;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: block;
     align-items: start;
     justify-content: stretch;
-    gap: 8px;
   }
 
   .desktop-message-action {
@@ -173,12 +171,13 @@
 
   .mobile-message-action {
     grid-column: 2;
+    grid-row: 1 / span 2;
     display: grid;
     justify-self: end;
+    align-self: start;
   }
 
   .release-order-button {
-    grid-column: 1 / -1;
     width: 100%;
     min-height: 42px;
   }
