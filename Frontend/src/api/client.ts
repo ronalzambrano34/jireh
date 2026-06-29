@@ -34,6 +34,7 @@ import type {
   SyncOfertasResponse,
 } from '../types/api';
 import { compressImage, compressImagesInFormData } from '../utils/imageCompression';
+import { MONEDAS_PAGO_CONFIG_KEY, catalogoMonedasPagoDesdeValor, monedasPagoActivas } from '../utils/monedas';
 
 const DEFAULT_API_URL = typeof window !== 'undefined' ? window.location.protocol + '//' + window.location.hostname + ':8000' : 'http://127.0.0.1:8000';
 const CONFIGURED_API_URL = import.meta.env.VITE_API_URL || '';
@@ -1380,9 +1381,13 @@ export async function obtenerEstadoConfiguracionInicial(options: ApiRequestOptio
   const operadoresActivos = operadores.filter((item) => item.activo);
   const ofertasActivas = ofertas.filter((item) => item.activa);
   const paquetesActivos = paquetes.filter((item) => item.activo);
+  const monedasActivas = monedasPagoActivas(catalogoMonedasPagoDesdeValor(
+    configuraciones.find((item) => item.clave === MONEDAS_PAGO_CONFIG_KEY)?.valor,
+  ));
   const instalacionExistente =
     provinciasActivas.length > 0 &&
     puntosActivos.length > 0 &&
+    monedasActivas.length > 0 &&
     metodosActivos.length > 0 &&
     cuentas.length > 0 &&
     operadoresActivos.length > 0;
@@ -1390,6 +1395,7 @@ export async function obtenerEstadoConfiguracionInicial(options: ApiRequestOptio
   return {
     completada: marcada || instalacionExistente,
     provincias: provinciasActivas.length,
+    monedas: monedasActivas.length,
     metodos: metodosActivos.length,
     cuentas: cuentas.length,
     operadores: operadoresActivos.length,

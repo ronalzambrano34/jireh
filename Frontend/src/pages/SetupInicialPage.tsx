@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CreditCard, MapPin, Package, Percent, UserPlus } from 'lucide-react';
+import { Banknote, Coins, CreditCard, MapPin, Package, Percent, UserPlus } from 'lucide-react';
 import {
   crearCuentaMetodoPago,
   crearMetodoPago,
@@ -20,10 +20,10 @@ import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { PasswordField } from '../components/PasswordField';
 import { PhoneInput } from '../components/PhoneInput';
-import { useMonedasPagoActivas } from '../hooks/useMonedasPago';
+import { useCatalogoMonedasPago } from '../hooks/useMonedasPago';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import type { ConfiguracionInicialEstado, MetodoPago, ProvinciaServicio } from '../types/api';
-import { banderaMoneda, nombreMoneda } from '../utils/monedas';
+import { MONEDAS_PAGO_CONFIG_KEY, banderaMoneda, guardarCatalogoMonedasPagoLocal, monedasPagoActivas, nombreMoneda, normalizarCatalogoMonedasPago, type MonedaPagoConfig } from '../utils/monedas';
 import { SetupActions, SetupCardHeader, SetupHero, SetupSteps, type SetupStep } from './setup/SetupLayout';
 import './setup/SetupInicialPage.css';
 
@@ -87,7 +87,13 @@ export function SetupInicialPage({
     moneda: 'BRL',
     saldo_cup: '',
   });
-  const monedas = useMonedasPagoActivas();
+  const catalogoMonedas = useCatalogoMonedasPago();
+  const [catalogoMonedasSetup, setCatalogoMonedasSetup] = useState<MonedaPagoConfig[]>(catalogoMonedas);
+  const monedas = useMemo(() => monedasPagoActivas(catalogoMonedasSetup), [catalogoMonedasSetup]);
+
+  useEffect(() => {
+    setCatalogoMonedasSetup(catalogoMonedas);
+  }, [catalogoMonedas]);
 
   useEffect(() => {
     const monedaDefault = monedas[0];
@@ -130,6 +136,7 @@ export function SetupInicialPage({
   const pasos = useMemo<SetupStep[]>(() => [
     { titulo: 'Provincias', detalle: 'Zonas donde operas', icon: MapPin, listo: Boolean(estado?.provincias) },
     { titulo: 'Puntos', detalle: 'Puntos de recogida', icon: MapPin, listo: Boolean(estado?.puntos) },
+    { titulo: 'Monedas', detalle: 'Monedas de pago', icon: Coins, listo: Boolean(estado?.monedas) },
     { titulo: 'Metodos', detalle: 'Monedas y formas de pago', icon: Banknote, listo: Boolean(estado?.metodos) },
     { titulo: 'Cuentas', detalle: 'Datos para cobrar', icon: CreditCard, listo: Boolean(estado?.cuentas) },
     { titulo: 'Operadores', detalle: 'Usuarios del sistema', icon: UserPlus, listo: Boolean(estado?.operadores) },
@@ -144,7 +151,7 @@ export function SetupInicialPage({
     { value: 'operador', label: 'Operador' },
     { value: 'admin', label: 'Admin' },
   ];
-  const setupRequeridoCompleto = Boolean(estado?.provincias && estado?.puntos && estado?.metodos && estado?.cuentas && estado?.operadores);
+  const setupRequeridoCompleto = Boolean(estado?.provincias && estado?.puntos && estado?.monedas && estado?.metodos && estado?.cuentas && estado?.operadores);
 
   async function guardarProvincia() {
     if (savingRef.current) return;
@@ -195,7 +202,7 @@ export function SetupInicialPage({
       }));
       await cargar();
       setNotice('Metodo de pago guardado');
-      setPaso(3);
+      setPaso(4);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el metodo');
     } finally {
@@ -233,7 +240,7 @@ export function SetupInicialPage({
       await cargar();
       setPago((current) => ({ ...current, alias: 'Cuenta principal', cuenta: '', titular: '' }));
       setNotice('Cuenta de pago guardada');
-      setPaso(4);
+      setPaso(5);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la cuenta');
     } finally {
@@ -261,7 +268,7 @@ export function SetupInicialPage({
       await Promise.all(tareas);
       await cargar();
       setNotice('Tasas guardadas');
-      setPaso(6);
+      setPaso(7);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron guardar las tasas');
     } finally {
@@ -301,6 +308,41 @@ export function SetupInicialPage({
     }
   }
 
+  function toggleMonedaPago(codigo: string) {
+    setCatalogoMonedasSetup((current) => {
+      const next = current.map((item) => (item.codigo === codigo ? { ...item, activa: !item.activa } : item));
+      return next.some((item) => item.activa) ? next : current;
+    });
+  }
+
+  async function guardarMonedasPago() {
+    if (savingRef.current) return;
+    const normalizado = normalizarCatalogoMonedasPago(catalogoMonedasSetup);
+    if (!normalizado.some((item) => item.activa)) {
+      setError('Debe quedar al menos una moneda activa');
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
+    setError(null);
+    try {
+      await guardarConfiguracion({
+        clave: MONEDAS_PAGO_CONFIG_KEY,
+        valor: JSON.stringify(normalizado),
+      });
+      const catalogoGuardado = guardarCatalogoMonedasPagoLocal(normalizado);
+      setCatalogoMonedasSetup(catalogoGuardado);
+      await cargar();
+      setNotice('Monedas de pago guardadas');
+      setPaso(3);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron guardar las monedas');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
   async function guardarOperador() {
     if (savingRef.current) return;
     if (!operador.nombre.trim() || !operador.telefono.trim() || !operador.password.trim()) {
@@ -321,7 +363,7 @@ export function SetupInicialPage({
       setOperador({ nombre: '', telefono: '', password: '', rol: 'operador' });
       await cargar();
       setNotice('Operador guardado');
-      setPaso(5);
+      setPaso(6);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el operador');
     } finally {
@@ -368,18 +410,23 @@ export function SetupInicialPage({
       setError('Configura al menos un punto de recogida antes de finalizar');
       return;
     }
-    if (!estado?.metodos) {
+    if (!estado?.monedas) {
       setPaso(2);
+      setError('Configura al menos una moneda de pago antes de finalizar');
+      return;
+    }
+    if (!estado?.metodos) {
+      setPaso(3);
       setError('Configura al menos un metodo de pago antes de finalizar');
       return;
     }
     if (!estado?.cuentas) {
-      setPaso(3);
+      setPaso(4);
       setError('Configura al menos una cuenta de cobro antes de finalizar');
       return;
     }
     if (!estado?.operadores) {
-      setPaso(4);
+      setPaso(5);
       setError('Configura al menos un operador antes de finalizar');
       return;
     }
@@ -434,16 +481,32 @@ export function SetupInicialPage({
 
           {paso === 2 && (
             <>
+              <SetupCardHeader title="Monedas de pago" description="Selecciona las monedas que estaran disponibles para operar." />
+              <div className="setup-currency-grid">
+                {catalogoMonedasSetup.map((moneda) => (
+                  <button className={moneda.activa ? 'setup-currency active' : 'setup-currency'} type="button" key={moneda.codigo} onClick={() => toggleMonedaPago(moneda.codigo)}>
+                    <span>{moneda.bandera || banderaMoneda(moneda.codigo)}</span>
+                    <strong>{moneda.codigo}</strong>
+                    <small>{moneda.nombre || nombreMoneda(moneda.codigo)}</small>
+                  </button>
+                ))}
+              </div>
+              <SetupActions secondary={estado.monedas ? <button className="ghost-button" type="button" onClick={() => setPaso(3)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarMonedasPago()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar monedas'}</button>} />
+            </>
+          )}
+
+          {paso === 3 && (
+            <>
               <SetupCardHeader title="Metodos de pago" description="Crea la forma de pago y la moneda que usara el cliente." />
               <div className="form-grid">
                 <label>Nombre del metodo<input value={pago.nombre_metodo} onChange={(event) => setPago((current) => ({ ...current, nombre_metodo: event.target.value }))} placeholder="Pix, Brou, efectivo..." /></label>
                 <label>Moneda<FloatingSelect value={pago.moneda} onChange={(value) => setPago((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda, description: nombreMoneda(moneda), icon: banderaMoneda(moneda) }))} align="left" /></label>
               </div>
-              <SetupActions secondary={estado.metodos ? <button className="ghost-button" type="button" onClick={() => setPaso(3)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarMetodoPago()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar metodo'}</button>} />
+              <SetupActions secondary={estado.metodos ? <button className="ghost-button" type="button" onClick={() => setPaso(4)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarMetodoPago()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar metodo'}</button>} />
             </>
           )}
 
-          {paso === 3 && (
+          {paso === 4 && (
             <>
               <SetupCardHeader title="Cuenta de pago" description="Estos datos aparecen en las instrucciones de pago enviadas al cliente." />
               <div className="form-grid">
@@ -458,11 +521,11 @@ export function SetupInicialPage({
                   </>
                 )}
               </div>
-              <SetupActions secondary={estado.cuentas ? <button className="ghost-button" type="button" onClick={() => setPaso(4)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarCuentaPago()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar cuenta'}</button>} />
+              <SetupActions secondary={estado.cuentas ? <button className="ghost-button" type="button" onClick={() => setPaso(5)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarCuentaPago()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar cuenta'}</button>} />
             </>
           )}
 
-          {paso === 4 && (
+          {paso === 5 && (
             <>
               <SetupCardHeader title="Operadores" description="Crea los usuarios que podran trabajar dentro del sistema." />
               <div className="form-grid">
@@ -471,11 +534,11 @@ export function SetupInicialPage({
                 <label>Contraseña<PasswordField value={operador.password} onChange={(event) => setOperador((current) => ({ ...current, password: event.target.value }))} placeholder="Contraseña inicial" autoComplete="new-password" required /></label>
                 <label>Rol<FloatingSelect value={operador.rol} onChange={(value) => setOperador((current) => ({ ...current, rol: value }))} options={opcionesRolOperador} align="left" /></label>
               </div>
-              <SetupActions secondary={estado.operadores ? <button className="ghost-button" type="button" onClick={() => setPaso(5)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarOperador()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar operador'}</button>} />
+              <SetupActions secondary={estado.operadores ? <button className="ghost-button" type="button" onClick={() => setPaso(6)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarOperador()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar operador'}</button>} />
             </>
           )}
 
-          {paso === 5 && (
+          {paso === 6 && (
             <>
               <SetupCardHeader title="Tasas iniciales" description="Escribe las tasas de los servicios que ofreceras. Puedes dejar uno vacio." />
               <div className="form-grid">
@@ -484,11 +547,11 @@ export function SetupInicialPage({
                 <label>Tasa efectivo<input value={tasas.efectivo} onChange={(event) => setTasas((current) => ({ ...current, efectivo: event.target.value }))} inputMode="decimal" placeholder="Ej. 117" /></label>
                 <label className="wide">Pago minimo<input value={tasas.minimo} onChange={(event) => setTasas((current) => ({ ...current, minimo: event.target.value }))} inputMode="decimal" /></label>
               </div>
-              <SetupActions secondary={<button className="ghost-button" type="button" onClick={() => setPaso(6)}>Configurar despues</button>} primary={<button className="primary-button" type="button" onClick={() => void guardarTasas()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar tasas'}</button>} />
+              <SetupActions secondary={<button className="ghost-button" type="button" onClick={() => setPaso(7)}>Configurar despues</button>} primary={<button className="primary-button" type="button" onClick={() => void guardarTasas()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar tasas'}</button>} />
             </>
           )}
 
-          {paso === 6 && (
+          {paso === 7 && (
             <>
               <SetupCardHeader title="Paquete de saldo" description="Opcional. Define cuanto paga el cliente y cuanto saldo recibe." />
               <div className="form-grid">

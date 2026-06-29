@@ -15,7 +15,7 @@ export function CurrencySelect({
   onChange,
   ariaLabel = 'Moneda de recepcion',
 }: CurrencySelectProps) {
-  const visibleCurrencies = useMonedasPagoPermitidas(currencies, [value]);
+  const visibleCurrencies = useMonedasPagoPermitidas(currencies);
 
   return (
     <FloatingSelect

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, Smartphone, UserRound, WalletCards } from 'lucide-react';
 import type { MetodoPago, MetodoPagoCuenta, Operador } from '../../types/api';
 import { FloatingSelect } from '../../components/FloatingSelect';
@@ -66,7 +67,15 @@ type ReportFiltersProps = {
 
 export function ReportFilters(props: ReportFiltersProps) {
   const selectClass = 'report-filter-field report-filter-floating';
-  const monedas = ['', ...useMonedasPagoActivas([props.filters.moneda_pago])];
+  const monedasActivas = useMonedasPagoActivas();
+  const monedas = ['', ...monedasActivas];
+  const monedaFiltro = props.filters.moneda_pago;
+
+  useEffect(() => {
+    if (monedaFiltro && !monedasActivas.includes(monedaFiltro)) {
+      props.onChange('moneda_pago', '');
+    }
+  }, [monedaFiltro, monedasActivas, props.onChange]);
 
   return (
     <div className="filters report-filters">

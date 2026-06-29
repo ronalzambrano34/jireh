@@ -135,6 +135,39 @@
   gap: 10px;
 }
 
+.setup-currency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 10px;
+}
+
+.setup-currency {
+  min-height: 92px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+}
+
+.setup-currency.active {
+  border-color: var(--ui-primary);
+  background: var(--ui-primary-soft);
+  color: var(--ui-primary-strong);
+}
+
+.setup-currency span {
+  font-size: 22px;
+}
+
+.setup-currency small {
+  color: var(--ui-text-muted);
+}
+
 .setup-footer {
   padding: 14px;
   border: 1px solid var(--ui-border);

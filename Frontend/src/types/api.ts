@@ -466,6 +466,7 @@ export type TemplateConfig = {
 export type ConfiguracionInicialEstado = {
   completada: boolean;
   provincias: number;
+  monedas: number;
   metodos: number;
   cuentas: number;
   operadores: number;

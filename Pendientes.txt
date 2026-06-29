@@ -22,7 +22,6 @@ IDEA A FUTURO:
 - Confirmar que el polling no sea agresivo en red lenta ni cuando la app esta en segundo plano.
 
 //todo Uploads, storage y archivos
-- Validar uploads con progreso, error claro y reintento manual.
 - Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
 - Re-subir o verificar fotos/archivos existentes que se hayan perdido por storage local anterior.
 - Probar limite de archivo grande y tipos MIME permitidos.
@@ -37,8 +36,7 @@ IDEA A FUTURO:
 - Probar endpoints protegidos sin token, con token vencido y con permisos insuficientes.
 
 //todo Catalogos y configuracion inicial
-- Validar Configuracion inicial con Provincias, Puntos de recogida, Operadores, Metodos de pago, Monedas de pago y Cuentas de pago.
-- Validar Monedas de pago: BRL y UYU activas por defecto; monedas inactivas no aparecen en Inicio, Nuevo pedido ni Reportes.
+- Validado: Monedas de pago BRL y UYU activas por defecto; monedas inactivas no aparecen en Inicio, Nuevo pedido ni Reportes.
 - Validar Codigos de pais: Cuba, Brasil y Uruguay activos por defecto; codigos inactivos no aparecen en formularios nuevos.
 - Validar Metodos de pago y Cuentas de pago: cuenta obligatoria, cuenta correcta en instrucciones y templates.
 - Validar Provincias y Puntos de recogida: no mostrar puntos de provincias inactivas.
