@@ -1,106 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Jireh - Envíos a Cuba desde Brasil</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Jireh" />
+    <title>Jireh Operaciones</title>
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="%BASE_URL%icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/icon-192.png" />
+  </head>
+  <body>
+    <script>
+      (function () {
+        try {
+          var savedTheme = localStorage.getItem('jireh.theme');
+          var theme = savedTheme === 'dark' || savedTheme === 'dark-deep' || savedTheme === 'dark-sidebar' ? savedTheme : 'light';
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <div id="root"></div>
+    <script>
+      window.setTimeout(function () {
+        var root = document.getElementById('root');
+        if (!root || root.childElementCount > 0) return;
 
-    <header class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <span class="text-2xl font-bold text-yellow-600">EL JIREH</span>
-                <span class="bg-green-100 text-green-800 text-xs font-semibold px-2 py-0.5 rounded">Brasil ➡️ Cuba</span>
-            </div>
-            <a href="https://wa.me/5548991233191" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full font-medium text-sm flex items-center gap-2 transition">
-                <i class="fab fa-whatsapp"></i> Soporte Online
-            </a>
-        </div>
-    </header>
+        var reloadKey = 'jireh.pages.reload';
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, '1');
+          var url = new URL(window.location.href);
+          url.searchParams.set('reload', Date.now().toString());
+          window.location.replace(url.toString());
+          return;
+        }
 
-    <section class="bg-gradient-to-b from-yellow-50 to-white py-12">
-        <div class="container mx-auto px-4 text-center max-w-3xl">
-            <span class="text-xs font-bold tracking-wider text-yellow-700 uppercase bg-yellow-100 px-3 py-1 rounded-full">5 Años de Trayectoria Insuperable</span>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mt-4 leading-tight">
-                Tus remesas a Cuba, <br><span class="text-yellow-600">seguras y en tiempo récord</span>
-            </p>
-            <p class="text-gray-600 mt-4 text-lg">
-                Envía desde Brasil mediante PIX de forma rápida. Entregas digitales en tarjetas MLC/CUP o recogida de efectivo en Santiago de Cuba.
-            </p>
-
-            <div class="mt-8 bg-gray-200 h-64 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden">
-                <p class="text-gray-500 italic">[ Tu Carrusel de Imágenes/Testimonios Aquí ]</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="py-12 bg-white">
-        <div class="container mx-auto px-4 max-w-xl">
-            <div class="bg-white border border-gray-100 rounded-3xl shadow-xl p-6 md:p-8">
-                <h2 class="text-2xl font-bold text-center text-gray-900 mb-6 flex items-center justify-center gap-2">
-                    <i class="fas fa-calculator text-yellow-600"></i> Calcula tu Envío
-                </h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tú envías (Desde Brasil):</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 font-bold">R$</span>
-                            <input type="number" placeholder="0.00" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:outline-none text-lg">
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Servicio en Cuba:</label>
-                        <select class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:outline-none">
-                            <option>Efectivo (Entrega en San Basilio / Sueño)</option>
-                            <option>Transferencia Tarjeta CUP</option>
-                            <option>Carga Divisa (MLC / USD / Clásica)</option>
-                            <option>Recarga de Saldo Móvil</option>
-                        </select>
-                    </div>
-
-                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-center">
-                        <span class="text-sm text-gray-600 block">Ellos reciben aproximadamente:</span>
-                        <span class="text-3xl font-black text-yellow-700">0.00 USD / CUP</span>
-                    </div>
-
-                    <button class="w-full mt-4 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                        <i class="fab fa-whatsapp text-xl"></i> Procesar Envío por WhatsApp
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <section class="py-12 bg-gray-50 border-t border-gray-100">
-        <div class="container mx-auto px-4 max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div class="p-4">
-                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 mx-auto mb-3 text-xl"><i class="fas fa-bolt"></i></div>
-                <h3 class="font-bold text-lg mb-1">Operación Express</h3>
-                <p class="text-sm text-gray-600">Procesamos tu remesa en menos de 10 minutos tras confirmar tu PIX.</p>
-            </div>
-            <div class="p-4">
-                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 mx-auto mb-3 text-xl"><i class="fas fa-shield-alt"></i></div>
-                <h3 class="font-bold text-lg mb-1">Puntos Seguros</h3>
-                <p class="text-sm text-gray-600">Recogidas físicas discretas con carnet de identidad en puntos establecidos.</p>
-            </div>
-            <div class="p-4">
-                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 mx-auto mb-3 text-xl"><i class="fas fa-history"></i></div>
-                <h3 class="font-bold text-lg mb-1">Sólida Experiencia</h3>
-                <p class="text-sm text-gray-600">Más de media década uniendo familias desde Uruguay y ahora en Brasil.</p>
-            </div>
-        </div>
-    </section>
-
-    <footer class="bg-gray-900 text-gray-400 py-8 text-center text-sm">
-        <p>&copy; 2026 El Jireh Operaciones. Todos los derechos reservados.</p>
-        <p class="text-xs text-gray-600 mt-2">Sujeto a la disponibilidad y estabilidad de las plataformas bancarias externas.</p>
-    </footer>
-
-</body>
+        root.innerHTML =
+          '<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;background:#f7f8fa;color:#18202a">' +
+          '<section style="max-width:420px;text-align:center">' +
+          '<h1 style="font-size:1.35rem">No se pudo cargar Jireh</h1>' +
+          '<p>Actualiza la pagina. Si el problema continua, espera un minuto mientras termina el despliegue.</p>' +
+          '<button onclick="sessionStorage.removeItem(&quot;jireh.pages.reload&quot;);location.reload()" style="border:0;border-radius:10px;padding:12px 18px;background:#166534;color:white;font-weight:700">Volver a cargar</button>' +
+          '</section></main>';
+      }, 4000);
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
