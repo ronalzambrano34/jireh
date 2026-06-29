@@ -9,6 +9,7 @@ import { FloatingToast } from '../components/FloatingToast';
 import { CurrencySelect } from '../components/CurrencySelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
+import { useMonedasPagoActivas } from '../hooks/useMonedasPago';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { useDocumentVisible } from '../hooks/useDocumentVisible';
 import { TrackOrderPanel } from './inicio/TrackOrderPanel';
@@ -604,6 +605,8 @@ export function InicioPage({ operadorId, canSyncTasas = false, canLoadTasas = tr
   useEffect(() => {
     setMonedaSeleccionada(leerMonedaPedidoPreferida('BRL', operadorId));
   }, [operadorId]);
+  const monedasActivas = useMonedasPagoActivas();
+  const monedasActivasSet = useMemo(() => new Set(monedasActivas), [monedasActivas]);
 
   const gruposMoneda = useMemo(() => {
     const grupos = new Map<string, GrupoMoneda>();
@@ -635,6 +638,7 @@ export function InicioPage({ operadorId, canSyncTasas = false, canLoadTasas = tr
     }
 
     return [...grupos.values()]
+      .filter((grupo) => monedasActivasSet.has(grupo.moneda))
       .map((grupo) => ({
         ...grupo,
         ofertas: ordenarOfertas(grupo.ofertas),
@@ -646,7 +650,7 @@ export function InicioPage({ operadorId, canSyncTasas = false, canLoadTasas = tr
         if (orden !== 0) return orden;
         return a.moneda.localeCompare(b.moneda);
       });
-  }, [data]);
+  }, [data, monedasActivasSet]);
 
   useEffect(() => {
     if (gruposMoneda.length === 0) return;

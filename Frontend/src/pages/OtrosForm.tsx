@@ -16,6 +16,7 @@ import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
+import { appEstaOffline, enqueueOfflineCreateOrder } from '../utils/offlineQueue';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 const DOCUMENTO_ADJUNTO_LABEL = 'Documento adjunto en evidencias';
@@ -189,34 +190,46 @@ export function OtrosForm({
       setError('Escribe un monto de pago mayor que cero');
       return;
     }
+    const payload = {
+      servicio: 'otros' as const,
+      monto_pago: Number(form.monto_pago),
+      moneda_pago: form.moneda_pago,
+      tipo_pago_id: Number(form.tipo_pago_id),
+      cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
+      operador_id: operadorId,
+      cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
+      nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
+      numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+      numero_tarjeta: form.numero_tarjeta.trim() || undefined,
+      telefono_destinatario: telefonoCubaCompleto(form.telefono_destinatario)
+        ? form.telefono_destinatario
+        : undefined,
+      documento_identidad_url: documentoFile
+        ? DOCUMENTO_ADJUNTO_LABEL
+        : form.documento_identidad_url || undefined,
+      punto_recogida_id: form.punto_recogida_id
+        ? Number(form.punto_recogida_id)
+        : null,
+      observaciones: form.observaciones.trim(),
+    };
+    if (appEstaOffline()) {
+      if (documentoFile || comprobante) {
+        setError('Sin internet: los archivos no se pueden guardar en cola. Quita los archivos o vuelve con conexion.');
+        return;
+      }
+      enqueueOfflineCreateOrder('otros', operadorId, payload);
+      borrarBorradorNuevoPedido(operadorId, 'otros');
+      onDraftSavedChange?.(false);
+      setError('Pedido guardado en cola local. Se enviara automaticamente al volver la conexion.');
+      return;
+    }
 
     if (submittingRef.current) return;
     submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
-      const response = await crearOtros({
-        servicio: 'otros',
-        monto_pago: Number(form.monto_pago),
-        moneda_pago: form.moneda_pago,
-        tipo_pago_id: Number(form.tipo_pago_id),
-        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
-        operador_id: operadorId,
-        cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
-        numero_telefono_cliente: form.numero_telefono_cliente || undefined,
-        numero_tarjeta: form.numero_tarjeta.trim() || undefined,
-        telefono_destinatario: telefonoCubaCompleto(form.telefono_destinatario)
-          ? form.telefono_destinatario
-          : undefined,
-        documento_identidad_url: documentoFile
-          ? DOCUMENTO_ADJUNTO_LABEL
-          : form.documento_identidad_url || undefined,
-        punto_recogida_id: form.punto_recogida_id
-          ? Number(form.punto_recogida_id)
-          : null,
-        observaciones: form.observaciones.trim(),
-      });
+      const response = await crearOtros(payload);
       const adjuntosFallidos: string[] = [];
       let comprobanteCargado = false;
       if (documentoFile) {

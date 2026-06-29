@@ -1,4 +1,5 @@
 import { FloatingSelect } from './FloatingSelect';
+import { useMonedasPagoPermitidas } from '../hooks/useMonedasPago';
 import { banderaMoneda, nombreMoneda } from '../utils/monedas';
 
 type CurrencySelectProps = {
@@ -14,6 +15,8 @@ export function CurrencySelect({
   onChange,
   ariaLabel = 'Moneda de recepcion',
 }: CurrencySelectProps) {
+  const visibleCurrencies = useMonedasPagoPermitidas(currencies, [value]);
+
   return (
     <FloatingSelect
       className="currency-picker-wrap currency-reception-select"
@@ -22,7 +25,7 @@ export function CurrencySelect({
       value={value}
       onChange={onChange}
       ariaLabel={ariaLabel}
-      options={currencies.map((currency) => ({
+      options={visibleCurrencies.map((currency) => ({
         value: currency,
         label: `${currency} (${nombreMoneda(currency)})`,
         description: `Pago en ${nombreMoneda(currency).toLowerCase()}`,

@@ -1,6 +1,7 @@
 import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, Smartphone, UserRound, WalletCards } from 'lucide-react';
 import type { MetodoPago, MetodoPagoCuenta, Operador } from '../../types/api';
 import { FloatingSelect } from '../../components/FloatingSelect';
+import { useMonedasPagoActivas } from '../../hooks/useMonedasPago';
 
 export const reportPeriods = [
   { value: 'todo', label: 'Periodo' },
@@ -42,8 +43,6 @@ const servicios = [
   { value: 'otros', label: 'Otros' },
 ];
 
-const monedas = ['', 'BRL', 'UYU', 'USD', 'EUR'];
-
 function servicioIcon(value: string) {
   if (value === 'transferencia' || value === 'divisa') return <WalletCards size={17} />;
   if (value === 'efectivo') return <Banknote size={17} />;
@@ -67,6 +66,7 @@ type ReportFiltersProps = {
 
 export function ReportFilters(props: ReportFiltersProps) {
   const selectClass = 'report-filter-field report-filter-floating';
+  const monedas = ['', ...useMonedasPagoActivas([props.filters.moneda_pago])];
 
   return (
     <div className="filters report-filters">

@@ -12,6 +12,7 @@ import { UploadStatus } from './components/UploadStatus';
 import { NotificationBell, defaultNotificationSoundPreferences, notificationKindLabels, type AppNotification, type AppNotificationKind, type NotificationSoundPreferences } from './components/NotificationBell';
 import { isAbortError, useAbortableEffect } from './hooks/useAbortableEffect';
 import { useDocumentVisible } from './hooks/useDocumentVisible';
+import { useOfflineQueue } from './hooks/useOfflineQueue';
 import { copiarAlPortapapeles } from './utils/clipboard';
 import { guardarMonedaPedidoPreferida } from './utils/preferenciasPedido';
 import type { CreateOrderDraft as CrearPedidoDraft } from './pages/CreateOrderPage';
@@ -112,7 +113,7 @@ const VIEW_CONNECTIVITY: Record<AppView, ViewConnectivityPolicy> = {
   crear: {
     mode: 'draft',
     label: 'Modo borrador sin conexion',
-    detail: 'Puedes llenar datos y conservar el borrador local. Crear el pedido, subir archivos y confirmar pagos requiere internet.',
+    detail: 'Puedes crear pedidos sin archivos y conservar borradores locales. Subir archivos y confirmar pagos requiere internet.',
   },
   perfil: {
     mode: 'offline',
@@ -120,9 +121,9 @@ const VIEW_CONNECTIVITY: Record<AppView, ViewConnectivityPolicy> = {
     detail: 'Puedes ver datos y preferencias guardadas. Guardar cambios, foto o contrasena requiere internet.',
   },
   bandeja: {
-    mode: 'online-required',
-    label: 'Pedidos requiere conexion',
-    detail: 'Pedidos, detalle, tomar, liberar, transferir y cambiar estados necesitan datos vivos del servidor.',
+    mode: 'draft',
+    label: 'Pedidos con datos conservados',
+    detail: 'Puedes revisar lo ya cargado y dejar finalizaciones sin comprobante en cola. Tomar, liberar, transferir, cancelar y subir archivos requiere internet.',
   },
   reportes: {
     mode: 'online-required',
@@ -252,6 +253,19 @@ function ViewConnectivityNotice({ policy }: { policy: ViewConnectivityPolicy }) 
       <span>
         <strong>{policy.label}</strong>
         <small>{policy.detail}</small>
+      </span>
+    </div>
+  );
+}
+
+function OfflineQueueBanner({ pendingCount, syncing }: { pendingCount: number; syncing: boolean }) {
+  if (pendingCount <= 0) return null;
+  return (
+    <div className="network-banner reconnecting" role="status" aria-live="polite">
+      <RefreshCw size={18} />
+      <span>
+        <strong>{syncing ? 'Sincronizando pendientes' : 'Acciones pendientes'}</strong>
+        <small>{pendingCount} accion{pendingCount === 1 ? '' : 'es'} guardada{pendingCount === 1 ? '' : 's'} en este dispositivo.</small>
       </span>
     </div>
   );
@@ -412,13 +426,12 @@ const orderPeriodoValues = new Set<PeriodoPedidos>(['hoy', 'ayer', '7_dias', 'me
 function normalizeOrderPreferences(value: unknown, canViewAll: boolean): OrderPreferences | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Partial<OrderPreferences>;
-  const alcance = raw.alcance === 'mis' || raw.alcance === 'todas' ? raw.alcance : (canViewAll ? 'todas' : 'mis');
   const periodo = raw.periodo && orderPeriodoValues.has(raw.periodo) ? raw.periodo : 'hoy';
   return {
     busqueda: typeof raw.busqueda === 'string' ? raw.busqueda.slice(0, 120) : '',
     estado: typeof raw.estado === 'string' && orderEstadoValues.has(raw.estado) ? raw.estado : '',
     servicio: typeof raw.servicio === 'string' && orderServicioValues.has(raw.servicio) ? raw.servicio : '',
-    alcance: canViewAll ? alcance : 'mis',
+    alcance: canViewAll ? 'todas' : 'mis',
     periodo,
     vista: raw.vista === 'lista' ? 'lista' : 'kanban',
     colapsados: Array.isArray(raw.colapsados)
@@ -519,6 +532,7 @@ export function App() {
   const [networkStatus, setNetworkStatus] = useState<NetworkStatus>(() => readNetworkStatus());
   const appVisible = useDocumentVisible();
   const online = networkStatus.online;
+  const { pendingCount: offlineQueuePendingCount, syncing: offlineQueueSyncing } = useOfflineQueue(Boolean(operador));
   const [pedidosClock, setPedidosClock] = useState(() => Date.now());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -583,6 +597,7 @@ export function App() {
   const lastPedidosRefreshAtRef = useRef(0);
   const themePreferenceHydratingRef = useRef<number | null>(null);
   const orderPreferencesHydratingRef = useRef<number | null>(null);
+  const offlineQueuePreviousPendingRef = useRef(offlineQueuePendingCount);
 
   const puedeCrear = useMemo(
     () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
@@ -1375,6 +1390,14 @@ export function App() {
     }
   }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
+  useEffect(() => {
+    const previous = offlineQueuePreviousPendingRef.current;
+    offlineQueuePreviousPendingRef.current = offlineQueuePendingCount;
+    if (previous > 0 && offlineQueuePendingCount === 0 && online && operador) {
+      void cargarPedidos();
+    }
+  }, [cargarPedidos, offlineQueuePendingCount, online, operador]);
+
   const refrescarPedidosSilencioso = useCallback(async (signal?: AbortSignal) => {
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
@@ -1992,6 +2015,7 @@ export function App() {
           <span>{pullRefreshing ? 'Actualizando...' : pullDistance >= PULL_REFRESH_THRESHOLD ? 'Suelta para actualizar' : 'Desliza para actualizar'}</span>
         </div>
         <NetworkStatusBanner status={networkStatus} />
+        <OfflineQueueBanner pendingCount={offlineQueuePendingCount} syncing={offlineQueueSyncing} />
         {!online && !viewBlockedOffline && <ViewConnectivityNotice policy={viewConnectivity} />}
         <header className="toolbar">
           <button className="icon-button mobile-header-menu" onClick={() => setMobileMenuOpen(true)} title="Abrir menu" aria-label="Abrir menu">

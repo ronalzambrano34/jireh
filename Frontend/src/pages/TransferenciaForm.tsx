@@ -15,6 +15,7 @@ import { monedasDisponibles, normalizarMoneda } from '../utils/monedas';
 import { borrarBorradorNuevoPedido, useAutosaveBorradorNuevoPedido, type NuevoPedidoDraft } from '../utils/borradoresPedido';
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
+import { appEstaOffline, enqueueOfflineCreateOrder } from '../utils/offlineQueue';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 
@@ -185,25 +186,37 @@ export function TransferenciaForm({
       setError('Escribe un monto de pago mayor que cero');
       return;
     }
+    const payload = {
+      monto_pago: Number(form.monto_pago),
+      moneda_pago: form.moneda_pago,
+      numero_tarjeta: form.numero_tarjeta,
+      telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
+      tipo_pago_id: Number(form.tipo_pago_id),
+      cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
+      operador_id: operadorId,
+      cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
+      nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
+      numero_telefono_cliente: form.numero_telefono_cliente || undefined,
+      bonificacion_manual: Number(form.bonificacion_manual) || undefined,
+      observaciones: form.observaciones.trim() || undefined,
+    };
+    if (appEstaOffline()) {
+      if (comprobante) {
+        setError('Sin internet: los archivos no se pueden guardar en cola. Quita el comprobante o vuelve con conexion.');
+        return;
+      }
+      enqueueOfflineCreateOrder('transferencia', operadorId, payload);
+      borrarBorradorNuevoPedido(operadorId, 'transferencia');
+      onDraftSavedChange?.(false);
+      setError('Pedido guardado en cola local. Se enviara automaticamente al volver la conexion.');
+      return;
+    }
     if (submittingRef.current) return;
     submittingRef.current = true;
     setLoading(true);
     setError(null);
     try {
-      const response = await crearTransferencia({
-        monto_pago: Number(form.monto_pago),
-        moneda_pago: form.moneda_pago,
-        numero_tarjeta: form.numero_tarjeta,
-        telefono_destinatario: telefonoCubaPayload(form.telefono_destinatario),
-        tipo_pago_id: Number(form.tipo_pago_id),
-        cuenta_pago_id: form.cuenta_pago_id ? Number(form.cuenta_pago_id) : null,
-        operador_id: operadorId,
-        cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
-        nombre_cliente: form.nombre_cliente.trim() || form.numero_telefono_cliente,
-        numero_telefono_cliente: form.numero_telefono_cliente || undefined,
-        bonificacion_manual: Number(form.bonificacion_manual) || undefined,
-        observaciones: form.observaciones.trim() || undefined,
-      });
+      const response = await crearTransferencia(payload);
       let comprobanteCargado = false;
       let advertencia: string | undefined;
       if (comprobante) {

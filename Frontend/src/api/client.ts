@@ -1356,32 +1356,46 @@ export function guardarConfiguracion(payload: { clave: string; valor: string }) 
 }
 
 export async function obtenerEstadoConfiguracionInicial(options: ApiRequestOptions = {}): Promise<ConfiguracionInicialEstado> {
-  const [configuraciones, metodos, ofertas, puntos, paquetes] = await Promise.all([
+  const [configuraciones, metodos, ofertas, puntos, paquetes, provincias, operadores] = await Promise.all([
     listarConfiguraciones(options),
     listarMetodosPago(undefined, true, options),
     listarOfertas(true, options),
     listarPuntosRecogida(true, options),
     listarPaquetesSaldo(undefined, true, options),
+    listarProvinciasServicio(true, options),
+    listarOperadores(true, options),
   ]);
+  const metodosActivos = metodos.filter((item) => item.activo);
   const cuentas = (
     await Promise.all(
-      metodos
-        .filter((metodo) => metodo.activo)
+      metodosActivos
         .map((metodo) => listarCuentasMetodoPago(metodo.id, false, options)),
     )
   ).flat();
   const marcada = configuraciones.some(
     (item) => item.clave === 'setup_inicial_completado' && item.valor === 'true',
   );
-  const instalacionExistente = cuentas.length > 0 && ofertas.some((item) => item.activa);
+  const provinciasActivas = provincias.filter((item) => item.activo);
+  const puntosActivos = puntos.filter((item) => item.activo);
+  const operadoresActivos = operadores.filter((item) => item.activo);
+  const ofertasActivas = ofertas.filter((item) => item.activa);
+  const paquetesActivos = paquetes.filter((item) => item.activo);
+  const instalacionExistente =
+    provinciasActivas.length > 0 &&
+    puntosActivos.length > 0 &&
+    metodosActivos.length > 0 &&
+    cuentas.length > 0 &&
+    operadoresActivos.length > 0;
 
   return {
     completada: marcada || instalacionExistente,
-    metodos: metodos.filter((item) => item.activo).length,
+    provincias: provinciasActivas.length,
+    metodos: metodosActivos.length,
     cuentas: cuentas.length,
-    ofertas: ofertas.filter((item) => item.activa).length,
-    puntos: puntos.filter((item) => item.activo).length,
-    paquetes: paquetes.filter((item) => item.activo).length,
+    operadores: operadoresActivos.length,
+    ofertas: ofertasActivas.length,
+    puntos: puntosActivos.length,
+    paquetes: paquetesActivos.length,
   };
 }
 

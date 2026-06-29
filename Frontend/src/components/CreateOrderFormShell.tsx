@@ -1,7 +1,6 @@
 import { ImagePlus, WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { ChangeEventHandler, FormEvent, FormEventHandler, ReactNode } from 'react';
-import { offlineCriticalActionMessage } from '../api/client';
+import type { ChangeEventHandler, FormEventHandler, ReactNode } from 'react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { FloatingToast } from './FloatingToast';
 import { PageLoader } from './PageLoader';
@@ -44,24 +43,16 @@ export function CreateOrderFormShell({
     return () => URL.revokeObjectURL(previewUrl);
   }, [comprobante]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (offline) {
-      event.preventDefault();
-      return;
-    }
-    onSubmit(event);
-  }
-
   return (
-    <form className="create-form-panel" onSubmit={handleSubmit} noValidate>
+    <form className="create-form-panel" onSubmit={onSubmit} noValidate>
       <div className="form-flow">{children}</div>
       {error && (
-        <FloatingToast onDismiss={onDismissError}>{error}</FloatingToast>
+        <FloatingToast kind={error.includes('cola local') ? 'success' : 'error'} onDismiss={onDismissError}>{error}</FloatingToast>
       )}
       {offline && (
         <div className="notice warning compact-notice create-offline-notice">
           <WifiOff size={17} />
-          <span>{offlineCriticalActionMessage()}</span>
+          <span>Sin conexion. Puedes guardar el pedido en cola si no tiene archivos adjuntos; se enviara al reconectar.</span>
         </div>
       )}
       <div className="payment-proof-container">
@@ -82,8 +73,8 @@ export function CreateOrderFormShell({
         </label>
       </div>
       {loading && <PageLoader label={loadingLabel} inline />}
-      <button className="primary-button create-submit-button" type="submit" disabled={loading || offline}>
-        {offline ? 'Sin conexion' : loading ? 'Creando...' : submitLabel}
+      <button className="primary-button create-submit-button" type="submit" disabled={loading}>
+        {offline ? 'Guardar en cola' : loading ? 'Creando...' : submitLabel}
       </button>
     </form>
   );

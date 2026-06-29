@@ -18,6 +18,7 @@ import { FloatingToast } from '../components/FloatingToast';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { PageLoader } from '../components/PageLoader';
 import { UiSwitch } from '../components/UiSwitch';
+import { useMonedasPagoActivas } from '../hooks/useMonedasPago';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import { useDocumentVisible } from '../hooks/useDocumentVisible';
 import type { OfertaOperativa, PaqueteSaldoOperativo, PedidoResumen, TasaOperativaResponse } from '../types/api';
@@ -427,6 +428,8 @@ export function HomeTestPage({ operadorId, canSyncTasas = false, onCreate, onTra
   useEffect(() => {
     setCurrency(leerMonedaPedidoPreferida('BRL', operadorId));
   }, [operadorId]);
+  const monedasActivas = useMonedasPagoActivas();
+  const monedasActivasSet = useMemo(() => new Set(monedasActivas), [monedasActivas]);
 
   const groups = useMemo(() => {
     const map = new Map<string, CurrencyGroup>();
@@ -438,8 +441,10 @@ export function HomeTestPage({ operadorId, canSyncTasas = false, onCreate, onTra
     for (const offer of data?.ofertas ?? []) get(offer.moneda_pago).ofertas.push(offer);
     for (const offer of data?.ofertas_divisa ?? []) get(offer.moneda_pago).divisas.push(offer);
     for (const pack of data?.paquetes_saldo ?? []) get(pack.moneda_pago).paquetes.push(pack);
-    return [...map.values()].sort((a, b) => a.moneda.localeCompare(b.moneda));
-  }, [data]);
+    return [...map.values()]
+      .filter((group) => monedasActivasSet.has(group.moneda))
+      .sort((a, b) => a.moneda.localeCompare(b.moneda));
+  }, [data, monedasActivasSet]);
 
   useEffect(() => {
     if (groups.length && !groups.some((group) => group.moneda === currency)) {

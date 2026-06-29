@@ -1,5 +1,5 @@
 import { createElement, type DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Banknote, CalendarClock, Edit3, FileText, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, ShieldCheck, Tags, Trash2, UploadCloud, UserRound, UsersRound } from 'lucide-react';
+import { Banknote, CalendarClock, Coins, Edit3, FileText, Globe2, ImagePlus, Loader2, MapPin, Megaphone, MessageCircle, Package, Power, Save, Settings2, ShieldCheck, Tags, Trash2, UploadCloud, UserRound, UsersRound } from 'lucide-react';
 import { CardNumberInput } from '../components/CardNumberInput';
 import { FloatingSelect } from '../components/FloatingSelect';
 import { Modal } from '../components/Modal';
@@ -55,10 +55,11 @@ import {
 } from '../api/client';
 import type { Cliente, Configuracion, Contacto, MetodoPago, MetodoPagoCuenta, Oferta, Operador, OperadorRol, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
 import { metodoPagoVisual } from '../utils/metodosPago';
+import { MONEDAS_PAGO_CONFIG_KEY, catalogoMonedasPagoDesdeValor, guardarCatalogoMonedasPagoLocal, leerCatalogoMonedasPagoLocal, monedasPagoActivas, normalizarCatalogoMonedasPago, normalizarMoneda, type MonedaPagoConfig } from '../utils/monedas';
+import { COUNTRY_PHONE_CODES, DEFAULT_ACTIVE_PHONE_CODES, PHONE_CODES_CONFIG_KEY, codigosPaisActivosDesdeValor, guardarCodigosPaisActivosLocal, leerCodigosPaisActivosLocal, normalizarCodigosPaisActivos } from '../utils/telefonos';
 import { AdminEmpty, AdminHero, AdminMenu, AdminSection, AdminStateSwitch, type AdminEstadoVista, type AdminMenuGroup } from './admin/AdminCatalogosLayout';
 import './admin/AdminCatalogosPage.css';
 
-const monedas = ['BRL', 'UYU', 'USD', 'EUR'];
 const servicios = ['transferencia', 'efectivo', 'saldo', 'mlc', 'usd', 'clasica', 'divisa'];
 const rolesOperador = ['consultor', 'operador', 'admin'];
 const tiposSlide = [
@@ -124,6 +125,43 @@ type RolFormState = {
   permisos: string[];
 };
 
+type MonedaFormState = {
+  codigo: string;
+  nombre: string;
+  simbolo: string;
+  bandera: string;
+  activa: boolean;
+};
+
+const monedaFormVacia: MonedaFormState = {
+  codigo: '',
+  nombre: '',
+  simbolo: '',
+  bandera: '',
+  activa: true,
+};
+
+function monedaToForm(moneda: MonedaPagoConfig): MonedaFormState {
+  return {
+    codigo: moneda.codigo,
+    nombre: moneda.nombre,
+    simbolo: moneda.simbolo ?? '',
+    bandera: moneda.bandera ?? '',
+    activa: moneda.activa,
+  };
+}
+
+function formToMoneda(form: MonedaFormState): MonedaPagoConfig {
+  const codigo = normalizarMoneda(form.codigo);
+  return {
+    codigo,
+    nombre: form.nombre.trim() || codigo,
+    simbolo: form.simbolo.trim() || undefined,
+    bandera: form.bandera.trim() || undefined,
+    activa: form.activa,
+  };
+}
+
 function permisosBaseRol(rol: string) {
   return [...(permisosPorRol[rol] ?? permisosPorRol.operador)];
 }
@@ -173,9 +211,38 @@ function PermissionSwitches({ permisos, onChange }: { permisos: string[]; onChan
   );
 }
 
-type AdminTema = 'metodos' | 'provincias' | 'puntos' | 'ofertas' | 'paquetes' | 'promociones' | 'clientes' | 'contactos' | 'operadores' | 'roles' | 'configuracion' | 'templates';
+type AdminTema =
+  | 'metodos'
+  | 'provincias'
+  | 'puntos'
+  | 'ofertas'
+  | 'paquetes'
+  | 'promociones'
+  | 'monedas'
+  | 'clientes'
+  | 'contactos'
+  | 'operadores'
+  | 'roles'
+  | 'codigos'
+  | 'configuracion'
+  | 'templates';
 const ADMIN_THEME_KEY = 'jireh.adminTema';
-const ADMIN_THEMES = new Set<AdminTema>(['metodos', 'provincias', 'puntos', 'ofertas', 'paquetes', 'promociones', 'clientes', 'contactos', 'operadores', 'roles', 'configuracion', 'templates']);
+const ADMIN_THEMES = new Set<AdminTema>([
+  'metodos',
+  'provincias',
+  'puntos',
+  'ofertas',
+  'paquetes',
+  'promociones',
+  'monedas',
+  'clientes',
+  'contactos',
+  'operadores',
+  'roles',
+  'codigos',
+  'configuracion',
+  'templates',
+]);
 
 function temaAdminGuardado(): AdminTema | null {
   if (typeof sessionStorage === 'undefined') return null;
@@ -190,10 +257,12 @@ function tituloTema(tema: AdminTema | null) {
   if (tema === 'ofertas') return 'Ofertas';
   if (tema === 'paquetes') return 'Paquetes de saldo';
   if (tema === 'promociones') return 'Promociones';
+  if (tema === 'monedas') return 'Monedas de pago';
   if (tema === 'clientes') return 'Clientes';
   if (tema === 'contactos') return 'Contactos';
   if (tema === 'operadores') return 'Operadores';
   if (tema === 'roles') return 'Roles';
+  if (tema === 'codigos') return 'Codigos de pais';
   if (tema === 'configuracion') return 'Configuracion';
   if (tema === 'templates') return 'Templates';
   return 'Catalogos';
@@ -206,10 +275,12 @@ const adminTemaVisual: Record<AdminTema, { descripcion: string; icono: typeof Se
   ofertas: { descripcion: 'Configura tasas, monedas, importes minimos y servicios disponibles.', icono: Tags },
   paquetes: { descripcion: 'Organiza los paquetes de recarga, su precio y el saldo que recibe el cliente.', icono: Package },
   promociones: { descripcion: 'Crea y ordena slides de precios, marca y promociones para el carrusel.', icono: Megaphone },
+  monedas: { descripcion: 'Administra las monedas disponibles para cobros, ofertas, paquetes y clientes.', icono: Coins },
   clientes: { descripcion: 'Consulta y administra las personas que solicitan o pagan operaciones.', icono: UsersRound },
   contactos: { descripcion: 'Mantiene los destinatarios frecuentes y sus datos operativos.', icono: UserRound },
   operadores: { descripcion: 'Controla accesos, roles, permisos y disponibilidad del equipo.', icono: UsersRound },
   roles: { descripcion: 'Define permisos base para consultores, operadores y administradores.', icono: ShieldCheck },
+  codigos: { descripcion: 'Selecciona que codigos de telefono aparecen en los formularios.', icono: Globe2 },
   configuracion: { descripcion: 'Centraliza enlaces, claves y valores que definen el comportamiento del sistema.', icono: Settings2 },
   templates: { descripcion: 'Edita los mensajes utilizados en operaciones, estados y notificaciones.', icono: FileText },
 };
@@ -308,6 +379,8 @@ const configuracionesDestacadas = new Set([
   'whatsapp_grupo_finalizados_url',
   'setup_inicial_completado',
   'carousel_slides_seeded_v1',
+  PHONE_CODES_CONFIG_KEY,
+  MONEDAS_PAGO_CONFIG_KEY,
 ]);
 
 const configuracionesOcultasPorPrefijo = [
@@ -354,8 +427,12 @@ export function AdminCatalogosPage() {
   const [contactoForm, setContactoForm] = useState({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
   const [operadorForm, setOperadorForm] = useState<OperadorFormState>({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRol('operador') });
   const [rolForm, setRolForm] = useState<RolFormState>({ clave: '', nombre: '', descripcion: '', activo: true, permisos: permisosBaseRol('operador') });
+  const [monedaForm, setMonedaForm] = useState<MonedaFormState>(monedaFormVacia);
+  const [catalogoMonedasPago, setCatalogoMonedasPago] = useState(leerCatalogoMonedasPagoLocal);
+  const [codigosPaisActivos, setCodigosPaisActivos] = useState(leerCodigosPaisActivosLocal);
   const [operadorEditando, setOperadorEditando] = useState<Operador | null>(null);
   const [rolEditando, setRolEditando] = useState<OperadorRol | null>(null);
+  const [monedaEditando, setMonedaEditando] = useState<MonedaPagoConfig | null>(null);
   const [puntoEditando, setPuntoEditando] = useState<PuntoRecogida | null>(null);
   const [provinciaEditando, setProvinciaEditando] = useState<ProvinciaServicio | null>(null);
   const [metodoEditando, setMetodoEditando] = useState<MetodoPago | null>(null);
@@ -367,6 +444,8 @@ export function AdminCatalogosPage() {
   const [metodoEditSaving, setMetodoEditSaving] = useState(false);
   const [cuentaMetodoSaving, setCuentaMetodoSaving] = useState(false);
   const [promoUploading, setPromoUploading] = useState(false);
+  const [monedasSaving, setMonedasSaving] = useState(false);
+  const [codigosPaisSaving, setCodigosPaisSaving] = useState(false);
   const [metodoUploadProgress, setMetodoUploadProgress] = useState<number | null>(null);
   const [metodoUploadError, setMetodoUploadError] = useState<string | null>(null);
   const [promoUploadProgress, setPromoUploadProgress] = useState<number | null>(null);
@@ -413,6 +492,12 @@ export function AdminCatalogosPage() {
   const operadoresVisibles = useMemo(() => operadores.filter((item) => item.activo === mostrarActivos), [operadores, mostrarActivos]);
   const rolesVisibles = useMemo(() => roles.filter((item) => item.activo === mostrarActivos), [roles, mostrarActivos]);
   const rolesActivos = useMemo(() => roles.filter((item) => item.activo), [roles]);
+  const monedasVisibles = useMemo(() => catalogoMonedasPago.filter((item) => item.activa === mostrarActivos), [catalogoMonedasPago, mostrarActivos]);
+  const monedas = useMemo(() => monedasPagoActivas(catalogoMonedasPago), [catalogoMonedasPago]);
+  const opcionesMonedaSelect = (extra?: string) => Array.from(new Set([...monedas, normalizarMoneda(extra)].filter(Boolean)))
+    .map((moneda) => ({ value: moneda, label: moneda }));
+  const codigosPaisActivosSet = useMemo(() => new Set(codigosPaisActivos), [codigosPaisActivos]);
+  const codigosPaisResumen = `${codigosPaisActivos.length} activos`;
   const permisosPorRolConfigurado = useMemo(() => {
     const map = new Map<string, string[]>();
     roles.forEach((rol) => map.set(rol.clave, rol.permisos));
@@ -470,6 +555,19 @@ export function AdminCatalogosPage() {
       if (tema === 'promociones') setPromociones(await listarPromociones(true, { signal }));
       if (tema === 'clientes') setClientes(await listarClientes(undefined, true, { signal }));
       if (tema === 'roles') setRoles(await listarRolesOperador(true, { signal }));
+      if (tema === 'monedas') {
+        const configuracionesData = await listarConfiguraciones({ signal });
+        const catalogo = catalogoMonedasPagoDesdeValor(configuracionesData.find((item) => item.clave === MONEDAS_PAGO_CONFIG_KEY)?.valor);
+        setConfiguraciones(configuracionesData);
+        setCatalogoMonedasPago(guardarCatalogoMonedasPagoLocal(catalogo));
+        marcarTemasCargados('configuracion');
+      }
+      if (tema === 'codigos') {
+        const configuracionesData = await listarConfiguraciones({ signal });
+        setConfiguraciones(configuracionesData);
+        setCodigosPaisActivos(codigosPaisActivosDesdeValor(configuracionesData.find((item) => item.clave === PHONE_CODES_CONFIG_KEY)?.valor));
+        marcarTemasCargados('configuracion');
+      }
       if (tema === 'operadores') {
         const [operadoresData, rolesData] = await Promise.all([
           listarOperadores(true, { signal }),
@@ -596,7 +694,8 @@ export function AdminCatalogosPage() {
   }
 
   function abrirCrearModal(tema: AdminTema) {
-    if (tema === 'metodos') setMetodoForm({ nombre: '', moneda: 'BRL', imagen_url: '', activo: true });
+    const monedaDefault = monedas[0] ?? 'BRL';
+    if (tema === 'metodos') setMetodoForm({ nombre: '', moneda: monedaDefault, imagen_url: '', activo: true });
     if (tema === 'puntos') {
       setPuntoEditando(null);
       setPuntoForm({ nombre: '', direccion: '', telefono: '', provincia_id: provincias.find((provincia) => provincia.activo)?.id ? String(provincias.find((provincia) => provincia.activo)?.id) : '', activo: true });
@@ -605,10 +704,14 @@ export function AdminCatalogosPage() {
       setProvinciaEditando(null);
       setProvinciaForm({ nombre: '', activo: false });
     }
-    if (tema === 'ofertas') setOfertaForm({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: 'BRL' });
-    if (tema === 'paquetes') setPaqueteForm({ nombre: '', monto_pago: '', moneda_pago: 'BRL', saldo_cup: '' });
+    if (tema === 'ofertas') setOfertaForm({ servicio: 'transferencia', nombre: '', tasa: '', minimo_pago: '', moneda_pago: monedaDefault });
+    if (tema === 'paquetes') setPaqueteForm({ nombre: '', monto_pago: '', moneda_pago: monedaDefault, saldo_cup: '' });
     if (tema === 'promociones') { setPromoForm(nuevoSlideForm()); setPromoFile(null); setPromoFilePreview(''); }
-    if (tema === 'clientes') setClienteForm({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: 'BRL' });
+    if (tema === 'monedas') {
+      setMonedaEditando(null);
+      setMonedaForm(monedaFormVacia);
+    }
+    if (tema === 'clientes') setClienteForm({ nombre: '', telefono: '', email: '', pais: '', moneda_preferida: monedaDefault });
     if (tema === 'contactos') setContactoForm({ cliente_id: '', nombre: '', telefono: '', numero_tarjeta: '', tipo_tarjeta: '', documento_identidad_url: '', pais: '', notas: '' });
     if (tema === 'operadores') setOperadorForm({ nombre: '', telefono: '', password: '', rol: 'operador', activo: true, permisos: permisosBaseRolActual('operador') });
     if (tema === 'roles') {
@@ -961,6 +1064,144 @@ export function AdminCatalogosPage() {
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar la configuracion');
+    }
+  }
+
+  async function persistirCatalogoMonedasPago(catalogo: MonedaPagoConfig[], mensaje: string) {
+    const normalizado = normalizarCatalogoMonedasPago(catalogo);
+    setMonedasSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const guardada = await guardarConfiguracion({
+        clave: MONEDAS_PAGO_CONFIG_KEY,
+        valor: JSON.stringify(normalizado),
+      });
+      const catalogoGuardado = guardarCatalogoMonedasPagoLocal(normalizado);
+      setCatalogoMonedasPago(catalogoGuardado);
+      setConfiguraciones((current) => {
+        const exists = current.some((item) => item.clave === MONEDAS_PAGO_CONFIG_KEY);
+        if (exists) return current.map((item) => (item.clave === MONEDAS_PAGO_CONFIG_KEY ? { ...item, valor: guardada.valor } : item));
+        return [...current, guardada];
+      });
+      setNotice(mensaje);
+      marcarTemasCargados('configuracion');
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la moneda');
+      return false;
+    } finally {
+      setMonedasSaving(false);
+    }
+  }
+
+  function abrirEditarMoneda(moneda: MonedaPagoConfig) {
+    setMonedaEditando(moneda);
+    setMonedaForm(monedaToForm(moneda));
+    setError(null);
+    setNotice(null);
+  }
+
+  async function guardarMoneda(event: FormEvent) {
+    event.preventDefault();
+    if (monedasSaving) return;
+    const moneda = formToMoneda(monedaForm);
+    if (!moneda.codigo) {
+      setError('El codigo de moneda es obligatorio');
+      return;
+    }
+    const codigoDuplicado = catalogoMonedasPago.some((item) => item.codigo === moneda.codigo && item.codigo !== monedaEditando?.codigo);
+    if (codigoDuplicado) {
+      setError('Ya existe una moneda con ese codigo');
+      return;
+    }
+    const nextCatalogo = monedaEditando
+      ? catalogoMonedasPago.map((item) => (item.codigo === monedaEditando.codigo ? moneda : item))
+      : [...catalogoMonedasPago, moneda];
+    const saved = await persistirCatalogoMonedasPago(nextCatalogo, monedaEditando ? 'Moneda actualizada' : 'Moneda creada');
+    if (saved) {
+      setMonedaEditando(null);
+      setMonedaForm(monedaFormVacia);
+      setCrearModalTema(null);
+      setEstadoVista(moneda.activa ? 'activos' : 'inactivos');
+    }
+  }
+
+  async function toggleMoneda(moneda: MonedaPagoConfig) {
+    if (monedasSaving) return;
+    if (moneda.activa && catalogoMonedasPago.filter((item) => item.activa).length === 1) {
+      setError('Debe quedar al menos una moneda activa');
+      return;
+    }
+    await persistirCatalogoMonedasPago(
+      catalogoMonedasPago.map((item) => (item.codigo === moneda.codigo ? { ...item, activa: !item.activa } : item)),
+      moneda.activa ? 'Moneda desactivada' : 'Moneda activada',
+    );
+  }
+
+  async function eliminarMoneda(moneda: MonedaPagoConfig) {
+    if (monedasSaving) return;
+    if (moneda.activa && catalogoMonedasPago.filter((item) => item.activa).length === 1) {
+      setError('Debe quedar al menos una moneda activa');
+      return;
+    }
+    await persistirCatalogoMonedasPago(
+      catalogoMonedasPago.filter((item) => item.codigo !== moneda.codigo),
+      'Moneda eliminada',
+    );
+  }
+
+  function toggleCodigoPais(code: string) {
+    setError(null);
+    setNotice(null);
+    setCodigosPaisActivos((current) => {
+      if (current.includes(code)) {
+        if (current.length === 1) {
+          setError('Debe quedar al menos un codigo de pais activo');
+          return current;
+        }
+        return current.filter((item) => item !== code);
+      }
+      return normalizarCodigosPaisActivos([...current, code]);
+    });
+  }
+
+  function restaurarCodigosPaisDefault() {
+    setCodigosPaisActivos([...DEFAULT_ACTIVE_PHONE_CODES]);
+    setError(null);
+    setNotice(null);
+  }
+
+  function activarTodosLosCodigosPais() {
+    setCodigosPaisActivos(COUNTRY_PHONE_CODES.map((item) => item.code));
+    setError(null);
+    setNotice(null);
+  }
+
+  async function guardarCodigosPais() {
+    if (codigosPaisSaving) return;
+    const codigos = normalizarCodigosPaisActivos(codigosPaisActivos);
+    setCodigosPaisSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const guardada = await guardarConfiguracion({
+        clave: PHONE_CODES_CONFIG_KEY,
+        valor: JSON.stringify(codigos),
+      });
+      guardarCodigosPaisActivosLocal(codigos);
+      setCodigosPaisActivos(codigos);
+      setConfiguraciones((current) => {
+        const exists = current.some((item) => item.clave === PHONE_CODES_CONFIG_KEY);
+        if (exists) return current.map((item) => (item.clave === PHONE_CODES_CONFIG_KEY ? { ...item, valor: guardada.valor } : item));
+        return [...current, guardada];
+      });
+      setNotice('Codigos de pais actualizados');
+      marcarTemasCargados('configuracion');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron guardar los codigos de pais');
+    } finally {
+      setCodigosPaisSaving(false);
     }
   }
 
@@ -1456,6 +1697,7 @@ export function AdminCatalogosPage() {
         { tema: 'ofertas', titulo: 'Ofertas', resumen: resumenCarga(temasCargados.has('ofertas'), `${ofertas.filter((item) => item.activa).length} activas · ${ofertas.filter((item) => !item.activa).length} inactivas`), icono: Tags },
         { tema: 'paquetes', titulo: 'Paquetes de saldo', resumen: resumenCarga(temasCargados.has('paquetes'), `${paquetes.filter((item) => item.activo).length} activos · ${paquetes.filter((item) => !item.activo).length} inactivos`), icono: Package },
         { tema: 'promociones', titulo: 'Carrusel', resumen: resumenCarga(temasCargados.has('promociones'), `${promociones.filter((item) => item.activa).length} activos · ${promociones.filter((item) => !item.activa).length} inactivos`), icono: Megaphone },
+        { tema: 'monedas', titulo: 'Monedas de pago', resumen: resumenCarga(temasCargados.has('monedas'), `${catalogoMonedasPago.filter((item) => item.activa).length} activas · ${catalogoMonedasPago.filter((item) => !item.activa).length} inactivas`), icono: Coins },
       ],
     },
     {
@@ -1470,6 +1712,7 @@ export function AdminCatalogosPage() {
     {
       titulo: 'Sistema',
       items: [
+        { tema: 'codigos', titulo: 'Codigos de pais', resumen: resumenCarga(temasCargados.has('codigos'), codigosPaisResumen), icono: Globe2 },
         { tema: 'configuracion', titulo: 'Configuracion', resumen: resumenCarga(temasCargados.has('configuracion'), `${configuracionesSistemaTotal} claves`), icono: Settings2 },
         { tema: 'templates', titulo: 'Templates', resumen: resumenCarga(temasCargados.has('templates'), `${templates.length} plantillas`), icono: FileText },
       ],
@@ -1630,6 +1873,27 @@ export function AdminCatalogosPage() {
         </AdminSection>
       )}
 
+      {temaActivo === 'monedas' && temasCargados.has('monedas') && (
+        <AdminSection icono={Coins} titulo="Monedas de pago" resumen={`${monedasVisibles.length} de ${catalogoMonedasPago.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('monedas')}>Crear</button>}>
+          <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} feminine ariaLabel="Vista de monedas" />
+          <div className="admin-card-list">
+            {monedasVisibles.length === 0 && <AdminEmpty>Sin monedas {estadoVista}</AdminEmpty>}
+            {monedasVisibles.map((moneda) => (
+              <div className="catalog-row currency-admin-row" key={moneda.codigo}>
+                <button type="button" className="catalog-edit-main" onClick={() => abrirEditarMoneda(moneda)}>
+                  <span><strong>{moneda.bandera ? `${moneda.bandera} ` : ''}{moneda.codigo}</strong><small>{moneda.nombre}{moneda.simbolo ? ` · ${moneda.simbolo}` : ''}</small></span>
+                </button>
+                <div className="catalog-offer-actions">
+                  <span className={moneda.activa ? 'status completado' : 'status cancelado'}>{moneda.activa ? 'activa' : 'inactiva'}</span>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => toggleMoneda(moneda)} disabled={monedasSaving}><Power size={18} /> {moneda.activa ? 'Desactivar' : 'Activar'}</button>
+                  <button className="ghost-button catalog-toggle-action" type="button" onClick={() => eliminarMoneda(moneda)} disabled={monedasSaving}><Trash2 size={18} /> Eliminar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </AdminSection>
+      )}
+
       {temaActivo === 'clientes' && temasCargados.has('clientes') && (
         <AdminSection icono={UsersRound} titulo="Clientes" resumen={`${clientesVisibles.length} de ${clientes.length}`} action={<button type="button" className="primary-button admin-create-button" onClick={() => abrirCrearModal('clientes')}>Crear</button>}>
           <AdminStateSwitch value={estadoVista} onChange={setEstadoVista} />
@@ -1701,6 +1965,30 @@ export function AdminCatalogosPage() {
         </AdminSection>
       )}
 
+      {temaActivo === 'codigos' && temasCargados.has('codigos') && (
+        <AdminSection icono={Globe2} titulo="Codigos de pais" resumen={codigosPaisResumen} action={<button type="button" className="primary-button admin-create-button" onClick={() => void guardarCodigosPais()} disabled={codigosPaisSaving}><SavingLabel saving={codigosPaisSaving} idle="Guardar" busy="Guardando..." /></button>}>
+          <div className="phone-code-admin-tools">
+            <button type="button" className="ghost-button" onClick={restaurarCodigosPaisDefault}>Predeterminados</button>
+            <button type="button" className="ghost-button" onClick={activarTodosLosCodigosPais}>Activar todos</button>
+          </div>
+          <div className="phone-code-admin-list">
+            {COUNTRY_PHONE_CODES.map((codigo) => (
+              <label className="permission-switch-row phone-code-admin-row" key={codigo.code}>
+                <span>
+                  <strong>{codigo.flag} {codigo.label}</strong>
+                  <small>{codigo.code}</small>
+                </span>
+                <UiSwitch
+                  checked={codigosPaisActivosSet.has(codigo.code)}
+                  ariaLabel={`Activar codigo ${codigo.code}`}
+                  onChange={() => toggleCodigoPais(codigo.code)}
+                />
+              </label>
+            ))}
+          </div>
+        </AdminSection>
+      )}
+
       {temaActivo === 'configuracion' && temasCargados.has('configuracion') && (
         <AdminSection icono={Settings2} titulo="Configuracion" resumen={configuracionesSistemaTotal} action={<button type="button" className="primary-button admin-create-button" onClick={() => { setConfigForm({ clave: '', valor: '' }); abrirModalAdmin('config'); setConfigModalOpen(true); }}>Nueva</button>}>
           <div className="config-list whatsapp-config-list">
@@ -1742,7 +2030,7 @@ export function AdminCatalogosPage() {
         <Modal title="Crear metodo de pago" subtitle="Administracion / Metodos de pago" onClose={() => setCrearModalTema(null)}>
           <form className="stack-form modal-form" onSubmit={guardarMetodo}>
             <input value={metodoForm.nombre} onChange={(event) => setMetodoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
-            <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda" align="left" />
+            <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={opcionesMonedaSelect(metodoForm.moneda)} ariaLabel="Moneda" align="left" />
             <input value={metodoForm.imagen_url} onChange={(event) => setMetodoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />
             <div className="method-image-note"><ImagePlus size={16} /> Si lo dejas vacio, usa el logo automatico desde assets.</div>
             <UploadStatus
@@ -1791,7 +2079,7 @@ export function AdminCatalogosPage() {
             />
             <input value={metodoForm.nombre} onChange={(event) => setMetodoForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
             <div className="inline-form three">
-              <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda" align="left" />
+              <FloatingSelect value={metodoForm.moneda} onChange={(value) => setMetodoForm((current) => ({ ...current, moneda: value }))} options={opcionesMonedaSelect(metodoForm.moneda)} ariaLabel="Moneda" align="left" />
               <FloatingSelect value={metodoForm.activo ? 'activo' : 'inactivo'} onChange={(value) => setMetodoForm((current) => ({ ...current, activo: value === 'activo' }))} options={[{ value: 'activo', label: 'Activo' }, { value: 'inactivo', label: 'Inactivo' }]} ariaLabel="Estado" align="left" />
               <button className="primary-button" disabled={metodoEditSaving}><SavingLabel saving={metodoEditSaving} idle="Guardar" busy="Guardando..." /></button>
             </div>
@@ -1876,7 +2164,7 @@ export function AdminCatalogosPage() {
             <div className="inline-form three">
               <input value={ofertaForm.tasa} onChange={(event) => setOfertaForm((current) => ({ ...current, tasa: event.target.value }))} inputMode="decimal" placeholder="Tasa" required />
               <input value={ofertaForm.minimo_pago} onChange={(event) => setOfertaForm((current) => ({ ...current, minimo_pago: event.target.value }))} inputMode="decimal" placeholder="Minimo" required />
-              <FloatingSelect value={ofertaForm.moneda_pago} onChange={(value) => setOfertaForm((current) => ({ ...current, moneda_pago: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda de pago" align="left" />
+              <FloatingSelect value={ofertaForm.moneda_pago} onChange={(value) => setOfertaForm((current) => ({ ...current, moneda_pago: value }))} options={opcionesMonedaSelect(ofertaForm.moneda_pago)} ariaLabel="Moneda de pago" align="left" />
             </div>
             <button className="primary-button"><Save size={18} /> Crear oferta</button>
           </form>
@@ -1889,7 +2177,7 @@ export function AdminCatalogosPage() {
             <div className="inline-form three">
               <input value={paqueteForm.monto_pago} onChange={(event) => setPaqueteForm((current) => ({ ...current, monto_pago: event.target.value }))} inputMode="decimal" placeholder="Monto pago" required />
               <input value={paqueteForm.saldo_cup} onChange={(event) => setPaqueteForm((current) => ({ ...current, saldo_cup: event.target.value }))} inputMode="numeric" placeholder="Saldo CUP" required />
-              <FloatingSelect value={paqueteForm.moneda_pago} onChange={(value) => setPaqueteForm((current) => ({ ...current, moneda_pago: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda de pago" align="left" />
+              <FloatingSelect value={paqueteForm.moneda_pago} onChange={(value) => setPaqueteForm((current) => ({ ...current, moneda_pago: value }))} options={opcionesMonedaSelect(paqueteForm.moneda_pago)} ariaLabel="Moneda de pago" align="left" />
             </div>
             <button className="primary-button"><Save size={18} /> Crear paquete</button>
           </form>
@@ -1978,6 +2266,26 @@ export function AdminCatalogosPage() {
         </Modal>
       )}
 
+      {(crearModalTema === 'monedas' || monedaEditando) && (
+        <Modal title={monedaEditando ? 'Editar moneda' : 'Crear moneda'} subtitle="Administracion / Monedas de pago" onClose={() => { setCrearModalTema(null); setMonedaEditando(null); }} wide>
+          <form className="stack-form modal-form" onSubmit={guardarMoneda}>
+            <div className="inline-form three">
+              <input value={monedaForm.codigo} onChange={(event) => setMonedaForm((current) => ({ ...current, codigo: event.target.value.toUpperCase() }))} placeholder="Codigo" disabled={Boolean(monedaEditando)} required />
+              <input value={monedaForm.nombre} onChange={(event) => setMonedaForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
+              <input value={monedaForm.simbolo} onChange={(event) => setMonedaForm((current) => ({ ...current, simbolo: event.target.value }))} placeholder="Simbolo" />
+            </div>
+            <div className="inline-form two">
+              <input value={monedaForm.bandera} onChange={(event) => setMonedaForm((current) => ({ ...current, bandera: event.target.value }))} placeholder="Bandera" />
+              <label className="permission-switch-row">
+                <span>Activa<small>Disponible en metodos, ofertas, paquetes y pedidos.</small></span>
+                <UiSwitch checked={monedaForm.activa} onChange={(checked) => setMonedaForm((current) => ({ ...current, activa: checked }))} ariaLabel="Activar moneda" />
+              </label>
+            </div>
+            <button className="primary-button" disabled={monedasSaving}><SavingLabel saving={monedasSaving} idle={monedaEditando ? 'Guardar moneda' : 'Crear moneda'} busy="Guardando..." /></button>
+          </form>
+        </Modal>
+      )}
+
       {crearModalTema === 'clientes' && (
         <Modal title="Crear cliente" subtitle="Administracion / Clientes" onClose={() => setCrearModalTema(null)} wide>
           <form className="stack-form modal-form" onSubmit={guardarCliente}>
@@ -1986,7 +2294,7 @@ export function AdminCatalogosPage() {
             <input value={clienteForm.email} onChange={(event) => setClienteForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
             <div className="inline-form three">
               <input value={clienteForm.pais} onChange={(event) => setClienteForm((current) => ({ ...current, pais: event.target.value }))} placeholder="pais" />
-              <FloatingSelect value={clienteForm.moneda_preferida} onChange={(value) => setClienteForm((current) => ({ ...current, moneda_preferida: value }))} options={monedas.map((moneda) => ({ value: moneda, label: moneda }))} ariaLabel="Moneda preferida" align="left" />
+              <FloatingSelect value={clienteForm.moneda_preferida} onChange={(value) => setClienteForm((current) => ({ ...current, moneda_preferida: value }))} options={opcionesMonedaSelect(clienteForm.moneda_preferida)} ariaLabel="Moneda preferida" align="left" />
               <button className="primary-button"><Save size={18} /> Crear cliente</button>
             </div>
           </form>

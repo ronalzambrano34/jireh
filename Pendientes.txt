@@ -2,8 +2,8 @@ PENDIENTES:
 
 IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al referir o al registrarse en el sistema, va a ganar unos bonos de un solo uso que podran elegir si usar a la hora de realizar un pedido
 
-//todo CONFIGURACION INICIAL: configuracion inicial, hay que agregar, Provincias, Puntos de recogida, Operadores, Métodos de pago, Cuenta de pago,
-
+//todo
+- Revisado: Configuracion inicial incluye Provincias, Puntos de recogida, Operadores, Metodos de pago, Monedas de pago y Cuentas de pago.
 
 //todo 
 
@@ -13,24 +13,24 @@ IDEA A FUTURO, el sistema tendra un generador de bonos, el cual los usuarios al 
 
 //todo
 
+Haz una actualizacin del "Manual de Negocio.txt" con todas las cosas nuevas y luego de actualizado, agrega en "Pendientes.txt" todo lo que quede pendiente para cierre de la fase 1
+
 //todo FASE 1 - PENDIENTE PARA CIERRE:
 - Probar flujo completo contra API real: transferencia, efectivo, saldo, divisa y otros.
-- Validar que la vista Pedidos cargue todos los pedidos por defecto para operadores y solo mis pedidos para clientes.
-- Revisado: no se duplica historial, archivos, pedidos ni notificaciones al reconectar o refrescar.
 - Pendiente manual: ejecutar protocolo de `docs/pruebas-conectividad.md` en navegador/dispositivo real con red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
-- Definir comportamiento offline de la PWA: que abre sin internet, que queda bloqueado y que conserva datos.
-- Revisado: guardar borradores locales de nuevo pedido para no perder datos si se cae internet.
+- Probar WhatsApp manual: instrucciones al cliente, grupo operativo, grupo finalizado y reenvio desde detalle.
+
 - Validar uploads con progreso, error claro y reintento manual.
+- Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
+- Revisado: comportamiento offline PWA definido. Abre con cache tras una carga previa; crear pedidos sin archivos y finalizar sin comprobante quedan en cola local; uploads, confirmar pago con comprobante, tomar, liberar, transferir, cancelar, admin, reportes y configuracion inicial requieren conexion; se conservan borradores y datos visibles ya cargados.
 - Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
 - Re-subir/verificar fotos existentes que se hayan perdido por storage local anterior.
 - Configurar y probar backups de base de datos y storage.
 - Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
-- Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
 - Probar notificaciones: nuevo pedido, pedido transferido, pedido atrasado, marcar leido, eliminar y silenciar tipo.
 - Validar que una notificacion no abra un pedido tomado por otro operador.
 - Validar que atraso de mas de 10 minutos se muestre rojo en Pedidos y Notificaciones.
 - Revisar que al cerrar, liberar, cancelar, transferir o finalizar pedido se limpien filtros activos que puedan confundir al operador.
-- Probar WhatsApp manual: instrucciones al cliente, grupo operativo, grupo finalizado y reenvio desde detalle.
 - Validar templates: operador, metodo/cuenta de pago, punto de recogida, observaciones y variables vacias sin imprimir llaves.
 - Revisar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
 - Ejecutar smoke tests backend y build frontend antes de marcar cierre.

@@ -148,10 +148,17 @@
   }
 
   .setup-steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .setup-steps::-webkit-scrollbar {
+    display: none;
   }
 
   .setup-steps button {
+    flex: 0 0 136px;
     min-width: 0;
     grid-template-columns: 1fr;
     justify-items: center;
@@ -159,7 +166,7 @@
   }
 
   .setup-steps button > span:nth-child(2) small,
-.setup-steps button > svg {
+  .setup-steps button > svg {
     display: none;
   }
 

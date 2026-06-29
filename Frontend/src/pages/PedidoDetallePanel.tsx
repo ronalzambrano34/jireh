@@ -17,6 +17,7 @@ import {
 import { FloatingSelect } from '../components/FloatingSelect';
 import { formatearNumeroTarjeta } from '../utils/tarjetas';
 import { copiarAlPortapapeles } from '../utils/clipboard';
+import { enqueueOfflineStateChange } from '../utils/offlineQueue';
 import { CollapsibleOrderSection, LiquidationCard, OrderControlHead, OrderEvidenceSection, OrderHistorySection, PedidoDetailHeader } from './pedido/PedidoDetalleView';
 import './pedido/PedidoDetallePanel.css';
 
@@ -525,6 +526,7 @@ export function PedidoDetallePanel({
     if (pedido.estado === 'completado') return 'Finalizado';
     return 'Confirmar';
   }, [pedido]);
+  const accionPrincipalBloqueadaOffline = offlineActionsBlocked && proximoEstadoPrincipal !== 'completado';
 
   useAbortableEffect((signal) => {
     if (!codigo) {
@@ -717,6 +719,33 @@ export function PedidoDetallePanel({
     return true;
   }
 
+  function motivoFinalizacionPorDefecto() {
+    return pedido?.mensaje_finalizacion_sin_comprobante
+      ?? 'Listo, operacion exitosa, pero por factores ajenos a nosotros no es posible enviar el comprobante.';
+  }
+
+  function guardarFinalizacionOffline(
+    observaciones?: string,
+    options?: { finalizar_sin_comprobante?: boolean; motivo_sin_comprobante?: string },
+  ) {
+    if (!pedido) return;
+    enqueueOfflineStateChange(pedido.codigo_operacion, 'completado', observaciones, options);
+    const fecha = new Date().toISOString();
+    setPedido((current) => current
+      ? {
+          ...current,
+          estado: 'completado',
+          updated_at: fecha,
+          fecha_completado: fecha,
+        }
+      : current);
+    setFinalizacionAbierta(false);
+    setFinalizarSinComprobante(false);
+    setMotivoSinComprobante('');
+    setError('Finalizacion guardada en cola local. Se enviara automaticamente al volver la conexion.');
+    vibrarFeedback(24);
+  }
+
   function copiarCampo(value: unknown, label = 'Dato') {
     void copiarTexto(value).then((copiado) => {
       if (!copiado) {
@@ -883,19 +912,27 @@ export function PedidoDetallePanel({
   }
 
   function alternarFinalizacionSinComprobante(checked: boolean) {
-    if (saving || uploading || offlineActionsBlocked) return;
+    if (saving || uploading) return;
     setFinalizarSinComprobante(checked);
     if (checked && !motivoSinComprobante.trim()) {
-      setMotivoSinComprobante(
-        pedido?.mensaje_finalizacion_sin_comprobante
-        ?? 'Listo, operacion exitosa, pero por factores ajenos a nosotros no es posible enviar el comprobante.',
-      );
+      setMotivoSinComprobante(motivoFinalizacionPorDefecto());
     }
   }
 
   async function cambiarEstadoRapido(nuevoEstado: string, observaciones?: string) {
     if (!canManage || !pedido || bloqueadoPorOtro || saving || pedido.estado === nuevoEstado) return;
     if (offlineActionsBlocked) {
+      if (nuevoEstado === 'completado') {
+        if (!tieneComprobanteFinal) {
+          setError(null);
+          setFinalizacionAbierta(true);
+          setFinalizarSinComprobante(true);
+          if (!motivoSinComprobante.trim()) setMotivoSinComprobante(motivoFinalizacionPorDefecto());
+          return;
+        }
+        guardarFinalizacionOffline(observaciones);
+        return;
+      }
       bloquearAccionSinConexion();
       return;
     }
@@ -1135,13 +1172,17 @@ export function PedidoDetallePanel({
 
   async function confirmarFinalizacionSinComprobante() {
     if (!canManage || !pedido || bloqueadoPorOtro || saving) return;
-    if (offlineActionsBlocked) {
-      bloquearAccionSinConexion();
-      return;
-    }
     const motivo = motivoSinComprobante.trim();
     if (motivo.length < 10) {
       setError('Explica brevemente por que no se pudo obtener el comprobante');
+      return;
+    }
+
+    if (offlineActionsBlocked) {
+      guardarFinalizacionOffline(undefined, {
+        finalizar_sin_comprobante: true,
+        motivo_sin_comprobante: motivo,
+      });
       return;
     }
 
@@ -1182,7 +1223,7 @@ export function PedidoDetallePanel({
       onWheel={desplazarHorizontalmente}
     >
       {error && (
-        <FloatingToast onDismiss={cerrarError}>{error}</FloatingToast>
+        <FloatingToast kind={error.includes('cola local') ? 'success' : 'error'} onDismiss={cerrarError}>{error}</FloatingToast>
       )}
       <PedidoDetailHeader
         codigo={pedido?.codigo_operacion ?? codigo}
@@ -1241,7 +1282,7 @@ export function PedidoDetallePanel({
           {offlineActionsBlocked && (
             <div className="notice warning compact-notice order-offline-action-notice" role="alert">
               <WifiOff size={17} />
-              <span>Sin conexion. Las acciones que modifican este pedido estan bloqueadas.</span>
+              <span>Sin conexion. Puedes dejar la finalizacion sin comprobante en cola; las demas acciones quedan bloqueadas.</span>
             </div>
           )}
           {pedido.redirigido_a_operador_id && (
@@ -1454,7 +1495,7 @@ export function PedidoDetallePanel({
                   checked={finalizarSinComprobante}
                   onChange={alternarFinalizacionSinComprobante}
                   ariaLabel="Finalizar sin comprobante"
-                  disabled={saving || uploading || offlineActionsBlocked}
+                  disabled={saving || uploading}
                 />
               </label>
 
@@ -1467,7 +1508,7 @@ export function PedidoDetallePanel({
                       onChange={(event) => setMotivoSinComprobante(event.target.value)}
                       placeholder="Explicacion que quedara registrada en el historial."
                       rows={3}
-                      disabled={saving || offlineActionsBlocked}
+                      disabled={saving}
                     />
                   </label>
                   <div className="notice warning compact-notice">
@@ -1478,9 +1519,9 @@ export function PedidoDetallePanel({
                     className="primary-button"
                     type="button"
                     onClick={() => void confirmarFinalizacionSinComprobante()}
-                    disabled={offlineActionsBlocked || saving || motivoSinComprobante.trim().length < 10}
+                    disabled={saving || motivoSinComprobante.trim().length < 10}
                   >
-                    <CheckCircle2 size={17} /> {saving ? 'Finalizando...' : 'Confirmar sin comprobante'}
+                    <CheckCircle2 size={17} /> {saving ? 'Finalizando...' : offlineActionsBlocked ? 'Guardar en cola' : 'Confirmar sin comprobante'}
                   </button>
                 </div>
               )}
@@ -1681,7 +1722,7 @@ export function PedidoDetallePanel({
               <X size={20} />
               <span>Cancelar</span>
             </button>
-            <button className="primary-button order-primary-action" type="button" onClick={() => void cambiarEstadoRapido(proximoEstadoPrincipal)} disabled={offlineActionsBlocked || bloqueadoPorOtro || saving || pedido.estado === 'completado' || pedido.estado === 'cancelado'} title={offlineActionsBlocked ? 'Sin conexion' : accionPrincipalLabel}>
+            <button className="primary-button order-primary-action" type="button" onClick={() => void cambiarEstadoRapido(proximoEstadoPrincipal)} disabled={accionPrincipalBloqueadaOffline || bloqueadoPorOtro || saving || pedido.estado === 'completado' || pedido.estado === 'cancelado'} title={accionPrincipalBloqueadaOffline ? 'Sin conexion' : accionPrincipalLabel}>
               {saving ? <RefreshCw size={18} /> : <CheckCircle2 size={18} />}
               {saving ? 'Procesando...' : accionPrincipalLabel}
             </button>
