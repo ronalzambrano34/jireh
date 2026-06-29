@@ -4,6 +4,7 @@ import sys
 import tempfile
 
 from fastapi import UploadFile
+from starlette.datastructures import Headers
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
@@ -12,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 
 from Backend.database import Base
 from Backend.config import STORAGE_DIR
+from Backend.config import UPLOAD_MAX_BYTES
 
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.cliente import Cliente
@@ -55,6 +57,18 @@ from Backend.services.reporte_service import reporte_general
 def _assert(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def _assert_error(action, texto_esperado, message):
+    try:
+        action()
+    except Exception as exc:
+        _assert(
+            texto_esperado in str(exc),
+            message
+        )
+        return
+    raise AssertionError(message)
 
 
 def crear_db_temporal():
@@ -293,6 +307,54 @@ def run():
         _assert(
             pedido.comprobante_pago == archivo["ruta_archivo"],
             "archivo: comprobante_cliente no actualizo pedido"
+        )
+        _assert_error(
+            lambda: guardar_upload_pedido(
+                db,
+                "JH-SMOKE-UPLOAD",
+                "comprobante_cliente",
+                UploadFile(
+                    file=BytesIO(
+                        b"no permitido"
+                    ),
+                    filename="comprobante.txt",
+                    headers=Headers(
+                        {
+                            "content-type": "text/plain"
+                        }
+                    )
+                ),
+                usuario="smoke",
+                notas="mime invalido"
+            ),
+            "Tipo de archivo no permitido",
+            "archivo: permitio MIME no permitido"
+        )
+        _assert_error(
+            lambda: guardar_upload_pedido(
+                db,
+                "JH-SMOKE-UPLOAD",
+                "comprobante_cliente",
+                UploadFile(
+                    file=BytesIO(
+                        b"x" * (UPLOAD_MAX_BYTES + 1)
+                    ),
+                    filename="comprobante-grande.jpg",
+                    headers=Headers(
+                        {
+                            "content-type": "image/jpeg"
+                        }
+                    )
+                ),
+                usuario="smoke",
+                notas="archivo grande"
+            ),
+            "Archivo excede el tamano maximo permitido",
+            "archivo: permitio archivo sobre limite"
+        )
+        _assert(
+            len(listar_archivos_pedido(db, "JH-SMOKE-UPLOAD")) == 1,
+            "archivo: MIME invalido o archivo grande dejo evidencia"
         )
 
         operador_id = operador.id

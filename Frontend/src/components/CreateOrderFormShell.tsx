@@ -4,6 +4,7 @@ import type { ChangeEventHandler, FormEventHandler, ReactNode } from 'react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { FloatingToast } from './FloatingToast';
 import { PageLoader } from './PageLoader';
+import { UploadStatus } from './UploadStatus';
 
 type CreateOrderFormShellProps = {
   children: ReactNode;
@@ -13,6 +14,11 @@ type CreateOrderFormShellProps = {
   submitLabel: string;
   comprobante: File | null;
   onComprobanteChange: ChangeEventHandler<HTMLInputElement>;
+  uploadActive?: boolean;
+  uploadError?: string | null;
+  uploadProgress?: number | null;
+  uploadLabel?: string;
+  onRetryUpload?: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onDismissError: () => void;
 };
@@ -25,6 +31,11 @@ export function CreateOrderFormShell({
   submitLabel,
   comprobante,
   onComprobanteChange,
+  uploadActive,
+  uploadError,
+  uploadProgress,
+  uploadLabel,
+  onRetryUpload,
   onSubmit,
   onDismissError,
 }: CreateOrderFormShellProps) {
@@ -71,6 +82,13 @@ export function CreateOrderFormShell({
             <input type="file" accept="image/*,.pdf" onChange={onComprobanteChange} />
           </span>
         </label>
+        <UploadStatus
+          active={uploadActive}
+          error={uploadError}
+          progress={uploadProgress}
+          label={uploadLabel ?? 'Subiendo comprobante'}
+          onRetry={onRetryUpload}
+        />
       </div>
       {loading && <PageLoader label={loadingLabel} inline />}
       <button className="primary-button create-submit-button" type="submit" disabled={loading}>

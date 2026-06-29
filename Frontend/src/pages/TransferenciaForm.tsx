@@ -16,6 +16,7 @@ import { borrarBorradorNuevoPedido, crearIdempotencyKey, useAutosaveBorradorNuev
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { appEstaOffline, enqueueOfflineCreateOrder } from '../utils/offlineQueue';
+import { useUploadStatus } from '../hooks/useUploadStatus';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 
@@ -63,6 +64,7 @@ export function TransferenciaForm({
   const [calculoError, setCalculoError] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<File | null>(null);
   const submittingRef = useRef(false);
+  const uploadStatus = useUploadStatus('Subiendo comprobante');
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
@@ -165,6 +167,43 @@ export function TransferenciaForm({
     }));
   }
 
+  async function subirComprobanteCreado(response: PedidoDetalle, file: File) {
+    uploadStatus.start('Subiendo comprobante');
+    try {
+      const uploadForm = new FormData();
+      uploadForm.set('tipo', 'comprobante_cliente');
+      uploadForm.set('archivo', file);
+      await subirArchivo(response.codigo_operacion, uploadForm, {
+        onProgress: (progress) => uploadStatus.setProgress(progress.percent),
+      });
+      uploadStatus.finish();
+      return true;
+    } catch (err) {
+      const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
+      uploadStatus.fail(`El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`, () => {
+        void reintentarComprobante(response, file);
+      });
+      return false;
+    }
+  }
+
+  async function reintentarComprobante(response: PedidoDetalle, file: File) {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const cargado = await subirComprobanteCreado(response, file);
+      if (!cargado) return;
+      borrarBorradorNuevoPedido(operadorId, 'transferencia');
+      onDraftSavedChange?.(false);
+      onCreated(response, true);
+    } finally {
+      submittingRef.current = false;
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!telefonoClienteCompleto(form.numero_telefono_cliente)) {
@@ -220,22 +259,13 @@ export function TransferenciaForm({
     try {
       const response = await crearTransferencia(payload);
       let comprobanteCargado = false;
-      let advertencia: string | undefined;
       if (comprobante) {
-        try {
-          const uploadForm = new FormData();
-          uploadForm.set('tipo', 'comprobante_cliente');
-          uploadForm.set('archivo', comprobante);
-          await subirArchivo(response.codigo_operacion, uploadForm);
-          comprobanteCargado = true;
-        } catch (err) {
-          const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
-          advertencia = `El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`;
-        }
+        comprobanteCargado = await subirComprobanteCreado(response, comprobante);
+        if (!comprobanteCargado) return;
       }
       borrarBorradorNuevoPedido(operadorId, 'transferencia');
       onDraftSavedChange?.(false);
-      onCreated(response, comprobanteCargado, advertencia);
+      onCreated(response, comprobanteCargado);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -251,7 +281,12 @@ export function TransferenciaForm({
       loadingLabel="Creando transferencia"
       submitLabel="Crear transferencia"
       comprobante={comprobante}
-      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => { uploadStatus.reset(); setComprobante(event.target.files?.[0] ?? null); }}
+      uploadActive={uploadStatus.active}
+      uploadError={uploadStatus.error}
+      uploadProgress={uploadStatus.progress}
+      uploadLabel={uploadStatus.label}
+      onRetryUpload={uploadStatus.retryRef.current ?? undefined}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

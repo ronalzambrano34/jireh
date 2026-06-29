@@ -17,6 +17,7 @@ import { borrarBorradorNuevoPedido, crearIdempotencyKey, useAutosaveBorradorNuev
 import { codigoPaisPorMoneda, guardarMonedaPedidoPreferida, leerMonedaPedidoPreferida, telefonoClienteConMoneda } from '../utils/preferenciasPedido';
 import { telefonoClienteCompleto } from '../utils/telefonos';
 import { appEstaOffline, enqueueOfflineCreateOrder } from '../utils/offlineQueue';
+import { useUploadStatus } from '../hooks/useUploadStatus';
 
 const TELEFONO_CUBA_DEFAULT = '+53';
 const DOCUMENTO_ADJUNTO_LABEL = 'Documento adjunto en evidencias';
@@ -61,6 +62,7 @@ export function OtrosForm({
   const [documentoPreview, setDocumentoPreview] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<File | null>(null);
   const submittingRef = useRef(false);
+  const uploadStatus = useUploadStatus('Subiendo archivo');
 
   const metodosFiltrados = useMemo(
     () => metodosPago.filter((metodo) => normalizarMoneda(metodo.moneda) === form.moneda_pago),
@@ -165,8 +167,67 @@ export function OtrosForm({
 
   function handleDocumentoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
+    uploadStatus.reset();
     setDocumentoFile(file);
     if (file) update('documento_identidad_url', DOCUMENTO_ADJUNTO_LABEL);
+  }
+
+  async function subirAdjuntosCreado(response: PedidoDetalle, documento: File | null, proof: File | null) {
+    if (documento) {
+      uploadStatus.start('Subiendo documento');
+      try {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'documento_identidad');
+        uploadForm.set('archivo', documento);
+        await subirArchivo(response.codigo_operacion, uploadForm, {
+          onProgress: (progress) => uploadStatus.setProgress(progress.percent),
+        });
+      } catch (err) {
+        const detalle = err instanceof Error ? err.message : 'No se pudo subir el documento';
+        uploadStatus.fail(`El pedido ${response.codigo_operacion} fue creado, pero el documento no se adjunto: ${detalle}`, () => {
+          void reintentarAdjuntos(response, documento, proof);
+        });
+        return null;
+      }
+    }
+
+    if (proof) {
+      uploadStatus.start('Subiendo comprobante');
+      try {
+        const uploadForm = new FormData();
+        uploadForm.set('tipo', 'comprobante_cliente');
+        uploadForm.set('archivo', proof);
+        await subirArchivo(response.codigo_operacion, uploadForm, {
+          onProgress: (progress) => uploadStatus.setProgress(progress.percent),
+        });
+      } catch (err) {
+        const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
+        uploadStatus.fail(`El pedido ${response.codigo_operacion} fue creado, pero el comprobante no se adjunto: ${detalle}`, () => {
+          void reintentarAdjuntos(response, documento, proof);
+        });
+        return null;
+      }
+    }
+
+    uploadStatus.finish();
+    return { comprobanteCargado: Boolean(proof) };
+  }
+
+  async function reintentarAdjuntos(response: PedidoDetalle, documento: File | null, proof: File | null) {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await subirAdjuntosCreado(response, documento, proof);
+      if (!result) return;
+      borrarBorradorNuevoPedido(operadorId, 'otros');
+      onDraftSavedChange?.(false);
+      onCreated(response, result.comprobanteCargado);
+    } finally {
+      submittingRef.current = false;
+      setLoading(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -232,37 +293,11 @@ export function OtrosForm({
     setError(null);
     try {
       const response = await crearOtros(payload);
-      const adjuntosFallidos: string[] = [];
-      let comprobanteCargado = false;
-      if (documentoFile) {
-        try {
-          const uploadForm = new FormData();
-          uploadForm.set('tipo', 'documento_identidad');
-          uploadForm.set('archivo', documentoFile);
-          await subirArchivo(response.codigo_operacion, uploadForm);
-        } catch (err) {
-          const detalle = err instanceof Error ? err.message : 'No se pudo subir el documento';
-          adjuntosFallidos.push(`documento de identidad (${detalle})`);
-        }
-      }
-      if (comprobante) {
-        try {
-          const uploadForm = new FormData();
-          uploadForm.set('tipo', 'comprobante_cliente');
-          uploadForm.set('archivo', comprobante);
-          await subirArchivo(response.codigo_operacion, uploadForm);
-          comprobanteCargado = true;
-        } catch (err) {
-          const detalle = err instanceof Error ? err.message : 'No se pudo subir el comprobante';
-          adjuntosFallidos.push(`comprobante (${detalle})`);
-        }
-      }
-      const advertencia = adjuntosFallidos.length
-        ? `El pedido ${response.codigo_operacion} fue creado, pero no se adjunto: ${adjuntosFallidos.join(', ')}`
-        : undefined;
+      const adjuntos = await subirAdjuntosCreado(response, documentoFile, comprobante);
+      if (!adjuntos) return;
       borrarBorradorNuevoPedido(operadorId, 'otros');
       onDraftSavedChange?.(false);
-      onCreated(response, comprobanteCargado, advertencia);
+      onCreated(response, adjuntos.comprobanteCargado);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear el pedido');
     } finally {
@@ -278,7 +313,12 @@ export function OtrosForm({
       loadingLabel="Creando pedido"
       submitLabel="Crear otros"
       comprobante={comprobante}
-      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => setComprobante(event.target.files?.[0] ?? null)}
+      onComprobanteChange={(event: ChangeEvent<HTMLInputElement>) => { uploadStatus.reset(); setComprobante(event.target.files?.[0] ?? null); }}
+      uploadActive={uploadStatus.active}
+      uploadError={uploadStatus.error}
+      uploadProgress={uploadStatus.progress}
+      uploadLabel={uploadStatus.label}
+      onRetryUpload={uploadStatus.retryRef.current ?? undefined}
       onSubmit={handleSubmit}
       onDismissError={() => setError(null)}
     >

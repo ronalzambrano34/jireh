@@ -24,6 +24,8 @@ env/
 *.sqlite
 *.sqlite3
 storage/
+backups/
+Backend/backups/
 
 # Local scratch files
 *.save

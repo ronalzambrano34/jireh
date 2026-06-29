@@ -182,3 +182,21 @@ En produccion el backend exige storage externo para fotos de perfil, metodos de
 pago, promociones, documentos y comprobantes. Si Supabase Storage no esta
 configurado, la subida falla con un error claro en vez de guardar archivos en
 disco local temporal.
+
+## Backups operativos
+
+Generar backup de base de datos y storage:
+
+```bash
+Backend/venv/bin/python Backend/scripts/backup_operativo.py
+```
+
+Probar el flujo sin tocar datos reales:
+
+```bash
+Backend/venv/bin/python Backend/scripts/backup_operativo.py --self-test
+```
+
+Los backups se guardan en `backups/<fecha>/`, ignorado por Git. Para PostgreSQL,
+si `pg_dump` esta instalado se genera `.dump`; si no, se crea respaldo logico
+`.jsonl`. El storage se guarda como `.tar.gz`.

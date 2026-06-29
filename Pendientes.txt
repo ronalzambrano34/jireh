@@ -21,12 +21,6 @@ IDEA A FUTURO:
 - Confirmar que una recarga fallida no borre los datos visibles de pantalla.
 - Confirmar que el polling no sea agresivo en red lenta ni cuando la app esta en segundo plano.
 
-//todo Uploads, storage y archivos
-- Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
-- Re-subir o verificar fotos/archivos existentes que se hayan perdido por storage local anterior.
-- Probar limite de archivo grande y tipos MIME permitidos.
-- Configurar y probar backups de base de datos y storage.
-
 //todo Roles, permisos y seguridad
 - Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
 - Confirmar que usuarios sin permisos no vean ni ejecuten Admin, Reportes ni acciones restringidas.
@@ -36,11 +30,9 @@ IDEA A FUTURO:
 - Probar endpoints protegidos sin token, con token vencido y con permisos insuficientes.
 
 //todo Catalogos y configuracion inicial
-- Validado: Monedas de pago BRL y UYU activas por defecto; monedas inactivas no aparecen en Inicio, Nuevo pedido ni Reportes.
 - Validar Codigos de pais: Cuba, Brasil y Uruguay activos por defecto; codigos inactivos no aparecen en formularios nuevos.
 - Validar Metodos de pago y Cuentas de pago: cuenta obligatoria, cuenta correcta en instrucciones y templates.
 - Validar Provincias y Puntos de recogida: no mostrar puntos de provincias inactivas.
-
 
 //todo UI movil y PWA
 - Validar icono PWA instalado: redondeado, sin borde azul y con fondo acorde al logo.

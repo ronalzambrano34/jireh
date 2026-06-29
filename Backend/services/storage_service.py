@@ -164,6 +164,7 @@ def guardar_upload_supabase(
     ruta_relativa: Path,
     content_type: str,
     contenido: bytes,
+    upsert: bool = False,
 ):
     asegurar_bucket_supabase()
     ruta = quote(
@@ -179,7 +180,7 @@ def guardar_upload_supabase(
             f"{SUPABASE_URL}/storage/v1/object/{bucket}/{ruta}",
             headers={
                 **headers_supabase(content_type),
-                "x-upsert": "false",
+                "x-upsert": "true" if upsert else "false",
             },
             data=contenido,
             timeout=30,
