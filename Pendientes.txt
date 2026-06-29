@@ -20,12 +20,9 @@ IDEA A FUTURO:
 - Validar que las lecturas puedan reintentarse, pero las acciones que modifican datos no se repitan sin control.
 - Confirmar que una recarga fallida no borre los datos visibles de pantalla.
 - Confirmar que el polling no sea agresivo en red lenta ni cuando la app esta en segundo plano.
-- Revisado en codigo: botones de accion bloqueados mientras una peticion esta en proceso en Admin, Perfil, Reportes, Configuracion inicial, creacion y detalle de pedido.
-- Revisado en codigo y prueba focalizada: idempotencia de pedidos, historial y archivos; notificaciones deduplicadas por ID al reconectar/refrescar.
 
 //todo Uploads, storage y archivos
 - Validar uploads con progreso, error claro y reintento manual.
-- Validar que no se suba dos veces el mismo archivo por doble tap o reintento accidental.
 - Confirmar storage persistente en produccion para fotos de perfil, metodos de pago, promociones, documentos y comprobantes.
 - Re-subir o verificar fotos/archivos existentes que se hayan perdido por storage local anterior.
 - Probar limite de archivo grande y tipos MIME permitidos.
@@ -46,24 +43,8 @@ IDEA A FUTURO:
 - Validar Metodos de pago y Cuentas de pago: cuenta obligatoria, cuenta correcta en instrucciones y templates.
 - Validar Provincias y Puntos de recogida: no mostrar puntos de provincias inactivas.
 
-//todo Pedidos, notificaciones y conflictos
-- Validar que Pedidos cargue Todos por defecto para operadores y Mis pedidos solo para clientes o usuarios sin alcance general.
-- Validar que tomar/liberar/transferir pedido resista latencia alta y conflictos entre operadores.
-- Validado en codigo: una notificacion consulta el pedido actualizado y no abre detalle si ya esta tomado por otro operador; se queda en Pedidos.
-- Validar notificaciones: nuevo pedido, pedido transferido, pedido atrasado, marcar leido, eliminar y silenciar tipo.
-- Validar que los pedidos atrasados solo se notifiquen si no han sido tomados por un operador.
-- Validar que al cerrar, liberar, cancelar, transferir o finalizar pedido se limpien filtros activos que puedan confundir al operador.
-- Validar que el historial incluya creacion del pedido como primer registro.
-
-//todo Templates y WhatsApp
-- Validar templates: {operador}, metodo/cuenta de pago, punto de recogida, observaciones y variables vacias sin imprimir llaves.
-- Validado en codigo y prueba focalizada: template de Otros imprime observaciones como descripcion del pedido y punto de recogida como nombre, no como id.
-- Validar que telefono_destinatario y telefono no generen ambiguedad en mensajes.
-- Validar que reenviar mensaje operativo desde detalle abra un solo modal/formulario de WhatsApp.
-- Validar que finalizar sin comprobante no adjunte evidencias anteriores como comprobante final.
 
 //todo UI movil y PWA
-- Revisado: UI movil final ajustada para footer, botones flotantes, modales, toasts, filtros, detalle pedido y formularios sin tapar contenido; pendiente validacion visual en dispositivo real.
 - Validar icono PWA instalado: redondeado, sin borde azul y con fondo acorde al logo.
 - Validar boton atras del telefono: atras de vista, cerrar vista y doble atras en Home para cerrar app.
 - Validar menu lateral al cambiar entre desktop y telefono.

@@ -207,6 +207,7 @@ const camposCopiables = new Set([
 const COPY_FEEDBACK_DURATION_MS = 2600;
 const ESTADOS_TERMINALES = new Set(['completado', 'cancelado']);
 type UploadScope = 'evidence' | 'payment' | 'final';
+type MensajeModalActivo = 'operativo' | 'whatsapp' | null;
 
 function estadoLabel(value: string) {
   if (value === 'en_operacion') return 'Pago confirmado';
@@ -393,7 +394,7 @@ export function PedidoDetallePanel({
   const [finalizarSinComprobante, setFinalizarSinComprobante] = useState(false);
   const [motivoSinComprobante, setMotivoSinComprobante] = useState('');
   const [mensajeAbierto, setMensajeAbierto] = useState(false);
-  const [mensajeOperativoModalAbierto, setMensajeOperativoModalAbierto] = useState(false);
+  const [mensajeModalActivo, setMensajeModalActivo] = useState<MensajeModalActivo>(null);
   const [evidenciasAbiertas, setEvidenciasAbiertas] = useState(false);
   const [historialAbierto, setHistorialAbierto] = useState(false);
   const [ownLockNoticeHidden, setOwnLockNoticeHidden] = useState(false);
@@ -420,7 +421,7 @@ export function PedidoDetallePanel({
     && (codigosNavegacion?.length ?? 0) > 1
     && !confirmarPagoAbierto
     && !finalizacionAbierta
-    && !whatsappPendiente
+    && !mensajeModalActivo
     && !cancelacionAbierta
     && !redireccionAbierta
   );
@@ -539,8 +540,7 @@ export function PedidoDetallePanel({
     setLoading(!pedidoInicial || pedidoInicial.codigo_operacion !== codigo);
     setError(null);
     setMensajeAbierto(false);
-    setMensajeOperativoModalAbierto(false);
-    setWhatsappPendiente(null);
+    cerrarModalWhatsApp();
     setEvidenciasAbiertas(false);
     setHistorialAbierto(false);
     setConfirmarPagoAbierto(false);
@@ -744,6 +744,7 @@ export function PedidoDetallePanel({
     setMotivoSinComprobante('');
     setError('Finalizacion guardada en cola local. Se enviara automaticamente al volver la conexion.');
     vibrarFeedback(24);
+    onChanged();
   }
 
   function copiarCampo(value: unknown, label = 'Dato') {
@@ -867,7 +868,17 @@ export function PedidoDetallePanel({
 
   function abrirMensajeOperativoModal() {
     setWhatsappPendiente(null);
-    setMensajeOperativoModalAbierto(true);
+    setMensajeModalActivo('operativo');
+  }
+
+  function abrirModalWhatsApp(reenvio: WhatsAppPendiente | null) {
+    setWhatsappPendiente(reenvio);
+    setMensajeModalActivo(reenvio ? 'whatsapp' : null);
+  }
+
+  function cerrarModalWhatsApp() {
+    setWhatsappPendiente(null);
+    setMensajeModalActivo(null);
   }
 
   function abrirReenvioGrupoWhatsApp() {
@@ -877,8 +888,7 @@ export function PedidoDetallePanel({
       setError('No hay enlace de WhatsApp disponible para reenviar este mensaje');
       return;
     }
-    setMensajeOperativoModalAbierto(false);
-    setWhatsappPendiente(reenvio);
+    abrirModalWhatsApp(reenvio);
   }
 
   function abrirReenvioClienteWhatsApp() {
@@ -888,8 +898,7 @@ export function PedidoDetallePanel({
       setError('No hay WhatsApp de cliente disponible para este pedido');
       return;
     }
-    setMensajeOperativoModalAbierto(false);
-    setWhatsappPendiente(reenvio);
+    abrirModalWhatsApp(reenvio);
   }
 
   function abrirReenvioFinalizadoWhatsApp() {
@@ -899,8 +908,7 @@ export function PedidoDetallePanel({
       setError('No hay mensaje de finalizacion disponible para reenviar');
       return;
     }
-    setMensajeOperativoModalAbierto(false);
-    setWhatsappPendiente(reenvio);
+    abrirModalWhatsApp(reenvio);
   }
 
   function cerrarFinalizacion() {
@@ -960,7 +968,7 @@ export function PedidoDetallePanel({
       }
       vibrarFeedback(24);
       onChanged();
-      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, nuevoEstado));
+      abrirModalWhatsApp(notificacionWhatsAppEstado(actualizado, nuevoEstado));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado');
     } finally {
@@ -975,7 +983,7 @@ export function PedidoDetallePanel({
 
     if (!adjunto) {
       abrirWhatsAppUrl(whatsappPendiente.url);
-      setWhatsappPendiente(null);
+      cerrarModalWhatsApp();
       if (pedido?.estado === 'completado') onClose();
       return;
     }
@@ -1006,7 +1014,7 @@ export function PedidoDetallePanel({
       }
 
       await navigator.share(shareData);
-      setWhatsappPendiente(null);
+      cerrarModalWhatsApp();
       if (pedido?.estado === 'completado') onClose();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -1138,7 +1146,7 @@ export function PedidoDetallePanel({
         setConfirmarPagoAbierto(false);
         vibrarFeedback(24);
         onChanged();
-        setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'pago_confirmado'));
+        abrirModalWhatsApp(notificacionWhatsAppEstado(actualizado, 'pago_confirmado'));
       },
     });
   }
@@ -1165,7 +1173,7 @@ export function PedidoDetallePanel({
         setFinalizacionAbierta(false);
         vibrarFeedback(24);
         onChanged();
-        setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'completado'));
+        abrirModalWhatsApp(notificacionWhatsAppEstado(actualizado, 'completado'));
       },
     });
   }
@@ -1203,7 +1211,7 @@ export function PedidoDetallePanel({
       setFinalizacionAbierta(false);
       vibrarFeedback(24);
       onChanged();
-      setWhatsappPendiente(notificacionWhatsAppEstado(actualizado, 'completado'));
+      abrirModalWhatsApp(notificacionWhatsAppEstado(actualizado, 'completado'));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo finalizar la operacion');
     } finally {
@@ -1574,11 +1582,11 @@ export function PedidoDetallePanel({
             </Modal>
           )}
 
-          {whatsappPendiente && !mensajeOperativoModalAbierto && (
+          {whatsappPendiente && mensajeModalActivo === 'whatsapp' && (
             <Modal
               title={whatsappPendiente.titulo}
               subtitle={whatsappPendiente.detalle}
-              onClose={() => setWhatsappPendiente(null)}
+              onClose={cerrarModalWhatsApp}
             >
               <div className="whatsapp-message-preview">
                 <label htmlFor="whatsapp-estado-pendiente">Mensaje que se enviara</label>
@@ -1645,7 +1653,7 @@ export function PedidoDetallePanel({
                   className="ghost-button"
                   type="button"
                   onClick={() => {
-                    setWhatsappPendiente(null);
+                    cerrarModalWhatsApp();
                     if (pedido.estado === 'completado') onClose();
                   }}
                 >
@@ -1655,11 +1663,11 @@ export function PedidoDetallePanel({
             </Modal>
           )}
 
-          {pedido.mensaje_operacion && mensajeOperativoModalAbierto && (
+          {pedido.mensaje_operacion && mensajeModalActivo === 'operativo' && (
             <Modal
               title="Mensaje operativo"
               subtitle={pedido.codigo_operacion}
-              onClose={() => setMensajeOperativoModalAbierto(false)}
+              onClose={() => setMensajeModalActivo(null)}
             >
               <div className="whatsapp-message-preview operational-message-modal">
                 <label htmlFor="mensaje-operativo-reenvio">Mensaje operativo</label>

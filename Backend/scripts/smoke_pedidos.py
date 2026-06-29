@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 import tempfile
 
@@ -49,9 +50,21 @@ from Backend.services.pedido_service import (
 from Backend.services.pedido_transferencia_service import crear_pedido_transferencia
 
 
+PLACEHOLDER_RE = re.compile(
+    r"\{\{?\s*[A-Za-z0-9_áéíóúÁÉÍÓÚñÑ]+\s*\}?\}"
+)
+
+
 def _assert(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def _assert_sin_placeholders(texto, message):
+    _assert(
+        not PLACEHOLDER_RE.search(texto or ""),
+        message
+    )
 
 
 def crear_db_temporal():
@@ -110,6 +123,22 @@ def sembrar_datos(db):
         moneda_pago="BRL",
         activa=True
     )
+    oferta_divisa = Oferta(
+        servicio="mlc",
+        nombre="MLC BRL",
+        tasa=5,
+        minimo_pago=0,
+        moneda_pago="BRL",
+        activa=True
+    )
+    oferta_otros = Oferta(
+        servicio="otros",
+        nombre="Otros BRL",
+        tasa=1,
+        minimo_pago=0,
+        moneda_pago="BRL",
+        activa=True
+    )
     provincia = ProvinciaServicio(
         nombre="La Habana",
         activo=True
@@ -139,11 +168,21 @@ def sembrar_datos(db):
         metodo,
         oferta_transferencia,
         oferta_efectivo,
+        oferta_divisa,
+        oferta_otros,
         punto,
         paquete,
     ])
     db.commit()
 
+    cuenta = MetodoPagoCuenta(
+        metodo_pago_id=metodo.id,
+        alias="Pix principal",
+        cuenta="PIX-SMOKE-001",
+        titular="El Jireh Smoke",
+        predeterminada=True,
+        activa=True
+    )
     contacto = Contacto(
         cliente_id=cliente.id,
         nombre="Beneficiario Smoke",
@@ -154,12 +193,16 @@ def sembrar_datos(db):
         pais="Cuba",
         activo=True
     )
-    db.add(contacto)
+    db.add_all([
+        cuenta,
+        contacto,
+    ])
     db.commit()
 
     return {
         "cliente": cliente,
         "contacto": contacto,
+        "cuenta": cuenta,
         "metodo": metodo,
         "operador": operador,
         "paquete": paquete,
@@ -184,6 +227,10 @@ def assert_pedido(db, respuesta, servicio, telefono_esperado=None):
         "{telefono}" not in respuesta["mensaje_operacion"],
         f"{servicio}: quedo variable telefono sin renderizar"
     )
+    _assert_sin_placeholders(
+        respuesta["mensaje_operacion"],
+        f"{servicio}: quedaron variables sin renderizar"
+    )
 
     pedido = obtener_pedido_por_codigo(
         db,
@@ -200,6 +247,18 @@ def assert_pedido(db, respuesta, servicio, telefono_esperado=None):
     _assert(
         detalle is not None,
         f"{servicio}: no devolvio detalle"
+    )
+    historial = pedido.get("historial") or []
+    _assert(
+        len(historial) >= 1,
+        f"{servicio}: no devolvio historial"
+    )
+    primer_historial = historial[0]
+    _assert(
+        primer_historial.get("estado_anterior") is None
+        and primer_historial.get("estado_nuevo") == "pendiente_pago"
+        and primer_historial.get("comentario") == "Pedido creado",
+        f"{servicio}: el primer historial no es la creacion del pedido"
     )
 
     if telefono_esperado is not None:
@@ -230,10 +289,12 @@ def run():
                 numero_tarjeta="9222000011112222",
                 telefono_destinatario="12345678",
                 tipo_pago_id=datos["metodo"].id,
+                cuenta_pago_id=datos["cuenta"].id,
                 operador_id=datos["operador"].id,
                 cliente_id=0,
                 nombre_cliente="Cliente Smoke Nuevo",
-                numero_telefono_cliente="9595959595"
+                numero_telefono_cliente="9595959595",
+                observaciones="Pago urgente"
             )
         )
         pedido_transferencia = assert_pedido(
@@ -250,6 +311,23 @@ def run():
                 or ""
             ).lower(),
             "finalizacion: no devolvio el template predeterminado"
+        )
+        mensaje_transferencia = transferencia.get("mensaje_operacion") or ""
+        _assert(
+            "Operador Smoke" in mensaje_transferencia,
+            "template: no imprimio operador"
+        )
+        _assert(
+            "Pix Smoke" in mensaje_transferencia,
+            "template: no imprimio metodo de pago"
+        )
+        _assert(
+            "PIX-SMOKE-001" in mensaje_transferencia,
+            "template: no imprimio cuenta de pago"
+        )
+        _assert(
+            "Pago urgente" in mensaje_transferencia,
+            "template: no imprimio observaciones"
         )
         archivo = registrar_archivo_pedido(
             db,
@@ -391,9 +469,26 @@ def run():
                 "El proveedor no permitio descargar la confirmacion por problemas de conexion."
             )
         )
+        mensaje_saldo_finalizado = saldo_completado.get("mensaje_grupo_finalizado") or ""
+        archivos_saldo_finalizado = saldo_completado.get("archivos", [])
         _assert(
             saldo_completado["estado"] == "completado",
             "finalizacion: no completo con excepcion justificada"
+        )
+        _assert(
+            not any(
+                archivo.get("tipo") == "comprobante_final"
+                for archivo in archivos_saldo_finalizado
+            ),
+            "finalizacion: adjunto comprobante final inexistente"
+        )
+        _assert(
+            "comprobantes/smoke-saldo-pago.jpg" not in mensaje_saldo_finalizado,
+            "finalizacion: uso el comprobante de pago como comprobante final"
+        )
+        _assert(
+            "El proveedor no permitio descargar la confirmacion" in mensaje_saldo_finalizado,
+            "finalizacion: no uso el motivo sin comprobante en el mensaje finalizado"
         )
         _assert(
             "Operacion finalizada sin comprobante:" in (
@@ -451,7 +546,10 @@ def run():
                 clave="template_otros",
                 valor=(
                     "*Otros*\n"
+                    "*Operador:* {operador}\n"
                     "*Punto de recogida:* {punto_recogida_id}\n"
+                    "*Metodo:* {metodo_pago}\n"
+                    "*Cuenta:* {cuenta_pago}\n"
                     "*Observaciones:* {observaciones}"
                 )
             )
@@ -465,6 +563,7 @@ def run():
                 "monto_pago": 80,
                 "moneda_pago": "BRL",
                 "tipo_pago_id": datos["metodo"].id,
+                "cuenta_pago_id": datos["cuenta"].id,
                 "operador_id": datos["operador"].id,
                 "cliente_id": datos["cliente"].id,
                 "numero_tarjeta": "9222000011112222",
@@ -502,6 +601,12 @@ def run():
         _assert(
             datos["punto"].nombre in (otros.get("mensaje_operacion") or ""),
             "otros: punto_recogida_id no se imprime como nombre en el mensaje operativo"
+        )
+        _assert(
+            "Operador Smoke" in (otros.get("mensaje_operacion") or "")
+            and "Pix Smoke" in (otros.get("mensaje_operacion") or "")
+            and "PIX-SMOKE-001" in (otros.get("mensaje_operacion") or ""),
+            "otros: template no imprimio operador/metodo/cuenta"
         )
         _assert(
             f"Punto de recogida:* {datos['punto'].id}" not in (otros.get("mensaje_operacion") or ""),

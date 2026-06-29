@@ -131,6 +131,8 @@ def _operador_puede_tomar_bloqueo(
 ):
     if not operador:
         return False
+    if operador.rol == "cliente":
+        return False
 
     return (
         operador.rol in ("admin", "supervisor")
@@ -143,12 +145,22 @@ def _operador_puede_ver_todos_los_pedidos(
 ):
     if not operador:
         return False
+    if operador.rol == "cliente":
+        return False
 
     return (
         operador.rol in ("admin", "supervisor")
         or "pedidos:ver" in operador.permisos
         or "pedidos:gestionar" in operador.permisos
         or "empresa:control_total" in operador.permisos
+    )
+
+
+def operador_puede_ver_todos_los_pedidos(
+    operador: Operador | None
+):
+    return _operador_puede_ver_todos_los_pedidos(
+        operador
     )
 
 
@@ -1211,6 +1223,11 @@ def redirigir_pedido_operador(
         pedido_actual.redirigido_a_operador_id == operador_destino_id
         and pedido_actual.redireccion_mensaje == mensaje_limpio
     ):
+        validar_bloqueo_pedido(
+            db,
+            pedido_actual,
+            operador
+        )
         _log_pedido_evento(
             "redirigir.repetido",
             pedido_actual,

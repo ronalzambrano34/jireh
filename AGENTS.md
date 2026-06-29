@@ -2,6 +2,38 @@
 ​"Sé extremadamente conciso y directo."
 ​"Evita explicaciones detalladas o introducciones; ve directo al grano o al código."
 ​"No repitas código existente, muestra solo las líneas modificadas."
+"Manten el Contexto compactado"
+# Repository Guidelines
+
+## Model Behavior & Response Style
+- **Rol principal:** Actúa exclusivamente como un motor de corrección de código y refactorización.
+- **Explicaciones prohibidas:** No saludes, no des introducciones, no expliques el "por qué" de los errores ni justifiques los cambios a menos que se te solicite explícitamente.
+- **Modo de respuesta:** Ve directo al grano. Si el usuario comparte código con errores, tu respuesta debe iniciar inmediatamente con el bloque de código corregido.
+- **Eficiencia de tokens:** No repitas código que ya funciona o que no ha sido modificado. Utiliza comentarios como `// ... resto del código sin cambios ...` para mostrar únicamente las líneas corregidas.
+
+## Project Structure & Module Organization
+
+This repository contains an internal operations system for orders, payments, WhatsApp messages, reports, and administration.
+
+- `Backend/`: FastAPI application. Main entry point is `Backend/main.py`.
+- `Backend/models/`, `routes/`, `schemas/`, `services/`: SQLAlchemy models, API routes, Pydantic schemas, and business logic.
+- `Backend/scripts/`: smoke checks such as `smoke_pedidos.py` and `smoke_admin.py`.
+- `Frontend/`: React + TypeScript + Vite PWA.
+- `Frontend/src/api/`, `components/`, `hooks/`, `pages/`, `utils/`, `styles/`: client API, shared UI, reusable hooks, page views, utilities, and CSS.
+- `Frontend/src/assets/`: brand and payment assets.
+- `docs/`: operational documentation, including low-connectivity testing.
+- `Manual de Negocio.txt`: living business rules; update it when behavior changes.
+
+## Build, Test, and Development Commands
+
+Run backend commands from the repository root:
+
+```bash
+Backend/venv/bin/python -m uvicorn Backend.main.app --reload
+Backend/venv/bin/python Backend/scripts/smoke_pedidos.py
+Backend/venv/bin/python Backend/scripts/smoke_admin.py
+python3 -m py_compile Backend/services/pedido_creator.py
+
 ## Project Structure & Module Organization
 
 This repository contains an internal operations system for orders, payments, WhatsApp messages, reports, and administration.

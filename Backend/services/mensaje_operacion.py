@@ -238,7 +238,10 @@ def generar_mensaje_operacion(
             cuenta_pago.qr_url
             if cuenta_pago
             else ""
-        )
+        ),
+
+        "observaciones":
+        pedido.observaciones or ""
     }
 
     template_key = None

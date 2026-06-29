@@ -45,6 +45,11 @@ type AlcancePedidos = 'mis' | 'todas';
 type PeriodoPedidos = 'hoy' | 'ayer' | '7_dias' | 'mes' | 'todos';
 type ServicioCrear = 'transferencia' | 'efectivo' | 'saldo' | 'divisa' | 'otros';
 type AppView = 'inicio' | 'home-test' | 'bandeja' | 'crear' | 'reportes' | 'admin' | 'setup' | 'perfil';
+type PedidosLoadOptions = {
+  signal?: AbortSignal;
+  alcanceVista?: AlcancePedidos;
+  periodo?: PeriodoPedidos;
+};
 type PendingAuthAction =
   | { type: 'crear'; servicio: ServicioCrear; draft: CrearPedidoDraft }
   | { type: 'rastrear'; codigo: string }
@@ -459,6 +464,17 @@ function writeOrderPreferences(operadorId: number, preferences: OrderPreferences
   }
 }
 
+function operadorTieneAlcanceGeneralPedidos(operador: Operador | null) {
+  if (!operador || operador.rol === 'cliente') return false;
+  return (
+    operador.rol === 'admin'
+    || operador.rol === 'supervisor'
+    || operador.permisos.includes('pedidos:ver')
+    || operador.permisos.includes('pedidos:gestionar')
+    || operador.permisos.includes('empresa:control_total')
+  );
+}
+
 function servicioNotificacionLabel(value: string) {
   const labels: Record<string, string> = {
     transferencia: 'Transferencia',
@@ -492,6 +508,12 @@ function rangoPeriodoPedidos(periodo: PeriodoPedidos) {
     fecha_desde: desde.toISOString(),
     fecha_hasta: hasta.toISOString(),
   };
+}
+
+function normalizePedidosLoadOptions(options?: AbortSignal | PedidosLoadOptions): PedidosLoadOptions {
+  if (!options) return {};
+  if ('aborted' in options) return { signal: options };
+  return options;
 }
 
 function parseBackendTime(value?: string | null) {
@@ -611,7 +633,7 @@ export function App() {
   );
 
   const puedeVerTodasLasOrdenes = useMemo(
-    () => Boolean(operador && operador.rol !== 'cliente'),
+    () => operadorTieneAlcanceGeneralPedidos(operador),
     [operador],
   );
 
@@ -1149,17 +1171,31 @@ export function App() {
     setNotificaciones([]);
   }
 
+  function filtrosPedidosPorDefecto(): { alcance: AlcancePedidos; periodo: PeriodoPedidos } {
+    return {
+      alcance: puedeVerTodasLasOrdenes ? 'todas' : 'mis',
+      periodo: 'hoy',
+    };
+  }
+
   function limpiarFiltrosPedidos() {
+    const filtros = filtrosPedidosPorDefecto();
     setBusqueda('');
     setEstado('');
     setServicio('');
-    setAlcancePedidos(puedeVerTodasLasOrdenes ? 'todas' : 'mis');
-    setPeriodoPedidos('hoy');
+    setAlcancePedidos(filtros.alcance);
+    setPeriodoPedidos(filtros.periodo);
+    return filtros;
+  }
+
+  function recargarPedidosConFiltrosLimpios() {
+    const filtros = limpiarFiltrosPedidos();
+    void cargarPedidos({ alcanceVista: filtros.alcance, periodo: filtros.periodo });
   }
 
   function cerrarDetallePedido() {
     setSeleccionado(null);
-    limpiarFiltrosPedidos();
+    recargarPedidosConFiltrosLimpios();
   }
 
   function ejecutarAtrasAplicacion() {
@@ -1221,8 +1257,7 @@ export function App() {
   }
 
   function actualizarPedidosDesdeDetalle() {
-    limpiarFiltrosPedidos();
-    void cargarPedidos();
+    recargarPedidosConFiltrosLimpios();
   }
 
   async function abrirNotificacion(id: string) {
@@ -1363,15 +1398,20 @@ export function App() {
     void confirmarPagoPedidoCreado(file);
   }
 
-  const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[]) => {
+  const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[], alcanceVista = alcancePedidos) => {
     const misPedidos = data.filter((pedido) => pedidoPerteneceAMi(pedido));
     setAlcanceConteos({ mis: misPedidos.length, todas: data.length });
-    setPedidos(alcancePedidos === 'mis' ? misPedidos : data);
+    setPedidos(alcanceVista === 'mis' ? misPedidos : data);
   }, [alcancePedidos, operador]);
 
-  const cargarPedidos = useCallback(async (signal?: AbortSignal) => {
+  const cargarPedidos = useCallback(async (options?: AbortSignal | PedidosLoadOptions) => {
+    const loadOptions = normalizePedidosLoadOptions(options);
+    const { signal, periodo = periodoPedidos } = loadOptions;
     const alcanceCarga = puedeVerTodasLasOrdenes ? 'todas' : 'mis';
-    const cargaKey = `pedidos:${operador?.id ?? 'anon'}:${alcanceCarga}:${alcancePedidos}:${periodoPedidos}`;
+    const alcanceVista = puedeVerTodasLasOrdenes
+      ? loadOptions.alcanceVista ?? alcancePedidos
+      : 'mis';
+    const cargaKey = `pedidos:${operador?.id ?? 'anon'}:${alcanceCarga}:${alcanceVista}:${periodo}`;
     if (pedidosRequestKeysRef.current.has(cargaKey)) return;
 
     pedidosRequestKeysRef.current.add(cargaKey);
@@ -1381,11 +1421,11 @@ export function App() {
       const data = await listarPedidos({
         limit: 200,
         alcance: alcanceCarga,
-        ...rangoPeriodoPedidos(periodoPedidos),
+        ...rangoPeriodoPedidos(periodo),
       }, { signal });
       revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
-        aplicarPedidosPorAlcance(data);
+        aplicarPedidosPorAlcance(data, alcanceVista);
       } else {
         setAlcanceConteos({ mis: data.length, todas: data.length });
         setPedidos(data);

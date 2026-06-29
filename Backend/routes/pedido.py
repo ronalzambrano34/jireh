@@ -24,6 +24,7 @@ from Backend.services.pedido_service import (
     listar_pedidos_activos_por_cliente,
     listar_pedidos,
     obtener_pedido_por_codigo,
+    operador_puede_ver_todos_los_pedidos,
     PedidoConflictError,
     PedidoNotFoundError,
     redirigir_pedido_operador,
@@ -130,14 +131,11 @@ def listar(
     alcance_normalizado = (alcance or "todas").strip().lower()
     if alcance_normalizado not in ("mis", "todas"):
         alcance_normalizado = "todas"
-    puede_ver_todas = (
-        operador.rol != "cliente"
+    puede_ver_todas = operador_puede_ver_todos_los_pedidos(
+        operador
     )
     if alcance_normalizado == "todas" and not puede_ver_todas:
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes permiso para ver todas las ordenes"
-        )
+        alcance_normalizado = "mis"
 
     try:
         return listar_pedidos(

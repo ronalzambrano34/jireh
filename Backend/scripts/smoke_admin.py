@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from Backend.database import Base
+from Backend.config import STORAGE_DIR
 
 from Backend.models.archivo_pedido import ArchivoPedido
 from Backend.models.cliente import Cliente
@@ -245,13 +246,42 @@ def run():
             usuario="smoke",
             notas="ok"
         )
+        upload_repetido = UploadFile(
+            file=BytesIO(
+                b"abc123"
+            ),
+            filename="comprobante.jpg"
+        )
+        archivo_repetido = guardar_upload_pedido(
+            db,
+            "JH-SMOKE-UPLOAD",
+            "comprobante_cliente",
+            upload_repetido,
+            usuario="smoke",
+            notas="ok"
+        )
         _assert(
             archivo["tipo"] == "comprobante_cliente",
             "archivo: tipo inesperado"
         )
         _assert(
-            Path(archivo["ruta_archivo"]).exists(),
+            archivo_repetido["id"] == archivo["id"],
+            "archivo: doble upload no reutilizo el archivo existente"
+        )
+        ruta_upload = archivo["ruta_archivo"]
+        ruta_upload_local = (
+            STORAGE_DIR / ruta_upload.removeprefix("/storage/")
+            if ruta_upload.startswith("/storage/")
+            else Path(ruta_upload)
+        )
+        _assert(
+            ruta_upload.startswith("http")
+            or ruta_upload_local.exists(),
             "archivo: upload no creo archivo local"
+        )
+        _assert(
+            len(listar_archivos_pedido(db, "JH-SMOKE-UPLOAD")) == 1,
+            "archivo: doble upload duplico evidencias"
         )
         _assert(
             listar_archivos_pedido(db, "JH-SMOKE-UPLOAD")[0]["nombre_archivo"] == "comprobante.jpg",
