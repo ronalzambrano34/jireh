@@ -479,6 +479,35 @@ function operadorTieneAlcanceGeneralPedidos(operador: Operador | null) {
   );
 }
 
+function operadorTienePermiso(operador: Operador | null, permisos: string[]) {
+  if (!operador) return false;
+  return operador.permisos.includes('empresa:control_total') || permisos.some((permiso) => operador.permisos.includes(permiso));
+}
+
+function operadorPuedeVerPedidos(operador: Operador | null) {
+  return operadorTienePermiso(operador, ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar']);
+}
+
+function operadorPuedeCrearPedidos(operador: Operador | null) {
+  return operadorTienePermiso(operador, ['pedidos:crear', 'pedidos:gestionar']);
+}
+
+function operadorPuedeGestionarPedidos(operador: Operador | null) {
+  return operadorTienePermiso(operador, ['pedidos:gestionar']);
+}
+
+function operadorPuedeVerReportes(operador: Operador | null) {
+  return operadorTienePermiso(operador, ['reportes:ver', 'pedidos:gestionar']);
+}
+
+function operadorPuedeAdmin(operador: Operador | null) {
+  return Boolean(operador?.permisos.includes('empresa:control_total'));
+}
+
+function operadorPuedeSincronizarTasas(operador: Operador | null) {
+  return operadorTienePermiso(operador, ['pedidos:crear', 'pedidos:gestionar']);
+}
+
 function servicioNotificacionLabel(value: string) {
   const labels: Record<string, string> = {
     transferencia: 'Transferencia',
@@ -627,12 +656,22 @@ export function App() {
   const offlineQueuePreviousPendingRef = useRef(offlineQueuePendingCount);
 
   const puedeCrear = useMemo(
-    () => operador?.permisos.includes('pedidos:crear') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    () => operadorPuedeCrearPedidos(operador),
+    [operador],
+  );
+
+  const puedePedidos = useMemo(
+    () => operadorPuedeVerPedidos(operador),
+    [operador],
+  );
+
+  const puedeGestionarPedidos = useMemo(
+    () => operadorPuedeGestionarPedidos(operador),
     [operador],
   );
 
   const puedeReportes = useMemo(
-    () => operador?.permisos.includes('reportes:ver') || operador?.permisos.includes('pedidos:gestionar') || operador?.permisos.includes('empresa:control_total'),
+    () => operadorPuedeVerReportes(operador),
     [operador],
   );
 
@@ -642,13 +681,13 @@ export function App() {
   );
 
   const puedeAdmin = useMemo(
-    () => operador?.permisos.includes('empresa:control_total'),
+    () => operadorPuedeAdmin(operador),
     [operador],
   );
 
   const puedeSincronizarTasas = useMemo(
-    () => operador?.rol !== 'cliente' && (puedeCrear || puedeReportes || puedeAdmin),
-    [operador, puedeAdmin, puedeCrear, puedeReportes],
+    () => operadorPuedeSincronizarTasas(operador),
+    [operador],
   );
 
   const notificacionesSinLeer = useMemo(
@@ -959,8 +998,31 @@ export function App() {
     return pedidosPorEstado.flatMap((grupo) => grupo.pedidos);
   }, [pedidosPorEstado]);
 
+  function vistaPermitida(nextVista: AppView, nextOperador: Operador | null = operador) {
+    if (nextVista === 'admin' || nextVista === 'setup') return operadorPuedeAdmin(nextOperador);
+    if (nextVista === 'reportes') return operadorPuedeVerReportes(nextOperador);
+    if (nextVista === 'crear') return operadorPuedeCrearPedidos(nextOperador);
+    if (nextVista === 'bandeja') return operadorPuedeVerPedidos(nextOperador);
+    return true;
+  }
+
+  function bloquearVistaNoPermitida() {
+    setError('No tienes permiso para abrir esa vista');
+    setVista('inicio');
+    setSeleccionado(null);
+    setPedidoPagoModal(null);
+    setWhatsappGrupoPendiente(null);
+    setMobileMenuOpen(false);
+    setQuickCreateOpen(false);
+    setProfileSection(null);
+  }
+
   function navegar(nextVista: typeof vista) {
     lastExitBackRef.current = 0;
+    if (!vistaPermitida(nextVista)) {
+      bloquearVistaNoPermitida();
+      return;
+    }
     if (nextVista !== 'crear') setCrearDraft({});
     if (nextVista === 'admin') sessionStorage.removeItem(ADMIN_THEME_KEY);
     if (nextVista === 'bandeja') {
@@ -997,6 +1059,10 @@ export function App() {
   }
 
   function abrirCrear(servicio: ServicioCrear, draft: CrearPedidoDraft = {}) {
+    if (!operadorPuedeCrearPedidos(operador)) {
+      bloquearVistaNoPermitida();
+      return;
+    }
     guardarMonedaPedidoPreferida(draft.moneda_pago, operador?.id);
     setServicioCrear(servicio);
     setCrearDraft(draft);
@@ -1015,14 +1081,27 @@ export function App() {
     setLoginOpen(false);
 
     if (pendingAuthAction?.type === 'crear') {
-      abrirCrear(pendingAuthAction.servicio, pendingAuthAction.draft);
+      if (operadorPuedeCrearPedidos(nextOperador)) {
+        guardarMonedaPedidoPreferida(pendingAuthAction.draft.moneda_pago, nextOperador.id);
+        setServicioCrear(pendingAuthAction.servicio);
+        setCrearDraft(pendingAuthAction.draft);
+        setVista('crear');
+      } else {
+        setError('No tienes permiso para crear pedidos');
+        setVista('inicio');
+      }
     } else if (pendingAuthAction?.type === 'rastrear') {
-      const codigo = pendingAuthAction.codigo.trim().toUpperCase();
-      setBusqueda(codigo);
-      setEstado('');
-      setServicio('');
-      setSeleccionado(codigo);
-      setVista('bandeja');
+      if (operadorPuedeVerPedidos(nextOperador)) {
+        const codigo = pendingAuthAction.codigo.trim().toUpperCase();
+        setBusqueda(codigo);
+        setEstado('');
+        setServicio('');
+        setSeleccionado(codigo);
+        setVista('bandeja');
+      } else {
+        setError('No tienes permiso para ver pedidos');
+        setVista('inicio');
+      }
     } else {
       setVista('inicio');
     }
@@ -1031,6 +1110,10 @@ export function App() {
   }
 
   function rastrearPedido(codigo: string) {
+    if (!operadorPuedeVerPedidos(operador)) {
+      bloquearVistaNoPermitida();
+      return;
+    }
     const codigoNormalizado = codigo.trim().toUpperCase();
     if (!codigoNormalizado) return;
     setCrearDraft({});
@@ -1537,6 +1620,12 @@ export function App() {
   useEffect(() => {
     sessionStorage.setItem(VIEW_KEY, vista);
   }, [vista]);
+
+  useEffect(() => {
+    if (!operador || vistaPermitida(vista)) return;
+    historyViewRef.current = 'inicio';
+    bloquearVistaNoPermitida();
+  }, [operador, puedeAdmin, puedeCrear, puedePedidos, puedeReportes, vista]);
 
   useEffect(() => {
     try {
@@ -2066,9 +2155,9 @@ export function App() {
         <nav className="nav-stack">
           <button className={`ui-nav-item ${vista === 'inicio' ? 'active' : ''}`} onClick={() => navegar('inicio')}><Home size={18} /> Inicio</button>
           <button className={`ui-nav-item ${vista === 'home-test' ? 'active' : ''}`} onClick={() => navegar('home-test')}><Sparkles size={18} /> Home Test</button>
-          <button className={`ui-nav-item ${vista === 'bandeja' ? 'active' : ''}`} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>
-          <button className={`ui-nav-item ${vista === 'reportes' ? 'active' : ''}`} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={18} /> Reportes</button>
-          <button className={`ui-nav-item ${vista === 'admin' ? 'active' : ''}`} onClick={() => navegar('admin')} disabled={!puedeAdmin}><Settings size={18} /> Admin</button>
+          {puedePedidos && <button className={`ui-nav-item ${vista === 'bandeja' ? 'active' : ''}`} onClick={() => navegar('bandeja')}><ClipboardList size={18} /> Pedidos</button>}
+          {puedeReportes && <button className={`ui-nav-item ${vista === 'reportes' ? 'active' : ''}`} onClick={() => navegar('reportes')}><BarChart3 size={18} /> Reportes</button>}
+          {puedeAdmin && <button className={`ui-nav-item ${vista === 'admin' ? 'active' : ''}`} onClick={() => navegar('admin')}><Settings size={18} /> Admin</button>}
           {puedeAdmin && <button className={`ui-nav-item ${vista === 'setup' ? 'active' : ''}`} onClick={() => navegar('setup')}><ShieldCheck size={18} /> Configurar</button>}
           <button className={`ui-nav-item ${vista === 'perfil' ? 'active' : ''}`} onClick={() => navegar('perfil')}><UserCircle size={18} /> Perfil</button>
         </nav>
@@ -2144,12 +2233,15 @@ export function App() {
           <InicioPage key={`inicio-${viewResetToken}`} operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         ) : vista === 'home-test' ? (
           <HomeTestPage key={`home-test-${viewResetToken}`} operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
-        ) : vista === 'setup' ? (
+        ) : vista === 'setup' && puedeAdmin ? (
           <SetupInicialPage key={`setup-${viewResetToken}`} onComplete={() => navegar('inicio')} onOpenAdmin={() => navegar('admin')} />
-        ) : vista === 'admin' ? (
+        ) : vista === 'admin' && puedeAdmin ? (
           <AdminCatalogosPage key={`admin-${viewResetToken}`} />
-        ) : vista === 'reportes' ? (
-          <ReportesPage key={`reportes-${viewResetToken}`} />
+        ) : vista === 'reportes' && puedeReportes ? (
+          <ReportesPage
+            key={`reportes-${viewResetToken}`}
+            canManageAccounts={puedeGestionarPedidos}
+          />
         ) : vista === 'perfil' ? (
           <ProfilePage
             key={`perfil-${viewResetToken}`}
@@ -2177,20 +2269,20 @@ export function App() {
             onCopyReferralCode={() => void copiarPago(operador.codigo_operador)}
             onLogout={cerrarSesion}
           />
-        ) : vista === 'crear' ? (
+        ) : vista === 'crear' && puedeCrear ? (
           <CreateOrderPage key={`crear-${viewResetToken}`} service={servicioCrear} draft={crearDraft} operadorId={operador.id} onServiceChange={(service) => { setServicioCrear(service); setCrearDraft({}); }} onCreated={finalizarCreacionPedido} />
-        ) : seleccionado ? (
+        ) : vista === 'bandeja' && puedePedidos && seleccionado ? (
           <PedidoDetallePanel
             codigo={seleccionado}
             pedidoInicial={pedidoSeleccionadoInicial}
             operadorId={operador.id}
-            canManage={Boolean(operador.permisos.includes('pedidos:gestionar') || operador.permisos.includes('empresa:control_total'))}
+            canManage={puedeGestionarPedidos}
             onChanged={actualizarPedidosDesdeDetalle}
             onClose={cerrarDetallePedido}
             codigosNavegacion={codigosPedidosTomadosPorMi}
             onNavigate={setSeleccionado}
           />
-        ) : (
+        ) : vista === 'bandeja' && puedePedidos ? (
           <OrdersPage
             key={`bandeja-${viewResetToken}`}
             operador={operador}
@@ -2224,6 +2316,8 @@ export function App() {
             blockedByOther={pedidoBloqueadoPorOtro}
             ownedByMe={pedidoTomadoPorMi}
           />
+        ) : (
+          <InicioPage key={`inicio-fallback-${viewResetToken}`} operadorId={operador.id} canSyncTasas={puedeSincronizarTasas} onCreate={abrirCrear} onTrackPedido={rastrearPedido} />
         )}
       </main>
       {puedeCrear && (vista === 'inicio' || vista === 'home-test' || (vista === 'bandeja' && !seleccionado)) && (
@@ -2400,8 +2494,8 @@ export function App() {
       )}
       <nav className={`bottom-nav${puedeAdmin ? ' has-admin' : ''}`} aria-label="Navegacion principal">
         <button className={vista === 'inicio' ? 'active' : ''} onClick={() => navegar('inicio')}><Home size={20} /> Inicio</button>
-        <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={20} /> Pedidos</button>
-        <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')} disabled={!puedeReportes}><BarChart3 size={20} /> Reportes</button>
+        {puedePedidos && <button className={vista === 'bandeja' ? 'active' : ''} onClick={() => navegar('bandeja')}><ClipboardList size={20} /> Pedidos</button>}
+        {puedeReportes && <button className={vista === 'reportes' ? 'active' : ''} onClick={() => navegar('reportes')}><BarChart3 size={20} /> Reportes</button>}
         {puedeAdmin && <button className={vista === 'admin' ? 'active' : ''} onClick={() => navegar('admin')}><Settings size={20} /> Admin</button>}
         <button className={vista === 'perfil' ? 'active' : ''} onClick={() => navegar('perfil')}><UserCircle size={20} /> Perfil</button>
       </nav>

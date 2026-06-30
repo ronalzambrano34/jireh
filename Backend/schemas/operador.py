@@ -36,7 +36,9 @@ class OperadorCreate(
 
     telefono: str
 
-    password: str
+    password: str = Field(
+        min_length=1
+    )
 
     rol: str = "operador"
 

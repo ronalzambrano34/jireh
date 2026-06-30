@@ -59,6 +59,7 @@ def listar_metodos_pago_route(
             [
                 "pedidos:crear",
                 "pedidos:gestionar",
+                "reportes:ver",
                 "empresa:control_total"
             ]
         )
@@ -94,6 +95,7 @@ def obtener_metodo_pago_route(
             [
                 "pedidos:crear",
                 "pedidos:gestionar",
+                "reportes:ver",
                 "empresa:control_total"
             ]
         )
@@ -243,6 +245,7 @@ def listar_cuentas_metodo_pago_route(
             [
                 "pedidos:crear",
                 "pedidos:gestionar",
+                "reportes:ver",
                 "empresa:control_total"
             ]
         )

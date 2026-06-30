@@ -29,7 +29,7 @@ import './setup/SetupInicialPage.css';
 
 const permisosPorRol: Record<string, string[]> = {
   consultor: ['pedidos:ver', 'clientes:ver', 'contactos:ver'],
-  operador: ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar', 'clientes:ver', 'clientes:crear', 'clientes:gestionar', 'contactos:ver', 'contactos:gestionar'],
+  operador: ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar', 'clientes:ver', 'clientes:crear', 'clientes:gestionar', 'contactos:ver', 'contactos:gestionar', 'reportes:ver'],
   admin: ['pedidos:ver', 'clientes:ver', 'contactos:ver', 'operadores:ver', 'operadores:crear', 'operadores:editar', 'operadores:desactivar', 'reportes:ver', 'empresa:control_total', 'pedidos:gestionar', 'clientes:gestionar', 'configuracion:gestionar'],
 };
 
@@ -356,7 +356,7 @@ export function SetupInicialPage({
       await crearOperador({
         nombre: operador.nombre.trim(),
         telefono: operador.telefono.trim(),
-        password: operador.password,
+        password: operador.password.trim(),
         rol: operador.rol,
         permisos: permisosPorRol[operador.rol] ?? permisosPorRol.operador,
       });

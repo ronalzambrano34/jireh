@@ -41,10 +41,10 @@ Reglas actuales importantes:
 
 - Los operadores entran con usuario interno y permisos por rol.
 - Existen roles configurables desde administracion. Los roles base son Consultor, Operador y Admin.
-- Consultor queda orientado a solo lectura.
-- Operador queda orientado a pedidos y clientes.
-- Admin conserva permisos generales.
-- El permiso Reportes forma parte de la matriz de permisos.
+- Consultor queda orientado a solo lectura de pedidos, clientes y contactos.
+- Operador queda orientado a pedidos, clientes y reportes.
+- Admin conserva control total y reportes.
+- El permiso Reportes forma parte de la matriz de permisos; ver reportes no habilita extracciones si no hay permiso de gestion de pedidos.
 - La vista Pedidos debe cargar todos los pedidos por defecto para operadores con permiso. La regla de "solo mis pedidos" aplica para clientes o usuarios sin alcance general.
 - Los filtros de Pedidos viven en un modal y deben incluir periodo Hoy, Ayer, 7 dias, Mes y Todos.
 - Las notificaciones internas tienen campana en header, contador de no leidas, tipos de notificacion, sonido configurable por tipo, marcado como leido y eliminacion individual.
@@ -457,14 +457,15 @@ Implementado.
 
 Uso actual:
 El codigo del operador forma parte del codigo_operacion. El rol define permisos y accesos. El operador puede actualizar datos de perfil, cambiar contraseña y subir foto.
+Crear operador exige contraseña inicial no vacia; se guarda solo password_hash.
 
 5.8.1 Roles y permisos
 
 Los roles son configurables desde Administracion. La fase 1 trabaja con tres roles base:
 
-- Consultor: lectura y consulta operativa.
-- Operador: pedidos y clientes.
-- Admin: permisos generales de administracion.
+- Consultor: lectura de pedidos, clientes y contactos.
+- Operador: pedidos, clientes, contactos y reportes.
+- Admin: control total, configuracion, operadores y reportes.
 
 Los permisos deben cubrir como minimo pedidos, clientes, administracion, reportes, configuracion, operadores, metodos de pago, puntos de recogida, ofertas, templates, sync y evidencias.
 
@@ -795,13 +796,16 @@ Estado actual:
 - Existe /auth/login y /auth/me.
 - Existe actualizacion de perfil, cambio de contraseña y foto de operador.
 - CRUD de operadores requiere token y permisos basicos.
+- Crear operador exige contraseña inicial no vacia.
 - El operador configurado por OPERADOR_ADMIN_TELEFONO se muestra como admin, pero queda protegido contra desactivacion, degradacion de rol, cambio de telefono y cambio de contraseña por otro operador.
 - Endpoints administrativos de clientes, contactos, configuracion, templates, metodos de pago, puntos de recogida, sync, archivos de pedido, ofertas, paquetes de saldo y reportes requieren token y permiso por rol.
+- Reportes permite lectura con reportes:ver; registrar extracciones requiere gestion de pedidos o control total.
 - Endpoints de pedidos y calculadora requieren token y permisos de pedidos.
 - Upload binario centralizado mediante servicio comun de storage. En produccion debe usar Supabase Storage o almacenamiento persistente equivalente. En desarrollo puede usar storage local.
 
 Pendiente critico:
 
+- Auditoria minima por usuario queda fuera del cierre de fase 1 y bloquea produccion completa.
 - Auditoria completa por usuario, especialmente intentos de modificar el admin protegido.
 - Politicas de expiracion/rotacion de tokens para produccion.
 - Confirmar variables y politicas de storage productivo, backups y antivirus si aplica. El upload ya debe validar tamano maximo y MIME permitidos mediante UPLOAD_MAX_BYTES y UPLOAD_ALLOWED_MIME_TYPES.
@@ -1005,7 +1009,7 @@ Ya existe:
 - Perfil de operador con foto, datos, contraseña, permisos y preferencias.
 - Smoke test local de pedidos con SQLite temporal: Backend/scripts/smoke_pedidos.py.
 - Smoke test administrativo con SQLite temporal: Backend/scripts/smoke_admin.py.
-- Smoke tests cubren creacion de pedidos, consulta de detalles, CRUD de ofertas/paquetes, reportes y evidencias.
+- Smoke tests cubren creacion de pedidos, consulta de detalles, CRUD de ofertas/paquetes, reportes, evidencias y endpoints protegidos sin token, con token vencido y con permisos insuficientes.
 - Prueba real contra API/DB de transferencia, efectivo, saldo y divisa completada el 2026-05-20.
 
 Pendiente de etapa 1:
@@ -1027,7 +1031,6 @@ Pendiente de etapa 1:
 - Validar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
 - Revisar UI movil final: footer, botones flotantes, modales, toasts, filtros, detalle pedido y formularios sin tapar contenido.
 - Ejecutar smoke tests backend y build frontend antes de marcar cierre.
-- Definir si auditoria minima por usuario queda dentro de fase 1 o como bloqueo documentado para produccion completa.
 - Documentar procedimiento diario de operacion, soporte y recuperacion ante fallos.
 - Hacer prueba piloto con operadores reales durante un dia de baja conexion antes de cerrar fase 1.
 
@@ -1394,12 +1397,12 @@ Datos y operacion:
 - Probar contra API real los cinco servicios: transferencia, efectivo, saldo, divisa y otros.
 - Probar registro de evidencias/comprobantes por pedido.
 - Probar upload binario en storage productivo, incluyendo limite UPLOAD_MAX_BYTES y MIME permitidos.
-- Probar endpoints protegidos sin token y con token: pedidos, calculadora, ofertas, paquetes, reportes y archivos.
+- Repetir en produccion prueba de endpoints protegidos sin token, con token vencido y con permisos insuficientes: pedidos, calculadora, ofertas, paquetes, reportes y archivos.
 - Probar modo offline: abrir PWA cacheada, guardar pedido sin archivos en cola, finalizar sin comprobante en cola y sincronizar al reconectar.
 
 Pendiente antes de operacion completa:
 
-- Implementar auditoria por usuario para acciones sensibles.
+- Implementar auditoria minima por usuario para acciones sensibles; bloquea produccion completa, no el cierre de fase 1.
 - Confirmar storage productivo o volumen persistente con backups.
 - Configurar FRONTEND_ORIGINS/CORS para el dominio real del frontend.
 - Mantener actualizado el formato esperado del Google Sheet cada vez que cambien columnas, nombres de seccion o regla de vigencia.
@@ -1411,7 +1414,7 @@ El sistema debe priorizar uso movil para operarios poco tecnicos. La navegacion 
 - Inicio: dashboard operativo con tasas activas reales, logo, marca y accesos rapidos por servicio.
 - Pedidos: bandeja/lista/kanban para seguimiento de operaciones.
 - Crear: formulario por servicio, tambien accesible desde el FAB flotante.
-- Reportes: resumen operativo y exportacion.
+- Reportes: resumen operativo y exportacion; visible solo para usuarios con permiso.
 - Perfil: datos del operador y salida de sesion.
 - Admin: catalogos, roles, permisos y configuracion; visible solo para usuarios con permisos.
 
@@ -1420,7 +1423,7 @@ Reglas de navegacion y marca:
 - El logo del sistema y el texto de marca EL JIREH en el header deben redirigir siempre al dashboard Inicio.
 - El logo/texto del menu lateral movil tambien debe redirigir a Inicio y cerrar el menu.
 - El boton Admin puede estar en header/menu perfil/footer, pero siempre debe abrir la vista Admin raiz y no conservar subpantallas internas anteriores.
-- Admin debe ocultarse o deshabilitarse para operadores sin permisos.
+- Admin, Reportes y acciones restringidas deben ocultarse para operadores sin permisos y seguir bloqueadas en backend.
 - En vista Pedidos no debe mostrarse un boton Crear pedido dentro de la barra superior de filtros, porque la accion principal ya existe como boton flotante.
 - La barra de pedidos usa busqueda a la derecha en desktop, filtros por servicio en chips visibles y filtros por estado en chips visibles.
 - La vista Pedidos carga un lote reciente de pedidos y aplica filtros de estado, servicio y busqueda en el frontend para que los chips respondan sin latencia; el boton de actualizar pedidos recarga el lote desde el backend.

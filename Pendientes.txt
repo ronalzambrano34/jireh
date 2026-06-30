@@ -22,15 +22,11 @@ IDEA A FUTURO:
 - Confirmar que el polling no sea agresivo en red lenta ni cuando la app esta en segundo plano.
 
 //todo Roles, permisos y seguridad
-- Validar roles y permisos reales: Consultor, Operador y Admin, incluyendo Reportes.
-- Confirmar que usuarios sin permisos no vean ni ejecuten Admin, Reportes ni acciones restringidas.
-- Validar que crear operador exija contrasena.
-- Definir si auditoria minima por usuario queda dentro de fase 1 o como bloqueo documentado para produccion completa.
 - Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
-- Probar endpoints protegidos sin token, con token vencido y con permisos insuficientes.
 
 
 //todo FASE 2 / POSTERIOR
+- Bloqueo para produccion completa: auditoria minima por usuario en acciones sensibles.
 - Integracion real con WhatsApp API.
 - Antifraude operativo: hash de comprobantes, comprobante duplicado, revision y bloqueo.
 - Conciliacion contable por metodo/cuenta de pago.

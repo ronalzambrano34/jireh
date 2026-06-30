@@ -104,7 +104,7 @@ const permisosOperador = [
 
 const permisosPorRol: Record<string, string[]> = {
   consultor: ['pedidos:ver', 'clientes:ver', 'contactos:ver'],
-  operador: ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar', 'clientes:ver', 'clientes:crear', 'clientes:gestionar', 'contactos:ver', 'contactos:gestionar'],
+  operador: ['pedidos:ver', 'pedidos:crear', 'pedidos:gestionar', 'clientes:ver', 'clientes:crear', 'clientes:gestionar', 'contactos:ver', 'contactos:gestionar', 'reportes:ver'],
   admin: ['pedidos:ver', 'clientes:ver', 'contactos:ver', 'operadores:ver', 'operadores:crear', 'operadores:editar', 'operadores:desactivar', 'reportes:ver', 'empresa:control_total', 'pedidos:gestionar', 'clientes:gestionar', 'configuracion:gestionar'],
 };
 
@@ -1337,7 +1337,7 @@ export function AdminCatalogosPage() {
         await crearOperador({
           nombre: operadorForm.nombre,
           telefono: operadorForm.telefono,
-          password: operadorForm.password,
+          password: operadorForm.password.trim(),
           rol: operadorForm.rol,
           permisos: operadorForm.permisos,
         });

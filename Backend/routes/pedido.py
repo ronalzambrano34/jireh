@@ -82,7 +82,6 @@ def crear_transferencia(
     _operador = Depends(
         require_any_permission(
             [
-                "pedidos:ver",
                 "pedidos:crear",
                 "pedidos:gestionar"
             ]
@@ -191,6 +190,7 @@ def obtener_por_codigo(
     operador = Depends(
         require_any_permission(
             [
+                "pedidos:ver",
                 "pedidos:crear",
                 "pedidos:gestionar"
             ]

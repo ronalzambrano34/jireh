@@ -23,7 +23,8 @@ PERMISOS_POR_ROL = {
         "clientes:crear",
         "clientes:gestionar",
         "contactos:ver",
-        "contactos:gestionar"
+        "contactos:gestionar",
+        "reportes:ver"
     ],
     "admin": [
         "pedidos:ver",
@@ -46,6 +47,25 @@ PERMISOS_DISPONIBLES = tuple(dict.fromkeys(
     for permisos in PERMISOS_POR_ROL.values()
     for permiso in permisos
 ))
+
+
+def _permisos_efectivos(permisos: list[str]):
+    resultado = [
+        permiso
+        for permiso in permisos
+        if permiso in PERMISOS_DISPONIBLES
+    ]
+
+    if "empresa:control_total" in resultado:
+        return list(PERMISOS_DISPONIBLES)
+
+    if (
+        "pedidos:gestionar" in resultado
+        and "reportes:ver" not in resultado
+    ):
+        resultado.append("reportes:ver")
+
+    return resultado
 
 
 class Operador(Base):
@@ -120,13 +140,13 @@ class Operador(Base):
                 permisos,
                 list
             ):
-                return [
-                    permiso
-                    for permiso in permisos
-                    if permiso in PERMISOS_DISPONIBLES
-                ]
+                return _permisos_efectivos(
+                    permisos
+                )
 
-        return PERMISOS_POR_ROL.get(
-            self.rol,
-            PERMISOS_POR_ROL["operador"]
+        return _permisos_efectivos(
+            PERMISOS_POR_ROL.get(
+                self.rol,
+                PERMISOS_POR_ROL["operador"]
+            )
         )

@@ -13,6 +13,7 @@ from Backend.schemas.operador import (
 )
 
 from Backend.services.auth_service import (
+    require_any_permission,
     require_permission
 )
 from Backend.services.operador_service import (
@@ -43,8 +44,12 @@ def listar_operadores_route(
         get_db
     ),
     _operador = Depends(
-        require_permission(
-            "operadores:ver"
+        require_any_permission(
+            [
+                "operadores:ver",
+                "reportes:ver",
+                "pedidos:gestionar"
+            ]
         )
     )
 ):

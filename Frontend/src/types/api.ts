@@ -38,7 +38,7 @@ export type OperadorRolUpdatePayload = {
 export type OperadorCreatePayload = {
   nombre: string;
   telefono: string;
-  password?: string;
+  password: string;
   rol: string;
   permisos?: string[];
 };

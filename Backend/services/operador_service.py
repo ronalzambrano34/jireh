@@ -297,6 +297,16 @@ def crear_operador(
             "El operador ya existe"
         )
 
+    password = (
+        data.password
+        or ""
+    ).strip()
+
+    if not password:
+        raise Exception(
+            "La contraseña inicial es obligatoria"
+        )
+
     codigo = None
 
     while True:
@@ -337,12 +347,8 @@ def crear_operador(
             db
         ),
 
-        password_hash=(
-            hash_password(
-                data.password
-            )
-            if data.password
-            else None
+        password_hash=hash_password(
+            password
         ),
 
         permisos_config=_validar_permisos(

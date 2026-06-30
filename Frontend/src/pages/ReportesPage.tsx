@@ -56,7 +56,11 @@ function rangoPeriodo(periodo: ReportPeriod) {
   };
 }
 
-export function ReportesPage() {
+type ReportesPageProps = {
+  canManageAccounts?: boolean;
+};
+
+export function ReportesPage({ canManageAccounts = false }: ReportesPageProps) {
   const [periodo, setPeriodo] = useState<ReportPeriod>('mes');
   const [filters, setFilters] = useState<ReportFilterState>(() => ({
     ...rangoPeriodo('mes'),
@@ -155,6 +159,7 @@ export function ReportesPage() {
   }
 
   async function registrarExtraccion() {
+    if (!canManageAccounts) return;
     if (guardandoExtraccionRef.current) return;
     if (!extraccion.cuenta_pago_id || Number(extraccion.monto) <= 0 || !extraccion.motivo.trim()) {
       setError('Selecciona una cuenta, escribe un monto valido y el motivo');
@@ -384,36 +389,38 @@ export function ReportesPage() {
                 </div>
               ))}
             </div>
-            <div className="withdrawal-form">
-              <FloatingSelect
-                value={extraccion.cuenta_pago_id}
-                onChange={(value) => setExtraccion((current) => ({ ...current, cuenta_pago_id: value }))}
-                options={[
-                  { value: '', label: 'Cuenta a extraer', icon: <Landmark size={17} /> },
-                  ...saldosCuenta.map((saldo) => ({
-                    value: String(saldo.cuenta_pago_id),
-                    label: `${saldo.metodo_pago} - ${saldo.alias}`,
-                    description: `Disponible: ${reportMoney(saldo.saldo)} ${saldo.moneda}`,
-                    icon: <Landmark size={17} />,
-                  })),
-                ]}
-                ariaLabel="Cuenta para extraccion"
-              />
-              <input
-                value={extraccion.monto}
-                onChange={(event) => setExtraccion((current) => ({ ...current, monto: event.target.value }))}
-                inputMode="decimal"
-                placeholder="Monto"
-              />
-              <input
-                value={extraccion.motivo}
-                onChange={(event) => setExtraccion((current) => ({ ...current, motivo: event.target.value }))}
-                placeholder="Motivo de la extraccion"
-              />
-              <button type="button" className="ghost-button" onClick={registrarExtraccion} disabled={guardandoExtraccion}>
-                <MinusCircle size={18} /> {guardandoExtraccion ? 'Registrando...' : 'Registrar extraccion'}
-              </button>
-            </div>
+            {canManageAccounts && (
+              <div className="withdrawal-form">
+                <FloatingSelect
+                  value={extraccion.cuenta_pago_id}
+                  onChange={(value) => setExtraccion((current) => ({ ...current, cuenta_pago_id: value }))}
+                  options={[
+                    { value: '', label: 'Cuenta a extraer', icon: <Landmark size={17} /> },
+                    ...saldosCuenta.map((saldo) => ({
+                      value: String(saldo.cuenta_pago_id),
+                      label: `${saldo.metodo_pago} - ${saldo.alias}`,
+                      description: `Disponible: ${reportMoney(saldo.saldo)} ${saldo.moneda}`,
+                      icon: <Landmark size={17} />,
+                    })),
+                  ]}
+                  ariaLabel="Cuenta para extraccion"
+                />
+                <input
+                  value={extraccion.monto}
+                  onChange={(event) => setExtraccion((current) => ({ ...current, monto: event.target.value }))}
+                  inputMode="decimal"
+                  placeholder="Monto"
+                />
+                <input
+                  value={extraccion.motivo}
+                  onChange={(event) => setExtraccion((current) => ({ ...current, motivo: event.target.value }))}
+                  placeholder="Motivo de la extraccion"
+                />
+                <button type="button" className="ghost-button" onClick={registrarExtraccion} disabled={guardandoExtraccion}>
+                  <MinusCircle size={18} /> {guardandoExtraccion ? 'Registrando...' : 'Registrar extraccion'}
+                </button>
+              </div>
+            )}
           </section>
 
           <section className="report-table">
