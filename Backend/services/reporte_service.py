@@ -12,6 +12,10 @@ from Backend.models.operador import Operador
 from Backend.models.pedido import Pedido
 from Backend.models.pedido_divisa import PedidoDivisa
 
+SERVICIOS_REPORTES_OCULTOS = {
+    "efectivo"
+}
+
 
 def _filtros_reporte(
     fecha_desde=None,
@@ -24,7 +28,11 @@ def _filtros_reporte(
     cuenta_pago_id: int | None = None,
     campo_fecha=None
 ):
-    filtros = []
+    filtros = [
+        Pedido.servicio.notin_(
+            SERVICIOS_REPORTES_OCULTOS
+        )
+    ]
     campo_fecha = campo_fecha if campo_fecha is not None else Pedido.created_at
 
     if fecha_desde:

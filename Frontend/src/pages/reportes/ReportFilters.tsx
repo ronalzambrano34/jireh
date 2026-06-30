@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Banknote, BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, Smartphone, UserRound, WalletCards } from 'lucide-react';
+import { BriefcaseBusiness, CalendarRange, CircleDot, Coins, Download, Landmark, Smartphone, UserRound, WalletCards } from 'lucide-react';
 import type { MetodoPago, MetodoPagoCuenta, Operador } from '../../types/api';
 import { FloatingSelect } from '../../components/FloatingSelect';
 import { useMonedasPagoActivas } from '../../hooks/useMonedasPago';
@@ -38,7 +38,6 @@ const estados = [
 const servicios = [
   { value: '', label: 'Servicio' },
   { value: 'transferencia', label: 'Transferencia' },
-  { value: 'efectivo', label: 'Efectivo' },
   { value: 'saldo', label: 'Saldo' },
   { value: 'divisa', label: 'Divisa' },
   { value: 'otros', label: 'Otros' },
@@ -46,7 +45,6 @@ const servicios = [
 
 function servicioIcon(value: string) {
   if (value === 'transferencia' || value === 'divisa') return <WalletCards size={17} />;
-  if (value === 'efectivo') return <Banknote size={17} />;
   if (value === 'saldo') return <Smartphone size={17} />;
   return <BriefcaseBusiness size={17} />;
 }
@@ -76,6 +74,10 @@ export function ReportFilters(props: ReportFiltersProps) {
       props.onChange('moneda_pago', '');
     }
   }, [monedaFiltro, monedasActivas, props.onChange]);
+
+  useEffect(() => {
+    if (props.filters.servicio === 'efectivo') props.onChange('servicio', '');
+  }, [props.filters.servicio, props.onChange]);
 
   return (
     <div className="filters report-filters">

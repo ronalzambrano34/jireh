@@ -233,7 +233,6 @@ def operaciones_xlsx_route(
         "Oferta / Tasa",
         "Transf. CUP",
         "USD",
-        "Efectivo CUP",
         "Monto MLC",
         "Recarga",
         "Otros",
@@ -265,7 +264,6 @@ def operaciones_xlsx_route(
             operacion["tasa"],
             operacion["transferencia_cup"],
             operacion["usd"],
-            operacion["efectivo_cup"],
             operacion["mlc"],
             operacion["recarga"],
             operacion["otros"],
@@ -296,16 +294,16 @@ def operaciones_xlsx_route(
     worksheet.column_dimensions["D"].width = 20
     worksheet.column_dimensions["E"].width = 28
     worksheet.column_dimensions["F"].width = 12
-    for column in range(7, 16):
+    for column in range(7, 15):
         worksheet.column_dimensions[get_column_letter(column)].width = 16
-    worksheet.column_dimensions["P"].width = 20
-    worksheet.column_dimensions["Q"].width = 36
+    worksheet.column_dimensions["O"].width = 20
+    worksheet.column_dimensions["P"].width = 36
 
     for row in worksheet.iter_rows(
         min_row=2
     ):
         row[1].number_format = "dd/mm/yyyy hh:mm"
-        for cell in row[6:15]:
+        for cell in row[6:14]:
             cell.number_format = '#,##0.00'
 
     output = BytesIO()
