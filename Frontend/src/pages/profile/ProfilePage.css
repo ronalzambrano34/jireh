@@ -1716,6 +1716,30 @@
   background: transparent;
 }
 
+.profile-page .profile-operator-meta,
+:root[data-theme="dark-sidebar"] .profile-page .profile-operator-meta {
+  width: min(100%, 440px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-page .profile-operator-meta > span,
+.profile-page .profile-operator-meta .profile-copy-chip,
+:root[data-theme="dark-sidebar"] .profile-page .profile-operator-meta > span,
+:root[data-theme="dark-sidebar"] .profile-page .profile-operator-meta .profile-copy-chip {
+  width: 100%;
+}
+
+.profile-page .profile-operator-meta > span:not(.profile-code-chip),
+:root[data-theme="dark-sidebar"] .profile-page .profile-operator-meta > span:not(.profile-code-chip) {
+  grid-column: 1 / -1;
+}
+
+.profile-page .profile-operator-meta .profile-referral-copy-button,
+:root[data-theme="dark-sidebar"] .profile-page .profile-operator-meta .profile-referral-copy-button {
+  display: none;
+}
+
 @media (max-width: 620px) {
   .profile-page,
   :root[data-theme="dark-sidebar"] .profile-page {

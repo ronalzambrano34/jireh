@@ -75,7 +75,7 @@ export function ProfilePage(props: {
             <span className="profile-eyebrow">Perfil del operador</span>
             <h2>{props.operador.nombre}</h2>
             <p>Administra tus datos, seguridad, apariencia y accesos personales.</p>
-            <div className="profile-hero-meta">
+            <div className="profile-hero-meta profile-operator-meta">
               <button className="profile-copy-chip" type="button" onClick={props.onCopyPhone} title="Copiar telefono" aria-label="Copiar telefono">
                 <span><small>Telefono</small><strong>{props.operador.telefono}</strong></span>
               </button>
