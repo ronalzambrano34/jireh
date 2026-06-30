@@ -225,7 +225,7 @@
   color: var(--ui-on-primary);
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 920px) {
   :root[data-theme="dark-sidebar"] .app-shell {
     grid-template-columns: minmax(0, 1fr);
   }

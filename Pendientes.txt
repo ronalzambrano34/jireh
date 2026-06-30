@@ -29,13 +29,6 @@ IDEA A FUTURO:
 - Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.
 - Probar endpoints protegidos sin token, con token vencido y con permisos insuficientes.
 
-//todo Catalogos y configuracion inicial
-
-//todo UI movil y PWA
-- Validar icono PWA instalado: redondeado, sin borde azul y con fondo acorde al logo.
-- Validar boton atras del telefono: atras de vista, cerrar vista y doble atras en Home para cerrar app.
-- Validar menu lateral al cambiar entre desktop y telefono.
-
 
 //todo FASE 2 / POSTERIOR
 - Integracion real con WhatsApp API.

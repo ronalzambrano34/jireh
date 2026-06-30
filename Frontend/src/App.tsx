@@ -162,6 +162,10 @@ function vistaGuardada(): AppView {
   return saved && APP_VIEWS.has(saved) ? saved : 'inicio';
 }
 
+function isAppView(value: unknown): value is AppView {
+  return typeof value === 'string' && APP_VIEWS.has(value as AppView);
+}
+
 function servicioCrearGuardado(): ServicioCrear {
   const storages = [
     typeof sessionStorage === 'undefined' ? null : sessionStorage,
@@ -956,6 +960,7 @@ export function App() {
   }, [pedidosPorEstado]);
 
   function navegar(nextVista: typeof vista) {
+    lastExitBackRef.current = 0;
     if (nextVista !== 'crear') setCrearDraft({});
     if (nextVista === 'admin') sessionStorage.removeItem(ADMIN_THEME_KEY);
     if (nextVista === 'bandeja') {
@@ -1236,17 +1241,6 @@ export function App() {
     }
 
     if (current.vista === 'perfil' && current.profileSection) {
-      setProfileSection(null);
-      setProfileMessage(null);
-      setProfileError(null);
-      return true;
-    }
-
-    if (current.vista !== 'inicio') {
-      historyViewRef.current = 'inicio';
-      setVista('inicio');
-      setMobileMenuOpen(false);
-      setQuickCreateOpen(false);
       setProfileSection(null);
       setProfileMessage(null);
       setProfileError(null);
@@ -1580,13 +1574,7 @@ export function App() {
     window.history.replaceState({ ...window.history.state, jirehExitGuard: true }, '');
     window.history.pushState({ jirehView: initialView }, '');
 
-    function handlePopState() {
-      if (appBackHandlerRef.current()) {
-        lastExitBackRef.current = 0;
-        window.history.pushState({ jirehView: historyViewRef.current }, '');
-        return;
-      }
-
+    function cerrarAppConDobleAtras() {
       const now = Date.now();
       if (now - lastExitBackRef.current <= EXIT_BACK_WINDOW_MS) {
         window.history.back();
@@ -1598,6 +1586,45 @@ export function App() {
       setCopyToast('Presiona Atras nuevamente para salir');
       if (copyToastTimeoutRef.current) window.clearTimeout(copyToastTimeoutRef.current);
       copyToastTimeoutRef.current = window.setTimeout(() => setCopyToast(null), EXIT_BACK_WINDOW_MS);
+    }
+
+    function irAVistaDesdeHistorial(nextVista: AppView) {
+      lastExitBackRef.current = 0;
+      handlingPopStateRef.current = true;
+      historyViewRef.current = nextVista;
+      setSeleccionado(null);
+      setPedidoPagoModal(null);
+      setWhatsappGrupoPendiente(null);
+      setMobileMenuOpen(false);
+      setQuickCreateOpen(false);
+      setProfileSection(null);
+      setProfileMessage(null);
+      setProfileError(null);
+      setVista(nextVista);
+    }
+
+    function handlePopState(event: PopStateEvent) {
+      if (appBackHandlerRef.current()) {
+        lastExitBackRef.current = 0;
+        window.history.pushState({ jirehView: historyViewRef.current }, '');
+        return;
+      }
+
+      const current = appBackStateRef.current;
+      if (current.vista === 'inicio') {
+        cerrarAppConDobleAtras();
+        return;
+      }
+
+      const state = event.state as { jirehView?: unknown } | null;
+      const nextVista = state?.jirehView;
+      if (isAppView(nextVista)) {
+        if (nextVista !== current.vista) irAVistaDesdeHistorial(nextVista);
+        return;
+      }
+
+      window.history.pushState({ jirehView: 'inicio' }, '');
+      irAVistaDesdeHistorial('inicio');
     }
 
     window.addEventListener('popstate', handlePopState);
