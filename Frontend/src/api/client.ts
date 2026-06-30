@@ -152,7 +152,7 @@ function fileTooLargeMessage() {
   return `Archivo muy grande. Maximo permitido: ${formatBytes(MAX_UPLOAD_BYTES)}.`;
 }
 
-function normalizeApiMessage(status: number, detail?: unknown, path = '') {
+function normalizeApiMessage(status: number, detail?: unknown, path = '', hadAuthToken = true) {
   const raw = typeof detail === 'string'
     ? detail
     : Array.isArray(detail)
@@ -165,7 +165,7 @@ function normalizeApiMessage(status: number, detail?: unknown, path = '') {
 
   if (status === 401) {
     if (path.includes('/auth/login')) return 'Telefono o contrasena incorrectos.';
-    clearToken();
+    if (hadAuthToken) clearToken();
     return tokenExpiredMessage();
   }
   if (status === 403) return text || 'No tienes permiso para realizar esta accion.';
@@ -442,7 +442,7 @@ async function requestBlob(path: string, options: ApiRequestInit = {}): Promise<
   }
 
   if (!response.ok) {
-    const message = normalizeApiMessage(response.status, undefined, path);
+    const message = normalizeApiMessage(response.status, undefined, path, Boolean(token));
     traceClient(response.status >= 500 ? 'error' : 'warn', 'api.http_error', {
       requestId,
       method,
@@ -514,7 +514,7 @@ export async function obtenerAssetBlob(path: string, options: ApiRequestOptions 
     timeout.cleanup();
   }
   if (!response.ok) {
-    const message = normalizeApiMessage(response.status, undefined, path);
+    const message = normalizeApiMessage(response.status, undefined, path, Boolean(token));
     traceClient(response.status >= 500 ? 'error' : 'warn', 'api.asset_http_error', {
       requestId,
       path,
@@ -596,7 +596,7 @@ async function request<T>(path: string, options: ApiRequestInit = {}): Promise<T
     } catch {
       // Preserve HTTP fallback message.
     }
-    const message = normalizeApiMessage(response.status, detail, path);
+    const message = normalizeApiMessage(response.status, detail, path, Boolean(token));
     traceClient(response.status >= 500 ? 'error' : 'warn', 'api.http_error', {
       requestId,
       method,
@@ -766,9 +766,9 @@ function requestUpload<T>(path: string, body: XMLHttpRequestBodyInit, options: U
       let message = `Error ${xhr.status}`;
       try {
         const data = JSON.parse(xhr.responseText);
-        message = normalizeApiMessage(xhr.status, data.detail ?? data, path);
+        message = normalizeApiMessage(xhr.status, data.detail ?? data, path, Boolean(token));
       } catch {
-        message = normalizeApiMessage(xhr.status, undefined, path);
+        message = normalizeApiMessage(xhr.status, undefined, path, Boolean(token));
       }
       traceClient(xhr.status >= 500 ? 'error' : 'warn', 'api.upload_http_error', {
         requestId,

@@ -904,6 +904,7 @@ El sistema debe coexistir con redes moviles inestables, baja velocidad, cortes i
 Comportamiento actual de la PWA:
 
 - Abre sin internet si el navegador ya tenia la app cacheada por el service worker.
+- Conserva en cache local el operador ya validado para que una recarga sin conexion mantenga la sesion visual y las vistas permitidas; el token se vuelve a validar al recuperar conexion.
 - Mantiene borradores locales de Nuevo pedido para no perder datos si el operador cierra, recarga o pierde conexion.
 - Permite crear pedidos offline solo cuando no hay archivos adjuntos pendientes. El pedido queda en cola local y se envia automaticamente al reconectar.
 - Permite finalizar un pedido offline sin comprobante, con explicacion obligatoria. La finalizacion queda en cola local y se envia automaticamente al reconectar.
@@ -917,6 +918,7 @@ Reglas de red:
 - Las acciones que modifican datos no deben reintentarse agresivamente sin control de idempotencia.
 - Los botones de accion deben bloquearse mientras una peticion esta en proceso.
 - Las pantallas no deben borrar datos visibles si una recarga falla.
+- Un 401 de una lectura lanzada sin token no debe cerrar una sesion activa; solo una respuesta 401 de una request autenticada invalida el token local.
 - El polling debe pausarse o reducirse cuando la app esta en segundo plano o no hay conexion.
 
 Pendiente de validacion:
@@ -1015,7 +1017,7 @@ Ya existe:
 Pendiente de etapa 1:
 
 - Probar flujo completo de frontend contra API real en transferencia, efectivo, saldo, divisa y otros.
-- Ejecutar protocolo de baja conectividad: red lenta, modo avion, cortes intermitentes, recarga de pagina y reconexion.
+- Repetir protocolo de baja conectividad en telefono/red real y durante acciones criticas: red lenta, modo avion, cortes intermitentes, recarga de pagina y reconexion.
 - Validar que no se dupliquen pedidos, historial, archivos ni notificaciones al hacer doble tap, reconectar o refrescar.
 - Validar cola offline: crear pedido sin archivos, finalizar sin comprobante, sincronizar al reconectar y conservar datos visibles si falla una recarga.
 - Validar uploads con progreso, error claro, reintento manual y bloqueo de doble upload.

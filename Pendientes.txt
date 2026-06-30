@@ -14,12 +14,6 @@ IDEA A FUTURO:
 - Probar reportes y exportaciones CSV/Excel con datos reales de cierre diario.
 
 //todo Conectividad, offline y duplicados
-- Ejecutar protocolo de `docs/pruebas-conectividad.md`: red lenta, cortes intermitentes, modo avion, recarga de pagina y reconexion.
-- Validar que la PWA abra sin internet despues de una carga previa cacheada.
-- Validar cola offline: crear pedido, finalizar pedido, sincronizar al reconectar y refrescar pedidos al terminar.
-- Validar que las lecturas puedan reintentarse, pero las acciones que modifican datos no se repitan sin control.
-- Confirmar que una recarga fallida no borre los datos visibles de pantalla.
-- Confirmar que el polling no sea agresivo en red lenta ni cuando la app esta en segundo plano.
 
 //todo Roles, permisos y seguridad
 - Configurar variables reales de produccion: AUTH_SECRET, CORS, API publica, Supabase/DB, storage y WhatsApp.

@@ -93,6 +93,8 @@ const THEME_KEY = 'jireh.theme';
 const VIEW_KEY = 'jireh.view';
 const CREATE_SERVICE_KEY = 'jireh.create.service';
 const ADMIN_THEME_KEY = 'jireh.adminTema';
+const OPERATOR_CACHE_KEY = 'jireh.operador.cache';
+const PEDIDOS_CACHE_PREFIX = 'jireh.pedidos.cache';
 const APP_VIEWS = new Set<AppView>(['inicio', 'home-test', 'bandeja', 'crear', 'reportes', 'admin', 'setup', 'perfil']);
 const CREATE_SERVICES = new Set<ServicioCrear>(['transferencia', 'efectivo', 'saldo', 'divisa', 'otros']);
 const estadosBandeja = estados.filter((item) => item.value);
@@ -146,6 +148,79 @@ const VIEW_CONNECTIVITY: Record<AppView, ViewConnectivityPolicy> = {
     detail: 'La configuracion inicial crea y valida catalogos del servidor.',
   },
 };
+
+function browserOffline() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+function readCachedOperador(): Operador | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(OPERATOR_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed.id === 'number' && Array.isArray(parsed.permisos)
+      ? parsed as Operador
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedOperador(operador: Operador) {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(OPERATOR_CACHE_KEY, JSON.stringify(operador));
+}
+
+function clearCachedOperador() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem(OPERATOR_CACHE_KEY);
+}
+
+function pedidosCacheKey(operadorId: number) {
+  return `${PEDIDOS_CACHE_PREFIX}.${operadorId}.v1`;
+}
+
+function readCachedPedidos(operadorId: number) {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(pedidosCacheKey(operadorId));
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || parsed.version !== 1 || parsed.operadorId !== operadorId || !Array.isArray(parsed.pedidos)) return null;
+    return {
+      pedidos: parsed.pedidos as PedidoResumen[],
+      alcanceConteos: {
+        mis: Number(parsed.alcanceConteos?.mis ?? parsed.pedidos.length),
+        todas: Number(parsed.alcanceConteos?.todas ?? parsed.pedidos.length),
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedPedidos(
+  operadorId: number,
+  pedidos: PedidoResumen[],
+  alcanceConteos: { mis: number; todas: number },
+  alcance: AlcancePedidos,
+  periodo: PeriodoPedidos,
+) {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(pedidosCacheKey(operadorId), JSON.stringify({
+    version: 1,
+    operadorId,
+    pedidos,
+    alcanceConteos,
+    alcance,
+    periodo,
+    savedAt: new Date().toISOString(),
+  }));
+}
+
+function clearCachedPedidos(operadorId: number) {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem(pedidosCacheKey(operadorId));
+}
 
 type WebAudioWindow = Window & typeof globalThis & {
   webkitAudioContext?: typeof AudioContext;
@@ -559,7 +634,9 @@ export function App() {
   const [theme, setTheme] = useState<AppTheme>(() => {
     return readStoredTheme() ?? 'dark-sidebar';
   });
-  const [operador, setOperador] = useState<Operador | null>(null);
+  const [operador, setOperador] = useState<Operador | null>(() => (
+    getToken() && browserOffline() ? readCachedOperador() : null
+  ));
   const [loginOpen, setLoginOpen] = useState(false);
   const [pendingAuthAction, setPendingAuthAction] = useState<PendingAuthAction>(null);
   const [pedidos, setPedidos] = useState<PedidoResumen[]>([]);
@@ -1077,6 +1154,7 @@ export function App() {
   }
 
   function completarLogin(nextOperador: Operador) {
+    writeCachedOperador(nextOperador);
     setOperador(nextOperador);
     setLoginOpen(false);
 
@@ -1142,7 +1220,9 @@ export function App() {
   }
 
   function cerrarSesion() {
+    if (operador) clearCachedPedidos(operador.id);
     clearToken();
+    clearCachedOperador();
     sessionStorage.removeItem(VIEW_KEY);
     sessionStorage.removeItem(ADMIN_THEME_KEY);
     setOperador(null);
@@ -1475,11 +1555,14 @@ export function App() {
     void confirmarPagoPedidoCreado(file);
   }
 
-  const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[], alcanceVista = alcancePedidos) => {
+  const aplicarPedidosPorAlcance = useCallback((data: PedidoResumen[], alcanceVista = alcancePedidos, periodoCache = periodoPedidos) => {
     const misPedidos = data.filter((pedido) => pedidoPerteneceAMi(pedido));
-    setAlcanceConteos({ mis: misPedidos.length, todas: data.length });
-    setPedidos(alcanceVista === 'mis' ? misPedidos : data);
-  }, [alcancePedidos, operador]);
+    const nextConteos = { mis: misPedidos.length, todas: data.length };
+    const nextPedidos = alcanceVista === 'mis' ? misPedidos : data;
+    setAlcanceConteos(nextConteos);
+    setPedidos(nextPedidos);
+    if (operador) writeCachedPedidos(operador.id, nextPedidos, nextConteos, alcanceVista, periodoCache);
+  }, [alcancePedidos, operador, periodoPedidos]);
 
   const cargarPedidos = useCallback(async (options?: AbortSignal | PedidosLoadOptions) => {
     const loadOptions = normalizePedidosLoadOptions(options);
@@ -1502,10 +1585,12 @@ export function App() {
       }, { signal });
       revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
-        aplicarPedidosPorAlcance(data, alcanceVista);
+        aplicarPedidosPorAlcance(data, alcanceVista, periodo);
       } else {
-        setAlcanceConteos({ mis: data.length, todas: data.length });
+        const nextConteos = { mis: data.length, todas: data.length };
+        setAlcanceConteos(nextConteos);
         setPedidos(data);
+        if (operador) writeCachedPedidos(operador.id, data, nextConteos, 'mis', periodo);
       }
       lastPedidosRefreshAtRef.current = Date.now();
     } catch (err) {
@@ -1514,7 +1599,7 @@ export function App() {
       pedidosRequestKeysRef.current.delete(cargaKey);
       if (!signal?.aborted) setLoading(false);
     }
-  }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
+  }, [alcancePedidos, aplicarPedidosPorAlcance, operador, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
 
   useEffect(() => {
     const previous = offlineQueuePreviousPendingRef.current;
@@ -1539,10 +1624,12 @@ export function App() {
       }, { signal });
       revisarNotificacionesPedidos(data);
       if (puedeVerTodasLasOrdenes) {
-        aplicarPedidosPorAlcance(data);
+        aplicarPedidosPorAlcance(data, alcancePedidos, periodoPedidos);
       } else {
-        setAlcanceConteos({ mis: data.length, todas: data.length });
+        const nextConteos = { mis: data.length, todas: data.length };
+        setAlcanceConteos(nextConteos);
         setPedidos(data);
+        if (operador) writeCachedPedidos(operador.id, data, nextConteos, 'mis', periodoPedidos);
       }
       lastPedidosRefreshAtRef.current = Date.now();
     } catch {
@@ -1550,7 +1637,15 @@ export function App() {
     } finally {
       pedidosRequestKeysRef.current.delete(cargaKey);
     }
-  }, [alcancePedidos, aplicarPedidosPorAlcance, operador?.id, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
+  }, [alcancePedidos, aplicarPedidosPorAlcance, operador, puedeVerTodasLasOrdenes, periodoPedidos, revisarNotificacionesPedidos]);
+
+  useEffect(() => {
+    if (!operador || pedidos.length > 0) return;
+    const cached = readCachedPedidos(operador.id);
+    if (!cached) return;
+    setPedidos(cached.pedidos);
+    setAlcanceConteos(cached.alcanceConteos);
+  }, [operador, pedidos.length]);
 
   useEffect(() => {
     if (!puedeVerTodasLasOrdenes && alcancePedidos === 'todas') {
@@ -1736,14 +1831,21 @@ export function App() {
   useAbortableEffect((signal) => {
     if (!getToken()) return;
     getMeDedup({ signal })
-      .then(setOperador)
+      .then((nextOperador) => {
+        writeCachedOperador(nextOperador);
+        setOperador(nextOperador);
+      })
       .catch((err) => {
         if (isAbortError(err)) return;
         const message = err instanceof Error ? err.message.toLowerCase() : '';
         if (message.includes('401') || message.includes('token')) {
           clearToken();
+          clearCachedOperador();
+          setOperador(null);
+          return;
         }
-        setOperador(null);
+        const cached = readCachedOperador();
+        setOperador(cached);
       });
   }, []);
 
@@ -2015,6 +2117,7 @@ export function App() {
       });
       retryProfilePhotoUploadRef.current = null;
       setProfilePhotoProgress(100);
+      writeCachedOperador(actualizado);
       setOperador(actualizado);
       setProfileMessage('Foto de perfil actualizada');
     } catch (err) {
@@ -2040,6 +2143,7 @@ export function App() {
     setProfileMessage(null);
     try {
       const actualizado = await actualizarMiPerfil({ nombre });
+      writeCachedOperador(actualizado);
       setOperador(actualizado);
       setProfileMessage('Datos actualizados correctamente');
     } catch (err) {
