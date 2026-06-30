@@ -216,9 +216,12 @@ function estadoLabel(value: string) {
 }
 
 function detalleEntries(pedido: PedidoDetalle) {
+  const observaciones = typeof pedido.observaciones === 'string'
+    ? pedido.observaciones.trim()
+    : pedido.observaciones;
   const detalle: Record<string, unknown> = {
     ...(pedido.detalle ?? {}),
-    ...(pedido.observaciones && pedido.servicio !== 'otros' ? { observaciones: pedido.observaciones } : {}),
+    ...(observaciones && pedido.servicio !== 'otros' ? { observaciones } : {}),
   };
 
   const keys = detalleOrden[pedido.servicio] ?? [];
@@ -1360,7 +1363,7 @@ export function PedidoDetallePanel({
                   }
 
                   return (
-                    <div key={key} className={[index === 0 ? 'primary-detail' : '', copyable ? 'copyable-detail' : ''].filter(Boolean).join(' ')}>
+                    <div key={key} className={[index === 0 ? 'primary-detail' : '', copyable ? 'copyable-detail' : '', key === 'observaciones' ? 'observaciones-detail' : ''].filter(Boolean).join(' ')}>
                       <span>{label}</span>
                       {copyable ? (
                         <button className={copiaActiva(label) ? 'copy-field-button copied' : 'copy-field-button'} type="button" onClick={() => copiarCampo(value, label)} aria-label={'Copiar ' + label}>

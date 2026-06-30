@@ -412,6 +412,14 @@
   white-space: nowrap;
 }
 
+.order-detail-fields .observaciones-detail {
+  grid-column: 1 / -1;
+}
+
+.order-detail-fields .observaciones-detail strong {
+  white-space: normal;
+}
+
 .order-message-box pre {
   border: 1px solid color-mix(in srgb, var(--ui-primary-strong) 14%, transparent);
   background: #132235;
