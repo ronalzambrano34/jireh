@@ -41,7 +41,7 @@ export function OtrosForm({
     idempotency_key: initialData?.idempotency_key ?? crearIdempotencyKey('otros', operadorId),
     monto_pago: initialData?.monto_pago ?? '',
     moneda_pago: initialData?.moneda_pago ?? leerMonedaPedidoPreferida('BRL', operadorId),
-    tipo_pago_id: initialData?.tipo_pago_id ?? '1',
+    tipo_pago_id: initialData?.tipo_pago_id ?? '',
     cuenta_pago_id: initialData?.cuenta_pago_id ?? '',
     cliente_id: initialData?.cliente_id ?? '',
     nombre_cliente: initialData?.nombre_cliente ?? '',
@@ -83,14 +83,11 @@ export function OtrosForm({
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
           const metodosMoneda = data.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
           const metodoActual = metodosMoneda.find((item) => String(item.id) === current.tipo_pago_id);
-          const metodo = metodoActual ?? (moneda === 'BRL'
-            ? metodosMoneda.find((item) => item.nombre.trim().toLowerCase() === 'pix') ?? metodosMoneda[0]
-            : metodosMoneda[0]);
           guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
-            tipo_pago_id: metodo ? String(metodo.id) : '',
+            tipo_pago_id: metodoActual ? current.tipo_pago_id : '',
             numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
           };
         });
@@ -128,11 +125,8 @@ export function OtrosForm({
     }
 
     const existe = metodosFiltrados.some((metodo) => String(metodo.id) === form.tipo_pago_id);
-    if (!existe) {
-      const metodo = form.moneda_pago === 'BRL'
-        ? metodosFiltrados.find((item) => item.nombre.toLowerCase() === 'pix')
-        : metodosFiltrados[0];
-      setForm((current) => ({ ...current, tipo_pago_id: String(metodo?.id || metodosFiltrados[0].id) }));
+    if (form.tipo_pago_id && !existe) {
+      setForm((current) => ({ ...current, tipo_pago_id: '' }));
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 

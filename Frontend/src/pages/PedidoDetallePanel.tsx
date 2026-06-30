@@ -195,6 +195,7 @@ const detalleLabels: Record<string, string> = {
   tipo_tarjeta: 'Tipo tarjeta',
   monto_divisa: 'Monto divisa',
   informacion_operacion: 'Info operacion',
+  observaciones: 'Observaciones',
 };
 
 const camposCopiables = new Set([
@@ -215,8 +216,10 @@ function estadoLabel(value: string) {
 }
 
 function detalleEntries(pedido: PedidoDetalle) {
-  const detalle = pedido.detalle;
-  if (!detalle) return [];
+  const detalle: Record<string, unknown> = {
+    ...(pedido.detalle ?? {}),
+    ...(pedido.observaciones && pedido.servicio !== 'otros' ? { observaciones: pedido.observaciones } : {}),
+  };
 
   const keys = detalleOrden[pedido.servicio] ?? [];
   const presentes = new Set<string>();

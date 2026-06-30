@@ -84,12 +84,11 @@ export function DivisaForm({
           const moneda = disponibles.includes(actual) ? actual : (disponibles[0] ?? actual);
           const metodosMoneda = data.filter((metodo) => normalizarMoneda(metodo.moneda) === moneda);
           const metodoActual = metodosMoneda.find((metodo) => String(metodo.id) === current.tipo_pago_id);
-          const primero = metodoActual ?? metodosMoneda[0];
           guardarMonedaPedidoPreferida(moneda, operadorId);
           return {
             ...current,
             moneda_pago: moneda,
-            tipo_pago_id: primero ? String(primero.id) : '',
+            tipo_pago_id: metodoActual ? current.tipo_pago_id : '',
             numero_telefono_cliente: current.cliente_id ? current.numero_telefono_cliente : telefonoClienteConMoneda(current.numero_telefono_cliente, moneda),
           };
         });
@@ -111,8 +110,8 @@ export function DivisaForm({
     }
 
     const existe = metodosFiltrados.some((metodo) => String(metodo.id) === form.tipo_pago_id);
-    if (!existe) {
-      setForm((current) => ({ ...current, tipo_pago_id: String(metodosFiltrados[0].id) }));
+    if (form.tipo_pago_id && !existe) {
+      setForm((current) => ({ ...current, tipo_pago_id: '' }));
     }
   }, [form.moneda_pago, form.tipo_pago_id, metodosFiltrados]);
 
