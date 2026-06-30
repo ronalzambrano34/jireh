@@ -8,13 +8,13 @@ class PromocionBase(BaseModel):
 
     tipo: str = "promocion"
 
-    titulo: str = ""
+    titulo: str | None = ""
 
-    subtitulo: str = ""
+    subtitulo: str | None = ""
 
     imagen_url: str | None = None
 
-    descripcion: str
+    descripcion: str | None = ""
 
     orden: int = 0
 

@@ -669,9 +669,9 @@ export function InicioPage({ operadorId, canSyncTasas = false, canLoadTasas = tr
   const promocionesCarrusel = useMemo<PromoBanner[]>(() => (data?.promociones ?? []).filter((promocion) => promocion.tipo === 'promocion' && promocion.imagen_url).map((promocion) => ({
     id: String(promocion.id),
     image: apiAssetUrl(promocion.imagen_url),
-    alt: promocion.titulo,
-    title: promocion.titulo,
-    body: promocion.descripcion,
+    alt: promocion.titulo || 'Promocion',
+    title: promocion.titulo || undefined,
+    body: promocion.descripcion || undefined,
   })), [data?.promociones]);
 
   return (

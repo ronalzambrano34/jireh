@@ -2292,7 +2292,7 @@ export function AdminCatalogosPage() {
           <form className="stack-form modal-form" onSubmit={guardarPromocion}>
             <div className="inline-form three">
               <FloatingSelect value={promoForm.tipo} onChange={(value) => setPromoForm((current) => ({ ...current, tipo: value as Promocion['tipo'] }))} options={[...tiposSlide]} ariaLabel="Tipo de slide" align="left" />
-              <input value={promoForm.titulo} onChange={(event) => setPromoForm((current) => ({ ...current, titulo: event.target.value }))} placeholder="Titulo" required />
+              <input value={promoForm.titulo} onChange={(event) => setPromoForm((current) => ({ ...current, titulo: event.target.value }))} placeholder="Titulo opcional" />
               <input value={promoForm.subtitulo} onChange={(event) => setPromoForm((current) => ({ ...current, subtitulo: event.target.value }))} placeholder="Etiqueta corta" />
             </div>
             {promoForm.tipo !== 'precios' && (
@@ -2317,7 +2317,7 @@ export function AdminCatalogosPage() {
               label="Subiendo imagen"
               onRetry={retryPromoUploadRef.current ?? undefined}
             />
-            <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion de la promocion" rows={3} required />
+            <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion opcional" rows={3} />
             {promoForm.tipo !== 'precios' && <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL opcional" />}
             <div className="inline-form three">
               <label><span>Desde</span><input type="datetime-local" value={promoForm.fecha_desde} onChange={(event) => setPromoForm((current) => ({ ...current, fecha_desde: event.target.value }))} required /></label>
@@ -2335,7 +2335,7 @@ export function AdminCatalogosPage() {
           <form className="stack-form modal-form" onSubmit={guardarPromocionEditada}>
             <div className="inline-form three">
               <FloatingSelect value={promoForm.tipo} onChange={(value) => setPromoForm((current) => ({ ...current, tipo: value as Promocion['tipo'] }))} options={[...tiposSlide]} ariaLabel="Tipo de slide" align="left" />
-              <input value={promoForm.titulo} onChange={(event) => setPromoForm((current) => ({ ...current, titulo: event.target.value }))} placeholder="Titulo" required />
+              <input value={promoForm.titulo} onChange={(event) => setPromoForm((current) => ({ ...current, titulo: event.target.value }))} placeholder="Titulo opcional" />
               <input value={promoForm.subtitulo} onChange={(event) => setPromoForm((current) => ({ ...current, subtitulo: event.target.value }))} placeholder="Etiqueta corta" />
             </div>
             {promoForm.tipo !== 'precios' && (
@@ -2357,7 +2357,7 @@ export function AdminCatalogosPage() {
               label="Subiendo imagen"
               onRetry={retryPromoUploadRef.current ?? undefined}
             />
-            <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion de la promocion" rows={3} required />
+            <textarea value={promoForm.descripcion} onChange={(event) => setPromoForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="Descripcion opcional" rows={3} />
             {promoForm.tipo !== 'precios' && <input value={promoForm.imagen_url} onChange={(event) => setPromoForm((current) => ({ ...current, imagen_url: event.target.value }))} placeholder="Imagen URL" />}
             <div className="inline-form three">
               <label><span>Desde</span><input type="datetime-local" value={promoForm.fecha_desde} onChange={(event) => setPromoForm((current) => ({ ...current, fecha_desde: event.target.value }))} required /></label>

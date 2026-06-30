@@ -109,18 +109,15 @@ def crear_promocion(db: Session, data):
 
     promocion = Promocion(
         tipo=tipo,
-        titulo=data.titulo.strip(),
-        subtitulo=data.subtitulo.strip(),
+        titulo=(data.titulo or "").strip(),
+        subtitulo=(data.subtitulo or "").strip(),
         imagen_url=data.imagen_url or "",
-        descripcion=data.descripcion.strip(),
+        descripcion=(data.descripcion or "").strip(),
         orden=data.orden,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         activa=data.activa,
     )
-
-    if not promocion.titulo:
-        raise Exception("El titulo es obligatorio")
 
     db.add(promocion)
     db.commit()
@@ -136,11 +133,9 @@ def actualizar_promocion(db: Session, promocion_id: int, data):
     fecha_hasta = _normalizar_datetime(cambios.get("fecha_hasta", promocion.fecha_hasta))
     _validar_rango(fecha_desde, fecha_hasta)
 
-    tipo = str(cambios.get("tipo", promocion.tipo)).strip().lower()
+    tipo = str(cambios.get("tipo") or promocion.tipo).strip().lower()
     if tipo not in TIPOS_PROMOCION:
         raise Exception("Tipo de slide no permitido")
-    if "titulo" in cambios and not str(cambios["titulo"]).strip():
-        raise Exception("El titulo es obligatorio")
     imagen_url = cambios.get("imagen_url", promocion.imagen_url) or ""
     if tipo == "promocion" and not imagen_url:
         raise Exception("La imagen es obligatoria para una promocion")
@@ -148,8 +143,10 @@ def actualizar_promocion(db: Session, promocion_id: int, data):
     for campo, valor in cambios.items():
         if campo in {"fecha_desde", "fecha_hasta"}:
             valor = _normalizar_datetime(valor)
-        if campo in {"tipo", "titulo", "subtitulo", "descripcion"} and valor is not None:
-            valor = valor.strip()
+        if campo in {"titulo", "subtitulo", "descripcion", "imagen_url"}:
+            valor = (valor or "").strip()
+        elif campo == "tipo" and valor is not None:
+            valor = valor.strip().lower()
         setattr(promocion, campo, valor)
 
     promocion.updated_at = datetime.utcnow()

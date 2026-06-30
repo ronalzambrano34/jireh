@@ -1312,7 +1312,7 @@ export function listarPromociones(incluirInactivas = false, options: ApiRequestO
   return request<Promocion[]>(`/promociones/?${query.toString()}`, { signal: options.signal });
 }
 
-export function crearPromocion(payload: { tipo: Promocion['tipo']; titulo: string; subtitulo?: string; descripcion: string; orden?: number; fecha_desde: string; fecha_hasta: string; imagen_url?: string; activa?: boolean }) {
+export function crearPromocion(payload: { tipo: Promocion['tipo']; titulo?: string; subtitulo?: string; descripcion?: string; orden?: number; fecha_desde: string; fecha_hasta: string; imagen_url?: string; activa?: boolean }) {
   return request<Promocion>('/promociones/', {
     method: 'POST',
     body: JSON.stringify(payload),

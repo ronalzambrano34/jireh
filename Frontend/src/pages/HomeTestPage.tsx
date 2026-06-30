@@ -112,7 +112,7 @@ function HomeTestCarousel({
         content: (
           <div className="ht-config-slide ht-price-slide">
             <span className="ht-eyebrow">{slide.subtitulo}</span>
-            <h2>{slide.titulo}</h2>
+            {slide.titulo && <h2>{slide.titulo}</h2>}
             {slide.descripcion && <p>{slide.descripcion}</p>}
             <div className="ht-price-pair">
               <button type="button" onClick={() => onCreate('transferencia', { moneda_pago: currency, monto_pago: String(transfer?.minimo_pago ?? '') })}>
@@ -140,7 +140,7 @@ function HomeTestCarousel({
             <img src={slide.imagen_url ? apiAssetUrl(slide.imagen_url) : logoJireh} alt={slide.subtitulo || 'El Jireh'} />
             <span>
               <span className="ht-eyebrow">{slide.subtitulo}</span>
-              <h2>{slide.titulo}</h2>
+              {slide.titulo && <h2>{slide.titulo}</h2>}
               {slide.descripcion && <p>{slide.descripcion}</p>}
               <small>{updateLabel(data?.sync?.last_success_at ?? data?.generated_at)}</small>
             </span>
@@ -154,10 +154,10 @@ function HomeTestCarousel({
       className: 'promotion',
       content: (
         <div className="ht-promotion-slide">
-          <img src={apiAssetUrl(slide.imagen_url)} alt={slide.titulo} />
+          <img src={apiAssetUrl(slide.imagen_url)} alt={slide.titulo || 'Promocion'} />
           <span className="ht-promotion-copy">
             {slide.subtitulo && <span className="ht-eyebrow">{slide.subtitulo}</span>}
-            <h2>{slide.titulo}</h2>
+            {slide.titulo && <h2>{slide.titulo}</h2>}
             {slide.descripcion && <p>{slide.descripcion}</p>}
           </span>
         </div>

@@ -406,6 +406,9 @@ def ensure_runtime_columns(
 
 
 def ensure_carousel_columns(db: Session):
+    columns = _get_columns(db, "promociones")
+    titulo_faltaba = bool(columns) and "titulo" not in columns
+
     _add_column_if_missing(
         db,
         "promociones",
@@ -430,7 +433,7 @@ def ensure_carousel_columns(db: Session):
         "orden",
         "orden INTEGER NOT NULL DEFAULT 0"
     )
-    if _get_columns(db, "promociones"):
+    if titulo_faltaba:
         db.execute(text(
             "UPDATE promociones SET titulo = descripcion "
             "WHERE titulo IS NULL OR titulo = ''"
