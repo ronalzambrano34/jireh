@@ -1242,7 +1242,6 @@ export function App() {
         const actualizado = await actualizarEstado(
           pedido.codigo_operacion,
           'pago_confirmado',
-          'Pago confirmado al crear el pedido con comprobante cargado.',
         );
         if (actualizado.whatsapp_grupo_pedidos_url) {
           setWhatsappGrupoPendiente({
@@ -1519,7 +1518,6 @@ export function App() {
       const actualizado = await actualizarEstado(
         codigoOperacion,
         'pago_confirmado',
-        'Pago confirmado al crear el pedido con comprobante cargado.',
       );
       if (actualizado.whatsapp_grupo_pedidos_url) {
         setWhatsappGrupoPendiente({
