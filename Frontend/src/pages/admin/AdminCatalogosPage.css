@@ -1764,6 +1764,28 @@
   white-space: nowrap;
 }
 
+.currency-admin-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.currency-admin-flag-image {
+  width: 22px;
+  height: 16px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-border) 70%, transparent);
+  flex: 0 0 auto;
+}
+
+.currency-admin-flag-emoji {
+  font-size: 18px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
 .catalog-edit-main:hover {
   background: color-mix(in srgb, var(--ui-primary) 9%, transparent);
 }

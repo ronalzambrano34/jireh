@@ -23,7 +23,7 @@ import { PhoneInput } from '../components/PhoneInput';
 import { useCatalogoMonedasPago } from '../hooks/useMonedasPago';
 import { isAbortError, useAbortableEffect } from '../hooks/useAbortableEffect';
 import type { ConfiguracionInicialEstado, MetodoPago, ProvinciaServicio } from '../types/api';
-import { MONEDAS_PAGO_CONFIG_KEY, banderaMoneda, guardarCatalogoMonedasPagoLocal, monedasPagoActivas, nombreMoneda, normalizarCatalogoMonedasPago, type MonedaPagoConfig } from '../utils/monedas';
+import { MONEDAS_PAGO_CONFIG_KEY, banderaAutomaticaMoneda, banderaMoneda, guardarCatalogoMonedasPagoLocal, monedasPagoActivas, nombreMoneda, normalizarCatalogoMonedasPago, normalizarMoneda, type MonedaPagoConfig } from '../utils/monedas';
 import { SetupActions, SetupCardHeader, SetupHero, SetupSteps, type SetupStep } from './setup/SetupLayout';
 import './setup/SetupInicialPage.css';
 
@@ -87,6 +87,7 @@ export function SetupInicialPage({
     moneda: 'BRL',
     saldo_cup: '',
   });
+  const [nuevaMoneda, setNuevaMoneda] = useState({ codigo: '', nombre: '', simbolo: '' });
   const catalogoMonedas = useCatalogoMonedasPago();
   const [catalogoMonedasSetup, setCatalogoMonedasSetup] = useState<MonedaPagoConfig[]>(catalogoMonedas);
   const monedas = useMemo(() => monedasPagoActivas(catalogoMonedasSetup), [catalogoMonedasSetup]);
@@ -315,6 +316,29 @@ export function SetupInicialPage({
     });
   }
 
+  function agregarMonedaPago() {
+    const codigo = normalizarMoneda(nuevaMoneda.codigo);
+    if (!codigo) {
+      setError('El codigo de moneda es obligatorio');
+      return;
+    }
+    setCatalogoMonedasSetup((current) => {
+      if (current.some((item) => item.codigo === codigo)) return current.map((item) => (item.codigo === codigo ? { ...item, activa: true } : item));
+      return normalizarCatalogoMonedasPago([
+        ...current,
+        {
+          codigo,
+          nombre: nuevaMoneda.nombre.trim() || nombreMoneda(codigo) || codigo,
+          simbolo: nuevaMoneda.simbolo.trim() || undefined,
+          bandera: banderaAutomaticaMoneda(codigo),
+          activa: true,
+        },
+      ]);
+    });
+    setNuevaMoneda({ codigo: '', nombre: '', simbolo: '' });
+    setError(null);
+  }
+
   async function guardarMonedasPago() {
     if (savingRef.current) return;
     const normalizado = normalizarCatalogoMonedasPago(catalogoMonedasSetup);
@@ -490,6 +514,12 @@ export function SetupInicialPage({
                     <small>{moneda.nombre || nombreMoneda(moneda.codigo)}</small>
                   </button>
                 ))}
+              </div>
+              <div className="setup-currency-create">
+                <input value={nuevaMoneda.codigo} onChange={(event) => setNuevaMoneda((current) => ({ ...current, codigo: event.target.value.toUpperCase() }))} placeholder="Codigo USD" />
+                <input value={nuevaMoneda.nombre} onChange={(event) => setNuevaMoneda((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre Dolar estadounidense" />
+                <input value={nuevaMoneda.simbolo} onChange={(event) => setNuevaMoneda((current) => ({ ...current, simbolo: event.target.value }))} placeholder="Simbolo $" />
+                <button className="ghost-button" type="button" onClick={agregarMonedaPago}>Agregar moneda</button>
               </div>
               <SetupActions secondary={estado.monedas ? <button className="ghost-button" type="button" onClick={() => setPaso(3)}>Continuar</button> : undefined} primary={<button className="primary-button" type="button" onClick={() => void guardarMonedasPago()} disabled={saving}>{saving ? 'Guardando...' : 'Guardar monedas'}</button>} />
             </>

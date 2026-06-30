@@ -13,12 +13,59 @@ export const MONEDAS_PAGO_CHANGED_EVENT = 'jireh:monedas-pago-changed';
 export const MONEDAS_PAGO_DEFAULT: MonedaPagoConfig[] = [
   { codigo: 'BRL', nombre: 'Real brasileño', simbolo: 'R$', bandera: '🇧🇷', activa: true },
   { codigo: 'UYU', nombre: 'Peso uruguayo', simbolo: '$U', bandera: '🇺🇾', activa: true },
+  { codigo: 'CUP', nombre: 'Peso cubano', simbolo: '$', bandera: '🇨🇺', activa: true },
   { codigo: 'USD', nombre: 'Dolar estadounidense', simbolo: 'US$', bandera: '🇺🇸', activa: false },
   { codigo: 'EUR', nombre: 'Euro', simbolo: '€', bandera: '🇪🇺', activa: false },
 ];
 
+const MONEDA_PAIS_POR_CODIGO: Record<string, string> = {
+  AED: 'AE',
+  ARS: 'AR',
+  AUD: 'AU',
+  BOB: 'BO',
+  BRL: 'BR',
+  CAD: 'CA',
+  CHF: 'CH',
+  CLP: 'CL',
+  CNY: 'CN',
+  COP: 'CO',
+  CRC: 'CR',
+  CUP: 'CU',
+  DOP: 'DO',
+  EUR: 'EU',
+  GBP: 'GB',
+  GTQ: 'GT',
+  HNL: 'HN',
+  INR: 'IN',
+  JPY: 'JP',
+  KRW: 'KR',
+  MLC: 'CU',
+  MXN: 'MX',
+  NIO: 'NI',
+  PAB: 'PA',
+  PEN: 'PE',
+  PYG: 'PY',
+  RUB: 'RU',
+  TRY: 'TR',
+  USD: 'US',
+  UYU: 'UY',
+  VES: 'VE',
+  ZAR: 'ZA',
+};
+
 export function normalizarMoneda(moneda?: string | null) {
   return (moneda || '').trim().toUpperCase();
+}
+
+function banderaDesdePais(pais: string) {
+  return pais
+    .toUpperCase()
+    .replace(/./g, (letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)));
+}
+
+export function banderaAutomaticaMoneda(moneda?: string | null) {
+  const pais = MONEDA_PAIS_POR_CODIGO[normalizarMoneda(moneda)];
+  return pais ? banderaDesdePais(pais) : undefined;
 }
 
 function normalizarItemMoneda(item: Partial<MonedaPagoConfig> | string): MonedaPagoConfig | null {
@@ -26,7 +73,7 @@ function normalizarItemMoneda(item: Partial<MonedaPagoConfig> | string): MonedaP
     const codigo = normalizarMoneda(item);
     if (!codigo) return null;
     const base = MONEDAS_PAGO_DEFAULT.find((moneda) => moneda.codigo === codigo);
-    return base ? { ...base } : { codigo, nombre: codigo, activa: true };
+    return base ? { ...base } : { codigo, nombre: codigo, bandera: banderaAutomaticaMoneda(codigo), activa: true };
   }
 
   const codigo = normalizarMoneda(item.codigo);
@@ -36,7 +83,7 @@ function normalizarItemMoneda(item: Partial<MonedaPagoConfig> | string): MonedaP
     codigo,
     nombre: (item.nombre || base?.nombre || codigo).trim(),
     simbolo: (item.simbolo || base?.simbolo || '').trim() || undefined,
-    bandera: (item.bandera || base?.bandera || '').trim() || undefined,
+    bandera: (item.bandera || base?.bandera || banderaAutomaticaMoneda(codigo) || '').trim() || undefined,
     activa: Boolean(item.activa),
   };
 }
@@ -66,7 +113,7 @@ export function normalizarCatalogoMonedasPago(items?: Array<Partial<MonedaPagoCo
 
   return catalogo.some((item) => item.activa)
     ? catalogo
-    : catalogo.map((item) => ({ ...item, activa: item.codigo === 'BRL' || item.codigo === 'UYU' }));
+    : catalogo.map((item) => ({ ...item, activa: item.codigo === 'BRL' || item.codigo === 'UYU' || item.codigo === 'CUP' }));
 }
 
 export function catalogoMonedasPagoDesdeValor(value?: string | null) {
@@ -115,10 +162,13 @@ export function monedasDisponibles(monedas: Array<string | null | undefined>) {
 export function banderaMoneda(moneda?: string | null) {
   const normalizada = normalizarMoneda(moneda);
   const configurada = monedaCatalogo(normalizada);
-  if (configurada?.bandera) return configurada.bandera;
+  if (configurada?.bandera && !/^(https?:|data:|blob:|\/)/i.test(configurada.bandera)) return configurada.bandera;
+  const automatica = banderaAutomaticaMoneda(normalizada);
+  if (automatica) return automatica;
   const banderas: Record<string, string> = {
     BRL: '🇧🇷',
     UYU: '🇺🇾',
+    CUP: '🇨🇺',
     USD: '🇺🇸',
     EUR: '🇪🇺',
   };
@@ -132,6 +182,7 @@ export function nombreMoneda(moneda?: string | null) {
   const nombres: Record<string, string> = {
     BRL: 'Real brasileño',
     UYU: 'Peso uruguayo',
+    CUP: 'Peso cubano',
     USD: 'Dolar estadounidense',
     EUR: 'Euro',
   };

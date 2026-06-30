@@ -55,7 +55,7 @@ import {
 } from '../api/client';
 import type { Cliente, Configuracion, Contacto, MetodoPago, MetodoPagoCuenta, Oferta, Operador, OperadorRol, PaqueteSaldo, Promocion, ProvinciaServicio, PuntoRecogida, TemplateConfig } from '../types/api';
 import { metodoPagoVisual } from '../utils/metodosPago';
-import { MONEDAS_PAGO_CONFIG_KEY, catalogoMonedasPagoDesdeValor, guardarCatalogoMonedasPagoLocal, leerCatalogoMonedasPagoLocal, monedasPagoActivas, normalizarCatalogoMonedasPago, normalizarMoneda, type MonedaPagoConfig } from '../utils/monedas';
+import { MONEDAS_PAGO_CONFIG_KEY, banderaAutomaticaMoneda, catalogoMonedasPagoDesdeValor, guardarCatalogoMonedasPagoLocal, leerCatalogoMonedasPagoLocal, monedasPagoActivas, normalizarCatalogoMonedasPago, normalizarMoneda, type MonedaPagoConfig } from '../utils/monedas';
 import { COUNTRY_PHONE_CODES, DEFAULT_ACTIVE_PHONE_CODES, PHONE_CODES_CONFIG_KEY, codigosPaisActivosDesdeValor, guardarCodigosPaisActivosLocal, leerCodigosPaisActivosLocal, normalizarCodigosPaisActivos } from '../utils/telefonos';
 import { AdminEmpty, AdminHero, AdminMenu, AdminSection, AdminStateSwitch, type AdminEstadoVista, type AdminMenuGroup } from './admin/AdminCatalogosLayout';
 import './admin/AdminCatalogosPage.css';
@@ -157,9 +157,20 @@ function formToMoneda(form: MonedaFormState): MonedaPagoConfig {
     codigo,
     nombre: form.nombre.trim() || codigo,
     simbolo: form.simbolo.trim() || undefined,
-    bandera: form.bandera.trim() || undefined,
+    bandera: form.bandera.trim() || banderaAutomaticaMoneda(codigo) || undefined,
     activa: form.activa,
   };
+}
+
+function esImagenBandera(value?: string) {
+  return /^(https?:|data:|blob:|\/)/i.test(value?.trim() ?? '');
+}
+
+function renderBanderaMonedaAdmin(value?: string) {
+  const bandera = value?.trim();
+  if (!bandera) return null;
+  if (esImagenBandera(bandera)) return <img className="currency-admin-flag-image" src={apiAssetUrl(bandera)} alt="" />;
+  return <span className="currency-admin-flag-emoji">{bandera}</span>;
 }
 
 function permisosBaseRol(rol: string) {
@@ -1984,7 +1995,7 @@ export function AdminCatalogosPage() {
             {monedasVisibles.map((moneda) => (
               <div className="catalog-row currency-admin-row" key={moneda.codigo}>
                 <button type="button" className="catalog-edit-main" onClick={() => abrirEditarMoneda(moneda)}>
-                  <span><strong>{moneda.bandera ? `${moneda.bandera} ` : ''}{moneda.codigo}</strong><small>{moneda.nombre}{moneda.simbolo ? ` · ${moneda.simbolo}` : ''}</small></span>
+                  <span><strong className="currency-admin-code">{renderBanderaMonedaAdmin(moneda.bandera)}{moneda.codigo}</strong><small>{moneda.nombre}{moneda.simbolo ? ` · ${moneda.simbolo}` : ''}</small></span>
                 </button>
                 <div className="catalog-offer-actions">
                   <span className={moneda.activa ? 'status completado' : 'status cancelado'}>{moneda.activa ? 'activa' : 'inactiva'}</span>
@@ -2374,12 +2385,15 @@ export function AdminCatalogosPage() {
         <Modal title={monedaEditando ? 'Editar moneda' : 'Crear moneda'} subtitle="Administracion / Monedas de pago" onClose={() => { setCrearModalTema(null); setMonedaEditando(null); }} wide>
           <form className="stack-form modal-form" onSubmit={guardarMoneda}>
             <div className="inline-form three">
-              <input value={monedaForm.codigo} onChange={(event) => setMonedaForm((current) => ({ ...current, codigo: event.target.value.toUpperCase() }))} placeholder="Codigo" disabled={Boolean(monedaEditando)} required />
-              <input value={monedaForm.nombre} onChange={(event) => setMonedaForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre" required />
-              <input value={monedaForm.simbolo} onChange={(event) => setMonedaForm((current) => ({ ...current, simbolo: event.target.value }))} placeholder="Simbolo" />
+              <input value={monedaForm.codigo} onChange={(event) => {
+                const codigo = event.target.value.toUpperCase();
+                setMonedaForm((current) => ({ ...current, codigo, bandera: current.bandera.trim() ? current.bandera : banderaAutomaticaMoneda(codigo) ?? '' }));
+              }} placeholder="Codigo USD" disabled={Boolean(monedaEditando)} required />
+              <input value={monedaForm.nombre} onChange={(event) => setMonedaForm((current) => ({ ...current, nombre: event.target.value }))} placeholder="Nombre Dolar estadounidense" required />
+              <input value={monedaForm.simbolo} onChange={(event) => setMonedaForm((current) => ({ ...current, simbolo: event.target.value }))} placeholder="Simbolo $" />
             </div>
             <div className="inline-form two">
-              <input value={monedaForm.bandera} onChange={(event) => setMonedaForm((current) => ({ ...current, bandera: event.target.value }))} placeholder="Bandera" />
+              <input value={monedaForm.bandera} onChange={(event) => setMonedaForm((current) => ({ ...current, bandera: event.target.value }))} placeholder="Bandera automatica" />
               <label className="permission-switch-row">
                 <span>Activa<small>Disponible en metodos, ofertas, paquetes y pedidos.</small></span>
                 <UiSwitch checked={monedaForm.activa} onChange={(checked) => setMonedaForm((current) => ({ ...current, activa: checked }))} ariaLabel="Activar moneda" />
