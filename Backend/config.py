@@ -134,11 +134,15 @@ AUTH_TOKEN_MINUTES = int(
 
 FRONTEND_ORIGINS = list(dict.fromkeys([
     "https://ronalzambrano34.github.io",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:4173",
+    "http://localhost:4173",
     *[
         origin.strip()
         for origin in os.getenv(
             "FRONTEND_ORIGINS",
-            "http://127.0.0.1:5173,http://localhost:5173,*"
+            "*"
         ).split(",")
         if origin.strip()
     ],
