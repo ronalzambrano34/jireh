@@ -138,6 +138,7 @@ FRONTEND_ORIGINS = list(dict.fromkeys([
     "http://localhost:5173",
     "http://127.0.0.1:4173",
     "http://localhost:4173",
+    "https://dnfa0cztemtsu.cloudfront.net",
     *[
         origin.strip()
         for origin in os.getenv(

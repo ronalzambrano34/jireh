@@ -1,7 +1,5 @@
 PENDIENTES:
 
-Hasta tener api de whatsapp, que el numero del cliente sea +598 94207862
-
 IDEA A FUTURO:
 - El sistema tendra un generador de bonos. Los usuarios, al referir o registrarse, podran ganar bonos de un solo uso para aplicar en un pedido futuro.
 
