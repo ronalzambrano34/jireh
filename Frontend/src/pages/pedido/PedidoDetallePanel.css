@@ -417,6 +417,11 @@
 }
 
 .order-detail-fields .observaciones-detail strong {
+  display: block;
+  max-height: 180px;
+  overflow: auto;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
   white-space: normal;
 }
 
