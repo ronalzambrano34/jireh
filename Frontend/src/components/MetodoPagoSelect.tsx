@@ -43,17 +43,17 @@ export function MetodoPagoSelect({
     let active = true;
     if (!value || !onCuentaChange) {
       setCuentasState({ metodoId: '', items: [] });
-      onCuentaChange?.('');
+      if (cuentaValue) onCuentaChange?.('');
       return () => { active = false; };
     }
 
-    onCuentaChange('');
     listarCuentasMetodoPagoDedup(Number(value), false, { signal })
       .then((data) => {
         if (!active) return;
         setCuentasState({ metodoId: value, items: data });
         const cuentaActual = data.find((cuenta) => String(cuenta.id) === cuentaValue);
-        onCuentaChange(String((cuentaActual ?? data[0])?.id ?? ''));
+        const cuentaSiguiente = String((cuentaActual ?? data[0])?.id ?? '');
+        if (cuentaSiguiente !== cuentaValue) onCuentaChange(cuentaSiguiente);
       })
       .catch((err) => {
         if (isAbortError(err)) return;

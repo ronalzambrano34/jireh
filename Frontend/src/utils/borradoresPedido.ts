@@ -35,8 +35,6 @@ const BORRADOR_PEDIDO_PREFIX = 'jireh.nuevo-pedido.borrador';
 const VALORES_SOLO_ARCHIVO = new Set(['Documento adjunto en evidencias']);
 const CAMPOS_AUTOMATICOS = new Set([
   'moneda_pago',
-  'tipo_pago_id',
-  'cuenta_pago_id',
   'punto_recogida_id',
   'paquete_saldo_id',
   'idempotency_key',

@@ -1,4 +1,4 @@
-import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, ListFilter, RefreshCw, Search, UserCircle, X } from 'lucide-react';
+import { CalendarRange, CheckCircle2, ChevronDown, ClipboardList, Clock3, LayoutGrid, LayoutList, ListFilter, RefreshCw, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { DismissibleNotice } from '../components/DismissibleNotice';
 import { FloatingSelect } from '../components/FloatingSelect';
@@ -147,6 +147,9 @@ export function OrdersPage(props: {
     props.onBusqueda('');
   }
 
+  const scopeTodos = props.canViewAll ? 'todas' : 'mis';
+  const todosScopeCount = props.canViewAll ? props.todasCount : props.misCount;
+
   const orderCardMeta = (pedido: PedidoResumen) => (
     <>
       {pedido.redirigido_a_operador_id && <small className={pedido.redirigido_a_operador_id === props.operador.id ? 'order-redirect-chip own inline' : 'order-redirect-chip inline'}>Para {pedido.redirigido_a_operador_nombre ?? 'operador'}</small>}
@@ -166,7 +169,7 @@ export function OrdersPage(props: {
           </div>
           <button className="admin-refresh-button orders-refresh-button orders-hero-refresh-button" type="button" onClick={props.onRefresh} title="Actualizar pedidos" aria-label="Actualizar pedidos" disabled={props.loading}><RefreshCw size={18} /></button>
           <div className="orders-page-metrics" aria-label="Resumen de pedidos">
-            <button type="button" className={props.scope === 'mis' && !props.estado && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter('mis', '')}><UserCircle size={18} /><small>Mis pedidos</small><strong>{props.misCount}</strong></button>
+            <button type="button" className={props.scope === scopeTodos && !props.estado && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(scopeTodos, '')}><ClipboardList size={18} /><small>Todos</small><strong>{todosScopeCount}</strong></button>
             <button type="button" className={props.estado === 'en_proceso' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'en_proceso')}><Clock3 size={18} /><small>En proceso</small><strong>{(props.counts.get('pendiente_pago') ?? 0) + (props.counts.get('pago_confirmado') ?? 0)}</strong></button>
             {/* <button type="button" className={props.estado === 'completado' && !props.servicio ? 'active' : ''} onClick={() => applyHeroFilter(props.canViewAll ? 'todas' : 'mis', 'completado')}><CheckCircle2 size={18} /><small>Completados</small><strong>{props.counts.get('completado') ?? 0}</strong></button> */}
           </div>
@@ -197,8 +200,7 @@ export function OrdersPage(props: {
                   <h3>Alcance</h3>
                 </header>
                 <div className="orders-filter-options two-columns orders-scope-chips">
-                  <button type="button" className={props.scope === 'mis' ? 'active' : ''} onClick={() => props.onScope('mis')}><UserCircle size={17} /><span>Mis pedidos</span><strong>{props.misCount}</strong></button>
-                  {props.canViewAll && <button type="button" className={props.scope === 'todas' ? 'active' : ''} onClick={() => props.onScope('todas')}><ClipboardList size={17} /><span>Todos</span><strong>{props.todasCount}</strong></button>}
+                  <button type="button" className={props.scope === scopeTodos ? 'active' : ''} onClick={() => props.onScope(scopeTodos)}><ClipboardList size={17} /><span>Todos</span><strong>{todosScopeCount}</strong></button>
                 </div>
               </section>
 
