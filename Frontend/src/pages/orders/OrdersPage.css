@@ -2554,6 +2554,18 @@
   background: color-mix(in srgb, var(--ui-surface) 94%, transparent);
 }
 
+.orders-content-grid .chat-order-card.order-owned-by-me,
+.orders-content-grid .pedido-column .pedido-row.order-owned-by-me {
+  border-color: rgba(23, 107, 93, 0.46);
+  box-shadow: inset 4px 0 0 #176b5d, 0 10px 24px rgba(23, 107, 93, 0.13);
+}
+
+:root[data-theme="dark-sidebar"] .orders-content-grid .chat-order-card.order-owned-by-me,
+:root[data-theme="dark-sidebar"] .orders-content-grid .pedido-column .pedido-row.order-owned-by-me {
+  border-color: rgba(47, 166, 111, 0.46);
+  box-shadow: inset 4px 0 0 #91dfb7, 0 10px 24px rgba(47, 166, 111, 0.12);
+}
+
 @media (max-width: 560px) {
   .modal-backdrop:has(.orders-filter-modal) {
     place-items: center;
