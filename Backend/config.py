@@ -7,6 +7,32 @@ import re
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
+
+def _selected_app_env() -> str:
+    return (
+        os.getenv("APP_ENV")
+        or os.getenv("ENVIRONMENT")
+        or os.getenv("ENV")
+        or ("production" if os.getenv("VERCEL") else "development")
+    ).strip().lower()
+
+
+ENV_FILE_BY_APP_ENV = {
+    "dev": ".env.development",
+    "development": ".env.development",
+    "prod": ".env.production",
+    "production": ".env.production",
+}
+
+APP_ENV = _selected_app_env()
+env_file = BASE_DIR / ENV_FILE_BY_APP_ENV.get(
+    APP_ENV,
+    f".env.{APP_ENV}"
+)
+if env_file.exists():
+    load_dotenv(env_file)
+    APP_ENV = _selected_app_env()
+
 IS_VERCEL = bool(os.getenv("VERCEL"))
 
 
@@ -24,13 +50,6 @@ def _env_bool(
         "si"
     }
 
-
-APP_ENV = (
-    os.getenv("APP_ENV")
-    or os.getenv("ENVIRONMENT")
-    or os.getenv("ENV")
-    or ("production" if IS_VERCEL else "development")
-).strip().lower()
 
 IS_PRODUCTION = (
     IS_VERCEL
@@ -132,18 +151,28 @@ AUTH_TOKEN_MINUTES = int(
     )
 )
 
-FRONTEND_ORIGINS = list(dict.fromkeys([
+FRONTEND_ORIGINS_DEFAULTS = [
     "https://ronalzambrano34.github.io",
+    "https://dnfa0cztemtsu.cloudfront.net",
+    "https://jirehacuba.com",
+    "https://www.jirehacuba.com",
+]
+
+FRONTEND_ORIGINS_LOCAL = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
     "http://127.0.0.1:4173",
     "http://localhost:4173",
-    "https://dnfa0cztemtsu.cloudfront.net",
+]
+
+FRONTEND_ORIGINS = list(dict.fromkeys([
+    *FRONTEND_ORIGINS_DEFAULTS,
+    *([] if IS_PRODUCTION else FRONTEND_ORIGINS_LOCAL),
     *[
         origin.strip()
         for origin in os.getenv(
             "FRONTEND_ORIGINS",
-            "*"
+            ""
         ).split(",")
         if origin.strip()
     ],

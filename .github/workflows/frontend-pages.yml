@@ -37,6 +37,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
+          VITE_APP_ENV: development
           VITE_BASE: /${{ github.event.repository.name }}/
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://jireh-delta.vercel.app' }}
 
