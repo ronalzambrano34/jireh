@@ -1044,6 +1044,10 @@ export function App() {
     return Boolean(operador && pedido.lock_activo && pedido.operador_asignado_id && pedido.operador_asignado_id !== operador.id);
   }
 
+  function pedidoTransferidoParaMi(pedido: PedidoResumen) {
+    return Boolean(operador && pedido.redirigido_a_operador_id === operador.id);
+  }
+
   function pedidoAtrasado(pedido: PedidoResumen) {
     if (pedido.estado === 'completado' || pedido.estado === 'cancelado') return false;
     const createdAt = parseBackendTime(pedido.created_at);
@@ -1055,6 +1059,7 @@ export function App() {
       selected ? `${base} selected` : base,
       delayed ? 'order-delayed' : '',
       pedidoTomadoPorMi(pedido) ? 'order-owned-by-me' : '',
+      pedidoTransferidoParaMi(pedido) ? 'order-redirected-to-me' : '',
       pedidoBloqueadoPorOtro(pedido) ? 'order-blocked-by-other' : '',
       !pedido.lock_activo ? 'order-available' : '',
     ].filter(Boolean).join(' ');

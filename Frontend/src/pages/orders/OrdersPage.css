@@ -1138,6 +1138,12 @@
   box-shadow: inset 4px 0 0 #176b5d, 0 8px 22px rgba(23, 107, 93, 0.12);
 }
 
+.chat-order-card.order-redirected-to-me,
+.pedido-row.order-redirected-to-me {
+  border-color: rgba(23, 107, 93, 0.42);
+  box-shadow: inset 4px 0 0 #176b5d, 0 10px 24px rgba(23, 107, 93, 0.12);
+}
+
 .chat-order-card.order-blocked-by-other,
 .pedido-row.order-blocked-by-other {
   cursor: not-allowed;
@@ -1172,6 +1178,12 @@
   background: rgba(47, 166, 111, 0.08);
   border-color: rgba(47, 166, 111, 0.42);
   box-shadow: inset 3px 0 0 var(--ui-primary);
+}
+
+:root[data-theme="dark-sidebar"] .chat-order-card.order-redirected-to-me,
+:root[data-theme="dark-sidebar"] .pedido-row.order-redirected-to-me {
+  border-color: rgba(47, 166, 111, 0.42);
+  box-shadow: inset 3px 0 0 var(--ui-primary), 0 10px 24px rgba(47, 166, 111, 0.1);
 }
 
 :root[data-theme="dark-sidebar"] .chat-order-card.order-blocked-by-other,
